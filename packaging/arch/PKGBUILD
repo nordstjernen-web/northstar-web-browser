@@ -1,0 +1,99 @@
+# Maintainer: Andreas Røsdal <andreas dot rosdal at gmail dot com>
+
+pkgname=northstar-browser
+pkgver=1.0.16
+pkgrel=1
+pkgdesc='Minimalist web browser with an original engine, written in C with a GTK 4 interface'
+arch=(x86_64 aarch64)
+url='https://nordstjernen.org/northstar-browser/'
+license=('GPL-3.0-or-later')
+depends=(
+  cairo
+  curl
+  dav1d
+  enchant
+  fontconfig
+  freetype2
+  fribidi
+  gdk-pixbuf2
+  glib2
+  glibc
+  gtk4
+  harfbuzz
+  hicolor-icon-theme
+  libavif
+  libgcc
+  libpsl
+  libseccomp
+  libthai
+  libvorbis
+  libvpx
+  openssl
+  opus
+  opusfile
+  sdl2
+  sqlite
+  uchardet
+  zlib
+)
+makedepends=(cmake git meson python)
+optdepends=(
+  'hunspell: spell checking'
+  'hunspell-en_us: English dictionary for spell checking'
+)
+_lexbor_commit=7e278c0188489bfce6b71ced0cc900cbb31e6244
+_quickjs_ng_commit=9b061718955874e648d8c2bf2910a717aac8fa63
+source=("$pkgname-$pkgver.tar.gz::https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/$pkgver.tar.gz"
+        "lexbor::git+https://github.com/lexbor/lexbor.git#commit=$_lexbor_commit"
+        "quickjs-ng::git+https://github.com/quickjs-ng/quickjs.git#commit=$_quickjs_ng_commit")
+sha256sums=('e569fa3ee3c49224ef8cbc134ebed0076bf9734f6ed491c7885021a85c0969e2'
+            'SKIP'
+            'SKIP')
+
+_srcdir=northstar-web-browser-$pkgver
+
+_add_subproject() {
+  local name=$1 commit=$2 wrap="$_srcdir/subprojects/$1.wrap" patch
+
+  # arch-meson never downloads a wrap, so the pinned checkout is put where
+  # meson looks for it, with the patches the wrap would have applied.
+  grep -q "^revision = $commit\$" "$wrap" ||
+    { error "$wrap is not pinned to $commit"; return 1; }
+  rm -rf "$_srcdir/subprojects/$name"
+  cp -a "$name" "$_srcdir/subprojects/$name"
+  for patch in $(sed -n 's/^diff_files *= *//p' "$wrap" | tr ',' ' '); do
+    patch -d "$_srcdir/subprojects/$name" -Np1 -i "../packagefiles/$patch"
+  done
+}
+
+prepare() {
+  _add_subproject lexbor "$_lexbor_commit"
+  _add_subproject quickjs-ng "$_quickjs_ng_commit"
+}
+
+build() {
+  # H.264 stays off: only Cisco's prebuilt OpenH264 binaries carry its patent
+  # licence. The other codecs are required explicitly so a missing dependency
+  # fails the build instead of dropping a feature.
+  arch-meson "$_srcdir" build \
+    -Daudio=enabled \
+    -Davif=enabled \
+    -Dav1=enabled \
+    -Dvp9=enabled \
+    -Dh264=disabled \
+    -Dbuild_date="$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%F)"
+  meson compile -C build
+}
+
+package() {
+  # lexbor and quickjs-ng are linked statically; their headers and archives
+  # are not shipped.
+  meson install -C build --destdir "$pkgdir" --skip-subprojects
+
+  # open-internet-browser is a Debian/openSUSE alternatives name that other
+  # browsers may also claim; Arch has no alternatives system.
+  rm "$pkgdir/usr/bin/open-internet-browser"
+
+  install -d "$pkgdir/usr/share/licenses/$pkgname"
+  ln -s /usr/share/northstar/LICENSE "$pkgdir/usr/share/licenses/$pkgname/"
+}

@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.17:
 =======
+* Packaging: an Arch Linux package, `northstar-browser`, in
+  `packaging/arch/` (PKGBUILD and .SRCINFO, ready for the AUR), documented
+  in `docs/Arch.md`. It builds release 1.0.16 in a clean Arch container and
+  passes namcap.
 * Security: the bundled lexbor HTML tokenizer no longer writes past
   its temporary buffer when a named character reference ends exactly
   at the buffer's end. `&nGt;` and `&nLt;` decode to more bytes than

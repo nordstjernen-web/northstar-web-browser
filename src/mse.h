@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — Media Source Extensions API: sources, source buffers and coded frames.
+/* Northstar Web Browser — Media Source Extensions API: sources, source buffers and coded frames.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

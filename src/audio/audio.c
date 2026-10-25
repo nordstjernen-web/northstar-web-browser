@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — in-process audio decoding and SDL2 playback on a worker thread.
+/* Northstar Web Browser — in-process audio decoding and SDL2 playback on a worker thread.
  * Decodes MP3, Vorbis, Opus and MPEG-1 audio, mixes up to 16 players; null output when headless.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

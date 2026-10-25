@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — HTML form API: submit/reset triggers, data set, first invalid.
+/* Northstar Web Browser — HTML form API: submit/reset triggers, data set, first invalid.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

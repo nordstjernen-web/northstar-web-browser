@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stage a portable Nordstjernen Web Browser BSD release zip: the northstar binary,
+# Stage a portable Northstar Web Browser BSD release zip: the northstar binary,
 # runtime data, and an INSTALL.md naming the pkg runtime
 # dependencies, zipped under dist/. OS label via $1 or NS_PACK_OS.
 set -euo pipefail
@@ -46,7 +46,7 @@ case "$OS" in
 esac
 
 cat > "$STAGE/INSTALL.md" <<EOF
-# Nordstjernen Web Browser ${VERSION} — ${OS} x86_64
+# Northstar Web Browser ${VERSION} — ${OS} x86_64
 
 Portable build. The browser engine (lexbor for HTML, quickjs for
 JavaScript, wuffs for image decoding, wamr for WebAssembly) is statically

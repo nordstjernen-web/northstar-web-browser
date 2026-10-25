@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — print pagination API: page setup, page offsets and per-page drawing.
+/* Northstar Web Browser — print pagination API: page setup, page offsets and per-page drawing.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — NsProcView, the GTK page widget: navigation, zoom, find, print.
+/* Northstar Web Browser — NsProcView, the GTK page widget: navigation, zoom, find, print.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SubtleCrypto primitives implemented over OpenSSL libcrypto.
+/* Northstar Web Browser — SubtleCrypto primitives implemented over OpenSSL libcrypto.
  * Digest, HMAC, RSA, ECDSA/ECDH, EdDSA/XDH, AES modes, HKDF and PBKDF2 for js_webcrypto.c.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

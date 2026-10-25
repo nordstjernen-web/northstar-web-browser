@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — installs a native ShadowRealm global when QuickJS lacks one.
+/* Northstar Web Browser — installs a native ShadowRealm global when QuickJS lacks one.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

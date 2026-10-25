@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — native ECMA-402 (Intl) implementation over QuickJS, ICU-free.
+/* Northstar Web Browser — native ECMA-402 (Intl) implementation over QuickJS, ICU-free.
  * Collator, NumberFormat, DateTimeFormat, PluralRules, Segmenter etc. with mostly English data.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

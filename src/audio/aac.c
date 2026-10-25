@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — AAC-LC decoder for MP4 access units, written from ISO/IEC 14496-3.
+/* Northstar Web Browser — AAC-LC decoder for MP4 access units, written from ISO/IEC 14496-3.
  * Huffman spectra, dequantization, M/S, intensity, PNS, TNS and FFT-based IMDCT overlap-add.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

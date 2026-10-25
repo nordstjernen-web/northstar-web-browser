@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — WebSocket client API: connect, send text/binary, close, state.
+/* Northstar Web Browser — WebSocket client API: connect, send text/binary, close, state.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

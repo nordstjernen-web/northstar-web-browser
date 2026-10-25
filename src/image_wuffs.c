@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — memory-safe PNG/APNG/GIF/BMP/JPEG/WebP decode via Wuffs.
+/* Northstar Web Browser — memory-safe PNG/APNG/GIF/BMP/JPEG/WebP decode via Wuffs.
  * Sniffs by magic bytes, decodes stills and GIF/APNG frames, and applies WebP ALPH alpha itself.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

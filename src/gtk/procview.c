@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — GTK view over the page engine, driven on the engine thread.
+/* Northstar Web Browser — GTK view over the page engine, driven on the engine thread.
  * Posts load, render, input and find requests; blits frames and damage; print, devtools.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -2377,7 +2377,7 @@ print_run(NsProcView *v, GPtrArray *pages, const ns_print_setup *setup)
 
     GtkPageSetup *page_setup = gtk_page_setup_new();
     GtkPaperSize *paper = gtk_paper_size_new_custom(
-        "northstar", "Nordstjernen Web Browser", setup->width * 72.0 / 96.0,
+        "northstar", "Northstar Web Browser", setup->width * 72.0 / 96.0,
         setup->height * 72.0 / 96.0, GTK_UNIT_POINTS);
     gtk_page_setup_set_paper_size(page_setup, paper);
     gtk_page_setup_set_orientation(page_setup,

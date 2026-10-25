@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — maps changed elements and images to the page rectangles they repaint.
+/* Northstar Web Browser — maps changed elements and images to the page rectangles they repaint.
  * Also scans for paint hazards (fixed, sticky, 3D) that force full repaint or limit scroll blits.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

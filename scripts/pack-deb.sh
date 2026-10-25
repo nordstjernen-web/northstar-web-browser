@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a portable Nordstjernen Web Browser .deb by repackaging the bundle that
+# Build a portable Northstar Web Browser .deb by repackaging the bundle that
 # pack-linux.sh produces. The binary statically links the in-tree engine
 # (lexbor, quickjs, wuffs). Stable desktop deps (GTK, curl, …) are
 # computed from the binary's SONAMEs with dpkg-shlibdeps, falling back to
@@ -167,8 +167,8 @@ Depends: ${RUNTIME_DEPS}
 Section: web
 Priority: optional
 Homepage: https://nordstjernen.org
-Description: Nordstjernen Web Browser — minimalist GTK 4 browser, GPL edition
- Nordstjernen Web Browser is a small free-software web browser written from scratch in
+Description: Northstar Web Browser — minimalist GTK 4 browser, GPL edition
+ Northstar Web Browser is a small free-software web browser written from scratch in
  C with GTK 4 and libcurl. The HTML parser, CSS engine, layout, paint
  and JavaScript glue contain no third-party browser engine. SVG images
  are rendered in-engine. Licensed GPL-3.0-or-later.

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — WebAssembly JS API implemented over the vendored WAMR interpreter.
+/* Northstar Web Browser — WebAssembly JS API implemented over the vendored WAMR interpreter.
  * Module, Instance, Memory, Table and Global objects, import binding and value conversion.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

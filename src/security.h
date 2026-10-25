@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — security API: refuse-root, OS sandboxes, CSPRNG, SRI, download origin.
+/* Northstar Web Browser — security API: refuse-root, OS sandboxes, CSPRNG, SRI, download origin.
  * Also env flags, the sandbox-writable downloads dir and the tool-mode switch for test hooks.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

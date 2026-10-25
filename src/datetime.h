@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — civil-date math and HTML date/time string parsers.
+/* Northstar Web Browser — civil-date math and HTML date/time string parsers.
  * Shared by form controls and the JS Date code; years are capped at NS_DT_MAX_YEAR.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

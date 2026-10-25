@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nordstjernen Web Browser wpt-fast runner.
+# Northstar Web Browser wpt-fast runner.
 #
 # Drives the wpt-fast checkout (https://github.com/nordstjernen-web/wpt-fast)
 # through the browser's headless --wpt mode in parallel, writes a

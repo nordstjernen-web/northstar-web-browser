@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — native helpers behind the JS MediaSource and SourceBuffer shim.
+/* Northstar Web Browser — native helpers behind the JS MediaSource and SourceBuffer shim.
  * Maps script-side ids and blob URLs to mse.c sources; append, remove and buffered ranges.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

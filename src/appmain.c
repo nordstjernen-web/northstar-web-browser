@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — process entry point: environment setup, sandbox, then GUI or headless.
+/* Northstar Web Browser — process entry point: environment setup, sandbox, then GUI or headless.
  * Locates bundled data (Windows/macOS), picks the GSK renderer and filters GLib logging.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -525,7 +525,7 @@ main(int argc, char **argv)
 #endif
     for (int i = 1; i < argc; i++) {
         if (g_strcmp0(argv[i], "--version") == 0) {
-            g_print("Nordstjernen Web Browser %s\n", NS_VERSION);
+            g_print("Northstar Web Browser %s\n", NS_VERSION);
             return 0;
         }
     }

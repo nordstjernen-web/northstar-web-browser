@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — page view limits for the GTK shell: viewport, zoom, redirects.
+/* Northstar Web Browser — page view limits for the GTK shell: viewport, zoom, redirects.
  * Also the page settle time (overridable by NS_SETTLE_MS) and console poll interval.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

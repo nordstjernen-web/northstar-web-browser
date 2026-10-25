@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — installs WebIDL receiver checks on Node-derived interface members.
+/* Northstar Web Browser — installs WebIDL receiver checks on Node-derived interface members.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

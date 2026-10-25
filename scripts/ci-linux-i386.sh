@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build and smoke-test Nordstjernen Web Browser on 32-bit x86 Linux.
+# Build and smoke-test Northstar Web Browser on 32-bit x86 Linux.
 #
 # Runs inside a 32-bit Debian 13 (trixie) container -- a native 32-bit
 # userland, as on antiX or Debian i386 -- with the source tree mounted

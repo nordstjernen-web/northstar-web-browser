@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — QuickJS bytecode cache in memory and in an on-disk LRU directory.
+/* Northstar Web Browser — QuickJS bytecode cache in memory and in an on-disk LRU directory.
  * SHA-256 keys per site, script and source; background precompiles large classic scripts.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

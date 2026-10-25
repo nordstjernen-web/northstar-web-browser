@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — AV1 decoder interface over libdav1d: create, decode, flush, free.
+/* Northstar Web Browser — AV1 decoder interface over libdav1d: create, decode, flush, free.
  * Decoding turns one demuxed sample into an ns_texture; ns_av1_available reports build support.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

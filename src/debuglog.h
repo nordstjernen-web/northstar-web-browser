@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — categorized debug event log API (render, net, JS, warnings).
+/* Northstar Web Browser — categorized debug event log API (render, net, JS, warnings).
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

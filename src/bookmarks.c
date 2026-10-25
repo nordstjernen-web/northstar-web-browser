@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — bookmarks storage in a tab-separated url/title text file.
+/* Northstar Web Browser — bookmarks storage in a tab-separated url/title text file.
  * Loaded from the app config dir and rewritten atomically (mode 0600) on add or remove.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

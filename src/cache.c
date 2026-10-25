@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SQLite-indexed HTTP cache with on-disk bodies.
+/* Northstar Web Browser — SQLite-indexed HTTP cache with on-disk bodies.
  * Keyed by URL, partition and Vary; Cache-Control/Expires freshness, 304 refresh, LRU eviction.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

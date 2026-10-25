@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — installs the native Intl namespace into a QuickJS realm.
+/* Northstar Web Browser — installs the native Intl namespace into a QuickJS realm.
  * Also overrides toLocaleString, toLocale*String and localeCompare on builtins.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

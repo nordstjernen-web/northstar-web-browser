@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — helpers for opening, hardening and running SQL on SQLite databases.
+/* Northstar Web Browser — helpers for opening, hardening and running SQL on SQLite databases.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

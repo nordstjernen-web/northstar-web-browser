@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — decoded-image texture abstraction.
+/* Northstar Web Browser — decoded-image texture abstraction.
  * Refcounted BGRA pixel buffer with user data, used for decoded images and video frames.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

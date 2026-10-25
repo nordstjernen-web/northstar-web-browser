@@ -4,7 +4,7 @@
   <id>org.northstar.WebBrowser</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>Nordstjernen Web Browser</name>
+  <name>Northstar Web Browser</name>
   <summary>A small, hand-written web browser</summary>
   <developer id="org.northstar">
     <name>Andreas Røsdal</name>
@@ -12,7 +12,7 @@
 
   <description>
     <p>
-      Nordstjernen Web Browser is a clean-room web browser written from scratch in C,
+      Northstar Web Browser is a clean-room web browser written from scratch in C,
       with a GTK 4 user interface and a libcurl network stack. It is built
       to be small, secure, and readable by a single person end to end.
     </p>
@@ -33,7 +33,7 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>Nordstjernen Web Browser showing a Wikipedia article</caption>
+      <caption>Northstar Web Browser showing a Wikipedia article</caption>
       <image>https://raw.githubusercontent.com/nordstjernen-web/nordstjernen-web-browser/main/docs/screenshot.png</image>
     </screenshot>
   </screenshots>
@@ -75,7 +75,7 @@
       <description>
         <p>Renaming and security release.</p>
         <ul>
-          <li>The browser is renamed Nordstjernen Web Browser; the executable, settings and profiles carry over unchanged.</li>
+          <li>The browser is renamed Northstar Web Browser; the executable, settings and profiles carry over unchanged.</li>
           <li>Text layout is vendored in the source tree, so offline and distribution builds no longer fetch it, and CJK text sits on the same baseline as the text around it.</li>
           <li>The browser starts again on NVIDIA's proprietary driver under X11.</li>
           <li>open-internet-browser is installed as a second name for the browser.</li>

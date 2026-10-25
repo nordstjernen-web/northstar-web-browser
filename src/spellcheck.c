@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — optional spell checking over the Enchant library.
+/* Northstar Web Browser — optional spell checking over the Enchant library.
  * Loads dictionaries for the user's locales plus English; a no-op without Enchant.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

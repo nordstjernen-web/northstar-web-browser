@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — AV1 video decoding over libdav1d, to BGRA textures.
+/* Northstar Web Browser — AV1 video decoding over libdav1d, to BGRA textures.
  * Wraps demuxed samples for dav1d and converts pictures by layout, bit depth and color matrix.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

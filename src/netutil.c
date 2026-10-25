@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — curl-free network and URL helpers shared by the engine and GTK shell.
+/* Northstar Web Browser — curl-free network and URL helpers shared by the engine and GTK shell.
  * Accept-Language, search URLs, about: URL classes, file: URLs, proxy password masking.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

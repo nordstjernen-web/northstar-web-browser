@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — MP4 (ISO BMFF) demuxer: fragments for MSE, sample tables for files.
+/* Northstar Web Browser — MP4 (ISO BMFF) demuxer: fragments for MSE, sample tables for files.
  * Init segments and moof/trun fragments become queued samples; stbl tables a sorted sample index.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

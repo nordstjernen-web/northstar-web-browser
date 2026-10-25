@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — @property <syntax> descriptor parsing and value matching.
+/* Northstar Web Browser — @property <syntax> descriptor parsing and value matching.
  * Type-checks math functions and serializes computed values for registered custom properties.
  */
 

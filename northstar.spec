@@ -3,7 +3,7 @@
 #
 # Copyright 2026 Andreas Røsdal
 #
-# Nordstjernen Web Browser is free software under the GNU General Public License,
+# Northstar Web Browser is free software under the GNU General Public License,
 # version 3 or later (GPL-3.0-or-later).
 #
 
@@ -43,7 +43,7 @@ Requires(postun): update-alternatives
 Recommends:     myspell-en_US
 
 %description
-Nordstjernen Web Browser is a clean-room web browser written from scratch in C, with a
+Northstar Web Browser is a clean-room web browser written from scratch in C, with a
 GTK 4 user interface and a libcurl network stack. It is built to be small,
 secure, and readable by a single person end to end.
 

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — the thread the page engine runs on, with its own main context.
+/* Northstar Web Browser — the thread the page engine runs on, with its own main context.
  * Started on first post with an 8 MiB stack; runs queued jobs in order outside nested iterations.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

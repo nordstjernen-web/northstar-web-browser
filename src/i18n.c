@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — UI string translation from data/i18n .lang catalogues.
+/* Northstar Web Browser — UI string translation from data/i18n .lang catalogues.
  * Picks the catalogue matching the OS language list and looks up key=value translations.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

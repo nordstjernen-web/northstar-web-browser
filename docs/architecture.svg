@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1468" width="1200" height="1468" font-family="DejaVu Sans, Verdana, sans-serif">
-<title>Nordstjernen Web Browser architecture</title>
+<title>Northstar Web Browser architecture</title>
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#445"/></marker>
 <style>
@@ -31,7 +31,7 @@
 </style>
 </defs>
 <rect class="bg" x="0" y="0" width="1200" height="1468" rx="0"/>
-<text class="title" x="600.0" y="40" text-anchor="middle">Nordstjernen Web Browser — software architecture</text>
+<text class="title" x="600.0" y="40" text-anchor="middle">Northstar Web Browser — software architecture</text>
 <text class="sub" x="600.0" y="62" text-anchor="middle">Hand-written HTML/CSS/JS engine in C · GTK 4 shell · libcurl · one process · no Gecko, WebKit or Blink</text>
 <rect class="g-ext dash" x="20" y="84" width="360" height="92" rx="12"/>
 <text class="gtitle" x="36" y="110" text-anchor="start">Watchdog supervisor — GUI launches only</text>

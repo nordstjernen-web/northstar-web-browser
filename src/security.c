@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — privilege refusal, OS sandboxes and security primitives.
+/* Northstar Web Browser — privilege refusal, OS sandboxes and security primitives.
  * Landlock/seccomp (Linux), Seatbelt (macOS), Win32 mitigations, CSPRNG, SRI, download tagging.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -361,16 +361,16 @@ ns_security_refuse_root(void)
     }
 
     const char *msg =
-        "Nordstjernen Web Browser is running as administrator.\n"
+        "Northstar Web Browser is running as administrator.\n"
         "\n"
-        "Nordstjernen Web Browser tried to restart itself without administrator rights but "
+        "Northstar Web Browser tried to restart itself without administrator rights but "
         "could not. You do not need administrator rights to browse the web, and "
         "it is much safer without them: if a web page exploited a flaw in the "
         "browser while it has administrator rights, it could take over your "
         "whole PC instead of being limited to your own user account.\n"
         "\n"
-        "How to start Nordstjernen Web Browser normally:\n"
-        "  -  Close this window, then open Nordstjernen Web Browser with a normal click on "
+        "How to start Northstar Web Browser normally:\n"
+        "  -  Close this window, then open Northstar Web Browser with a normal click on "
         "its Start-menu or desktop icon. Do not choose \"Run as "
         "administrator\".\n"
         "  -  If you started it from a Command Prompt or PowerShell, use an "
@@ -380,12 +380,12 @@ ns_security_refuse_root(void)
         "administrator\".\n"
         "\n"
         "Do you want to run as administrator anyway?\n"
-        "  -  No (recommended): quit, then reopen Nordstjernen Web Browser normally.\n"
+        "  -  No (recommended): quit, then reopen Northstar Web Browser normally.\n"
         "  -  Yes: run as administrator this once, at your own risk.";
     fprintf(stderr, "northstar: %s\n", msg);
 
     int choice = MessageBoxA(NULL, msg,
-        "Nordstjernen Web Browser - running as administrator",
+        "Northstar Web Browser - running as administrator",
         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2 |
         MB_SETFOREGROUND | MB_TOPMOST);
     if (choice == IDYES) {
@@ -1306,7 +1306,7 @@ ns_security_mark_download_origin(const char *path, const char *url)
 #if defined(__APPLE__)
     (void)url;
     char value[96];
-    g_snprintf(value, sizeof value, "0001;%08x;Nordstjernen Web Browser;",
+    g_snprintf(value, sizeof value, "0001;%08x;Northstar Web Browser;",
                (unsigned)(g_get_real_time() / G_USEC_PER_SEC));
     setxattr(path, "com.apple.quarantine", value, strlen(value), 0, 0);
 #elif defined(__linux__)

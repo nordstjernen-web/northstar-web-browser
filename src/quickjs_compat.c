@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — shims that give quickjs-ng and the original QuickJS one API.
+/* Northstar Web Browser — shims that give quickjs-ng and the original QuickJS one API.
  * Adds V8-style Error.stack and native toString, plus source-less script compilation.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

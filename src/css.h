@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — CSS engine API: properties, values, selectors, sheets and ns_style.
+/* Northstar Web Browser — CSS engine API: properties, values, selectors, sheets and ns_style.
  * Parse, match, cascade and serialize entry points, plus display types and restyle hooks.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

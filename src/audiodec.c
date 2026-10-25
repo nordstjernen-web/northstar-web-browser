@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — MSE audio decoder dispatch: AAC-LC (built in) or Opus (libopus).
+/* Northstar Web Browser — MSE audio decoder dispatch: AAC-LC (built in) or Opus (libopus).
  * Handles Opus pre-skip trimming and seek resets; outputs interleaved float PCM.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

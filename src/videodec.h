@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — codec-agnostic video decoder interface for Media Source Extensions.
+/* Northstar Web Browser — codec-agnostic video decoder interface for Media Source Extensions.
  * Decodes one sample at a time, optionally producing a texture for the video layer.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — DOM node data structure and tree API.
+/* Northstar Web Browser — DOM node data structure and tree API.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

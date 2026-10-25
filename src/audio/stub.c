@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — no-op audio backend for builds without SDL2.
+/* Northstar Web Browser — no-op audio backend for builds without SDL2.
  * Every player reports NS_AUDIO_PLAYER_FAILED with NS_AUDIO_ERROR_NO_DEVICE.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

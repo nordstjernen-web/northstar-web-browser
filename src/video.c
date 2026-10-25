@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — video streams for <video>: MPEG-1 via pl_mpeg, or MSE-fed decoding.
+/* Northstar Web Browser — video streams for <video>: MPEG-1 via pl_mpeg, or MSE-fed decoding.
  * MSE streams feed coded frames to a decode worker and present through a video layer.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

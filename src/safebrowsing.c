@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — local phishing/malware blocklist of SHA-256 host hashes.
+/* Northstar Web Browser — local phishing/malware blocklist of SHA-256 host hashes.
  * Checks the host and parent domains, supports session allow-lists, builds the warning page.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -181,7 +181,7 @@ ns_safebrowsing_interstitial(const char *url, const char *host)
 
     char *html = g_strdup_printf(
         "<!doctype html><html><head><meta charset=\"utf-8\">"
-        "<title>Security warning — Nordstjernen Web Browser</title><style>"
+        "<title>Security warning — Northstar Web Browser</title><style>"
         "body{font-family:system-ui,-apple-system,\"Segoe UI\",Helvetica,"
         "Arial,sans-serif;background:#7a1212;color:#1b1b22;margin:0;padding:0;"
         "min-height:100vh;display:flex;align-items:center;justify-content:center}"
@@ -208,7 +208,7 @@ ns_safebrowsing_interstitial(const char *url, const char *host)
         "</style></head><body><div class=\"card\">"
         "<div class=\"icon\">\xe2\x9a\xa0\xef\xb8\x8f</div>"
         "<h1>Deceptive site ahead</h1>"
-        "<p class=\"summary\">Nordstjernen Web Browser blocked this page because the site "
+        "<p class=\"summary\">Northstar Web Browser blocked this page because the site "
         "below is on your local list of known phishing or malware hosts. "
         "Attackers there may try to trick you into revealing passwords or "
         "payment details, or to install harmful software.</p>"

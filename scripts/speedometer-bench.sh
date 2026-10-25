@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nordstjernen Web Browser Speedometer 3.1 benchmark harness.
+# Northstar Web Browser Speedometer 3.1 benchmark harness.
 #
 # Speedometer's own runner loads every workload inside an <iframe> and
 # drives it from the parent page. This script instead loads each

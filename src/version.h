@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — build-time version macros (NS_VERSION, NS_BUILD_DATE).
+/* Northstar Web Browser — build-time version macros (NS_VERSION, NS_BUILD_DATE).
  * Defined by meson.build from the project version and build date; fallbacks otherwise.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

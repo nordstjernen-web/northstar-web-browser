@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nordstjernen Web Browser web-platform-tests (WPT) runner.
+# Northstar Web Browser web-platform-tests (WPT) runner.
 #
 # Drives testharness.js tests from a web-platform-tests checkout through the
 # browser's headless --wpt mode, which injects a completion hook before any

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — style/layout pipeline API shared by GUI and headless.
+/* Northstar Web Browser — style/layout pipeline API shared by GUI and headless.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

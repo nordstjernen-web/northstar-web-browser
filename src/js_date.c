@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — minimal Temporal API in C over QuickJS: ISO calendar, UTC only.
+/* Northstar Web Browser — minimal Temporal API in C over QuickJS: ISO calendar, UTC only.
  * Instant, Plain* types, Duration, Now; ZonedDateTime keeps zone ids but does not apply them.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

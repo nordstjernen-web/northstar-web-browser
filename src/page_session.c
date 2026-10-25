@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — one page host session: open page, back/forward cache, last frame.
+/* Northstar Web Browser — one page host session: open page, back/forward cache, last frame.
  * Damage-tracked repaint, scroll reuse, input routing and dumps; used by headless and procview.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

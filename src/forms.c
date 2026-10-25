@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — HTML forms: submit/reset triggers, form data set, validation.
+/* Northstar Web Browser — HTML forms: submit/reset triggers, form data set, validation.
  * Builds the urlencoded data set; checks required, pattern, type, min/max and maxlength.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

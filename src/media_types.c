@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — the one table canPlayType, mediaCapabilities and MSE answer from.
+/* Northstar Web Browser — the one table canPlayType, mediaCapabilities and MSE answer from.
  * Maps MIME type and codecs= to probably/maybe/no by the built decoders; picks the <source>.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

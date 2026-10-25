@@ -1,9 +1,9 @@
-# Nordstjernen Web Browser local phishing/malware blocklist.
+# Northstar Web Browser local phishing/malware blocklist.
 #
 # One entry per line: the lowercase SHA-256 hex digest of a hostname,
 # optionally followed by whitespace and a comment. A navigation is blocked
 # when the digest of its host — or of any of its parent domains — matches an
-# entry here, in which case Nordstjernen Web Browser shows a full-page warning before the
+# entry here, in which case Northstar Web Browser shows a full-page warning before the
 # page is fetched. The check is performed entirely on this device; no part of
 # your browsing is ever sent to a remote service.
 #

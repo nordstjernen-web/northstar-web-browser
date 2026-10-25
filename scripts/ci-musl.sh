@@ -1,5 +1,5 @@
 #!/bin/sh
-# ci-musl.sh: build and smoke-test Nordstjernen Web Browser on musl libc, inside an Alpine container with the source tree mounted at /src.
+# ci-musl.sh: build and smoke-test Northstar Web Browser on musl libc, inside an Alpine container with the source tree mounted at /src.
 set -eu
 
 apk add --no-cache \

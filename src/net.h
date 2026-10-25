@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — network API: async and blocking fetches, responses and URL helpers.
+/* Northstar Web Browser — network API: async and blocking fetches, responses and URL helpers.
  * Also cookie jar versions, HSTS, proxy, preload and form-encoding helpers.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

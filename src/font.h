@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — @font-face web font API: request a family's source and track loading.
+/* Northstar Web Browser — @font-face web font API: request a family's source and track loading.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

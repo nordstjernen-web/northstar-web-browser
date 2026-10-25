@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nordstjernen Web Browser dev helper: smoke-tests a built-in list of local fixtures through
+# Northstar Web Browser dev helper: smoke-tests a built-in list of local fixtures through
 # the headless engine.
 set -euo pipefail
 

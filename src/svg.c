@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SVG rendering onto Cairo, sharing the CSS cascade with HTML.
+/* Northstar Web Browser — SVG rendering onto Cairo, sharing the CSS cascade with HTML.
  * Paths, shapes, text, gradients, markers, clip-path and masks; also rasterizes SVG image bytes.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

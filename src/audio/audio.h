@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — per-document audio context API for media element playback.
+/* Northstar Web Browser — per-document audio context API for media element playback.
  * Token-addressed players fed by URL, bytes or pushed PCM streams, with play/seek/volume/status.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

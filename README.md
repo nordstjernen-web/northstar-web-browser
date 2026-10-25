@@ -1,15 +1,12 @@
-# Nordstjernen Web Browser
+# Northstar Web Browser
 
-![Nordstjernen Web Browser showing a Wikipedia article](docs/screenshot.png)
-
-Nordstjernen Web Browser is a minimalist web browser written from scratch in C. Its
+![Northstar Web Browser is a minimalist web browser written from scratch in C. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS and Windows are also supported.
 
 Repository: <https://github.com/nordstjernen-web/northstar-web-browser>.
-Nordstjernen Web Browser was previously named Nordstjernen Luna, and before
-that Northstar; the executable is still `northstar`.
+Windows store: https://apps.microsoft.com/detail/9p39zb79jv0t
 
 **See [Nordstjernen Sol](https://github.com/nordstjernen-web/nordstjernen-sol-browser) also, which is
 the most complete, fully featured web browser project we are making. Nordstjernen Sol has ready-made builds for Windows, macOS, Linux and Android.**

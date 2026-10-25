@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.17" date="2026-10-25">
+      <description>
+        <p>Security release.</p>
+        <ul>
+          <li>Fixes for a heap overflow in the HTML tokenizer, a use-after-free in JavaScript modules, and a crash when a page and a frame share a stylesheet.</li>
+          <li>Safe Browsing now checks redirect hops and form POSTs, HSTS entries expire when their max-age ends, and linked stylesheets are checked against their Subresource Integrity hash.</li>
+          <li>Deeply nested intrinsic-size layouts and select.add() cycles no longer hang the page.</li>
+          <li>localStorage keeps keys with special characters, CSS animations run at the full frame rate on 60 Hz displays, and the window keeps following the desktop theme.</li>
+          <li>An Arch Linux package is available.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.16" date="2026-10-23">
       <description>
         <p>Renaming and security release.</p>

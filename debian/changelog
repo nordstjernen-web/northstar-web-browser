@@ -1,3 +1,11 @@
+northstar (1.0.17+ds-1) unstable; urgency=medium
+
+  * New upstream release: memory-safety fixes in the HTML tokenizer,
+    JavaScript modules and stylesheet caches, and Safe Browsing, HSTS and
+    Subresource Integrity fixes.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Sun, 25 Oct 2026 12:00:00 +0100
+
 northstar (1.0.16+ds-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1142659)

@@ -5,6 +5,8 @@ engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS and Windows are also supported.
 
+![Nordstjernen Web Browser showing a Wikipedia article](docs/screenshot.png)
+
 Repository: <https://github.com/nordstjernen-web/northstar-web-browser>.  
 Windows store: https://apps.microsoft.com/detail/9p39zb79jv0t  
 

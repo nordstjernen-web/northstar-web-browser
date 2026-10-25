@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SVG rendering API: inline svg roots, intrinsic size, image decoding.
+/* Northstar Web Browser — SVG rendering API: inline svg roots, intrinsic size, image decoding.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — runtime config: parses, saves and dumps the key = value settings file.
+/* Northstar Web Browser — runtime config: parses, saves and dumps the key = value settings file.
  * Table-driven defaults, NS_* environment overrides (not persisted on save), proxy masking.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

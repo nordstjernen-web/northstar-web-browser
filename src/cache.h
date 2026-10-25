@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — HTTP cache API: lookup, freshness check, store and 304 promotion.
+/* Northstar Web Browser — HTTP cache API: lookup, freshness check, store and 304 promotion.
  * Entries are keyed by URL plus partition key and matched against the request's Vary headers.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

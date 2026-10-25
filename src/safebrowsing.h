@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — local blocklist lookup and the warning interstitial for blocked hosts.
+/* Northstar Web Browser — local blocklist lookup and the warning interstitial for blocked hosts.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — WebExtensions loader and content-script host.
+/* Northstar Web Browser — WebExtensions loader and content-script host.
  * Parses MV2/MV3 manifests, match patterns, storage, declarativeNetRequest and Adblock lists.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

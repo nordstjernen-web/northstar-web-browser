@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — Performance API: performance.*, PerformanceObserver (QuickJS).
+/* Northstar Web Browser — Performance API: performance.*, PerformanceObserver (QuickJS).
  * Coarsened now(), marks/measures, navigation, paint and resource timing entries.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

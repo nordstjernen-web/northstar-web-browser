@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — calc() tree simplification and specified-value serialization.
+/* Northstar Web Browser — calc() tree simplification and specified-value serialization.
  * Parses math functions into trees, simplifies per CSS Values 4 and prints the canonical form.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

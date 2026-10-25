@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — YUV picture to BGRA texture conversion for the video decoders.
+/* Northstar Web Browser — YUV picture to BGRA texture conversion for the video decoders.
  * BT.601/709 limited or full range, 8-16 bit samples, chroma subsampling and monochrome.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

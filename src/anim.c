@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — CSS transitions, @keyframes animations and Element.animate() runs.
+/* Northstar Web Browser — CSS transitions, @keyframes animations and Element.animate() runs.
  * Samples easing per frame, writes animated values into computed styles and queues DOM events.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

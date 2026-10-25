@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — HTMLMediaElement: load, play and pause state machine for audio/video.
+/* Northstar Web Browser — HTMLMediaElement: load, play and pause state machine for audio/video.
  * Drives the audio mixer and decoded or MSE video, A/V sync, media events and play promises.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — installs the WebAssembly JS namespace into a QuickJS global.
+/* Northstar Web Browser — installs the WebAssembly JS namespace into a QuickJS global.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

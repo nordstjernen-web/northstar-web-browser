@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — libcurl-backed async fetcher and WHATWG URL handling.
+/* Northstar Web Browser — libcurl-backed async fetcher and WHATWG URL handling.
  * Cookies, HSTS, CORS preflight, proxies, caching, and data:, file:, ftp: and about: schemes.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -2910,7 +2910,7 @@ about_diagnostics_html(void)
     g_free(cores);
 
     g_string_append(s, "<h3>Version &amp; libraries</h3>");
-    diag_kv(s, "Nordstjernen Web Browser", NS_VERSION " (built " NS_BUILD_DATE ")");
+    diag_kv(s, "Northstar Web Browser", NS_VERSION " (built " NS_BUILD_DATE ")");
     {
         const ns_config *ua_cfg = ns_config_get();
         const char *ua = ua_cfg && ua_cfg->user_agent && *ua_cfg->user_agent
@@ -3011,7 +3011,7 @@ build_about_license(void)
         NULL,
     };
     return build_about_markdown_page(paths, "GNU General Public License",
-                                     "about:northstar", "About Nordstjernen Web Browser",
+                                     "about:northstar", "About Northstar Web Browser",
                                      "LICENSE");
 }
 
@@ -3029,7 +3029,7 @@ build_about_third_party(void)
         NULL,
     };
     return build_about_markdown_page(paths, "Third-party software notices",
-                                     "about:northstar", "About Nordstjernen Web Browser",
+                                     "about:northstar", "About Northstar Web Browser",
                                      "THIRD-PARTY-LICENSES.md");
 }
 
@@ -3048,14 +3048,14 @@ classify_error(long status, const char *transport_error, gboolean is_file_url)
         "📡",
         "Can't reach the network",
         "Can't reach the network",
-        "Nordstjernen Web Browser couldn't connect to any server. Your device may be "
+        "Northstar Web Browser couldn't connect to any server. Your device may be "
         "offline, or a firewall is blocking outbound traffic."
     };
     static const ns_error_info DNS = {
         "🔍",
         "Server address not found",
         "Server address not found",
-        "Nordstjernen Web Browser couldn't look up the host name. The address may be "
+        "Northstar Web Browser couldn't look up the host name. The address may be "
         "mistyped, or your DNS resolver isn't responding."
     };
     static const ns_error_info REFUSED = {
@@ -3076,7 +3076,7 @@ classify_error(long status, const char *transport_error, gboolean is_file_url)
         "🔒",
         "Secure connection failed",
         "Secure connection failed",
-        "Nordstjernen Web Browser couldn't establish a trustworthy TLS connection. "
+        "Northstar Web Browser couldn't establish a trustworthy TLS connection. "
         "The certificate may be invalid, expired, or self-signed."
     };
     static const ns_error_info BAD_URL = {
@@ -3103,7 +3103,7 @@ classify_error(long status, const char *transport_error, gboolean is_file_url)
         "🔐",
         "Authentication required",
         "Authentication required",
-        "The server needs credentials Nordstjernen Web Browser doesn't have. Sign in "
+        "The server needs credentials Northstar Web Browser doesn't have. Sign in "
         "elsewhere first, or try a different URL."
     };
     static const ns_error_info HTTP_403 = {
@@ -3261,7 +3261,7 @@ ns_build_error_page(const char *url, long status, const char *transport_error)
         "<!doctype html><html><head><meta charset=\"utf-8\">"
         "<title>");
     g_string_append(out, esc_title);
-    g_string_append(out, " — Nordstjernen Web Browser</title>"
+    g_string_append(out, " — Northstar Web Browser</title>"
         "<style>"
         "body{font-family:system-ui,-apple-system,\"Segoe UI\","
         "Helvetica,Arial,sans-serif;background:#f5f5f8;color:#1b1b22;"
@@ -4262,7 +4262,7 @@ static const char k_about_northstar_template[] =
     "<meta charset=\"utf-8\">"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
     "<meta name=\"color-scheme\" content=\"light dark\">"
-    "<title>About Nordstjernen Web Browser</title>"
+    "<title>About Northstar Web Browser</title>"
     "<style>\n"
     "html, body { background:#ffffff; color:#111418;"
     " font-family: system-ui, -apple-system, \"Segoe UI\","
@@ -4327,14 +4327,14 @@ static const char k_about_northstar_template[] =
     "<body><main class=\"wrap\">"
     "<div class=\"head\">"
     "__ND_LOGO_MARK__"
-    "<div class=\"title\">Nordstjernen Web Browser</div>"
+    "<div class=\"title\">Northstar Web Browser</div>"
     "<div class=\"ver\">Version " NS_VERSION "</div>"
     "<p class=\"intro\">A web browser for Windows, Linux and Mac, coded in "
     "the C programming language, with open source GPL license.</p>"
     "</div>"
     "<section class=\"license\">"
     "<h2>License</h2>"
-    "<p>Nordstjernen Web Browser is free software, distributed under the <b>GNU General "
+    "<p>Northstar Web Browser is free software, distributed under the <b>GNU General "
     "Public License, version 3 or later</b>, \xc2\xa9 2026 Andreas "
     "R\xc3\xb8sdal.</p>"
     "<p class=\"third\">It bundles third-party open-source software under "
@@ -4351,7 +4351,7 @@ static const char k_about_northstar_template[] =
     "</ul>"
     "</section>"
     "__ND_DIAG__"
-    "<p class=\"copy\">Nordstjernen Web Browser \xc2\xa9 2026 "
+    "<p class=\"copy\">Northstar Web Browser \xc2\xa9 2026 "
     "Andreas R\xc3\xb8sdal</p>"
     "<p class=\"links\">"
     "<a href=\"about:start\">\xe2\x86\x90 Start</a>"
@@ -4618,8 +4618,8 @@ static const char *
 about_start_tagline(void)
 {
     static const char *const taglines[] = {
-        "Nordstjernen Web Browser the unique web browser",
-        "Nordstjernen Web Browser the unique web browser",
+        "Northstar Web Browser the unique web browser",
+        "Northstar Web Browser the unique web browser",
         "Nordstjärnan the unique web browser",
         "Étoile du Nord the unique web browser",
         "Nordstern the unique web browser",
@@ -4749,7 +4749,7 @@ synthesize_about_response(const char *url, const char *top_url,
     } else if (g_str_equal(what, "book")) {
         const char *body =
             "<!doctype html><html><head><meta charset=\"utf-8\">"
-            "<title>The Book of Nordstjernen Web Browser</title><style>"
+            "<title>The Book of Northstar Web Browser</title><style>"
             "body{background:#fff;color:#7a0000;margin:0;height:100vh;"
             "display:flex;align-items:center;justify-content:center}"
             "p{font-family:serif;font-style:italic;font-size:1.3em;"
@@ -4759,7 +4759,7 @@ synthesize_about_response(const char *url, const char *top_url,
             "a small light rose in the north, written by hand and beholden "
             "to no one. It asked for nothing, reported to nowhere, and "
             "carried the travellers over the wire by the old free roads."
-            "<br><br>from <strong>The Book of Nordstjernen Web Browser,</strong> 1:1"
+            "<br><br>from <strong>The Book of Northstar Web Browser,</strong> 1:1"
             "</p></body></html>";
         g_byte_array_append(resp->body, (const guint8 *)body,
                             (guint)strlen(body));
@@ -4816,7 +4816,7 @@ synthesize_about_response(const char *url, const char *top_url,
         }
         about_emit_json(resp, g_strdup("{\"ok\":true}"));
     } else {
-        const char *body = "<!doctype html><title>Nordstjernen Web Browser</title>";
+        const char *body = "<!doctype html><title>Northstar Web Browser</title>";
         g_byte_array_append(resp->body, (const guint8 *)body, (guint)strlen(body));
     }
     return TRUE;

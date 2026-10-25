@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — decoded-image texture: refcounted BGRA pixels with user data.
+/* Northstar Web Browser — decoded-image texture: refcounted BGRA pixels with user data.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

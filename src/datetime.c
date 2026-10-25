@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — proleptic Gregorian date math and HTML date/time string parsing.
+/* Northstar Web Browser — proleptic Gregorian date math and HTML date/time string parsing.
  * Hinnant's days-from-civil algorithms, ISO 8601 week numbering, YYYY-MM-DD and HH:MM[:SS.fff].
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

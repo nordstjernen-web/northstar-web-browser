@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — GTK browser window around the page view: toolbar and address bar.
+/* Northstar Web Browser — GTK browser window around the page view: toolbar and address bar.
  * Address suggestions, TLS indicator, bookmarks, downloads, fullscreen notice, session saving.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -144,7 +144,7 @@ ns_brand_versioned(void)
     static char brand[128];
     if (!brand[0])
         g_snprintf(brand, sizeof brand, "%s %s",
-                   ns_i18n("Nordstjernen Web Browser"), NS_VERSION);
+                   ns_i18n("Northstar Web Browser"), NS_VERSION);
     return brand;
 }
 
@@ -1944,7 +1944,7 @@ build_app_menu_model(void)
     menu_append_section(menu, tools);
 
     GMenu *about = g_menu_new();
-    g_menu_append(about, ns_i18n("About Nordstjernen Web Browser"), "win.about");
+    g_menu_append(about, ns_i18n("About Northstar Web Browser"), "win.about");
     menu_append_section(menu, about);
 
     GMenu *quit = g_menu_new();

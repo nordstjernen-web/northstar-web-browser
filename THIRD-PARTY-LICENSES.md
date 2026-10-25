@@ -1,13 +1,13 @@
 # Third-party software notices
 
-Nordstjernen Web Browser links to (and in some cases statically includes) the
+Northstar Web Browser links to (and in some cases statically includes) the
 following open-source libraries. Their copyright notices and license
 texts are reproduced below. For libraries shipped dynamically in the
 release bundles, you are entitled by the LGPL terms to replace them
 with modified versions; the binary will continue to function with any
 ABI-compatible replacement.
 
-The Nordstjernen Web Browser source code itself is licensed under the GNU General
+The Northstar Web Browser source code itself is licensed under the GNU General
 Public License, version 3 or later; see `LICENSE`.
 
 ---
@@ -258,8 +258,8 @@ license text is available at:
 
   <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 
-Per LGPL section 6, since Nordstjernen Web Browser links to these libraries
-dynamically, you are entitled to modify them and re-link Nordstjernen Web Browser
+Per LGPL section 6, since Northstar Web Browser links to these libraries
+dynamically, you are entitled to modify them and re-link Northstar Web Browser
 against the modified copies. On the Windows bundle the libraries are
 shipped alongside the executable as ordinary DLLs that you can replace;
 on Linux distributions they are loaded from the system package manager.
@@ -306,12 +306,12 @@ are met. See:
 ### Optional dynamic dependencies
 
 These are linked only when present on the build host, or reached
-transitively through a library Nordstjernen Web Browser does link. When a build bundles
+transitively through a library Northstar Web Browser does link. When a build bundles
 them, their notices apply:
 
 - **libepoxy** — MIT License, © 2013-2014 Intel Corporation. OpenGL
   function-pointer management, pulled in transitively by GTK's GL
-  renderer; Nordstjernen Web Browser links nothing against it directly.
+  renderer; Northstar Web Browser links nothing against it directly.
 - **Fontconfig** — MIT-style license, © Keith Packard and contributors.
 - **FreeType** — FreeType License (BSD-style with credit clause) or GNU
   GPL 2.0, at your option, © The FreeType Project.
@@ -348,7 +348,7 @@ in this section.
 
 ## Modifications to upstream sources
 
-Where Nordstjernen Web Browser changes a third-party source, the change is carried as a
+Where Northstar Web Browser changes a third-party source, the change is carried as a
 patch rather than as an edited copy, so what was modified stays legible
 and separable:
 
@@ -375,5 +375,5 @@ build, so `subprojects/packagefiles/quickjs/meson.build` is also laid over
 its checkout (`patch_directory` in `subprojects/quickjs.wrap`). A system lexbor or quickjs-ng, which
 the build prefers when it finds one, does not carry them. pl_mpeg carries its local change in
 the vendored copy directly, as does web-text-lib, whose changes from
-upstream Pango are described in `src/web-text-lib/README.md`. Nordstjernen Web Browser's own source is
+upstream Pango are described in `src/web-text-lib/README.md`. Northstar Web Browser's own source is
 GPL-3.0-or-later.

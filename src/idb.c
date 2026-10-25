@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SQLite storage backend for IndexedDB, one database file per name.
+/* Northstar Web Browser — SQLite storage backend for IndexedDB, one database file per name.
  * Native __nd_idb object the JS IndexedDB shim calls; per-origin quota and handle cache.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — H.264 video decoding over OpenH264, to BGRA textures.
+/* Northstar Web Browser — H.264 video decoding over OpenH264, to BGRA textures.
  * Converts MP4 avcC config and length-prefixed samples to Annex B before decoding.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,5 +1,5 @@
 name: Report an issue
-description: File a bug report or request for Nordstjernen Web Browser.
+description: File a bug report or request for Northstar Web Browser.
 body:
   - type: input
     id: reporter-name

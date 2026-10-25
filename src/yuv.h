@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — YUV picture to BGRA texture conversion for the video decoders.
+/* Northstar Web Browser — YUV picture to BGRA texture conversion for the video decoders.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

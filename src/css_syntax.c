@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — CSS Syntax tokenizer and component-value parser.
+/* Northstar Web Browser — CSS Syntax tokenizer and component-value parser.
  * Validity and self-containment checks over raw CSS text, used by css.c and @property matching.
  */
 

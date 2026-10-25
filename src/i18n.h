@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — UI string translation API: ns_i18n() over the OS-language catalogue.
+/* Northstar Web Browser — UI string translation API: ns_i18n() over the OS-language catalogue.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

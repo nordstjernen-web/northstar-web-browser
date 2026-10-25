@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — layout box tree types and API: boxes, inline runs, fragmentainers.
+/* Northstar Web Browser — layout box tree types and API: boxes, inline runs, fragmentainers.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

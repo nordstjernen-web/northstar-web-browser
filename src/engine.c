@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — page pipeline: blocking fetch, stylesheet collection, cascade, layout.
+/* Northstar Web Browser — page pipeline: blocking fetch, stylesheet collection, cascade, layout.
  * Also speculative preloads, image fetching and decode, and PNG/PDF/text output of the box tree.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -1553,7 +1553,7 @@ static void
 pdf_set_metadata(cairo_surface_t *surf)
 {
     cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_CREATOR,
-                                   "Nordstjernen Web Browser");
+                                   "Northstar Web Browser");
     time_t now = time(NULL);
     struct tm tm_utc;
 #if defined(_WIN32)

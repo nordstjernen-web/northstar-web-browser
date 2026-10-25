@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — in-process debug event log: bounded ring, subscribers, log file.
+/* Northstar Web Browser — in-process debug event log: bounded ring, subscribers, log file.
  * Fed by engine, network and JS console messages; file logging is on by default on Windows.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

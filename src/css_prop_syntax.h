@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — registered custom property <syntax> grammar and matching API. */
+/* Northstar Web Browser — registered custom property <syntax> grammar and matching API. */
 
 #ifndef NS_CSS_PROP_SYNTAX_H
 #define NS_CSS_PROP_SYNTAX_H

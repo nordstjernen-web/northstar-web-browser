@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — box tree construction and layout: block, inline, flex, grid, tables.
+/* Northstar Web Browser — box tree construction and layout: block, inline, flex, grid, tables.
  * Floats, positioning, multicol fragmentation, intrinsic sizing, replaced elements, hit testing.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

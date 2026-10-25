@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — VP9 video decoding over libvpx, to BGRA textures.
+/* Northstar Web Browser — VP9 video decoding over libvpx, to BGRA textures.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

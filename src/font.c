@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — @font-face web font loader: fetch, WOFF/WOFF2 unpack, install.
+/* Northstar Web Browser — @font-face web font loader: fetch, WOFF/WOFF2 unpack, install.
  * Caches files on disk, adds them to fontconfig under the CSS family, wakes idle waiters.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

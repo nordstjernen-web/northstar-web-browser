@@ -45,7 +45,7 @@ Depends:
 Recommends:
  hunspell-en-us | hunspell-dictionary,
 Description: minimalist GTK 4 web browser with an original engine
- Northstar (Nordstjernen Web Browser) is a web browser written from scratch
+ Northstar Web Browser is a web browser written from scratch
  in C, with a GTK 4 user interface and a libcurl network stack. It is built
  to be small, secure, and readable by a single person end to end.
  .

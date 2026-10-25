@@ -1,6 +1,6 @@
-# Nordstjernen Web Browser documentation
+# Northstar Web Browser documentation
 
-Developer documentation for the **Nordstjernen Web Browser** (open-source GPL
+Developer documentation for the **Northstar Web Browser** (open-source GPL
 edition) — a minimalist browser written from scratch in C with GTK 4 and
 libcurl, carrying no upstream browser engine.
 
@@ -29,7 +29,7 @@ libcurl, carrying no upstream browser engine.
   built-in micro-benchmarks, Speedometer, web-platform-tests and language
   features.
 - **[cve-2026-85046.md](cve-2026-85046.md)** — why the actively exploited
-  V8 JIT type confusion CVE-2026-85046 does not apply to Nordstjernen Web Browser: no V8,
+  V8 JIT type confusion CVE-2026-85046 does not apply to Northstar Web Browser: no V8,
   no JIT, no elements-kind maps, no write barriers.
 
 Image assets kept here: `architecture.svg` (the architecture diagram),

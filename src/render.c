@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — shared style/layout pipeline used by GUI and headless.
+/* Northstar Web Browser — shared style/layout pipeline used by GUI and headless.
  * Runs cascade and layout, repeating for container queries, and honors viewport meta.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

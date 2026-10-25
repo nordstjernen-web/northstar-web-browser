@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — webcam enumeration (V4L2) and per-site camera permission.
+/* Northstar Web Browser — webcam enumeration (V4L2) and per-site camera permission.
  * Per-origin allow/deny decisions with one pending prompt handed to the UI thread.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

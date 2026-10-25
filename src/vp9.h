@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — VP9 video decoder API over libvpx.
+/* Northstar Web Browser — VP9 video decoder API over libvpx.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

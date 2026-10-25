@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — refcounted per-document fetch policy and its block/allow verdicts.
+/* Northstar Web Browser — refcounted per-document fetch policy and its block/allow verdicts.
  * Holds the document URL and CSP; network, media and worker loads check it before fetching.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

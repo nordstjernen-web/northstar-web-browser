@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — SQLite-backed browsing history.
+/* Northstar Web Browser — SQLite-backed browsing history.
  * Upserts http(s) visits, keeps the newest 10000, serves address-bar search and about:history.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — AAC-LC decoder API: AudioSpecificConfig in, float PCM frames out.
+/* Northstar Web Browser — AAC-LC decoder API: AudioSpecificConfig in, float PCM frames out.
  * Used by audiodec.c for "mp4a" Media Source Extensions audio tracks.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

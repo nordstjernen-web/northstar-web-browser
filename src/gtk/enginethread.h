@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — posts jobs to the thread the page engine runs on.
+/* Northstar Web Browser — posts jobs to the thread the page engine runs on.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

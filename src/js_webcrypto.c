@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — Web Cryptography API bindings: SubtleCrypto and CryptoKey (QuickJS).
+/* Northstar Web Browser — Web Cryptography API bindings: SubtleCrypto and CryptoKey (QuickJS).
  * Normalizes algorithms, imports/exports raw, SPKI, PKCS#8 and JWK keys over webcrypto.c.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

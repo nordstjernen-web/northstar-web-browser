@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — image cache and the decode chain (Wuffs, ICO, AVIF, SVG, MPEG-1).
+/* Northstar Web Browser — image cache and the decode chain (Wuffs, ICO, AVIF, SVG, MPEG-1).
  * Async fetch and worker decode, retry, animation timelines, video streams, LRU memory budget.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — offline Web Audio graph rendering for OfflineAudioContext.
+/* Northstar Web Browser — offline Web Audio graph rendering for OfflineAudioContext.
  * Renders oscillator, buffer source, gain, biquad, delay, compressor and waveshaper nodes.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — the GLib main context the page engine runs on.
+/* Northstar Web Browser — the GLib main context the page engine runs on.
  * Timeout/idle/remove helpers attach to the thread default or the registered engine context.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

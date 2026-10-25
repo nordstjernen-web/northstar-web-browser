@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — a playing video's picture, presented apart from page painting.
+/* Northstar Web Browser — a playing video's picture, presented apart from page painting.
  * Picks the decoded frame for the media clock so the shell can composite it without repaint.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later

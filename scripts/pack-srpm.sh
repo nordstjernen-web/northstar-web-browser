@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a source RPM (.src.rpm) of Nordstjernen Web Browser. The SRPM contains a
+# Build a source RPM (.src.rpm) of Northstar Web Browser. The SRPM contains a
 # clean source tarball plus the meson wrap packagecache. lexbor and
 # quickjs-ng are git wraps, which the packagecache does not hold, so
 # `rpmbuild --rebuild` still needs network access to fetch them.
@@ -44,7 +44,7 @@ cat > "$SPEC" <<SPEC_EOF
 Name:           ${NAME}
 Version:        ${VERSION}
 Release:        1%{?dist}
-Summary:        Nordstjernen Web Browser — minimalist GTK 4 browser, GPL edition
+Summary:        Northstar Web Browser — minimalist GTK 4 browser, GPL edition
 
 License:        GPL-3.0-or-later
 URL:            https://nordstjernen.org
@@ -71,7 +71,7 @@ Requires:       libcurl
 Requires:       uchardet
 
 %description
-Nordstjernen Web Browser is a small free-software web browser written from scratch in
+Northstar Web Browser is a small free-software web browser written from scratch in
 C with GTK 4 and libcurl. The HTML parser, CSS engine, layout, paint
 and JavaScript glue contain no third-party browser engine. SVG images
 are rendered in-engine. Licensed GPL-3.0-or-later.
@@ -138,7 +138,7 @@ fi
 
 %changelog
 * $(LC_ALL=C date "+%a %b %d %Y") Andreas Røsdal <andreas.rosdal@gmail.com> - ${VERSION}-1
-- Source RPM release of Nordstjernen Web Browser ${VERSION}.
+- Source RPM release of Northstar Web Browser ${VERSION}.
 SPEC_EOF
 
 rpmbuild --define "_topdir $RPMTOP" -bs "$SPEC"

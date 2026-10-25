@@ -1,18 +1,18 @@
 # Security policy
 
-Nordstjernen Web Browser is a small independent web browser. Security fixes ship from
+Northstar Web Browser is a small independent web browser. Security fixes ship from
 `main`; only the latest tagged release is supported.
 
 ## Reporting
 Report security issues by e-mail to:  andreas.rosdal@hotmail.com
 
-Please include the version (shown in the About Nordstjernen Web Browser dialog),
+Please include the version (shown in the About Northstar Web Browser dialog),
 your OS, a minimal reproducer (URL or self-contained HTML), and your
 assessment of the impact.
 
 ## Threat model
 
-Nordstjernen Web Browser treats the Internet with the utmost suspicion. The attacker
+Northstar Web Browser treats the Internet with the utmost suspicion. The attacker
 controls fetched HTML, CSS, JavaScript, images, fonts, WebAssembly and
 media. The user, the kernel, and the local filesystem outside the sandbox
 allow-list are trusted.
@@ -207,7 +207,7 @@ unconfined.
   filter of its own (the engine thread's executable-memory filter);
   stacked filters can only refuse more, never allow what this one
   refuses.
-- **Media / audio.** Nordstjernen Web Browser decodes audio **in-tree** in the browser
+- **Media / audio.** Northstar Web Browser decodes audio **in-tree** in the browser
   process (`src/audio/audio.c`), not via an external player. The media
   controller (`src/js_media.c`) sends each `<audio>` element's commands
   straight to its page's audio context, which the page owns and destroys
@@ -258,7 +258,7 @@ by headless/tooling runs.
 The macOS build applies a Seatbelt profile with `sandbox_init(3)`. It
 allows reads and system interaction by default but denies filesystem
 writes, then permits writes to the temporary directories, `/dev`, the
-runtime directory, Nordstjernen Web Browser's config/data/cache directories and
+runtime directory, Northstar Web Browser's config/data/cache directories and
 Downloads; files named on the command line for a headless dump are opened
 before the profile is applied. This is write confinement,
 not the Linux profile's read allow-list or syscall filter; all engine and
@@ -695,5 +695,5 @@ The `document.cookie` setter:
   re-routed config paths) and are tracked as future work.
 - **The cookie jar is not locked between browser instances.** Within one
   process, script and network cookie writes are serialised; two
-  Nordstjernen Web Browser processes sharing a profile can still lose each other's
+  Northstar Web Browser processes sharing a profile can still lose each other's
   writes.

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — document-loading helpers around the HTML and XML parsers.
+/* Northstar Web Browser — document-loading helpers around the HTML and XML parsers.
  * MIME dispatch, charset detection and decoding, serialization escapes, image and JSON viewers.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — WebSocket client over libcurl's native WebSocket API.
+/* Northstar Web Browser — WebSocket client over libcurl's native WebSocket API.
  * One worker thread per socket; frames, ping/pong and close handshake, callbacks posted back.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

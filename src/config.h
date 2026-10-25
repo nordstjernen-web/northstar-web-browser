@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — runtime config: the ns_config settings struct and global accessors.
+/* Northstar Web Browser — runtime config: the ns_config settings struct and global accessors.
  * Policy enums (referrer, cookies, color scheme, reduced motion) and a lock for writers.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

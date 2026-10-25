@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — internal page-engine host for the GTK shell and headless driver.
+/* Northstar Web Browser — internal page-engine host for the GTK shell and headless driver.
  * Restyle/relayout scheduling, image loading, input and focus, scrolling, rendering, debug dumps.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

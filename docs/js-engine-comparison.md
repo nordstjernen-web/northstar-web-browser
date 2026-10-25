@@ -1,6 +1,6 @@
 # quickjs-ng vs QuickJS: measured comparison
 
-Nordstjernen Web Browser builds on either of two JavaScript engines (see
+Northstar Web Browser builds on either of two JavaScript engines (see
 [quickjs.md](quickjs.md)): **quickjs-ng 0.17.0**, the default
 (`subprojects/quickjs-ng.wrap`, tag `v0.17.0`), and Fabrice Bellard's
 original **QuickJS 2026-06-04** (`-Djs_engine=quickjs`,
@@ -11,7 +11,7 @@ and benchmarks, and compares the results.
 Measured 2026-10-02 at `da7e522` (1.0.13-dev). That tree still carried
 the 1.0.12 standards-conformance backport, which has since been withdrawn
 (see the 1.0.13 changelog), so the web-platform-tests counts below include
-work that is no longer in Nordstjernen Web Browser.
+work that is no longer in Northstar Web Browser.
 
 ## Verdict
 
@@ -20,7 +20,7 @@ interpreter. It scores 11 % higher on Octane and is up to 2.2× faster
 on strings, JSON and BigInt. It also has no equivalent of quickjs-ng's
 integer-key `Map`/`Set` slowdown, which reaches 32×. But on real
 framework pages the gap shrinks to 1.7 % (Speedometer 3.1), because most
-of the time goes to Nordstjernen Web Browser's C DOM, layout and style, which both
+of the time goes to Northstar Web Browser's C DOM, layout and style, which both
 engines share.
 
 quickjs-ng wins on the parts that matter more for a browser:
@@ -63,7 +63,7 @@ the original-engine build exposes. See [Issues found](#issues-found).
 | Stability during this run | no failures | crashed reopening ES-module pages (fixed here) | quickjs-ng |
 | CI coverage | every workflow | none | quickjs-ng |
 | Upstream release | **2026-09-18** | 2026-06-04 | quickjs-ng |
-| Adapter code in Nordstjernen Web Browser | **~210 lines** | ~560 lines | quickjs-ng |
+| Adapter code in Northstar Web Browser | **~210 lines** | ~560 lines | quickjs-ng |
 
 ## Test setup
 
@@ -171,7 +171,7 @@ on it.
 ### Micro-benchmarks: DOM bindings and built-ins
 
 Median ms (lower is better). The `dom.*` rows spend most of their time
-crossing into Nordstjernen Web Browser's C DOM. The `js.*` rows stay inside the engine.
+crossing into Northstar Web Browser's C DOM. The `js.*` rows stay inside the engine.
 "ng slower by" is the quickjs-ng time over the QuickJS time.
 
 | Test | quickjs-ng | QuickJS | ng slower by |
@@ -226,7 +226,7 @@ Peak RSS for the whole page: 563 MB (quickjs-ng) vs 556 MB (QuickJS).
 | `Map.get` with string keys | 40 ms | 40 ms | 1.0× |
 
 The standalone `qjs` built from the same quickjs-ng subproject shows the
-same 776 ms, so this comes from the engine itself, not from Nordstjernen Web Browser.
+same 776 ms, so this comes from the engine itself, not from Northstar Web Browser.
 
 The cause is `map_hash_key()` in quickjs-ng's `quickjs.c`. It turns an
 integer key into its float64 bit pattern, hashes it as
@@ -291,7 +291,7 @@ style and layout, which both builds share.
 ### Language features (ES2019–ES2026 plus extensions)
 
 A page that probes 68 features, each with a small evaluated snippet, in
-the browser (so Nordstjernen Web Browser's own polyfills count).
+the browser (so Northstar Web Browser's own polyfills count).
 
 | | quickjs-ng | QuickJS |
 |---|---|---|
@@ -312,7 +312,7 @@ Both engines have Set methods, iterator helpers, `RegExp` `v` flag and
 modifiers, duplicate named groups, `Float16Array`, `RegExp.escape`,
 `Promise.try`, `Math.sumPrecise`, `Error.isError`, the `Uint8Array`
 base64/hex methods, `Map.prototype.getOrInsert` and `JSON.rawJSON`.
-`Temporal` and `Intl` exist on both, because Nordstjernen Web Browser supplies them
+`Temporal` and `Intl` exist on both, because Northstar Web Browser supplies them
 (`src/js_date.c` and friends), not the engine. Neither engine runs
 10,000-deep simple recursion: page JavaScript gets a 5 MB stack, which
 quickjs-ng's larger frames fill sooner.
@@ -326,7 +326,7 @@ The test files cover 19 areas of an upstream WPT checkout (`7108b8d`,
 2026-10-02), served by WPT's own `./wpt serve`. They were run through
 `--wpt` with a 15 s per-test timeout, 4 at a time. The legacy multi-byte
 encoder tests (`encoding/legacy-mb-*`) were left out because they exercise
-Nordstjernen Web Browser's C decoders, not the engine. The 19 files whose results
+Northstar Web Browser's C decoders, not the engine. The 19 files whose results
 differed were then re-run 3 more times per engine, one at a time with the
 engines alternating. The table uses those re-run results for those
 files.
@@ -363,7 +363,7 @@ under load. The 8 genuine differences all involve `DOMException`:
   `DOMException-constants` (50), `-custom-bindings` (8),
   `-constructor-behavior` (7), `-constructor-and-prototype` (2),
   `exceptions.html` (2) and `-stack-accessor` (1). On the original engine
-  `DOMException` comes from Nordstjernen Web Browser's fallback in `data/js/polyfills.js`,
+  `DOMException` comes from Northstar Web Browser's fallback in `data/js/polyfills.js`,
   which is not shaped like the WebIDL interface.
 - **quickjs-ng loses 1 subtest:** `DOMException-is-error`.
   quickjs-ng's native `DOMException` is not an `Error` to `Error.isError()`.
@@ -390,7 +390,7 @@ the same.
    than on the original engine. This is worth an upstream report, or a
    small wrap patch that hashes the full 64 bits and takes the bucket from
    the high bits, as Bellard's `map_hash64` does.
-3. **Nordstjernen Web Browser: the `DOMException` fallback is not WebIDL-shaped.** Only
+3. **Northstar Web Browser: the `DOMException` fallback is not WebIDL-shaped.** Only
    the original-engine build uses it:
    - its constants are named `IndexSizeError_CODE` instead of
      `INDEX_SIZE_ERR`;

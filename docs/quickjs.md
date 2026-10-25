@@ -1,6 +1,6 @@
 # QuickJS or quickjs-ng
 
-Nordstjernen Web Browser runs its JavaScript on one of two QuickJS engines, picked at
+Northstar Web Browser runs its JavaScript on one of two QuickJS engines, picked at
 configure time with the `js_engine` option:
 
 ```sh
@@ -99,7 +99,7 @@ bytecode is not interchangeable, so the original engine keeps its cache in
   `DisposableStack`, `AsyncDisposableStack` and `SuppressedError`, the
   `Iterator.zip`/`zipKeyed` statics and `chunks`, `windows`, `join` and
   `includes` iterator methods, and the immutable-`ArrayBuffer` methods.
-  Nordstjernen Web Browser's own code and polyfills use none of them.
+  Northstar Web Browser's own code and polyfills use none of them.
 - **Stored data.** The engines serialize values differently, so an
   IndexedDB written by one build reads back as empty values in the other.
 - **Error positions.** Line numbers match; column numbers in stack traces

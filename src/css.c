@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — CSS engine: parsing, selector matching, cascade and computed values.
+/* Northstar Web Browser — CSS engine: parsing, selector matching, cascade and computed values.
  * Also var()/@property, calc, colors, @media/@container/@layer, CSSOM serialization, restyle.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

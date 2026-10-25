@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — HTML/XML parsing API: full, chunked, fragment and streaming parses.
+/* Northstar Web Browser — HTML/XML parsing API: full, chunked, fragment and streaming parses.
  * Plus declarative shadow DOM, serialization escapes, charset decoding and viewer pages.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nordstjernen Web Browser poor-man's sampling profiler.
+# Northstar Web Browser poor-man's sampling profiler.
 #
 # Attaches gdb to a running process repeatedly, grabs the top of the page
 # engine's stack each time, and aggregates where the engine spends
@@ -18,7 +18,7 @@
 #   num-samples defaults to 120.
 #
 # Prints two tables: the leaf function (where the CPU actually is) and the
-# inclusive frequency of Nordstjernen Web Browser (ns_*) frames across all stacks.
+# inclusive frequency of Northstar Web Browser (ns_*) frames across all stacks.
 set -euo pipefail
 
 PID=${1:?usage: sample-profile.sh <pid> [num-samples]}

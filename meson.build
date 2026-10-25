@@ -77,7 +77,7 @@ add_project_link_arguments(
 ns_buildtype = get_option('buildtype')
 ns_is_release = (ns_buildtype == 'release' or ns_buildtype == 'minsize')
 # Every build profile gets -O3 (via default_options optimization=3) plus
-# dead-section pruning. Nordstjernen Web Browser leans on the optimizer to inline the
+# dead-section pruning. Northstar Web Browser leans on the optimizer to inline the
 # lexbor parser walks, QuickJS interpreter dispatch, and our box-layout
 # loops; -O2 left ~30% on the table for JS-heavy pages. The -O level is
 # left to meson's optimization option so it isn't passed twice (which
@@ -143,7 +143,7 @@ foreach floor : ns_dependency_floors
   endif
 endforeach
 if ns_unmet_floors.length() > 0
-  error('Nordstjernen Web Browser needs newer system libraries than this machine has:\n' +
+  error('Northstar Web Browser needs newer system libraries than this machine has:\n' +
         '\n'.join(ns_unmet_floors) + '\n' +
         'Ubuntu 24.04, Debian 13 and Fedora 40 are the oldest releases of ' +
         'their distributions that ship all of them; see docs/building.md.')
@@ -160,7 +160,7 @@ if host_machine.system() == 'windows'
 elif gtk4.version().version_compare('>=4.22')
   message('GTK @0@ — preferred (>= 4.22).'.format(gtk4.version()))
 else
-  warning('GTK @0@ meets the 4.14 minimum, but Nordstjernen Web Browser prefers >= 4.22 for the newer GSK renderers.'.format(gtk4.version()))
+  warning('GTK @0@ meets the 4.14 minimum, but Northstar Web Browser prefers >= 4.22 for the newer GSK renderers.'.format(gtk4.version()))
 endif
 gmodule = dependency('gmodule-2.0')
 libcurl = dependency('libcurl', version: '>=8.5')

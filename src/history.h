@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — browsing history API: record visits, substring search, about:history.
+/* Northstar Web Browser — browsing history API: record visits, substring search, about:history.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a redistributable Nordstjernen Web Browser Linux x86_64 release: the stripped,
+# Build a redistributable Northstar Web Browser Linux x86_64 release: the stripped,
 # LTO-optimised northstar binary plus the data files it needs at runtime,
 # zipped under dist/.
 set -euo pipefail
@@ -69,7 +69,7 @@ cp "$ROOT/THIRD-PARTY-LICENSES.md" "$STAGE/"
 cp "$ROOT/LICENSE" "$STAGE/"
 
 cat > "$STAGE/INSTALL.md" <<EOF
-# Nordstjernen Web Browser ${VERSION} — Linux ${ARCH} binary
+# Northstar Web Browser ${VERSION} — Linux ${ARCH} binary
 
 Stripped, LTO-optimised build. The browser engine itself (lexbor for
 HTML, quickjs for JavaScript, wuffs for image decoding, wamr for

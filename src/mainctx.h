@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — engine main-context registry with g_timeout_add/g_idle_add analogues.
+/* Northstar Web Browser — engine main-context registry with g_timeout_add/g_idle_add analogues.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

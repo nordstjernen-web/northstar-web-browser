@@ -7,7 +7,7 @@ Files-Excluded:
  data/render-tests/assets/wikipedia-*.css
  data/render-tests/realworld-wikipedia*.html
 Comment:
- Northstar (Nordstjernen Web Browser) is the GPL edition of the Nordstjernen
+ Northstar Web Browser is the GPL edition of the Nordstjernen
  project. The browser engine is original C written from scratch; it is not
  a fork of Gecko, WebKit, or Blink.
  .

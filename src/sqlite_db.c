@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — opens the browser's SQLite databases hardened against hostile files.
+/* Northstar Web Browser — opens the browser's SQLite databases hardened against hostile files.
  * Defensive mode, no extension loading or trusted schema, and a busy timeout.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

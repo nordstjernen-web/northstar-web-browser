@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — damage rectangles and paint-hazard scanning for partial repaint.
+/* Northstar Web Browser — damage rectangles and paint-hazard scanning for partial repaint.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

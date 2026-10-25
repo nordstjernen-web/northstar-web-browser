@@ -44,7 +44,7 @@ def chip(x, y, w, name, cls="chip"):
 
 H = 1336
 out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" font-family="DejaVu Sans, Verdana, sans-serif">')
-out.append("""<title>Nordstjernen Web Browser architecture</title>
+out.append("""<title>Northstar Web Browser architecture</title>
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#445"/></marker>
 <style>
@@ -75,7 +75,7 @@ out.append("""<title>Nordstjernen Web Browser architecture</title>
 </style>
 </defs>""")
 rect(0, 0, W, H, "bg", 0)
-text(W / 2, 40, "Nordstjernen Web Browser — software architecture", "title", "middle")
+text(W / 2, 40, "Northstar Web Browser — software architecture", "title", "middle")
 text(W / 2, 62, "Hand-written HTML/CSS/JS engine in C · GTK 4 shell · libcurl · one process · no Gecko, WebKit or Blink", "sub", "middle")
 
 group(20, 84, 360, 92, "Watchdog supervisor — GUI launches only", "g-ext", dashed=True)

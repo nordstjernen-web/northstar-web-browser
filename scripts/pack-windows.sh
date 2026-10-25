@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a redistributable Nordstjernen Web Browser Windows bundle: a root launcher plus the
+# Build a redistributable Northstar Web Browser Windows bundle: a root launcher plus the
 # MSYS2 DLLs and GTK runtime data under app/ so it runs outside MSYS2.
 #
 # Builds (or reuses) a separate --buildtype=release tree in $BUILDDIR so the
@@ -176,7 +176,7 @@ for theme in Adwaita hicolor; do
     fi
 done
 
-# Nordstjernen Web Browser's own application + toolbar icons (drop into the hicolor theme
+# Northstar Web Browser's own application + toolbar icons (drop into the hicolor theme
 # so gtk_image_new_from_icon_name("northstar-back") and friends resolve at
 # runtime, and about: pages can read the svg/gif as a data URI). The dev tree
 # finds these via the ../../data/icons search path; the bundle only has
@@ -197,7 +197,7 @@ fi
 mkdir -p "$APP/share/northstar"
 cp "$ROOT/LICENSE" "$APP/share/northstar/"
 
-# Nordstjernen Web Browser's own GPL text plus the third-party copyright + license notices
+# Northstar Web Browser's own GPL text plus the third-party copyright + license notices
 # required by the libraries we ship, both at the root of the bundle.
 cp "$ROOT/LICENSE" "$OUT/LICENSE.txt"
 cp "$ROOT/THIRD-PARTY-LICENSES.md" "$OUT/"

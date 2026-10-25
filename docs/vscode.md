@@ -1,7 +1,7 @@
 # Building and running in Visual Studio Code
 
 The repository carries a VS Code workspace in `.vscode/` that builds, runs
-and debugs Nordstjernen Web Browser on Linux, macOS and Windows. It drives the
+and debugs Northstar Web Browser on Linux, macOS and Windows. It drives the
 same Meson build described in [building.md](building.md); VS Code adds
 buttons and a debugger on top, not a second build system.
 

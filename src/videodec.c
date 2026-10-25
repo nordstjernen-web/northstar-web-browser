@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — MSE video decoder dispatch over the AV1, H.264 and VP9 backends.
+/* Northstar Web Browser — MSE video decoder dispatch over the AV1, H.264 and VP9 backends.
  * Copyright 2026 Gabriel Ferreira
  * SPDX-License-Identifier: GPL-3.0-or-later
  */

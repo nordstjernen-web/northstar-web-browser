@@ -1,4 +1,4 @@
-/* Nordstjernen Web Browser — Content-Security-Policy parsing and source-list matching.
+/* Northstar Web Browser — Content-Security-Policy parsing and source-list matching.
  * Directive fallback, nonces, hashes, strict-dynamic, unsafe-eval/inline and frame-ancestors.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later

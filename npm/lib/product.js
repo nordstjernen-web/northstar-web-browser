@@ -1,0 +1,71 @@
+// product.js: what this package installs: the Northstar Web Browser release, its build tools and the libraries its build requires.
+'use strict';
+
+const { version } = require('../package.json');
+
+module.exports = {
+  name: 'Northstar Web Browser',
+  packageName: 'northstar-browser',
+  envPrefix: 'NORTHSTAR',
+  licenseFiles: ['LICENSE'],
+  version,
+  repo: 'nordstjernen-web/northstar-web-browser',
+  sourceDirectory: `northstar-web-browser-${version}`,
+  executable: process.platform === 'win32' ? 'bin/northstar.exe' : 'bin/northstar',
+  mesonOptions: process.platform === 'win32' ? ['--buildtype=release', '-Db_lto_mode=thin'] : ['--buildtype=release'],
+  windowsEnv: { CC: 'clang', CXX: 'clang++', CC_LD: 'lld', CXX_LD: 'lld' },
+  supportedDistributions: 'Ubuntu 24.04, Debian 13, Fedora 40, openSUSE Tumbleweed, Arch Linux, Alpine 3.21 or newer',
+
+  tools: [
+    { label: 'meson', probe: ['meson'], minimum: '1.0',
+      upgrade: ['A newer meson can be installed for your user with:', '', '  pipx install meson', '', 'or: python3 -m pip install --user meson'],
+      apt: 'meson', dnf: 'meson', zypper: 'meson', pacman: 'meson', apk: 'meson', brew: 'meson', msys: 'meson' },
+    { label: 'ninja', probe: ['ninja', 'samu'],
+      apt: 'ninja-build', dnf: 'ninja-build', zypper: 'ninja', pacman: 'ninja', apk: 'samurai', brew: 'ninja', msys: 'ninja' },
+    { label: 'pkg-config', probe: ['pkg-config', 'pkgconf'],
+      apt: 'pkgconf', dnf: 'pkgconf', zypper: 'pkgconf', pacman: 'pkgconf', apk: 'pkgconf', brew: 'pkgconf', msys: 'pkgconf' },
+    { label: 'cmake', probe: ['cmake'],
+      apt: 'cmake', dnf: 'cmake', zypper: 'cmake', pacman: 'cmake', apk: 'cmake', brew: 'cmake', msys: 'cmake' },
+    { label: 'git', probe: ['git'],
+      apt: 'git', dnf: 'git', zypper: 'git', pacman: 'git', apk: 'git', brew: 'git', msysBase: 'git' },
+    { label: 'tar', probe: ['tar'],
+      apt: 'tar', dnf: 'tar', zypper: 'tar', pacman: 'tar', apk: 'tar', msysBase: 'tar' },
+    { label: 'a C compiler (gcc or clang)', probe: ['cc', 'gcc', 'clang'], compiler: true,
+      apt: 'build-essential', dnf: 'gcc', zypper: 'gcc', pacman: 'base-devel', apk: 'build-base', msys: 'clang' },
+    { label: 'a C++ compiler (g++ or clang++)', probe: ['c++', 'g++', 'clang++'], compiler: true,
+      apt: 'build-essential', dnf: 'gcc-c++', zypper: 'gcc-c++', pacman: 'base-devel', apk: 'build-base', msys: 'clang' },
+    { label: 'llvm-ar (for link-time optimisation with clang)', probe: ['llvm-ar'], windows: true, msys: 'llvm-tools' },
+    { label: 'lld', probe: ['ld.lld'], windows: true, msys: 'lld' },
+  ],
+
+  required: [
+    { module: 'glib-2.0', minimum: '2.80', apt: 'libglib2.0-dev', pacman: 'glib2', brew: 'glib', msys: 'glib2' },
+    { module: 'gtk4', minimum: process.platform === 'win32' ? '4.22.1' : '4.14',
+      apt: 'libgtk-4-dev', pacman: 'gtk4', brew: 'gtk4', msys: 'gtk4' },
+    { module: 'libcurl', minimum: '8.5', apt: 'libcurl4-openssl-dev', pacman: 'curl', brew: 'curl', msys: 'curl' },
+    { module: 'libcrypto', apt: 'libssl-dev', pacman: 'openssl', brew: 'openssl@3', msys: 'openssl' },
+    { module: 'uchardet', apt: 'libuchardet-dev', pacman: 'uchardet', brew: 'uchardet', msys: 'uchardet' },
+    { module: 'libpsl', apt: 'libpsl-dev', pacman: 'libpsl', brew: 'libpsl', msys: 'libpsl' },
+    { module: 'sqlite3', apt: 'libsqlite3-dev', pacman: 'sqlite', brew: 'sqlite', msys: 'sqlite3' },
+    { module: 'zlib', apt: 'zlib1g-dev', pacman: 'zlib', brew: 'zlib', msys: 'zlib' },
+    { module: 'fribidi', minimum: '1.0.6', apt: 'libfribidi-dev', pacman: 'fribidi', brew: 'fribidi', msys: 'fribidi' },
+    { module: 'harfbuzz', minimum: '8.3.0', apt: 'libharfbuzz-dev', pacman: 'harfbuzz', brew: 'harfbuzz', msys: 'harfbuzz' },
+    { module: 'fontconfig', minimum: '2.15.0', apt: 'libfontconfig-dev', pacman: 'fontconfig', brew: 'fontconfig', msys: 'fontconfig' },
+    { module: 'freetype2', apt: 'libfreetype-dev', pacman: 'freetype2', brew: 'freetype', msys: 'freetype' },
+    { module: 'cairo', minimum: '1.18.0', apt: 'libcairo2-dev', pacman: 'cairo', brew: 'cairo', msys: 'cairo' },
+    { module: 'cairo-ft', minimum: '1.18.0', apt: 'libcairo2-dev', pacman: 'cairo', brew: 'cairo', msys: 'cairo' },
+    { module: 'libseccomp', linux: true, apt: 'libseccomp-dev', pacman: 'libseccomp' },
+  ],
+
+  optional: [
+    { module: 'sdl2', feature: 'audio playback', apt: 'libsdl2-dev', pacman: 'sdl2', brew: 'sdl2', msys: 'SDL2' },
+    { module: 'dav1d', minimum: '1.0.0', feature: 'AV1 video', apt: 'libdav1d-dev', pacman: 'dav1d', brew: 'dav1d', msys: 'dav1d' },
+    { module: 'vpx', minimum: '1.8.0', feature: 'VP9 video', apt: 'libvpx-dev', pacman: 'libvpx', brew: 'libvpx', msys: 'libvpx' },
+    { module: 'openh264', minimum: '2.0.0', feature: 'H.264 video', apt: 'libopenh264-dev', pacman: 'openh264', brew: 'openh264', msys: 'openh264' },
+    { module: 'opusfile', feature: 'Ogg Opus audio', apt: 'libopusfile-dev', pacman: 'opusfile', brew: 'opusfile', msys: 'opusfile' },
+    { module: 'vorbisfile', feature: 'Ogg Vorbis audio', apt: 'libvorbis-dev', pacman: 'libvorbis', brew: 'libvorbis', msys: 'libvorbis' },
+    { module: 'libavif', feature: 'AVIF images', apt: 'libavif-dev', pacman: 'libavif', brew: 'libavif', msys: 'libavif' },
+    { module: 'enchant-2', feature: 'spell-checking', apt: 'libenchant-2-dev', pacman: 'enchant', brew: 'enchant', msys: 'enchant' },
+    { module: 'libthai', minimum: '0.1.9', unix: true, feature: 'Thai word breaking', apt: 'libthai-dev', pacman: 'libthai', brew: 'libthai' },
+  ],
+};

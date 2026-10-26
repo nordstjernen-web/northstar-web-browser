@@ -1,0 +1,4 @@
+LICENSE
+lib/source.json
+vendor/
+*.tgz

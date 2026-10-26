@@ -2,6 +2,15 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.18:
+=======
+* Packaging: Northstar can be installed from npm as `northstar-browser`
+  (`npm/`, documented in `docs/npm.md`). Installing builds the release
+  source with meson on Linux, macOS, the BSDs and Windows (in MSYS2), after
+  a check that names every missing or too-old build tool and library and
+  the command that installs it. The build shows its progress, keeps a log,
+  and checks the source tarball against a checksum recorded in the package.
+
 1.0.17:
 =======
 * Packaging: an Arch Linux package, `northstar-browser`, in

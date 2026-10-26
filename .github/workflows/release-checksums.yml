@@ -1,0 +1,53 @@
+name: release-checksums
+
+# Publishes SHA256SUMS and SHA512SUMS for each newly published release.
+# Covers GitHub's source archives for the tag plus any uploaded assets.
+# Run manually with a tag to regenerate after uploading assets later.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to checksum'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  checksums:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+    steps:
+      - name: Download source archives and assets
+        run: |
+          set -euo pipefail
+          mkdir dl && cd dl
+          name="${GH_REPO#*/}-${TAG}"
+          curl -fsSL -o "${name}.tar.gz" \
+            "https://github.com/${GH_REPO}/archive/refs/tags/${TAG}.tar.gz"
+          curl -fsSL -o "${name}.zip" \
+            "https://github.com/${GH_REPO}/archive/refs/tags/${TAG}.zip"
+          gh release download "$TAG" --skip-existing \
+            --pattern '*' 2>/dev/null || true
+          rm -f SHA256SUMS SHA512SUMS
+          ls -l
+
+      - name: Compute checksums
+        working-directory: dl
+        run: |
+          set -euo pipefail
+          sha256sum -- * > ../SHA256SUMS
+          sha512sum -- * > ../SHA512SUMS
+          cat ../SHA256SUMS
+
+      - name: Upload checksums to release
+        run: gh release upload "$TAG" SHA256SUMS SHA512SUMS --clobber

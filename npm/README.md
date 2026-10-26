@@ -3,6 +3,8 @@
 [Northstar Web Browser](https://github.com/nordstjernen-web/northstar-web-browser)
 is a compact, secure web browser written from scratch in C with GTK 4.
 
+![Northstar Web Browser](https://raw.githubusercontent.com/nordstjernen-web/northstar-web-browser/main/docs/screenshot.png)
+
 ```sh
 npm install -g northstar-browser
 northstar https://example.com

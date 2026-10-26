@@ -154,6 +154,17 @@ added.
   input and web-platform-tests runs from the command line; see
   [docs/building.md](docs/building.md#headless-mode-scripting--testing).
 
+## Install with npm
+
+```sh
+npm install -g northstar-browser
+northstar https://example.com
+```
+
+The package builds Northstar from the release source on Linux, macOS, the
+BSDs and Windows (with MSYS2), and first names any build dependency that is
+missing. See [npm/README.md](npm/README.md).
+
 ## Build and run
 
 On Debian or Ubuntu, install the required development packages:

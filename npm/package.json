@@ -1,0 +1,43 @@
+{
+  "name": "northstar-browser",
+  "version": "1.0.17",
+  "description": "Northstar Web Browser: a compact, secure web browser written from scratch in C with GTK 4, built from source on install",
+  "keywords": [
+    "browser",
+    "web-browser",
+    "gtk",
+    "gtk4"
+  ],
+  "homepage": "https://github.com/nordstjernen-web/northstar-web-browser",
+  "bugs": "https://github.com/nordstjernen-web/northstar-web-browser/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nordstjernen-web/northstar-web-browser.git",
+    "directory": "npm"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "Andreas Røsdal",
+  "bin": {
+    "northstar": "bin/northstar.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "node lib/postinstall.js",
+    "prepack": "node lib/prepack.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "linux",
+    "darwin",
+    "freebsd",
+    "openbsd",
+    "netbsd",
+    "win32"
+  ]
+}

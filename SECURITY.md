@@ -330,7 +330,10 @@ redirects, an explicit response-size cap, and `CURLOPT_NOSIGNAL`. HSTS
 state is loaded and persisted via `CURLOPT_HSTS`; Alt-Svc is honoured.
 Top-level navigations try HTTPS first (`https_first`, on by default).
 The `tls_allow_insecure_override` setting, off by default, lets the user
-proceed past a certificate error, never for an HSTS host.
+proceed past a certificate error, never for an HSTS host, and only for
+the top-level navigation itself, which the address bar then marks as not
+secure; a subresource, frame, `fetch()`, worker or media request that
+fails verification is never retried without it.
 
 Every subresource request passes one policy check,
 `ns_fetch_policy_check` (`src/fetch_policy.c`), before it is sent and

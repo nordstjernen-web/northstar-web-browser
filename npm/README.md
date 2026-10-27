@@ -7,7 +7,7 @@ is a compact, secure web browser written from scratch in C with GTK 4.
 
 ```sh
 npm install -g northstar-browser
-northstar https://example.com
+northstar https://nordstjernen.org
 ```
 
 Installing builds Northstar from the release source on your machine, with

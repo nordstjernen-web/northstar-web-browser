@@ -158,7 +158,7 @@ added.
 
 ```sh
 npm install -g northstar-browser
-northstar https://example.com
+northstar https://nordstjernen.org
 ```
 
 The package builds Northstar from the release source on Linux, macOS, the
@@ -217,7 +217,7 @@ a pin is moved.
 
 `meson install` puts `open-internet-browser` beside `northstar` in the
 binary directory, a symbolic link to it, so `open-internet-browser
-https://example.com` starts Northstar Web Browser. Nordstjernen Sol
+https://nordstjernen.org` starts Northstar Web Browser. Nordstjernen Sol
 and Southstar install commands of their own (`open-browser-nordstjernen`
 and `internet-browser-southstar`), so the three browsers install side by
 side. The `.deb` and `.rpm` packages register `open-internet-browser`

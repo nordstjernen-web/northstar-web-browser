@@ -59783,6 +59783,10 @@ ns_js_fetch_policy(ns_js *js, const ns_node *node)
             ns_fetch_policy_unref(js->fetch_policy);
             js->fetch_policy = ns_fetch_policy_new(js->current_url, js->csp);
         }
+        /* current_url is the frame's URL while frame script runs; the
+         * partition still belongs to the page. */
+        if (!ns_fetch_policy_top_url(js->fetch_policy))
+            ns_fetch_policy_set_top_url(js->fetch_policy, js->document_origin);
         return js->fetch_policy;
     }
     if (!js->doc_fetch_policy)
@@ -59795,6 +59799,11 @@ ns_js_fetch_policy(ns_js *js, const ns_node *node)
                                      g_hash_table_lookup(js->doc_csp, owner));
         g_hash_table_insert(js->doc_fetch_policy, (gpointer)owner, policy);
     }
+    /* A frame's requests are partitioned by the embedding page's site, not
+     * by the frame's own: that is what keeps a cross-site frame from
+     * getting its first-party cookies and cache. */
+    if (!ns_fetch_policy_top_url(policy))
+        ns_fetch_policy_set_top_url(policy, js->document_origin);
     return policy;
 }
 

@@ -13,6 +13,7 @@
 struct ns_fetch_policy {
     gatomicrefcount rc;
     char           *document_url;
+    char           *top_url;
     ns_csp         *csp;
     gboolean        check_scripts;
 };
@@ -35,8 +36,23 @@ ns_fetch_policy_new_script_hops(const ns_fetch_policy *policy)
     if (!policy) return NULL;
     ns_fetch_policy *copy = ns_fetch_policy_new(policy->document_url,
                                                 policy->csp);
+    copy->top_url = g_strdup(policy->top_url);
     copy->check_scripts = TRUE;
     return copy;
+}
+
+void
+ns_fetch_policy_set_top_url(ns_fetch_policy *policy, const char *top_url)
+{
+    if (!policy) return;
+    g_free(policy->top_url);
+    policy->top_url = top_url && *top_url ? g_strdup(top_url) : NULL;
+}
+
+const char *
+ns_fetch_policy_top_url(const ns_fetch_policy *policy)
+{
+    return policy ? policy->top_url : NULL;
 }
 
 ns_fetch_policy *
@@ -51,6 +67,7 @@ ns_fetch_policy_unref(ns_fetch_policy *policy)
 {
     if (!policy || !g_atomic_ref_count_dec(&policy->rc)) return;
     g_free(policy->document_url);
+    g_free(policy->top_url);
     ns_csp_free(policy->csp);
     g_free(policy);
 }

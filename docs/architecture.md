@@ -213,7 +213,7 @@ WebExtension host each run in a separate runtime.
 The DOM/JS bridge invalidates opaque node pointers on free and
 re-validates them on every call, so DOM mutation cannot dangle a
 JS-held handle. `data/js/polyfills.js` is embedded by `src/meson.build`
-(and, when `qjs` and `qjsc` are installed, syntax-checked at build time);
+(and, on quickjs-ng builds, syntax-checked at build time);
 some page-facing surfaces are assembled there over native hooks rather
 than bound in C, which is why `navigator.mediaDevices.getUserMedia` is
 the polyfill's, not the native stub's. Video capture works on Linux only.

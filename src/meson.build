@@ -1,9 +1,13 @@
 python = import('python').find_installation()
 
-qjsc_prog = find_program('qjsc', required: false)
-qjs_prog  = find_program('qjs',  required: false)
+qjs_tools_found = false
+if js_engine == 'quickjs-ng' and not meson.is_cross_build()
+  qjsc_prog = find_program('qjsc', required: false)
+  qjs_prog  = find_program('qjs',  required: false)
+  qjs_tools_found = qjsc_prog.found() and qjs_prog.found()
+endif
 
-if not meson.is_cross_build() and qjsc_prog.found() and qjs_prog.found()
+if qjs_tools_found
   # files() so the script path is absolute — a raw '../scripts/...' string would
   # be resolved relative to the build dir and break out-of-tree builds.
   verify_polyfills_py = files('../scripts/verify-polyfills.py')

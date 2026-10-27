@@ -38,7 +38,9 @@ the checkout. It compiles the library objects the Makefile builds
 (`quickjs.c`, `dtoa.c`, `libregexp.c`, `libunicode.c`, `cutils.c`) with the
 same defines (`_GNU_SOURCE`, `CONFIG_VERSION`, `-fwrapv`, and
 `__USE_MINGW_ANSI_STDIO` on Windows) into a static library. Nothing is
-installed.
+installed, and no `qjs` or `qjsc` is built, so this build skips the
+build-time polyfill check; a `qjs` or `qjsc` on the `PATH` is never used
+for it.
 
 Two source patches ride on top, named by `diff_files`.
 `quickjs-sort-calls-comparator.patch`: the original `Array.prototype.sort`

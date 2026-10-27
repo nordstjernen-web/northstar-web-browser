@@ -185,9 +185,12 @@ So the first build needs network access for whichever of those two it
 cannot satisfy locally, unless the system supplies them. A tarball that must build offline has to embed them;
 `debian/README.source` carries the recipe.
 
-When `qjs` and `qjsc` are on the `PATH`, the build also compiles
-`data/js/polyfills.js` with them as a syntax and sanity check
-(`scripts/verify-polyfills.py`).
+A quickjs-ng build also compiles `data/js/polyfills.js` with quickjs-ng's
+`qjs` and `qjsc` (the subproject's, or the system's alongside a system
+quickjs-ng) as a syntax and sanity check (`scripts/verify-polyfills.py`).
+A `-Djs_engine=quickjs` build skips the check: that subproject builds no
+tools, and a `qjsc` from Bellard's QuickJS on the `PATH` takes different
+options.
 
 `./scripts/dev.sh build` runs `meson setup` (only when needed) and
 `meson compile -C builddir` in one step.

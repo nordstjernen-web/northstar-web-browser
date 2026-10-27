@@ -42,6 +42,13 @@ ns_fetch_policy *ns_fetch_policy_new(const char *document_url,
 ns_fetch_policy *ns_fetch_policy_ref(ns_fetch_policy *policy);
 void             ns_fetch_policy_unref(ns_fetch_policy *policy);
 const char      *ns_fetch_policy_document_url(const ns_fetch_policy *policy);
+/* The top-level document (page) the policy's document is embedded in,
+ * or NULL when it is the top-level document itself.  Cookie and HTTP
+ * cache partitions are keyed by the top-level site, so a cross-site
+ * frame's requests stay in the embedding page's partition. */
+void             ns_fetch_policy_set_top_url(ns_fetch_policy *policy,
+                                             const char *top_url);
+const char      *ns_fetch_policy_top_url(const ns_fetch_policy *policy);
 /* A copy of policy that also holds script loads to script-src at every
  * hop, for a script the page's policy admitted by its URL (one admitted
  * by a nonce or 'strict-dynamic' may be redirected anywhere). */

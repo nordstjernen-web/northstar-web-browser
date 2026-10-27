@@ -372,7 +372,12 @@ and an extension's web-accessible resources are exempt from
   comes from the Public Suffix List via libpsl. All subdomains within
   the same registrable domain share one cookie jar and one cache
   partition; everything else is isolated. Third-party cookies are
-  blocked on network requests by default (`cookie_policy`). A
+  blocked on network requests by default (`cookie_policy`). A request
+  made inside a frame is keyed by the *page's* site, not the frame's
+  (`ns_fetch_policy_top_url`), so a cross-site frame gets neither its
+  own first-party cookies nor its first-party cache for the resources
+  it loads; the frame's URL still decides `Origin`, `Referer`,
+  `Sec-Fetch-Site` and CORS. A
   subresource keeps its initiating document through every redirect hop,
   so a 302 cannot move it into the target's first-party partition or
   relabel it as a navigation in the `Sec-Fetch-*` headers.

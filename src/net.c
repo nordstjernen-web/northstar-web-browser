@@ -5169,7 +5169,7 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
                   GPtrArray *extra_headers,
                   GCancellable *cancellable, GError **error,
                   gboolean follow_redirects, char **location_out,
-                  gboolean navigation)
+                  gboolean navigation, const char *partition_top)
 {
     if (location_out) *location_out = NULL;
     gboolean is_navigation = ns_fetch_is_navigation(top_url, extra_headers)
@@ -5237,12 +5237,21 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     const char *initiator = top_level_nav ? top_url : NULL;
     const char *effective_top_url = top_level_nav ? url
                                   : (top_url ? top_url : url);
+    /* top_url is the document that made the request and decides Origin,
+     * Referer, Sec-Fetch-Site and CORS.  Cookie and cache partitions are
+     * keyed by the top-level *site*: for a request made inside a frame
+     * that is the embedding page (partition_top), so a cross-site frame
+     * never gets its own first-party jar or cache. */
+    const char *site_top_url = top_level_nav ? url
+                             : (partition_top && *partition_top
+                                ? partition_top : effective_top_url);
     char *top_origin = ns_url_origin_from(effective_top_url);
-    char *top_site   = ns_url_site_from(effective_top_url);
+    g_autofree char *site_origin = ns_url_origin_from(site_top_url);
+    char *top_site   = ns_url_site_from(site_top_url);
     const char *partition_key = (top_site && *top_site) ? top_site
-                              : (top_origin ? top_origin : "");
+                              : (site_origin ? site_origin : "");
     char *cache_partition = ns_net_partition_key(url,
-        top_level_nav ? NULL : top_url);
+        top_level_nav ? NULL : site_top_url);
     g_autofree char *initiator_origin =
         initiator ? ns_url_origin_from(initiator) : NULL;
     gboolean unsafe_method = method && *method &&
@@ -5282,7 +5291,7 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     gboolean cookies_allowed = request_http &&
         (cookie_policy != NS_COOKIE_NEVER);
     if (cookies_allowed && cookie_policy == NS_COOKIE_FIRST_PARTY &&
-        top_url && !ns_url_is_same_site(url, effective_top_url))
+        top_url && !ns_url_is_same_site(url, site_top_url))
         cookies_allowed = FALSE;
     /* Cookies carry no SameSite attribute here, so treat them all as
      * SameSite=Lax: a cross-site initiator only gets them sent on safe
@@ -6014,7 +6023,8 @@ ns_cors_credentials_allowed(const char *raw_headers)
 static ns_response *
 ns_cors_preflight(const char *url, const char *top_url, const char *method,
                   const char *content_type, GPtrArray *extra_headers,
-                  ns_fetch_destination dest, GCancellable *cancellable)
+                  ns_fetch_destination dest, GCancellable *cancellable,
+                  const char *partition_top)
 {
     const char *cred_mode = ns_fetch_credentials_of(extra_headers);
     gboolean credentialed = cred_mode && strcmp(cred_mode, "include") == 0;
@@ -6050,7 +6060,7 @@ ns_cors_preflight(const char *url, const char *top_url, const char *method,
     GError *err = NULL;
     ns_response *pre = ns_fetch_sync_hop(url, top_url, "OPTIONS", NULL, 0,
                                          NULL, hdrs, cancellable, &err,
-                                         FALSE, NULL, FALSE);
+                                         FALSE, NULL, FALSE, partition_top);
     g_ptr_array_free(hdrs, TRUE);
     g_clear_error(&err);
 
@@ -6133,10 +6143,13 @@ ns_fetch_sync(const char *url, const char *top_url, const char *method,
     }
     gboolean subresource = !ns_fetch_is_navigation(top_url, extra_headers) &&
                            !navigation;
+    /* The page a framed document is embedded in, when the request comes
+     * from a frame: its site keys the cookie and cache partitions. */
+    const char *partition_top = ns_fetch_policy_top_url(policy);
     ns_response *preflight_refusal =
         subresource && ns_ext_should_block(url, top_url) ? NULL
         : ns_cors_preflight(url, top_url, method, content_type,
-                            extra_headers, dest, cancellable);
+                            extra_headers, dest, cancellable, partition_top);
     if (preflight_refusal) return preflight_refusal;
 
     const ns_config *cfg = ns_config_get();
@@ -6176,7 +6189,8 @@ ns_fetch_sync(const char *url, const char *top_url, const char *method,
         resp = ns_fetch_sync_hop(cur_url, cur_top, cur_method,
                                  cur_body, cur_len, cur_ct,
                                  extra_headers, cancellable, error,
-                                 FALSE, &location, navigation);
+                                 FALSE, &location, navigation,
+                                 partition_top);
         if (omit_cookies)
             g_ptr_array_remove_index(extra_headers, extra_headers->len - 1);
         if (!resp) {
@@ -6247,7 +6261,7 @@ ns_fetch_sync(const char *url, const char *top_url, const char *method,
         if (!ns_url_same_origin(cur_url, next)) {
             ns_response *refusal = ns_cors_preflight(
                 next, top_url, cur_method, cur_ct, extra_headers, dest,
-                cancellable);
+                cancellable, partition_top);
             if (refusal) {
                 ns_response_free(resp);
                 resp = refusal;

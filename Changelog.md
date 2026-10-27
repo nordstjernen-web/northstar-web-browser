@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.18:
 =======
+* Build: `-Djs_engine=quickjs` builds no longer fail when Bellard's `qjs`
+  and `qjsc` are installed. The build-time polyfill check found them on
+  the `PATH` and passed `qjsc` quickjs-ng options (`-C`, `-P`, `-n`) that
+  it rejects. The check now runs only on quickjs-ng builds, with
+  quickjs-ng's own tools.
 * Packaging: Northstar can be installed from npm as `northstar-browser`
   (`npm/`, documented in `docs/npm.md`). Installing builds the release
   source with meson on Linux, macOS, the BSDs and Windows (in MSYS2), after

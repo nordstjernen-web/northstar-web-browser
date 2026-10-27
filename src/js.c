@@ -3093,7 +3093,8 @@ static gboolean ns_fire_property_on_handler(ns_js *js, const ns_node *target,
                                             const char *type, JSValue event);
 static JSValue ns_iframe_lookup_realm_window(ns_js *js, ns_node *iframe);
 static char *ns_js_exposed_response_headers(const ns_response *resp,
-                                             gboolean same_origin);
+                                             gboolean same_origin,
+                                             gboolean credentialed);
 static char *ns_xhr_serialize_headers(const ns_response *resp);
 static JSValue ns_iframe_lookup_realm_doc(ns_js *js, const ns_node *iframe);
 static void ns_iframe_store_realm_window(ns_js *js, ns_node *iframe,
@@ -8701,6 +8702,7 @@ typedef struct ns_js_fetch_state {
     gboolean       aborted;
     gboolean       settled;
     gboolean       no_cors;
+    gboolean       credentialed;   /* credentials: 'include' */
     double         fetch_start_ms;
     char          *fb_send_url;
     char          *fb_top;
@@ -9060,7 +9062,8 @@ ns_on_js_fetch_deliver(ns_js_fetch_state *st, ns_response *resp, GError *err)
             gboolean same_origin = ns_url_same_origin(origin_url,
                                                       resp->final_url);
             g_autofree char *exposed =
-                ns_js_exposed_response_headers(resp, same_origin);
+                ns_js_exposed_response_headers(resp, same_origin,
+                                               st->credentialed);
             ns_headers_init_add_raw(st->ctx, header_init, exposed);
         }
         JSValue global = JS_GetGlobalObject(st->ctx);
@@ -9560,6 +9563,8 @@ ns_js_fetch_for(JSContext *ctx, JSValueConst frame_url, int argc,
     st->reject  = resolving[1];
     st->requested_url = g_strdup(url);
     st->no_cors = no_cors;
+    st->credentialed =
+        g_strcmp0(ns_fetch_credentials_mode(credentials), "include") == 0;
     st->fetch_start_ms = ns_perf_now_ms(st->js);
     const char *top = base_url && *base_url ? base_url :
                       (st->js ? st->js->current_url : NULL);
@@ -17729,9 +17734,12 @@ ns_http_status_text(int status)
 /* Response headers script may see (Fetch Standard): never Set-Cookie /
  * Set-Cookie2, and for a cross-origin (CORS) response only the
  * CORS-safelisted headers plus those named in Access-Control-Expose-Headers.
+ * "*" there exposes every header only when the request carried no
+ * credentials; for a credentialed request it is a literal header name.
  * Returns raw "Name: value\r\n" lines. */
 static char *
-ns_js_exposed_response_headers(const ns_response *resp, gboolean same_origin)
+ns_js_exposed_response_headers(const ns_response *resp, gboolean same_origin,
+                               gboolean credentialed)
 {
     static const char *const safelisted[] = {
         "cache-control", "content-language", "content-length",
@@ -17763,7 +17771,8 @@ ns_js_exposed_response_headers(const ns_response *resp, gboolean same_origin)
                         char **items = g_strsplit(v, ",", -1);
                         for (char **it = items; *it; it++) {
                             char *tok = g_ascii_strdown(g_strstrip(*it), -1);
-                            if (strcmp(tok, "*") == 0) expose_all = TRUE;
+                            if (strcmp(tok, "*") == 0 && !credentialed)
+                                expose_all = TRUE;
                             g_ptr_array_add(expose, tok);
                         }
                         g_strfreev(items);
@@ -18348,7 +18357,11 @@ ns_xhr_deliver(ns_xhr_state *st, ns_response *resp, GError *err)
         if (!allow) {
             hdrs = g_strdup("");
         } else {
-            hdrs = ns_js_exposed_response_headers(resp, same_origin);
+            JSValue wc = JS_GetPropertyStr(ctx, st->obj, "withCredentials");
+            gboolean credentialed = JS_ToBool(ctx, wc) > 0;
+            JS_FreeValue(ctx, wc);
+            hdrs = ns_js_exposed_response_headers(resp, same_origin,
+                                                  credentialed);
         }
         JS_SetPropertyStr(ctx, st->obj, "_responseHeaders",
                           JS_NewString(ctx, hdrs));

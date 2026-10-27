@@ -25,6 +25,14 @@ static char *ns_css_value_serialize_specified(const ns_css_value *v);
 static double g_viewport_w = 1000;
 static double g_viewport_h = 800;
 static __thread double g_root_line_px;
+/* Root font size for folding nested math at cascade time; 0 means unknown (16px). */
+static __thread double g_calc_rem_px;
+
+static double
+calc_rem_px(void)
+{
+    return g_calc_rem_px > 0 ? g_calc_rem_px : 16.0;
+}
 
 static GHashTable *g_defined_elements;
 
@@ -4943,8 +4951,8 @@ resolve_to_px_pct_font(const char *text, gsize len, double *out_px,
             font->vmax = v->u.calc.vmax;
             *out_px = v->u.calc.px;
         } else {
-            *out_px = v->u.calc.px +
-                      (v->u.calc.em + v->u.calc.rem) * 16.0 +
+            *out_px = v->u.calc.px + v->u.calc.em * 16.0 +
+                      v->u.calc.rem * calc_rem_px() +
                       (v->u.calc.lh + v->u.calc.rlh) * 19.2;
         }
         *out_pct = v->u.calc.pct;
@@ -5541,8 +5549,8 @@ calc_term_key(const ns_calc_term *t)
 {
     if (t->kind != CALC_LENGTH) return t->num;
     if (t->pct != 0) ns_css_media_record_viewport_use();
-    return t->px + (t->em + t->rem) * 16.0 + (t->lh + t->rlh) * 19.2 +
-           t->pct * 0.01 * g_viewport_w;
+    return t->px + t->em * 16.0 + t->rem * calc_rem_px() +
+           (t->lh + t->rlh) * 19.2 + t->pct * 0.01 * g_viewport_w;
 }
 
 /* Evaluates a calc() in a media query to px, number or resolution; percentages fail. */
@@ -6046,7 +6054,8 @@ calc_compare_lengths(int fn, char *const *parts, int n)
         if (f->em != 0 || f->rem != 0 || f->lh != 0 || f->rlh != 0 ||
             f->vw != 0 || f->vh != 0 || f->vmin != 0 || f->vmax != 0)
             font_dependent = TRUE;
-        double relative = (f->em + f->rem) * 16.0 + (f->lh + f->rlh) * 19.2 +
+        double relative = f->em * 16.0 + f->rem * calc_rem_px() +
+                          (f->lh + f->rlh) * 19.2 +
                           values_pct[i] * 0.01 * g_viewport_w;
         keys[i] = relative != 0 ? values_px[i] + relative : values_px[i];
     }
@@ -29358,7 +29367,8 @@ append_pending_decls(const pending_match *pm, const char *value_text,
     GArray *temp = NULL;
     char *cache_key = NULL;
     if (g_pending_parse_cache) {
-        cache_key = g_strconcat(pm->pd->pname, "\x1f", value_text, NULL);
+        cache_key = g_strdup_printf("%s\x1f%s\x1f%g", pm->pd->pname,
+                                    value_text, g_calc_rem_px);
         temp = g_hash_table_lookup(g_pending_parse_cache, cache_key);
         if (temp) g_clear_pointer(&cache_key, g_free);
     }
@@ -29432,9 +29442,10 @@ resolve_pending_into_matches(GArray *pending_matches,
                              const ns_var_map *vars,
                              GArray *matches,
                              GPtrArray *owned_values,
-                             const ns_node *node)
+                             const ns_node *node, double root_px)
 {
     if (!pending_matches || pending_matches->len == 0) return;
+    g_calc_rem_px = root_px;
     g_array_sort(pending_matches, pending_match_cmp);
     for (guint pmi = 0; pmi < pending_matches->len; pmi++) {
         pending_match *pm = &g_array_index(pending_matches, pending_match, pmi);
@@ -29446,6 +29457,7 @@ resolve_pending_into_matches(GArray *pending_matches,
         if (!applied && !(pm->pd->pname[0] == '-' && pm->pd->pname[1] == '-'))
             append_pending_decls(pm, "unset", matches, owned_values);
     }
+    g_calc_rem_px = 0;
 }
 
 static const char *kUa =
@@ -34505,7 +34517,8 @@ cascade_walk(ns_node *node,
             s->share_id = ++g_style_share_next_id;
             s->vars = build_vars_for_element(parent_style, var_matches);
             resolve_pending_into_matches(pending_matches, s->vars,
-                                         matches, owned_values, node);
+                                         matches, owned_values, node,
+                                         *root_px);
 
             cascade_for(matches, s, parent_style, layout_parent,
                     node->parent &&
@@ -34529,7 +34542,8 @@ cascade_walk(ns_node *node,
                         (GDestroyNotify)ns_css_value_free);
                 ns_style *ps = ns_style_alloc();
                 ps->vars = build_vars_for_element(s, pe_vars);
-                resolve_pending_into_matches(pe_pending, ps->vars, pm, pe_owned, node);
+                resolve_pending_into_matches(pe_pending, ps->vars, pm, pe_owned, node,
+                                             *root_px);
                 cascade_for(pm, ps, s,
                             pe == NS_CSS_PE_BEFORE || pe == NS_CSS_PE_AFTER
                                 ? s : NULL,

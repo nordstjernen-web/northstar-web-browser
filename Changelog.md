@@ -4,6 +4,20 @@ Significant changes in each release:
 
 1.0.18:
 =======
+* Web compatibility (chess.com): a script that walks `window.frames`
+  recursively no longer hangs the page. A same-document iframe's window
+  reported the top window's `length` and indexed frames, so every iframe
+  looked like it contained the whole frame tree; the page's JavaScript ran
+  until the 60-second watchdog stopped it. The iframe window now reports
+  its own child frames.
+* CSS: nested math functions in values that use `var()` resolve `rem`
+  against the root font size instead of 16px, so
+  `max(26.4rem, min(...))` and `round(down, ..., .8rem)` give the right
+  sizes on pages whose root font size is not 16px. On chess.com the board
+  was too small and overlapped the navigation.
+* Audio: up to 64 sounds can be loaded at once, up from 16. chess.com
+  preloads about 50 sound effects, and those past the 16th failed with
+  `too-many-players`.
 * Build: `-Djs_engine=quickjs` builds no longer fail when Bellard's `qjs`
   and `qjsc` are installed. The build-time polyfill check found them on
   the `PATH` and passed `qjsc` quickjs-ng options (`-C`, `-P`, `-n`) that

@@ -39,7 +39,7 @@
 #include <opusfile.h>
 #endif
 
-#define NS_AUDIO_MAX_PLAYERS 16
+#define NS_AUDIO_MAX_PLAYERS 64
 #define NS_AUDIO_MAX_SECONDS 1800
 #define NS_AUDIO_DEVICE_RATE 44100
 #define NS_AUDIO_CLOCK_RISE  0.02
@@ -166,7 +166,7 @@ player_find(NsAudioContext *owner, const char *token)
     return NULL;
 }
 
-/* Returns the existing player for token or claims a free slot; NULL when all 16 are used. */
+/* Returns the existing player for token or claims a free slot; NULL when all are used. */
 static ns_audio_player *
 player_alloc(NsAudioContext *owner, const char *token)
 {

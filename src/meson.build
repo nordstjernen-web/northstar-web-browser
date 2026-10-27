@@ -55,6 +55,7 @@ northstar_engine_sources = files(
   'debuglog.c',
   'damage.c',
   'dom.c',
+  'download_name.c',
   'encoding.c',
   'engine.c',
   'mainctx.c',

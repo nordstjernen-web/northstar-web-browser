@@ -14,6 +14,7 @@
 #include "cache.h"
 #include "config.h"
 #include "css.h"
+#include "download_name.h"
 #include "history.h"
 #include "net.h"
 #include "security.h"
@@ -953,12 +954,17 @@ show_downloads_window(ProcWindow *pw)
     gtk_window_present(GTK_WINDOW(win));
 }
 
-/* Rejects empty, dot-prefixed or path-containing download file names. */
-static gboolean
-download_name_acceptable(const char *name)
+/* The page-supplied name reduced to a plain file name, or NULL (see download_name.h). */
+static char *
+download_name_from(const char *candidate)
 {
-    return name && *name && name[0] != '.' && strcmp(name, "/") != 0 &&
-           !strchr(name, '/') && !strchr(name, '\\');
+    if (!candidate || !*candidate) return NULL;
+    /* g_path_get_basename() only splits on this platform's separators;
+     * the sanitiser turns the other platform's into '_'. */
+    g_autofree char *base = g_path_get_basename(candidate);
+    if (!base || strcmp(base, ".") == 0 || strcmp(base, G_DIR_SEPARATOR_S) == 0)
+        return NULL;
+    return ns_download_file_name(base);
 }
 
 /* Picks a safe unique file name in the downloads dir and starts a background download. */
@@ -966,18 +972,15 @@ static void
 pw_start_download(ProcWindow *pw, const char *url, const char *suggested)
 {
     if (!url || !*url || !download_url_allowed(url)) return;
-    char *name = NULL;
-    if (suggested && *suggested)
-        name = g_path_get_basename(suggested);
-    if (!download_name_acceptable(name)) {
-        g_free(name);
-        char *base = g_path_get_basename(url);
-        char *q = base ? strchr(base, '?') : NULL;
+    char *name = download_name_from(suggested);
+    if (!name) {
+        char *path_part = g_strdup(url);
+        char *q = strpbrk(path_part, "?#");
         if (q) *q = '\0';
-        if (download_name_acceptable(base))
-            name = base;
-        else { g_free(base); name = g_strdup("download"); }
+        name = download_name_from(path_part);
+        g_free(path_part);
     }
+    if (!name) name = g_strdup("download");
     const char *dir = downloads_dir();
     char *path = g_build_filename(dir, name, NULL);
     for (int n = 1; g_file_test(path, G_FILE_TEST_EXISTS) && n < 1000; n++) {

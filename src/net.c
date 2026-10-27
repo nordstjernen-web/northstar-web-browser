@@ -4959,7 +4959,7 @@ synthesize_view_source_response(const char *url, const char *top_url,
     const char *inner = url + sizeof prefix - 1;
     resp->final_url = g_strdup(url);
     gboolean from_chrome = ((!top_url || !*top_url) && navigation) ||
-        g_str_has_prefix(top_url, prefix) ||
+        (top_url && g_str_has_prefix(top_url, prefix)) ||
         ns_about_url_is_chrome(top_url);
     gboolean inner_allowed =
         g_str_has_prefix(inner, "http:") ||

@@ -157,9 +157,12 @@ added.
 ## Install with npm
 
 ```sh
-npm install -g northstar-browser
+sudo npm install -g northstar-browser
 northstar https://nordstjernen.org
 ```
+
+On Linux, macOS and the BSDs, run the install with `sudo`, because npm's global
+directory belongs to root; on Windows, run it without `sudo`.
 
 The package builds Northstar from the release source on Linux, macOS, the
 BSDs and Windows (with MSYS2), and first names any build dependency that is

@@ -454,6 +454,9 @@ ns_ws_worker_curl(gpointer data)
     }
 
     curl_easy_setopt(curl, CURLOPT_URL, ws->url);
+    /* The constructor only admits ws: and wss:; pin the handle to them too,
+     * like every other curl handle in the tree. */
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "ws,wss");
     curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
     curl_easy_setopt(curl, CURLOPT_HTTP_VERSION,
                      (long)CURL_HTTP_VERSION_1_1);

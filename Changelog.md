@@ -15,6 +15,10 @@ Significant changes in each release:
   a check that names every missing or too-old build tool and library and
   the command that installs it. The build shows its progress, keeps a log,
   and checks the source tarball against a checksum recorded in the package.
+* Packaging: the npm installer sets the executable bits on the installed
+  `bin/` and `libexec/` programs, and restores them on an existing install
+  when `northstar` starts, so a tree that lost them still launches. The
+  `northstar` launcher script is executable in the repository too.
 
 1.0.17:
 =======

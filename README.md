@@ -157,9 +157,12 @@ added.
 ## Install with npm
 
 ```sh
-npm install -g northstar-browser
-northstar https://example.com
+sudo npm install -g northstar-browser
+northstar https://nordstjernen.org
 ```
+
+On Linux, macOS and the BSDs, run the install with `sudo`, because npm's global
+directory belongs to root; on Windows, run it without `sudo`.
 
 The package builds Northstar from the release source on Linux, macOS, the
 BSDs and Windows (with MSYS2), and first names any build dependency that is
@@ -217,7 +220,7 @@ a pin is moved.
 
 `meson install` puts `open-internet-browser` beside `northstar` in the
 binary directory, a symbolic link to it, so `open-internet-browser
-https://example.com` starts Northstar Web Browser. Nordstjernen Sol
+https://nordstjernen.org` starts Northstar Web Browser. Nordstjernen Sol
 and Southstar install commands of their own (`open-browser-nordstjernen`
 and `internet-browser-southstar`), so the three browsers install side by
 side. The `.deb` and `.rpm` packages register `open-internet-browser`

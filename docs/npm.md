@@ -12,7 +12,14 @@ inside the package.
   repository, the executable, the meson options, the build tools and the
   required and optional libraries with their version floors and package names
   per package manager. Keep the floors in step with meson.build and src/web-text-lib/meson.build. The other files
-  in `lib/` are the same in the Northstar and Southstar packages.
+  in `lib/` are the same in the Nordstjernen, Northstar and Southstar
+  packages, so fix them in all three. (`install.js` also copies a notarised
+  macOS release for a product whose `product.js` names one, which only
+  Nordstjernen does.)
+- On Linux, macOS and the BSDs, `lib/install.js` sets the executable bits on
+  every file in the install's `bin/` and `libexec/`, both after a build and
+  each time the launcher finds an existing install, so a tree installed
+  without them still starts.
 - `lib/dependencies.js` checks every tool and library before anything is
   downloaded and names the packages that provide what is missing, for apt and
   pacman from the tables in `product.js`, for dnf, zypper and apk as

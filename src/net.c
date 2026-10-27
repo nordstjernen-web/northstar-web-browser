@@ -5637,7 +5637,13 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
         gboolean opt_in = cfg && cfg->tls_allow_insecure_override;
         char *fb_host = ns_url_host_from(url);
         gboolean hsts_pinned = ns_net_hsts_should_upgrade(fb_host);
-        if (opt_in && !hsts_pinned) {
+        /* Only the page the user is navigating to may proceed past a
+         * certificate error: the address bar then shows the connection
+         * as not secure.  A subresource, frame, fetch(), worker or media
+         * request retried without verification would hand an on-path
+         * attacker every script on every site with no indication, so
+         * those keep failing. */
+        if (opt_in && !hsts_pinned && top_level_nav) {
             char *warn = g_strdup_printf(
                 "Insecure: TLS certificate not trusted (%s)",
                 errbuf[0] ? errbuf : curl_easy_strerror(rc));

@@ -55644,6 +55644,46 @@ ns_location_nav_in_iframe(ns_js *js)
     return js && js->iframe_load_depth > 0;
 }
 
+/* The <iframe> whose realm runs the calling script, or NULL for the page
+ * itself (or when no script can be attributed). */
+static const ns_node *
+ns_js_caller_iframe(ns_js *js, JSContext *ctx)
+{
+    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    if (!js || !caller || caller == js->ctx || !js->frame_contexts)
+        return NULL;
+    GHashTableIter it;
+    gpointer iframe, fctx;
+    g_hash_table_iter_init(&it, js->frame_contexts);
+    while (g_hash_table_iter_next(&it, &iframe, &fctx))
+        if (fctx == caller) return iframe;
+    return NULL;
+}
+
+/* The Location object here is the top-level page's: a frame's own
+ * location is a per-realm stub.  A sandboxed frame may only navigate the
+ * top-level page with allow-top-navigation, or with
+ * allow-top-navigation-by-user-activation and a recent user gesture. */
+static gboolean
+ns_location_top_nav_allowed(ns_js *js, JSContext *ctx)
+{
+    const ns_node *iframe = ns_js_caller_iframe(js, ctx);
+    if (!iframe) return TRUE;
+    unsigned sb = ns_iframe_effective_sandbox(iframe);
+    if (!(sb & NS_SANDBOX_ACTIVE) || (sb & NS_SANDBOX_ALLOW_TOP_NAV))
+        return TRUE;
+    return (sb & NS_SANDBOX_ALLOW_TOP_NAV_UA) &&
+           ns_js_has_transient_activation(js);
+}
+
+static JSValue
+ns_location_throw_top_nav(JSContext *ctx)
+{
+    return ns_throw_dom_exception(ctx, "SecurityError", 18,
+        "location: a sandboxed frame may not navigate the top-level page "
+        "without allow-top-navigation");
+}
+
 /* Navigates via location: checks scheme, skips in iframes, handles fragment-only changes. */
 static void
 ns_location_navigate(ns_js *js, const char *url)
@@ -55665,6 +55705,8 @@ ns_location_set_href(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     (void)this_val;
     ns_js *js = js_from_ctx(ctx);
     if (!js || !js->nav_cb) return JS_UNDEFINED;
+    if (!ns_location_top_nav_allowed(js, ctx))
+        return ns_location_throw_top_nav(ctx);
     const char *s = JS_ToCString(ctx, val);
     if (!s) return JS_UNDEFINED;
     if (!ns_js_url_parses(js, s)) {
@@ -55684,6 +55726,8 @@ ns_location_assign(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
     (void)this_val;
     ns_js *js = js_from_ctx(ctx);
     if (!js || !js->nav_cb || argc < 1) return JS_UNDEFINED;
+    if (!ns_location_top_nav_allowed(js, ctx))
+        return ns_location_throw_top_nav(ctx);
     const char *s = JS_ToCString(ctx, argv[0]);
     if (!s) return JS_UNDEFINED;
     ns_location_navigate(js, s);
@@ -55697,6 +55741,8 @@ ns_location_reload(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
 {
     (void)ctx; (void)this_val; (void)argc; (void)argv;
     ns_js *js = js_from_ctx(ctx);
+    if (js && !ns_location_top_nav_allowed(js, ctx))
+        return ns_location_throw_top_nav(ctx);
     if (js && js->nav_cb && !ns_location_nav_in_iframe(js))
         js->nav_cb(js->current_url, TRUE, js->nav_user_data);
     return JS_UNDEFINED;
@@ -55709,6 +55755,8 @@ ns_location_set_hash(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     (void)this_val;
     ns_js *js = js_from_ctx(ctx);
     if (!js) return JS_UNDEFINED;
+    if (!ns_location_top_nav_allowed(js, ctx))
+        return ns_location_throw_top_nav(ctx);
     const char *s = JS_ToCString(ctx, val);
     if (!s) return JS_UNDEFINED;
     const char *frag = s[0] == '#' ? s + 1 : s;
@@ -55742,6 +55790,8 @@ ns_location_set_component(JSContext *ctx, JSValueConst val, const char *comp)
 {
     ns_js *js = js_from_ctx(ctx);
     if (!js || !js->current_url || !*js->current_url) return JS_UNDEFINED;
+    if (!ns_location_top_nav_allowed(js, ctx))
+        return ns_location_throw_top_nav(ctx);
     size_t vlen = 0;
     const char *v = JS_ToCStringLen(ctx, &vlen, val);
     if (!v) return JS_EXCEPTION;

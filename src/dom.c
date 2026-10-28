@@ -1575,6 +1575,8 @@ ns_node_clone_depth(const ns_node *src, gboolean deep, int depth)
                                          NS_NODE_PI);
     if (deep && out) {
         for (const ns_node *c = src->first_child; c; c = c->next_sibling) {
+            /* A frame's document is not a child of the cloned subtree. */
+            if (ns_node_is_embedded_document(c)) continue;
             ns_node *cc = ns_node_clone_depth(c, TRUE, depth + 1);
             if (cc) ns_node_append_child(out, cc);
         }
@@ -2896,7 +2898,7 @@ collect_all_text(const ns_node *n, GString *out, int depth)
         return;
     }
     for (const ns_node *c = n->first_child; c; c = c->next_sibling)
-        if (!ns_node_is_shadow_root(c))
+        if (!ns_node_is_shadow_root(c) && !ns_node_is_embedded_document(c))
             collect_all_text(c, out, depth + 1);
 }
 
@@ -3064,7 +3066,9 @@ serialize_node_opts(const ns_node *n, GString *out, gboolean include_self,
     if (shadow && ns_shadow_root_included(shadow, opts))
         serialize_shadow_template(shadow, out, depth, opts);
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (c == shadow)
+        /* A frame's document hangs under its <iframe>; it is never part
+         * of the host's serialization. */
+        if (c == shadow || ns_node_is_embedded_document(c))
             continue;
         if (raw_text && c->kind == NS_NODE_TEXT)
             g_string_append(out, c->text ? c->text : "");
@@ -3097,7 +3101,7 @@ ns_node_inner_html(const ns_node *root)
     const ns_node *shadow = ns_serialize_shadow_child(root);
     if (root)
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (c == shadow) continue;
+            if (c == shadow || ns_node_is_embedded_document(c)) continue;
             if (raw_text && c->kind == NS_NODE_TEXT)
                 g_string_append(out, c->text ? c->text : "");
             else
@@ -3330,7 +3334,8 @@ xml_serialize_node(const ns_node *n, GString *out, const char *parent_ns,
     }
     if (n->kind == NS_NODE_DOCUMENT) {
         for (const ns_node *c = n->first_child; c; c = c->next_sibling)
-            xml_serialize_node(c, out, NULL, prefix_index, depth + 1);
+            if (!ns_node_is_embedded_document(c))
+                xml_serialize_node(c, out, NULL, prefix_index, depth + 1);
         return;
     }
     if (n->kind != NS_NODE_ELEMENT) return;
@@ -3459,7 +3464,8 @@ xml_serialize_node(const ns_node *n, GString *out, const char *parent_ns,
     }
     g_string_append_c(out, '>');
     for (const ns_node *c = n->first_child; c; c = c->next_sibling)
-        xml_serialize_node(c, out, child_default, prefix_index, depth + 1);
+        if (!ns_node_is_embedded_document(c))
+            xml_serialize_node(c, out, child_default, prefix_index, depth + 1);
     g_string_append(out, "</");
     if (prefix) {
         g_string_append(out, prefix);
@@ -3490,7 +3496,8 @@ ns_node_xml_inner_html(const ns_node *node)
         ? ns_xml_element_ns(node) : NULL;
     for (const ns_node *child = node ? node->first_child : NULL;
          child; child = child->next_sibling)
-        xml_serialize_node(child, out, default_ns, &prefix_index, 0);
+        if (!ns_node_is_embedded_document(child))
+            xml_serialize_node(child, out, default_ns, &prefix_index, 0);
     return g_string_free(out, FALSE);
 }
 

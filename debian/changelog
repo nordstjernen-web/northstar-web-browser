@@ -1,3 +1,10 @@
+northstar (1.0.18+ds-1) unstable; urgency=medium
+
+  * New upstream release: browser pages open again from the menu and
+    address bar, web compatibility fixes for chess.com, and an npm package.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Wed, 28 Oct 2026 12:00:00 +0100
+
 northstar (1.0.17+ds-1) unstable; urgency=medium
 
   * New upstream release: memory-safety fixes in the HTML tokenizer,

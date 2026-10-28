@@ -59,6 +59,17 @@
   </branding>
 
   <releases>
+    <release version="1.0.18" date="2026-10-28">
+      <description>
+        <p>Bug fix release.</p>
+        <ul>
+          <li>Settings, History and Page Source open again from the menu, the keyboard shortcuts and the address bar.</li>
+          <li>Pages that walk window.frames no longer hang, nested CSS math functions resolve rem against the root font size, and up to 64 sounds can be loaded at once.</li>
+          <li>QuickJS builds no longer fail when Bellard's qjs is installed.</li>
+          <li>Northstar can be installed from npm as northstar-browser.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.17" date="2026-10-25">
       <description>
         <p>Security release.</p>

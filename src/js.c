@@ -32465,6 +32465,12 @@ ns_element_get_parentNode(JSContext *ctx, JSValueConst this_val)
 {
     const ns_node *n = ns_unwrap_element(this_val);
     if (!n || n->kind == NS_NODE_DOCUMENT || !n->parent) return JS_NULL;
+    /* A frame's root element is parented by the frame's document node,
+     * which lives in the embedder's tree.  Hand out the realm's own
+     * document object (or null across origins) exactly as ownerDocument
+     * does, never a bare embedder-realm wrapper of that node. */
+    if (ns_node_is_embedded_document(n->parent))
+        return ns_element_get_ownerDocument(ctx, this_val);
     return ns_make_element(ctx, n->parent);
 }
 
@@ -54864,11 +54870,44 @@ ns_document_get_readyState(JSContext *ctx, JSValueConst this_val)
     return JS_NewString(ctx, names[idx]);
 }
 
+/* document.defaultView: the window of the document's own browsing context.
+ * Frames share this getter with their embedder, so ctx is always the
+ * embedder's realm; the window must be chosen by the document node and
+ * filtered by the calling realm, the way contentWindow and parent are. */
 static JSValue
 ns_document_get_defaultView(JSContext *ctx, JSValueConst this_val)
 {
-    (void)this_val;
-    return JS_GetGlobalObject(ctx);
+    ns_js *js = js_from_ctx(ctx);
+    const ns_node *doc = ns_unwrap_element(this_val);
+    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    if (js && doc && ns_node_is_embedded_document(doc)) {
+        ns_node *host = (ns_node *)doc->parent;
+        if (!ns_node_is_element_named(host, "iframe") &&
+            !ns_node_is_element_named(host, "object"))
+            return JS_NULL;
+        JSContext *fctx = js->frame_contexts
+            ? g_hash_table_lookup(js->frame_contexts, host) : NULL;
+        /* The frame's own scripts get their own global. */
+        if (fctx && caller == fctx) return JS_GetGlobalObject(fctx);
+        JSValue host_el = ns_make_element(ctx, host);
+        JSValue win = ns_iframe_realm_window(ctx, host_el, host);
+        JS_FreeValue(ctx, host_el);
+        if (!JS_IsObject(win)) {
+            JS_FreeValue(ctx, win);
+            return JS_NULL;
+        }
+        if (ns_iframe_is_cross_origin(js, host) ||
+            ns_js_caller_unknown(js, caller) ||
+            (caller && ns_js_classify_realm(js, caller) == NS_REALM_UNTRUSTED))
+            return ns_iframe_cross_origin_window(ctx, win);
+        return win;
+    }
+    JSValue global = JS_GetGlobalObject(ctx);
+    if (js && (ns_js_caller_unknown(js, caller) ||
+               (caller && ns_js_classify_realm(js, caller) ==
+                              NS_REALM_UNTRUSTED)))
+        return ns_iframe_cross_origin_window(ctx, global);
+    return global;
 }
 
 static JSValue

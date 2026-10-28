@@ -32648,7 +32648,7 @@ ns_collect_by_tag_h(const ns_node *n, const char *tag, const char *tag_lower,
         JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, n));
     if (ns_node_is_element_named(n, "template")) return;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_tag_h(c, tag, tag_lower, ctx, arr, idx, depth + 1);
     }
 }
@@ -32712,7 +32712,7 @@ ns_collect_by_class(const ns_node *n, const char *cls, gboolean ci,
         JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, n));
     if (ns_node_is_element_named(n, "template")) return;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_class(c, cls, ci, ctx, arr, idx, depth + 1);
     }
 }
@@ -32760,7 +32760,7 @@ ns_walk_first_match(const ns_node *root, GPtrArray *sels, int depth)
         return root;
     if (ns_node_is_element_named(root, "template")) return NULL;
     for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         const ns_node *m = ns_walk_first_match(c, sels, depth + 1);
         if (m) return m;
     }
@@ -32777,7 +32777,7 @@ ns_walk_all_matches(const ns_node *root, GPtrArray *sels, JSContext *ctx,
         JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, root));
     if (ns_node_is_element_named(root, "template")) return;
     for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_walk_all_matches(c, sels, ctx, arr, idx, depth + 1);
     }
 }
@@ -33006,7 +33006,7 @@ ns_collect_by_class_walk(const ns_node *n, const char *cls, JSContext *ctx,
     if (ns_element_has_class(n, cls))
         JS_SetPropertyUint32(ctx, arr, (*i)++, ns_make_element(ctx, n));
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_class_walk(c, cls, ctx, arr, i, depth + 1);
     }
 }
@@ -33018,7 +33018,7 @@ ns_find_first_by_class(const ns_node *n, const char *cls, int depth)
     if (!n || depth >= 512) return NULL;
     if (ns_element_has_class(n, cls)) return n;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         const ns_node *m = ns_find_first_by_class(c, cls, depth + 1);
         if (m) return m;
     }
@@ -33035,7 +33035,7 @@ ns_collect_by_tag_walk(const ns_node *n, const char *tag, JSContext *ctx,
         g_ascii_strcasecmp(n->name, tag) == 0)
         JS_SetPropertyUint32(ctx, arr, (*i)++, ns_make_element(ctx, n));
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_tag_walk(c, tag, ctx, arr, i, depth + 1);
     }
 }
@@ -33048,7 +33048,7 @@ ns_find_first_by_tag(const ns_node *n, const char *tag, int depth)
     if (n->kind == NS_NODE_ELEMENT && n->name &&
         g_ascii_strcasecmp(n->name, tag) == 0) return n;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         const ns_node *m = ns_find_first_by_tag(c, tag, depth + 1);
         if (m) return m;
     }
@@ -33072,7 +33072,7 @@ ns_collect_by_id_walk(const ns_node *n, const char *id, JSContext *ctx,
     if (ns_element_id_is(n, id))
         JS_SetPropertyUint32(ctx, arr, (*i)++, ns_make_element(ctx, n));
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_id_walk(c, id, ctx, arr, i, depth + 1);
     }
 }
@@ -33097,7 +33097,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
         if (hit == root && !include_self) {
             hit = NULL;
             for (const ns_node *c = root->first_child; c && !hit; c = c->next_sibling) {
-                if (ns_node_is_embedded_document(c)) continue;
+                if (ns_dom_hidden_child(c)) continue;
                 hit = ns_node_find_by_id(c, sel + 1);
             }
         }
@@ -33109,7 +33109,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
         if (include_self && ns_element_id_is(root, sel + 1))
             JS_SetPropertyUint32(ctx, arr, i++, ns_make_element(ctx, root));
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_id_walk(c, sel + 1, ctx, arr, &i, 0);
         }
         return ns_nodelist_from_array(ctx, arr);
@@ -33157,7 +33157,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
             if (include_self) hit = ns_find_first_by_class(root, sel + 1, 0);
             if (!hit)
                 for (const ns_node *c = root->first_child; !hit && c; c = c->next_sibling) {
-                    if (ns_node_is_embedded_document(c)) continue;
+                    if (ns_dom_hidden_child(c)) continue;
                     hit = ns_find_first_by_class(c, sel + 1, 0);
                 }
             return hit ? ns_make_element(ctx, hit) : JS_NULL;
@@ -33167,7 +33167,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
         if (include_self && ns_element_has_class(root, sel + 1))
             JS_SetPropertyUint32(ctx, arr, i++, ns_make_element(ctx, root));
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_class_walk(c, sel + 1, ctx, arr, &i, 0);
         }
         return ns_nodelist_from_array(ctx, arr);
@@ -33214,7 +33214,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
                 hit = root;
             if (!hit)
                 for (const ns_node *c = root->first_child; !hit && c; c = c->next_sibling) {
-                    if (ns_node_is_embedded_document(c)) continue;
+                    if (ns_dom_hidden_child(c)) continue;
                     hit = ns_find_first_by_tag(c, sel, 0);
                 }
             return hit ? ns_make_element(ctx, hit) : JS_NULL;
@@ -33225,7 +33225,7 @@ ns_query_selector_simple(JSContext *ctx, const ns_node *root, const char *sel,
             g_ascii_strcasecmp(root->name, sel) == 0)
             JS_SetPropertyUint32(ctx, arr, i++, ns_make_element(ctx, root));
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_tag_walk(c, sel, ctx, arr, &i, 0);
         }
         return ns_nodelist_from_array(ctx, arr);
@@ -33408,7 +33408,7 @@ ns_query_selector_impl(JSContext *ctx, const ns_node *root,
                 ns_matches_any_selector(sels, root))
                 JS_SetPropertyUint32(ctx, arr, i++, ns_make_element(ctx, root));
             for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-                if (ns_node_is_embedded_document(c)) continue;
+                if (ns_dom_hidden_child(c)) continue;
                 ns_walk_all_matches(c, sels, ctx, arr, &i, 0);
             }
             ret = ns_nodelist_from_array(ctx, arr);
@@ -33419,7 +33419,7 @@ ns_query_selector_impl(JSContext *ctx, const ns_node *root,
                 m = root;
             if (!m)
                 for (const ns_node *c = root->first_child; !m && c; c = c->next_sibling) {
-                    if (ns_node_is_embedded_document(c)) continue;
+                    if (ns_dom_hidden_child(c)) continue;
                     m = ns_walk_first_match(c, sels, 0);
                 }
             ret = ns_make_element(ctx, m);
@@ -38173,7 +38173,7 @@ ns_collect_links(const ns_node *n, JSContext *ctx, JSValue arr, uint32_t *idx,
 {
     if (!n || depth >= 512) return;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         if ((ns_node_is_element_named(c, "a") || ns_node_is_element_named(c, "area")) &&
             ns_element_get_attr(c, "href"))
             JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, c));
@@ -38207,7 +38207,7 @@ ns_live_build(JSContext *ctx, ns_live_back *b)
     case NS_LIVE_BY_TAG:
     case NS_LIVE_DOC_TAG:
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_tag(c, b->param ? b->param : "*", ctx, arr, &i);
         }
         break;
@@ -38218,7 +38218,7 @@ ns_live_build(JSContext *ctx, ns_live_back *b)
         gboolean ns_wild = ns && strcmp(ns, "*") == 0;
         gboolean local_wild = strcmp(local, "*") == 0;
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_tag_ns(c, ns, ns_wild, local, local_wild,
                                  ctx, arr, &i, 0);
         }
@@ -38229,7 +38229,7 @@ ns_live_build(JSContext *ctx, ns_live_back *b)
         const ns_node *doc = ns_node_scope_document(root);
         gboolean ci = doc && (doc->flags & NS_NODE_QUIRKS);
         for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             ns_collect_by_class(c, b->param ? b->param : "", ci, ctx, arr, &i, 0);
         }
         break;
@@ -46889,7 +46889,7 @@ ns_document_collect_by_tag(JSContext *ctx, JSValueConst this_val,
     while (!g_queue_is_empty(&q)) {
         ns_node *n = g_queue_pop_head(&q);
         for (ns_node *c = n->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             if (c->kind == NS_NODE_ELEMENT && c->name &&
                 g_ascii_strcasecmp(c->name, tag) == 0)
                 JS_SetPropertyUint32(ctx, arr, idx++, ns_make_element(ctx, c));
@@ -46974,7 +46974,7 @@ ns_document_get_anchors(JSContext *ctx, JSValueConst this_val)
     while (!g_queue_is_empty(&q)) {
         ns_node *n = g_queue_pop_head(&q);
         for (ns_node *c = n->first_child; c; c = c->next_sibling) {
-            if (ns_node_is_embedded_document(c)) continue;
+            if (ns_dom_hidden_child(c)) continue;
             if (ns_node_is_element_named(c, "a") &&
                 ns_element_get_attr(c, "name"))
                 JS_SetPropertyUint32(ctx, arr, idx++, ns_make_element(ctx, c));
@@ -47636,17 +47636,17 @@ static ns_node *
 ns_tw_traverse_children(JSContext *ctx, JSValueConst w, ns_node *current,
                         gboolean last, int *err)
 {
-    ns_node *node = last ? current->last_child : current->first_child;
+    ns_node *node = last ? ns_dom_last_child(current) : ns_dom_first_child(current);
     while (node) {
         int result = ns_traversal_filter(ctx, w, node);
         if (result < 0) { *err = 1; return NULL; }
         if (result == NS_FILTER_ACCEPT) return node;
         if (result == NS_FILTER_SKIP) {
-            ns_node *child = last ? node->last_child : node->first_child;
+            ns_node *child = last ? ns_dom_last_child(node) : ns_dom_first_child(node);
             if (child) { node = child; continue; }
         }
         for (;;) {
-            ns_node *sibling = last ? node->prev_sibling : node->next_sibling;
+            ns_node *sibling = last ? ns_dom_prev_sibling(node) : ns_dom_next_sibling(node);
             if (sibling) { node = sibling; break; }
             ns_node *parent = node->parent;
             if (!parent || parent == current) return NULL;
@@ -47664,15 +47664,15 @@ ns_tw_traverse_siblings(JSContext *ctx, JSValueConst w, ns_node *current,
     ns_node *node = current;
     if (node == root) return NULL;
     for (;;) {
-        ns_node *sibling = prev ? node->prev_sibling : node->next_sibling;
+        ns_node *sibling = prev ? ns_dom_prev_sibling(node) : ns_dom_next_sibling(node);
         while (sibling) {
             node = sibling;
             int result = ns_traversal_filter(ctx, w, node);
             if (result < 0) { *err = 1; return NULL; }
             if (result == NS_FILTER_ACCEPT) return node;
-            sibling = prev ? node->last_child : node->first_child;
+            sibling = prev ? ns_dom_last_child(node) : ns_dom_first_child(node);
             if (result == NS_FILTER_REJECT || !sibling)
-                sibling = prev ? node->prev_sibling : node->next_sibling;
+                sibling = prev ? ns_dom_prev_sibling(node) : ns_dom_next_sibling(node);
         }
         node = node->parent;
         if (!node || node == root) return NULL;
@@ -47752,8 +47752,9 @@ ns_tw_nextNode(JSContext *ctx, JSValueConst w, int argc, JSValueConst *argv)
     if (!node || !root) return JS_NULL;
     int result = NS_FILTER_ACCEPT;
     for (;;) {
-        while (result != NS_FILTER_REJECT && node->first_child) {
-            node = node->first_child;
+        ns_node *child;
+        while (result != NS_FILTER_REJECT && (child = ns_dom_first_child(node))) {
+            node = child;
             result = ns_traversal_filter(ctx, w, node);
             if (result < 0) return JS_EXCEPTION;
             if (result == NS_FILTER_ACCEPT) return ns_tw_set_current(ctx, w, node);
@@ -47761,7 +47762,7 @@ ns_tw_nextNode(JSContext *ctx, JSValueConst w, int argc, JSValueConst *argv)
         ns_node *following = NULL, *temp = node;
         while (temp) {
             if (temp == root) return JS_NULL;
-            if (temp->next_sibling) { following = temp->next_sibling; break; }
+            if ((following = ns_dom_next_sibling(temp))) break;
             temp = temp->parent;
         }
         if (!following) return JS_NULL;
@@ -47781,18 +47782,19 @@ ns_tw_previousNode(JSContext *ctx, JSValueConst w, int argc, JSValueConst *argv)
     ns_node *root = ns_tw_node_prop(ctx, w, "root");
     if (!node || !root) return JS_NULL;
     while (node != root) {
-        ns_node *sibling = node->prev_sibling;
+        ns_node *sibling = ns_dom_prev_sibling(node);
         while (sibling) {
             node = sibling;
             int result = ns_traversal_filter(ctx, w, node);
             if (result < 0) return JS_EXCEPTION;
-            while (result != NS_FILTER_REJECT && node->last_child) {
-                node = node->last_child;
+            ns_node *child;
+            while (result != NS_FILTER_REJECT && (child = ns_dom_last_child(node))) {
+                node = child;
                 result = ns_traversal_filter(ctx, w, node);
                 if (result < 0) return JS_EXCEPTION;
             }
             if (result == NS_FILTER_ACCEPT) return ns_tw_set_current(ctx, w, node);
-            sibling = node->prev_sibling;
+            sibling = ns_dom_prev_sibling(node);
         }
         if (node == root || !node->parent) return JS_NULL;
         node = node->parent;
@@ -47949,27 +47951,23 @@ static JSClassDef ns_node_iter_class = {
 static ns_node *
 ns_ni_skip_doc_fwd(ns_node *n)
 {
-    while (n && ns_node_is_embedded_document(n)) n = n->next_sibling;
+    while (n && ns_dom_hidden_child(n)) n = n->next_sibling;
     return n;
 }
 
 static ns_node *
 ns_ni_skip_doc_back(ns_node *n)
 {
-    while (n && ns_node_is_embedded_document(n)) n = n->prev_sibling;
+    while (n && ns_dom_hidden_child(n)) n = n->prev_sibling;
     return n;
 }
 
-/* Next node in tree order within root, skipping embedded documents. */
+/* Next node in tree order within root, skipping embedded documents and shadow roots. */
 static ns_node *
 ns_ni_following(ns_node *node, ns_node *root)
 {
-    if (node->first_child) {
-        ns_node *c = ns_node_is_embedded_document(node->first_child)
-            ? ns_ni_skip_doc_fwd(node->first_child->next_sibling)
-            : node->first_child;
-        if (c) return c;
-    }
+    ns_node *c = ns_dom_first_child(node);
+    if (c) return c;
     for (ns_node *n = node; n && n != root; n = n->parent) {
         ns_node *s = ns_ni_skip_doc_fwd(n->next_sibling);
         if (s) return s;
@@ -52558,7 +52556,7 @@ ns_collect_by_tag_ns(const ns_node *n, const char *ns, gboolean ns_wild,
     }
     if (ns_node_is_element_named(n, "template")) return;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_tag_ns(c, ns, ns_wild, local, local_wild,
                              ctx, arr, idx, depth + 1);
     }
@@ -54206,7 +54204,7 @@ ns_collect_by_name(const ns_node *root, const char *name,
     }
     if (ns_node_is_element_named(root, "template")) return;
     for (const ns_node *c = root->first_child; c; c = c->next_sibling) {
-        if (ns_node_is_embedded_document(c)) continue;
+        if (ns_dom_hidden_child(c)) continue;
         ns_collect_by_name(c, name, ctx, arr, idx, depth + 1);
     }
 }

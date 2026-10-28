@@ -58745,8 +58745,14 @@ ns_js_run_inserted_scripts(ns_js *js, ns_node *root)
     if (have_external)
         ns_js_schedule_async_script_root(js, root);
     g_array_free(tasks, TRUE);
-    for (guint i = 0; i < sheets->len; i++)
-        ns_js_load_link_element(js, g_ptr_array_index(sheets, i), origin);
+    /* A link's load/error event is queued as a task, never dispatched
+     * inside the insertion: Vite's preloader appends the link and only
+     * then adds its listeners, so a synchronous event is lost and the
+     * lazy chunk waiting on it never loads. */
+    if (sheets->len > 0) {
+        js->link_rescan_pending = TRUE;
+        ns_js_schedule_pending_script_drain(js);
+    }
     g_ptr_array_free(sheets, TRUE);
 }
 

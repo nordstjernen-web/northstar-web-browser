@@ -2,6 +2,19 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.19:
+=======
+* DOM: shadow roots and their contents no longer show up in light-DOM
+  walks. `document.querySelectorAll('*')`, `getElementsByTagName('*')`,
+  NodeIterator and TreeWalker returned the shadow root (a node without a
+  `tagName`) and the elements inside it. Cloudflare Turnstile walks the
+  document this way and failed with "Cannot read properties of undefined
+  (reading 'toLowerCase')", which broke chess.com's guest login.
+* Messaging: a message a page posts to a cross-origin frame keeps its
+  `event.source`. It arrived as `null`, so a frame that replied with
+  `e.source.postMessage()` threw, and `e.source === parent` was false.
+  Turnstile's challenge frame answers the widget's heartbeat that way.
+
 1.0.18:
 =======
 * Browser pages: Settings, History and Page Source open again from the

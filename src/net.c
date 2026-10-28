@@ -1607,11 +1607,13 @@ cookie_line_matches(char **f, const char *host, const char *path,
     return expiry == 0 || expiry >= now;
 }
 
-/* Builds the document.cookie string for a URL from its site's partition; caller frees. */
-char *
-ns_net_cookies_for_js(const char *url)
+/* Builds a "name=value; ..." cookie string for url from the partition of
+ * site; HttpOnly cookies are included only when with_httponly is set.
+ * Returns NULL when nothing matches; caller frees. */
+static char *
+ns_net_cookie_string(const char *url, const char *site, gboolean with_httponly)
 {
-    if (!url || !*url) return NULL;
+    if (!url || !*url || !site || !*site) return NULL;
     g_autoptr(ns_url_parts) parts = ns_url_parts_new(url);
     if (!parts || !parts->hostname || !*parts->hostname) return NULL;
     const char *host = parts->hostname;
@@ -1619,8 +1621,6 @@ ns_net_cookies_for_js(const char *url)
                        ? parts->pathname : "/";
     gboolean is_https = parts->protocol &&
                         g_ascii_strcasecmp(parts->protocol, "https:") == 0;
-    g_autofree char *site = ns_url_site_from(url);
-    if (!site || !*site) return NULL;
 
     struct curl_slist *list = cookie_partition_list(cookie_partition_get(site));
     gint64 now = g_get_real_time() / G_USEC_PER_SEC;
@@ -1628,8 +1628,11 @@ ns_net_cookies_for_js(const char *url)
     GHashTable *vals = g_hash_table_new_full(g_str_hash, g_str_equal,
                                              g_free, g_free);
     for (struct curl_slist *l = list; l; l = l->next) {
-        if (!l->data || l->data[0] == '#') continue;
-        char **f = g_strsplit(l->data, "\t", 7);
+        const char *line = l->data;
+        if (line && with_httponly && g_str_has_prefix(line, "#HttpOnly_"))
+            line += 10;
+        if (!line || line[0] == '#') continue;
+        char **f = g_strsplit(line, "\t", 7);
         int nf = 0;
         while (f[nf]) nf++;
         if (nf >= 7 && *f[5] &&
@@ -1655,6 +1658,43 @@ ns_net_cookies_for_js(const char *url)
     g_hash_table_destroy(vals);
     if (out->len == 0) return g_string_free(out, TRUE), NULL;
     return g_string_free(out, FALSE);
+}
+
+/* Builds the document.cookie string for a URL from its site's partition; caller frees. */
+char *
+ns_net_cookies_for_js(const char *url)
+{
+    if (!url || !*url) return NULL;
+    g_autofree char *site = ns_url_site_from(url);
+    return ns_net_cookie_string(url, site, FALSE);
+}
+
+/* Cookie header value for a WebSocket handshake to url (ws: or wss:) made
+ * by a page whose top-level document is top_url.  The handshake is a GET
+ * subresource request in the page's cookie partition, so it follows the
+ * subresource rules: no cookies when cookies are off or, under the
+ * first-party policy, when the socket is cross-site.  HttpOnly cookies are
+ * sent.  Caller frees. */
+char *
+ns_net_cookies_for_websocket(const char *url, const char *top_url)
+{
+    if (!url || !top_url || !*top_url) return NULL;
+    g_autofree char *http_url = NULL;
+    if (g_ascii_strncasecmp(url, "wss://", 6) == 0)
+        http_url = g_strconcat("https://", url + 6, NULL);
+    else if (g_ascii_strncasecmp(url, "ws://", 5) == 0)
+        http_url = g_strconcat("http://", url + 5, NULL);
+    else
+        return NULL;
+    const char *top = top_url;
+    const ns_config *cfg = ns_config_get();
+    ns_cookie_policy policy = cfg ? cfg->cookie_policy : NS_COOKIE_FIRST_PARTY;
+    if (policy == NS_COOKIE_NEVER ||
+        (policy == NS_COOKIE_FIRST_PARTY &&
+         !ns_url_is_same_site(http_url, top)))
+        return NULL;
+    g_autofree char *site = ns_url_site_from(top);
+    return ns_net_cookie_string(http_url, site, TRUE);
 }
 
 /* TRUE if the partition holds an HttpOnly cookie with this name for the host. */

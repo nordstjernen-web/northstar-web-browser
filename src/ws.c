@@ -37,6 +37,7 @@ struct ns_ws {
 
     char             *url;
     char             *origin;
+    char             *top_url;
     GPtrArray        *protocols;
 
     ns_ws_callbacks   cbs;
@@ -71,6 +72,7 @@ ns_ws_destroy(ns_ws *ws)
     if (!ws) return;
     g_free(ws->url);
     g_free(ws->origin);
+    g_free(ws->top_url);
     if (ws->protocols) g_ptr_array_free(ws->protocols, TRUE);
     while (!g_queue_is_empty(&ws->out_queue)) {
         ns_ws_out_msg *m = g_queue_pop_head(&ws->out_queue);
@@ -480,6 +482,14 @@ ns_ws_worker_curl(gpointer data)
         headers = curl_slist_append(headers, h);
         g_free(h);
     }
+    /* Servers that authenticate the socket by session cookie (chess.com's
+     * pubsub) answer a cookieless handshake with 401. */
+    g_autofree char *cookie = ns_net_cookies_for_websocket(ws->url,
+                                                           ws->top_url);
+    if (cookie && *cookie && !strpbrk(cookie, "\r\n")) {
+        g_autofree char *h = g_strconcat("Cookie: ", cookie, NULL);
+        headers = curl_slist_append(headers, h);
+    }
     if (ws->protocols && ws->protocols->len > 0) {
         GString *s = g_string_new("Sec-WebSocket-Protocol: ");
         gboolean clean = TRUE;
@@ -637,6 +647,7 @@ ns_ws_available(void)
 ns_ws *
 ns_ws_new(const char        *url,
           const char        *origin,
+          const char        *top_url,
           const char *const *protocols,
           const ns_ws_callbacks *cbs,
           gpointer           user_data)
@@ -648,6 +659,7 @@ ns_ws_new(const char        *url,
     ws->refcount = 1;
     ws->url    = g_strdup(url);
     ws->origin = origin ? g_strdup(origin) : NULL;
+    ws->top_url = top_url ? g_strdup(top_url) : NULL;
     if (protocols && protocols[0]) {
         ws->protocols = g_ptr_array_new_with_free_func(g_free);
         for (int i = 0; protocols[i]; i++)

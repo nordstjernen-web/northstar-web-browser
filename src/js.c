@@ -21505,7 +21505,12 @@ ns_window_websocket_ctor(JSContext *ctx, JSValueConst this_val,
     char *origin = js ? ns_js_caller_web_origin(js, ctx) : g_strdup("null");
     const char *const *protov = protos_terminated
         ? (const char *const *)protos_terminated->pdata : NULL;
-    s->ws = ns_ws_new(target, origin, protov, &cbs, s);
+    /* Cookies come from the page's partition: a frame's socket is keyed by
+     * the embedding page's site, like its fetches. */
+    const char *ws_top = !js ? NULL
+        : js->document_origin ? js->document_origin
+        : js->partition_key;   /* a worker: its creator's origin */
+    s->ws = ns_ws_new(target, origin, ws_top, protov, &cbs, s);
     g_free(origin);
     if (protos_terminated) g_ptr_array_free(protos_terminated, TRUE);
     g_free(target);

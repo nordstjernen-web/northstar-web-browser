@@ -385,9 +385,13 @@ and an extension's web-accessible resources are exempt from
   so a 302 cannot move it into the target's first-party partition or
   relabel it as a navigation in the `Sec-Fetch-*` headers.
 - `about:settings`, `about:config` and `about:history` are served only
-  to navigations and to requests made by those same pages (no other
-  about: URL counts as a browser page), and a request with no document
-  URL counts as a navigation only when it loads a document; the settings
+  to navigations started from the browser UI (address bar, menu,
+  bookmarks), to links followed from the start page, and to requests
+  made by those same pages (no other about: URL counts as a browser
+  page). A user-activated load counts as a page's own navigation, and
+  carries that page as its initiator, only when its URL is the one the
+  page asked for; a request with no document URL counts as a navigation
+  only when it loads a document; the settings
   endpoints accept changes only by POST, validate the URLs they store,
   and web content cannot navigate to any about: page other than
   `about:blank` and the start page.

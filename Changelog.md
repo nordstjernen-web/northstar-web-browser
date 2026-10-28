@@ -4,6 +4,14 @@ Significant changes in each release:
 
 1.0.18:
 =======
+* Browser pages: Settings, History and Page Source open again from the
+  menu, the keyboard shortcuts and the address bar. Every load passed the
+  page on screen as its initiator, so a load started from the browser UI
+  looked like web content asking for the page and was refused with
+  "about: pages are not available to web content" (or "view-source: is
+  not available here"). A user-activated load now carries the current
+  page as initiator only when it is the navigation that page asked for.
+  The History link on the start page works too.
 * Web compatibility (chess.com): a script that walks `window.frames`
   recursively no longer hangs the page. A same-document iframe's window
   reported the top window's `length` and indexed frames, so every iframe

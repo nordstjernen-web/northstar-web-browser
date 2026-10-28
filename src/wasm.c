@@ -90,6 +90,8 @@ typedef struct {
     guint calls_since_reclaim;
 } ns_wasm_instance;
 
+static void ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi);
+
 typedef struct {
     JSContext *ctx;
     JSValue instance;
@@ -522,6 +524,7 @@ ns_wasm_call_function(JSContext *ctx, ns_wasm_instance *wi,
     gboolean ok = wasm_runtime_call_wasm_a(wi->exec_env, func, n_results,
                                            results, n_params, args);
     wi->call_depth--;
+    ns_wasm_memory_resync(ctx, wi);
 
     JSValue ret = ns_wasm_call_result(ctx, wi, ok, n_results, results);
 
@@ -606,6 +609,37 @@ ns_wasm_memory_detach_buffer(ns_wasm_memory *m)
     m->buffer = JS_UNDEFINED;
     m->base = NULL;
     m->size = 0;
+}
+
+/* Wasm code can grow its own memory with memory.grow while it runs, and
+ * without hardware bounds checking WAMR moves the linear memory when it
+ * does.  Any ArrayBuffer that still aliases the old base must be repointed
+ * or detached before JS can touch it again: after every call into wasm,
+ * and on entry to every import that wasm calls. */
+static void
+ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi)
+{
+    if (!wi || !wi->inst || JS_IsUndefined(wi->memory_obj))
+        return;
+    ns_wasm_memory *m = JS_GetOpaque(wi->memory_obj, ns_wasm_memory_class_id);
+    if (!m || m->staging || JS_IsUndefined(m->buffer))
+        return;
+    wasm_memory_inst_t mem = wasm_runtime_get_memory(wi->inst, 0);
+    if (!mem) {
+        ns_wasm_memory_detach_buffer(m);
+        return;
+    }
+    guint8 *base = wasm_memory_get_base_address(mem);
+    size_t size = (size_t)wasm_memory_get_cur_page_count(mem) *
+                  wasm_memory_get_bytes_per_page(mem);
+    if (base == m->base && size == m->size)
+        return;
+    if (JS_RepointArrayBuffer(ctx, m->buffer, base, size) == 0) {
+        m->base = base;
+        m->size = size;
+    } else {
+        ns_wasm_memory_detach_buffer(m);
+    }
 }
 
 static void
@@ -1243,6 +1277,7 @@ ns_wasm_native_dispatch(wasm_exec_env_t exec_env, uint64_t *args)
         return;
     }
     JSContext *ctx = b->ctx;
+    ns_wasm_memory_resync(ctx, wi);
 
     JSValue argv[NS_WASM_MAX_PARAMS];
     guint argc = b->param_count;

@@ -47557,6 +47557,9 @@ ns_traversal_node_bit(const ns_node *n)
 static int
 ns_traversal_filter(JSContext *ctx, JSValueConst obj, const ns_node *n)
 {
+    /* A frame's document under its <iframe> is not in the host's tree:
+     * reject it so the walker neither returns it nor descends into it. */
+    if (ns_node_is_embedded_document(n)) return NS_FILTER_REJECT;
     JSValue what_v = JS_GetPropertyStr(ctx, obj, "whatToShow");
     int64_t what = 0xFFFFFFFF;
     JS_ToInt64(ctx, &what, what_v);

@@ -40,6 +40,7 @@ struct ns_page_session {
     guint64        frame_gen;
     unsigned char *scratch_fb;
     unsigned char *verify_fb;
+    char          *page_nav;
     char          *post_url;
     char          *post_body;
     size_t         post_len;
@@ -175,12 +176,14 @@ session_bfcache_take(ns_page_session *s, const char *url)
     return NULL;
 }
 
-/* Saves a pending form POST body from the page, keyed by the navigation href. */
+/* Records the navigation href the page asked for and saves its pending form POST body. */
 static void
 session_stash_post(ns_page_session *s, const char *href)
 {
     if (!s->cur)
         return;
+    free(s->page_nav);
+    s->page_nav = (href && *href) ? strdup(href) : NULL;
     size_t len = 0;
     char *ct = NULL;
     char *pb = ns_browser_take_post(s->cur, &len, &ct);
@@ -282,6 +285,7 @@ ns_page_session_free(ns_page_session *s)
         s->wake = NULL;
     }
     session_clear_post(s);
+    free(s->page_nav);
     for (int i = 0; i < s->bf_n; i++)
         ns_browser_close(s->bf[i]);
     if (s->cur) {
@@ -343,9 +347,15 @@ ns_page_session_open(ns_page_session *s, const char *url, int width,
     int vh = clamp(height, 1, s->max_h);
     ns_browser *restored = (history && url) ? session_bfcache_take(s, url)
                                             : NULL;
-    char *referrer = (!history && s->cur) ? ns_browser_url(s->cur) : NULL;
+    /* A user-activated load the page did not ask for comes from the
+     * browser UI (address bar, menu, bookmarks), which has no initiator. */
+    gboolean page_asked = s->page_nav && url && strcmp(s->page_nav, url) == 0;
+    gboolean from_page = !history && (!user_activated || page_asked);
+    free(s->page_nav);
+    s->page_nav = NULL;
+    char *referrer = (from_page && s->cur) ? ns_browser_url(s->cur) : NULL;
     char *initiator = s->cur ? ns_browser_take_pending_initiator(s->cur) : NULL;
-    if (initiator && !history) {
+    if (initiator && from_page) {
         free(referrer);
         referrer = initiator;
     } else {

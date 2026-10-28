@@ -4627,11 +4627,13 @@ about_start_tagline(void)
     return taglines[g_random_int_range(0, G_N_ELEMENTS(taglines))];
 }
 
-/* TRUE if an about: request comes from browser UI or a user navigation. */
+/* TRUE if an about: request comes from browser UI, a browser page, or a start-page link. */
 static gboolean
 about_request_from_chrome(const char *top_url, gboolean navigation)
 {
-    if (top_url && *top_url) return ns_about_url_is_chrome(top_url);
+    if (top_url && *top_url)
+        return ns_about_url_is_chrome(top_url) ||
+               (navigation && ns_about_url_is_start(top_url));
     return navigation;
 }
 

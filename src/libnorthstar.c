@@ -1267,9 +1267,11 @@ browser_allows_navigation_url(ns_browser *b, const char *url)
     if (g_ascii_strncasecmp(url, NS_UNSAFE_CONTINUE_SCHEME,
                             strlen(NS_UNSAFE_CONTINUE_SCHEME)) == 0)
         return b && b->safebrowsing_interstitial;
+    /* The start page links to about:history, as the browser pages do. */
     if (g_str_has_prefix(url, "about:"))
         return ns_about_url_is_public(url) ||
-               (b && ns_about_url_is_chrome(b->base_url));
+               (b && (ns_about_url_is_chrome(b->base_url) ||
+                      ns_about_url_is_start(b->base_url)));
     /* view-source: can wrap file: and chrome about: URLs. */
     if (g_ascii_strncasecmp(url, "view-source:", 12) == 0)
         return b && (ns_about_url_is_chrome(b->base_url) ||

@@ -221,6 +221,19 @@ ns_address_is_search(const char *s)
     return TRUE;
 }
 
+/* True if url, ignoring its query and fragment, is one of the NULL-terminated pages. */
+static gboolean
+about_url_is_one_of(const char *url, const char *const *pages)
+{
+    if (!url) return FALSE;
+    gsize len = strcspn(url, "?#");
+    for (gsize i = 0; pages[i]; i++)
+        if (len == strlen(pages[i]) &&
+            g_ascii_strncasecmp(url, pages[i], len) == 0)
+            return TRUE;
+    return FALSE;
+}
+
 /* True for about: pages web content may open (blank, srcdoc, start/home/newtab). */
 gboolean
 ns_about_url_is_public(const char *url)
@@ -229,13 +242,17 @@ ns_about_url_is_public(const char *url)
         "about:blank", "about:srcdoc", "about:start", "about:home",
         "about:newtab", NULL,
     };
-    if (!url) return FALSE;
-    gsize len = strcspn(url, "?#");
-    for (gsize i = 0; public_pages[i]; i++)
-        if (len == strlen(public_pages[i]) &&
-            g_ascii_strncasecmp(url, public_pages[i], len) == 0)
-            return TRUE;
-    return FALSE;
+    return about_url_is_one_of(url, public_pages);
+}
+
+/* True for the browser's start page (about:start, about:home, about:newtab). */
+gboolean
+ns_about_url_is_start(const char *url)
+{
+    static const char *const start_pages[] = {
+        "about:start", "about:home", "about:newtab", NULL,
+    };
+    return about_url_is_one_of(url, start_pages);
 }
 
 /* A browser-chrome about: page (settings, history, ...), as opposed to
@@ -250,12 +267,9 @@ ns_about_url_is_chrome(const char *url)
         "about:settings", "about:config", "about:history", NULL,
     };
     if (!url || g_ascii_strncasecmp(url, "about:", 6) != 0) return FALSE;
-    gsize len = strcspn(url, "?#");
-    for (gsize i = 0; chrome_pages[i]; i++)
-        if (len == strlen(chrome_pages[i]) &&
-            g_ascii_strncasecmp(url, chrome_pages[i], len) == 0)
-            return TRUE;
-    return len > 15 && g_ascii_strncasecmp(url, "about:settings-", 15) == 0;
+    if (about_url_is_one_of(url, chrome_pages)) return TRUE;
+    return strcspn(url, "?#") > 15 &&
+           g_ascii_strncasecmp(url, "about:settings-", 15) == 0;
 }
 
 /* Builds the search URL by substituting the escaped query for %s; caller frees. */

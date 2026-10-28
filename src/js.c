@@ -12275,6 +12275,14 @@ ns_message_source_seen_by(ns_js *js, JSContext *rctx, JSValueConst receiver,
         JS_FreeValue(rctx, parent);
     }
     if (!from_page && !to_page) {
+        /* The delivery job already mapped a page source to the receiver's
+         * parent proxy (a cross-origin frame's parent). */
+        JSValue parent_proxy = JS_GetPropertyStr(rctx, receiver,
+                                                 "__ndParentWindowProxy");
+        gboolean is_parent = JS_IsObject(parent_proxy) &&
+            JS_VALUE_GET_PTR(parent_proxy) == JS_VALUE_GET_PTR(source);
+        JS_FreeValue(rctx, parent_proxy);
+        if (is_parent) return source;
         /* Frame to frame: a cross-origin receiver only gets the sender's
          * cross-origin window proxy, never its raw global (which holds
          * its real document).  A source that is no known frame window

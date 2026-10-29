@@ -3136,9 +3136,29 @@ typedef struct ns_error_info {
     const char *summary;
 } ns_error_info;
 
-/* Picks the error page copy from transport error text, HTTP status and file-URL context. */
+/* TRUE when the sandbox, not the file's own permissions, refused to open
+ * a local path: Landlock is checked at open(2), while access(2) still
+ * answers from the file mode alone. */
+static gboolean
+file_url_blocked_by_sandbox(const char *url)
+{
+#ifdef __linux__
+    if (!ns_security_sandbox_limits_reads()) return FALSE;
+    char *path = g_filename_from_uri(url, NULL, NULL);
+    gboolean blocked = path && g_access(path, R_OK) == 0;
+    g_free(path);
+    return blocked;
+#else
+    (void)url;
+    return FALSE;
+#endif
+}
+
+/* Picks the error page copy from transport error text, HTTP status and
+ * file-URL context; *sandboxed tells a file the sandbox refused. */
 static const ns_error_info *
-classify_error(long status, const char *transport_error, gboolean is_file_url)
+classify_error(const char *url, long status, const char *transport_error,
+               gboolean is_file_url, gboolean *sandboxed)
 {
     static const ns_error_info NO_NETWORK = {
         "📡",
@@ -3273,15 +3293,25 @@ classify_error(long status, const char *transport_error, gboolean is_file_url)
         "Cannot read that file",
         "The file exists but this account is not allowed to read it."
     };
+    static const ns_error_info FILE_SANDBOXED = {
+        "🔒",
+        "Outside the browser's sandbox",
+        "The sandbox keeps the browser out of this location",
+        "Northstar Web Browser reads only a few folders on this computer, "
+        "so that a page that takes over the browser still cannot reach "
+        "private files such as your documents, SSH keys or shell "
+        "history. This file or folder is outside them."
+    };
 
     if (is_file_url) {
-        if (status == 403) return &FILE_DENIED;
-        if (transport_error &&
-            g_strstr_len(transport_error, -1, "ermission"))
-            return &FILE_DENIED;
-        if (status == 404 || !transport_error || !*transport_error)
-            return &FILE_MISSING;
-        return &FILE_MISSING;
+        gboolean denied = status == 403 ||
+            (transport_error &&
+             g_strstr_len(transport_error, -1, "ermission"));
+        if (denied && file_url_blocked_by_sandbox(url)) {
+            *sandboxed = TRUE;
+            return &FILE_SANDBOXED;
+        }
+        return denied ? &FILE_DENIED : &FILE_MISSING;
     }
 
     if (transport_error && *transport_error) {
@@ -3333,8 +3363,9 @@ char *
 ns_build_error_page(const char *url, long status, const char *transport_error)
 {
     gboolean is_file_url = url && g_str_has_prefix(url, "file:");
-    const ns_error_info *info = classify_error(status, transport_error,
-                                               is_file_url);
+    gboolean sandboxed = FALSE;
+    const ns_error_info *info = classify_error(url, status, transport_error,
+                                               is_file_url, &sandboxed);
     const char *safe_url = url && *url ? url : "(no URL)";
     char *esc_url = ns_html_escape_text(safe_url);
     char *esc_title = ns_html_escape_text(info->title);
@@ -3435,7 +3466,22 @@ ns_build_error_page(const char *url, long status, const char *transport_error)
         "<div class=\"tips\">"
         "<strong>What to try:</strong>"
         "<ul>");
-    if (is_file_url) {
+    if (sandboxed) {
+        const char *dl = ns_security_sandbox_readable_downloads();
+        if (dl) {
+            char *esc_dl = ns_html_escape_text(dl);
+            g_string_append(out, "<li>Copy or save the file into your "
+                "Downloads folder, <code>");
+            g_string_append(out, esc_dl);
+            g_string_append(out, "</code>, and open it from there.</li>");
+            g_free(esc_dl);
+        }
+        g_string_append(out,
+            "<li>System folders such as <code>/usr/share/doc</code> can "
+            "be opened too.</li>"
+            "<li>Your other personal folders, such as Documents and "
+            "Desktop, stay closed to the browser on purpose.</li>");
+    } else if (is_file_url) {
         g_string_append(out,
             "<li>Check the path in the address bar for typos.</li>"
             "<li>Confirm the file is still where you expect it.</li>"

@@ -4,6 +4,15 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* Local files: a `file:` URL the Linux sandbox will not open now gets an
+  error page that says so. The page said "this account is not allowed to
+  read it" even when the account could, because Landlock only lets the
+  browser read a few folders (`~/Downloads`, its own profile, system
+  folders such as `/usr`), so `file:///` or a page saved in `~/Documents`
+  looked like a file-permission problem (#125). When the file's own
+  permissions would allow reading it, the page now names the sandbox,
+  explains why it keeps the rest of the home directory closed and points
+  to the download directory, where local pages can be opened.
 * JavaScript: `Function.prototype.caller` returns the calling function
   for sloppy-mode functions, as in V8 and SpiderMonkey, and `null` when
   the caller is top-level code, a builtin or strict. It always returned

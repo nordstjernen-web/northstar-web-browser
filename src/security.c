@@ -403,6 +403,22 @@ static GPtrArray *ns_extra_writable_dirs = NULL;
 #ifdef __linux__
 static gboolean ns_gpu_devices_allowed = FALSE;
 #endif
+/* Set once Landlock is enforced, which limits reads as well as writes;
+ * the macOS profile confines writes only. */
+static gboolean ns_sandbox_reads_limited = FALSE;
+static char *ns_sandbox_readable_downloads = NULL;
+
+gboolean
+ns_security_sandbox_limits_reads(void)
+{
+    return ns_sandbox_reads_limited;
+}
+
+const char *
+ns_security_sandbox_readable_downloads(void)
+{
+    return ns_sandbox_reads_limited ? ns_sandbox_readable_downloads : NULL;
+}
 
 void
 ns_security_allow_gpu_devices(void)
@@ -612,9 +628,11 @@ ns_security_sandbox_init(const char *self_exe)
                 strncmp(dl_real, home_real, hl) == 0 &&
                 dl_real[hl] == '/' && dl_real[hl + 1] != '\0' &&
                 dl_real[hl + 1] != '.' && !strstr(dl_real + hl, "/.");
-            if (ok && g_file_test(dl_real, G_FILE_TEST_IS_DIR))
+            if (ok && g_file_test(dl_real, G_FILE_TEST_IS_DIR)) {
                 add_path_rw(rfd, fs_rw, dl_real);
-            else
+                g_free(ns_sandbox_readable_downloads);
+                ns_sandbox_readable_downloads = g_strdup(dl_real);
+            } else
                 g_info("sandbox: not granting the download directory %s",
                        dl_dir);
             free(dl_real);
@@ -681,6 +699,8 @@ ns_security_sandbox_init(const char *self_exe)
 
     if (landlock_restrict_self_(rfd, 0) != 0) {
         g_info("landlock: restrict_self failed: %s", g_strerror(errno));
+    } else {
+        ns_sandbox_reads_limited = TRUE;
     }
     close(rfd);
 }

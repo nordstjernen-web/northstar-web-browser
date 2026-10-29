@@ -171,8 +171,13 @@ unconfined.
   `~/.local/share/northstar-extensions`, which is outside the writable
   profile directory.
 
-  The rest of `$HOME` — `~/.ssh`, `~/.aws`, `~/.netrc`, shell history —
-  is **not** reachable, also when `$XAUTHORITY` is `~/.Xauthority`. One
+  The rest of `$HOME` — `~/.ssh`, `~/.aws`, `~/.netrc`, shell history,
+  and documents outside the download directory — is **not** reachable,
+  also when `$XAUTHORITY` is `~/.Xauthority`. A `file:` URL there, or
+  `file:///` itself, does not open: the error page says the sandbox
+  refused it (when the file's own permissions would allow reading it)
+  and points to the download directory, where local pages can be
+  opened. One
   thing widens that: other applications' state kept under `~/.config`,
   `~/.local/share` or `~/.cache` (other browsers' profiles among it) is
   readable. No writable directory is granted Landlock's

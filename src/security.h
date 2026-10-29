@@ -27,6 +27,12 @@ gboolean ns_security_refuse_root(void);
 
 void ns_security_sandbox_init(const char *self_exe);
 
+/* TRUE when the sandbox also refuses reads outside the folders it grants
+ * (Landlock on Linux), so an unreadable local file may be its doing. */
+gboolean    ns_security_sandbox_limits_reads(void);
+/* The download directory, when that sandbox lets the browser read it. */
+const char *ns_security_sandbox_readable_downloads(void);
+
 void ns_security_add_writable_dir(const char *dir);
 
 void ns_security_allow_gpu_devices(void);

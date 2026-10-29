@@ -4,6 +4,18 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* Scripts: scripts in content added to the document while a script was
+  being fetched now run. Every external script fetch runs a nested event
+  loop, and anything inserted during it, including the streamed rest of
+  the page, was skipped for good. On chess.com, the guest page's
+  `pubsub-connection` module at the end of `<body>` never ran, so
+  `PubSub.client` was missing, the seek failed with "PubSub.client
+  script timeout after 60000ms", and guests were never paired with an
+  opponent.
+* Modules: a relative `import()` from code without a script URL (eval,
+  `javascript:` URLs, event-handler attributes) resolves against the
+  document base URL instead of throwing "module specifier must be
+  absolute http/https URL".
 * JavaScript: `Function.prototype.caller` returns the calling function
   for sloppy-mode functions, as in V8 and SpiderMonkey, and `null` when
   the caller is top-level code, a builtin or strict. It always returned

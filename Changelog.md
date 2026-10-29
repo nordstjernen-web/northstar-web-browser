@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* Networking: response bodies are decoded by the browser instead of
+  libcurl (gzip including multi-member streams, zlib-wrapped and raw
+  deflate, Brotli, zstd and stacked codings). A `Content-Encoding` value
+  the browser does not know now passes the body through unchanged, as
+  other browsers do; libcurl failed the whole request with "Unrecognized
+  content encoding type", which broke BankID sign-in because its
+  callback server sends `Content-Encoding: ISO-8859-1`. Decoded output
+  is held to the response budget and `Accept-Encoding` advertises only
+  what can be decoded; libbrotlidec and libzstd are optional
+  dependencies.
 * DOM: shadow roots and their contents no longer show up in light-DOM
   walks. `document.querySelectorAll('*')`, `getElementsByTagName('*')`,
   NodeIterator and TreeWalker returned the shadow root (a node without a

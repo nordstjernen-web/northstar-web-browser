@@ -259,6 +259,16 @@ libwuffs = dependency('wuffs', fallback: ['wuffs', 'wuffs_dep'])
 libplmpeg = dependency('plmpeg', fallback: ['plmpeg', 'plmpeg_dep'])
 zlib = dependency('zlib')
 
+# Brotli and zstd Content-Encoding; without them they are not advertised.
+libbrotlidec = dependency('libbrotlidec', required: false)
+if libbrotlidec.found()
+  add_project_arguments('-DNS_HAVE_BROTLI_DEC=1', language: 'c')
+endif
+libzstd = dependency('libzstd', required: false)
+if libzstd.found()
+  add_project_arguments('-DNS_HAVE_ZSTD=1', language: 'c')
+endif
+
 liblexbor = dependency('lexbor', version: '>=3.0.0', required: false)
 if liblexbor.found()
   lexbor_version = liblexbor.version()

@@ -5,6 +5,7 @@
  */
 
 #include "net.h"
+#include "content_decode.h"
 #include "trace.h"
 #include "cache.h"
 #include "config.h"
@@ -2085,23 +2086,8 @@ ns_net_init(void)
         (ossl_major > 3 || (ossl_major == 3 && ossl_minor >= 5)))
         g_ec_curves = "X25519MLKEM768:X25519:P-256:P-384";
 
-    GString *enc = g_string_new(NULL);
-    if (vi && (vi->features & CURL_VERSION_LIBZ) != 0)
-        g_string_append(enc, "gzip, deflate");
-#ifdef CURL_VERSION_BROTLI
-    if (vi && (vi->features & CURL_VERSION_BROTLI) != 0) {
-        if (enc->len) g_string_append(enc, ", ");
-        g_string_append(enc, "br");
-    }
-#endif
-#ifdef CURL_VERSION_ZSTD
-    if (vi && (vi->features & CURL_VERSION_ZSTD) != 0) {
-        if (enc->len) g_string_append(enc, ", ");
-        g_string_append(enc, "zstd");
-    }
-#endif
     g_free(g_accept_encoding);
-    g_accept_encoding = g_string_free(enc, FALSE);
+    g_accept_encoding = g_strdup(ns_content_decode_accept_encoding());
 
     g_share = ns_net_share_new(FALSE);
 
@@ -2644,9 +2630,51 @@ typedef struct ns_write_ctx {
     guint64     budget;
     guint64     next_recheck;
     gboolean    exceeded;
+    const struct ns_header_ctx *headers;
+    ns_content_decoder *decoder;
+    guint       decoder_seq;
+    gboolean    decode_failed;
+    GByteArray *decoded;
 } ns_write_ctx;
 
-/* Curl body callback appending to the buffer; aborts once the memory budget is exceeded. */
+static guint ns_header_ctx_response_seq(const struct ns_header_ctx *hc);
+static const char *ns_header_ctx_content_encoding(const struct ns_header_ctx *hc);
+
+/* Appends decoded body bytes; FALSE once the memory budget is exceeded. */
+static gboolean
+ns_write_body(ns_write_ctx *ctx, const guint8 *data, size_t bytes)
+{
+    if (ctx->total >= ctx->next_recheck) {
+        ctx->budget = ns_net_response_budget();
+        ctx->next_recheck = ctx->total + NS_NET_RESPONSE_RECHECK_BYTES;
+    }
+    if (ctx->total + bytes > ctx->budget) {
+        ctx->exceeded = TRUE;
+        return FALSE;
+    }
+    if (ctx->total + bytes > G_MAXUINT) {
+        ctx->exceeded = TRUE;
+        return FALSE;
+    }
+    g_byte_array_append(ctx->body, data, bytes);
+    ctx->total += bytes;
+    return TRUE;
+}
+
+/* Rebuilds the decoder when a new response's headers have arrived. */
+static void
+ns_write_sync_decoder(ns_write_ctx *ctx)
+{
+    if (!ctx->headers) return;
+    guint seq = ns_header_ctx_response_seq(ctx->headers);
+    if (ctx->decoder_seq == seq) return;
+    ctx->decoder_seq = seq;
+    g_clear_pointer(&ctx->decoder, ns_content_decoder_free);
+    ctx->decoder = ns_content_decoder_new(
+        ns_header_ctx_content_encoding(ctx->headers));
+}
+
+/* Curl body callback: decodes Content-Encoding, then appends within the memory budget. */
 static size_t
 ns_write_cb(char *data, size_t size, size_t nmemb, void *userdata)
 {
@@ -2659,21 +2687,32 @@ ns_write_cb(char *data, size_t size, size_t nmemb, void *userdata)
         return 0;
     if (bytes > G_MAXUINT)
         return 0;
-    if (ctx->total >= ctx->next_recheck) {
-        ctx->budget = ns_net_response_budget();
-        ctx->next_recheck = ctx->total + NS_NET_RESPONSE_RECHECK_BYTES;
-    }
-    if (ctx->total + bytes > ctx->budget) {
-        ctx->exceeded = TRUE;
+    ns_write_sync_decoder(ctx);
+    if (!ctx->decoder)
+        return ns_write_body(ctx, (const guint8 *)data, bytes) ? bytes : 0;
+    if (!ctx->decoded) ctx->decoded = g_byte_array_new();
+    g_byte_array_set_size(ctx->decoded, 0);
+    guint64 room = MIN(ctx->budget, (guint64)G_MAXUINT);
+    room = room > ctx->total ? room - ctx->total : 0;
+    if (!ns_content_decoder_feed(ctx->decoder, (const guint8 *)data, bytes,
+                                 (gsize)room, ctx->decoded)) {
+        if (ns_content_decoder_over_limit(ctx->decoder)) ctx->exceeded = TRUE;
+        else ctx->decode_failed = TRUE;
         return 0;
     }
-    if (ctx->total + bytes > G_MAXUINT) {
-        ctx->exceeded = TRUE;
+    if (ctx->decoded->len &&
+        !ns_write_body(ctx, ctx->decoded->data, ctx->decoded->len))
         return 0;
-    }
-    g_byte_array_append(ctx->body, (const guint8 *)data, bytes);
-    ctx->total += bytes;
     return bytes;
+}
+
+/* Frees the decoder state a transfer left behind. */
+static void
+ns_write_ctx_clear(ns_write_ctx *ctx)
+{
+    g_clear_pointer(&ctx->decoder, ns_content_decoder_free);
+    if (ctx->decoded) g_byte_array_free(ctx->decoded, TRUE);
+    ctx->decoded = NULL;
 }
 
 typedef struct ns_header_ctx {
@@ -2692,9 +2731,23 @@ typedef struct ns_header_ctx {
     char  *vary;
     char  *expires;
     char  *location;
+    char  *content_encoding;
+    guint  response_seq;
     GString *raw;
     gboolean set_cookie_seen;
 } ns_header_ctx;
+
+static guint
+ns_header_ctx_response_seq(const struct ns_header_ctx *hc)
+{
+    return hc->response_seq;
+}
+
+static const char *
+ns_header_ctx_content_encoding(const struct ns_header_ctx *hc)
+{
+    return hc->content_encoding;
+}
 
 /* Copies a header value after the name prefix with surrounding whitespace and CRLF trimmed. */
 static char *
@@ -2762,6 +2815,8 @@ ns_header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
 
     if (bytes >= 5 && g_ascii_strncasecmp(buffer, "HTTP/", 5) == 0) {
         if (hc->raw) g_string_set_size(hc->raw, 0);
+        g_clear_pointer(&hc->content_encoding, g_free);
+        hc->response_seq++;
         hc->in_set_cookie = FALSE;
     } else if (bytes > 2) {
         /* An obs-fold continuation line (leading SP/HT) belongs to the
@@ -2797,6 +2852,7 @@ ns_header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
     else if (header_capture(buffer, bytes, "Content-Language:", hc->content_language_out))      {}
     else if (header_capture(buffer, bytes, "Refresh:", hc->refresh_out))                       {}
     else if (header_capture(buffer, bytes, "Location:", &hc->location))                        {}
+    else if (header_capture(buffer, bytes, "Content-Encoding:", &hc->content_encoding))        {}
     else if (header_capture(buffer, bytes, "Set-Cookie:", NULL))
         hc->set_cookie_seen = TRUE;
 
@@ -5455,6 +5511,7 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     curl_easy_setopt(curl, CURLOPT_USERAGENT, effective_ua);
     curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
                      g_accept_encoding ? g_accept_encoding : "");
+    curl_easy_setopt(curl, CURLOPT_HTTP_CONTENT_DECODING, 0L);
     switch (cfg ? cfg->referer_policy : NS_REFERER_STRICT_ORIGIN_WHEN_CROSS) {
     case NS_REFERER_NO_REFERRER:
         curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 0L);
@@ -5636,6 +5693,7 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     curl_easy_setopt(curl, CURLOPT_MAXFILESIZE_LARGE,
                      (curl_off_t)write_ctx.budget);
     ns_header_ctx header_ctx = {0};
+    write_ctx.headers = &header_ctx;
     header_ctx.content_type_out = &resp->content_type;
     header_ctx.content_disposition_out = &resp->content_disposition;
     header_ctx.csp_out          = &resp->csp_header;
@@ -5705,6 +5763,9 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
         }
         g_free(fb_host);
     }
+    ns_write_ctx_clear(&write_ctx);
+    g_free(header_ctx.content_encoding);
+    header_ctx.content_encoding = NULL;
 
     long status = 0;
     char *eff_url = NULL;
@@ -5810,6 +5871,8 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
             resp->error = g_strdup_printf(
                 "response would exhaust available memory (stopped at %llu MiB)",
                 (unsigned long long)(write_ctx.total >> 20));
+        else if (write_ctx.decode_failed)
+            resp->error = g_strdup("content decoding failed");
         else
             resp->error = g_strdup(msg);
     }

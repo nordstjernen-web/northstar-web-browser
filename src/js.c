@@ -3848,6 +3848,10 @@ ns_invalidate_wrapper(ns_node *n)
         g_hash_table_remove(js->orphan_nodes, n);
     if (js && js->js_image_loads)
         g_hash_table_remove(js->js_image_loads, n);
+    if (js && js->deferred_script_roots)
+        while (g_ptr_array_remove(js->deferred_script_roots, n)) {}
+    if (js && js->async_script_roots)
+        while (g_ptr_array_remove(js->async_script_roots, n)) {}
     ns_popover_forget_node(js, n);
     if (js && js->media_players)
         ns_media_node_released(js, n);
@@ -57427,6 +57431,17 @@ ns_js_module_normalize(JSContext *ctx, const char *base_name,
         return out;
     }
     char *abs_url = ns_url_resolve(base_name && *base_name ? base_name : NULL, name);
+    /* import() from code without a script URL (eval, javascript: URLs,
+     * event-handler attributes) resolves against the document base URL */
+    if (!abs_url && js &&
+        (name[0] == '/' || g_str_has_prefix(name, "./") ||
+         g_str_has_prefix(name, "../"))) {
+        char *doc_base = js->worker_host
+            ? g_strdup(js->worker_host->base_url)
+            : ns_js_document_base_url(js, js->main_document, js->current_url);
+        if (doc_base) abs_url = ns_url_resolve(doc_base, name);
+        g_free(doc_base);
+    }
     if (!abs_url) abs_url = g_strdup(name);
     char *out = js_strdup(ctx, abs_url);
     g_free(abs_url);
@@ -58675,6 +58690,7 @@ ns_js_schedule_async_script_root(ns_js *js, ns_node *root)
         js->async_script_roots = g_ptr_array_new();
     for (guint i = 0; i < js->async_script_roots->len; i++)
         if (g_ptr_array_index(js->async_script_roots, i) == root) return;
+    ns_node_arm_js_invalidate(root);
     g_ptr_array_add(js->async_script_roots, root);
     ns_js_schedule_pending_script_drain(js);
 }
@@ -58727,7 +58743,20 @@ ns_js_run_inserted_scripts(ns_js *js, ns_node *root)
     }
     if (js->js_image_loads && g_hash_table_size(js->js_image_loads) > 0)
         ns_js_rescan_subtree_images(js, root, 0);
-    if (js->in_pump) return;
+    if (js->in_pump) {
+        /* Inserted while a script fetch pumps the loop (the streamed rest
+         * of the document, a timer's appendChild): its scripts must still
+         * run, once the pump is over. */
+        if (!js->deferred_script_roots)
+            js->deferred_script_roots = g_ptr_array_new();
+        for (guint i = 0; i < js->deferred_script_roots->len; i++)
+            if (g_ptr_array_index(js->deferred_script_roots, i) == root)
+                return;
+        ns_node_arm_js_invalidate(root);
+        g_ptr_array_add(js->deferred_script_roots, root);
+        ns_js_schedule_pending_script_drain(js);
+        return;
+    }
     if (js->ce_upgrading) return;
     gboolean has_script = FALSE, has_link = FALSE, has_frame = FALSE;
     ns_subtree_scan_special(root, 0, &has_script, &has_link, &has_frame);
@@ -58768,6 +58797,7 @@ ns_js_run_inserted_scripts(ns_js *js, ns_node *root)
     if (js->eval_depth > 0 && (have_external || sheets->len > 0)) {
         if (!js->deferred_script_roots)
             js->deferred_script_roots = g_ptr_array_new();
+        ns_node_arm_js_invalidate(root);
         g_ptr_array_add(js->deferred_script_roots, root);
         g_array_free(tasks, TRUE);
         g_ptr_array_free(sheets, TRUE);

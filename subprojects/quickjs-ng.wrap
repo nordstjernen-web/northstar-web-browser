@@ -2,4 +2,4 @@
 url = https://github.com/quickjs-ng/quickjs.git
 revision = 9b061718955874e648d8c2bf2910a717aac8fa63
 depth = 1
-diff_files = quickjs-ng-windows-link.patch, quickjs-ng-test262.patch, quickjs-ng-json-number.patch, quickjs-ng-regexp-first-char.patch, quickjs-ng-v8-type-errors.patch, quickjs-ng-external-buffer-transfer.patch, quickjs-ng-cross-realm-compile-check.patch, quickjs-ng-module-resolve-failed.patch
+diff_files = quickjs-ng-windows-link.patch, quickjs-ng-test262.patch, quickjs-ng-json-number.patch, quickjs-ng-regexp-first-char.patch, quickjs-ng-v8-type-errors.patch, quickjs-ng-external-buffer-transfer.patch, quickjs-ng-cross-realm-compile-check.patch, quickjs-ng-module-resolve-failed.patch, quickjs-ng-function-caller.patch

@@ -4,6 +4,13 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* JavaScript: `Function.prototype.caller` returns the calling function
+  for sloppy-mode functions, as in V8 and SpiderMonkey, and `null` when
+  the caller is top-level code, a builtin or strict. It always returned
+  `undefined`, which freecivweb.com's anti-cheat check treats as a
+  forged packet: singleplayer games stopped sending anything after
+  "Server refused unauthorized packet.", and multiplayer would have
+  disbanded the player's units.
 * Web Storage: `sessionStorage` lives for the window, per origin, as the
   standard requires. Every navigation used to start with an empty
   store, so a sign-in that saves its OIDC state on one origin, visits

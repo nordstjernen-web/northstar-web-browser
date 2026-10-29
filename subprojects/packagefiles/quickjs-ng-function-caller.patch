@@ -1,0 +1,56 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -16643,6 +16643,33 @@
+     return JS_UNDEFINED;
+ }
+ 
++/* legacy Function.prototype.caller, as in V8: the sloppy function that
++   called the innermost running activation of this_val, else null */
++static JSValue js_function_proto_caller(JSContext *ctx, JSValueConst this_val,
++                                        int argc, JSValueConst *argv)
++{
++    JSFunctionBytecode *b = JS_GetFunctionBytecode(this_val);
++    JSStackFrame *sf;
++
++    if (!b || b->is_strict_mode || !b->has_prototype) {
++        return JS_ThrowTypeError(ctx, "invalid property access");
++    }
++    for (sf = ctx->rt->current_stack_frame; sf; sf = sf->prev_frame) {
++        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_OBJECT &&
++            JS_VALUE_GET_OBJ(sf->cur_func) == JS_VALUE_GET_OBJ(this_val))
++            break;
++    }
++    if (!sf || !sf->prev_frame)
++        return JS_NULL;
++    sf = sf->prev_frame;
++    b = JS_GetFunctionBytecode(sf->cur_func);
++    /* script/eval code, builtins, strict and non-plain functions are hidden */
++    if (!b || b->is_strict_mode || !b->has_prototype ||
++        b->func_kind != JS_FUNC_NORMAL)
++        return JS_NULL;
++    return js_dup(sf->cur_func);
++}
++
+ static JSValue js_function_proto_fileName(JSContext *ctx,
+                                           JSValueConst this_val)
+ {
+@@ -59141,11 +59168,17 @@
+     if (JS_IsException(ctx->throw_type_error))
+         return -1;
+     /* add caller and arguments properties to throw a TypeError */
++    obj1 = JS_NewCFunction(ctx, js_function_proto_caller, "get caller", 0);
++    if (JS_IsException(obj1))
++        return -1;
+     if (JS_DefineProperty(ctx, ctx->function_proto, JS_ATOM_caller, JS_UNDEFINED,
+-                          ctx->throw_type_error, ctx->throw_type_error,
++                          obj1, ctx->throw_type_error,
+                           JS_PROP_HAS_GET | JS_PROP_HAS_SET |
+-                          JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE) < 0)
++                          JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE) < 0) {
++        JS_FreeValue(ctx, obj1);
+         return -1;
++    }
++    JS_FreeValue(ctx, obj1);
+     if (JS_DefineProperty(ctx, ctx->function_proto, JS_ATOM_arguments, JS_UNDEFINED,
+                           ctx->throw_type_error, ctx->throw_type_error,
+                           JS_PROP_HAS_GET | JS_PROP_HAS_SET |

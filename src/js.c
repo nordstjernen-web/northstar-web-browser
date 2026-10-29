@@ -2651,6 +2651,36 @@ ns_session_bucket_lookup(ns_js *js, const char *key)
     return g_hash_table_lookup(js->session_storage_buckets, key);
 }
 
+/* The window's sessionStorage buckets, shared by every document it shows. */
+static GHashTable *
+ns_session_storage_area(void)
+{
+    static GHashTable *area;
+    if (!area)
+        area = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+                                     (GDestroyNotify)g_hash_table_destroy);
+    return area;
+}
+
+/* Writes the current origin's sessionStorage back into its window bucket. */
+static void
+ns_session_bucket_save(ns_js *js)
+{
+    if (!js->partition_key || !js->session_storage_buckets) return;
+    GHashTable *bucket = ns_session_bucket_lookup(js, js->partition_key);
+    if (!bucket) {
+        bucket = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                       g_free, g_free);
+        g_hash_table_replace(js->session_storage_buckets,
+                             g_strdup(js->partition_key), bucket);
+    }
+    g_hash_table_remove_all(bucket);
+    GHashTableIter it; gpointer k, v;
+    g_hash_table_iter_init(&it, js->session_storage);
+    while (g_hash_table_iter_next(&it, &k, &v))
+        g_hash_table_replace(bucket, g_strdup(k), g_strdup(v));
+}
+
 /* On navigation, saves sessionStorage and cookies under the old origin key and loads new. */
 static void
 ns_partition_apply(ns_js *js, const char *new_url)
@@ -2672,18 +2702,7 @@ ns_partition_apply(ns_js *js, const char *new_url)
     }
 
     if (js->partition_key && js->session_storage_buckets) {
-        GHashTable *bucket = ns_session_bucket_lookup(js, js->partition_key);
-        if (!bucket) {
-            bucket = g_hash_table_new_full(g_str_hash, g_str_equal,
-                                           g_free, g_free);
-            g_hash_table_replace(js->session_storage_buckets,
-                                 g_strdup(js->partition_key), bucket);
-        }
-        g_hash_table_remove_all(bucket);
-        GHashTableIter it; gpointer k, v;
-        g_hash_table_iter_init(&it, js->session_storage);
-        while (g_hash_table_iter_next(&it, &k, &v))
-            g_hash_table_replace(bucket, g_strdup(k), g_strdup(v));
+        ns_session_bucket_save(js);
         if (js->cookie_buckets) {
             g_hash_table_replace(js->cookie_buckets,
                                  g_strdup(js->partition_key),
@@ -3078,6 +3097,8 @@ ns_storage_maybe_dirty(JSContext *ctx, GHashTable *store)
     ns_js *js = js_from_ctx(ctx);
     if (js && store == js->local_storage)
         js->local_storage_dirty = TRUE;
+    else if (js && store == js->session_storage)
+        ns_session_bucket_save(js);
 }
 
 static JSValue ns_make_event(JSContext *ctx, const char *type,
@@ -51124,8 +51145,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
     js->pending_aborts  = g_ptr_array_new();
     js->local_storage   = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
     js->session_storage = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-    js->session_storage_buckets = g_hash_table_new_full(
-        g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
+    js->session_storage_buckets = g_hash_table_ref(ns_session_storage_area());
     js->cookie_buckets = g_hash_table_new_full(
         g_str_hash, g_str_equal, g_free, g_free);
     {
@@ -56899,7 +56919,7 @@ ns_js_free(ns_js *js)
     if (js->local_storage)   g_hash_table_destroy(js->local_storage);
     if (js->session_storage) g_hash_table_destroy(js->session_storage);
     if (js->session_storage_buckets)
-        g_hash_table_destroy(js->session_storage_buckets);
+        g_hash_table_unref(js->session_storage_buckets);
     if (js->cookie_buckets)
         g_hash_table_destroy(js->cookie_buckets);
     g_free(js->partition_key);

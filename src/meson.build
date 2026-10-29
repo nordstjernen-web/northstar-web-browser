@@ -104,6 +104,7 @@ northstar_engine_sources = files(
   'media_types.c',
   'net.c',
   'netutil.c',
+  'content_decode.c',
   'paint.c',
   'print.c',
   'render.c',
@@ -162,6 +163,8 @@ northstar_deps = [
   libwamr,
   sqlite3,
   zlib,
+  libbrotlidec,
+  libzstd,
 ]
 
 if have_seccomp

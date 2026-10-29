@@ -300,7 +300,7 @@ selects it; headless runs are never supervised by the watchdog.
 
 # Evaluate JavaScript against a loaded page and print the result
 ./builddir/src/gtk/northstar --headless \
-    --url="file:///tmp/page.html" --eval="document.title"
+    --url="file://$HOME/Downloads/page.html" --eval="document.title"
 ```
 
 | Option | Effect |

@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* Web Storage: `sessionStorage` lives for the window, per origin, as the
+  standard requires. Every navigation used to start with an empty
+  store, so a sign-in that saves its OIDC state on one origin, visits
+  another and comes back (BankID's app.bankid.no callback) found its
+  state gone and rejected the login.
 * Networking: response bodies are decoded by the browser instead of
   libcurl (gzip including multi-member streams, zlib-wrapped and raw
   deflate, Brotli, zstd and stacked codings). A `Content-Encoding` value

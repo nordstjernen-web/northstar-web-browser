@@ -53,6 +53,6 @@ This is the minimalist GPL desktop edition. It is single-process (the
 engine runs in the shell process, on its own thread), targets Linux
 (primary), macOS and Windows, and deliberately omits tabs, renderer
 processes, WebGL/WebGPU, the PDF viewer, local-AI features, and the
-embeddable-library API. `<video>` decodes MPEG-1 and nothing else, in the
-browser process. See [../README.md](../README.md) for the project scope
-and the no-AI contribution policy.
+embeddable-library API. `<video>` decodes in the browser process: MPEG-1
+in-tree, and AV1, VP9 and H.264 when their decoders are present. See
+[../README.md](../README.md) for the project scope.

@@ -420,5 +420,4 @@ verified by running the browser.
 A change is complete when it (1) compiles cleanly with no new warnings
 under the configured GCC/Clang flags, (2) launches and the affected UI path
 works when exercised manually or headless, and (3) is committed and pushed.
-See [`../README.md`](../README.md) for the project scope and the no-AI
-contribution policy.
+See [`../README.md`](../README.md) for the project scope.

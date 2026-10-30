@@ -9,7 +9,7 @@
 
 
 Name:           northstar
-Version:        1.0.18
+Version:        1.0.19
 Release:        0
 Summary:        Small GTK web browser written from scratch in C
 License:        GPL-3.0-or-later

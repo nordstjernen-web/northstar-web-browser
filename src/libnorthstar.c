@@ -125,6 +125,12 @@ struct ns_browser {
     int             press_y;
     int             press_mods;
     gboolean        press_active;
+    /* where the pointer is while pressed, from hover and release */
+    int             pointer_x;
+    int             pointer_y;
+    gboolean        pointer_moved;
+    /* mousedown was cancelled: no text selection from this press */
+    gboolean        press_prevented;
     const ns_node  *media_seek_node;
     char           *search_query;
     gboolean        search_case;
@@ -2716,10 +2722,13 @@ char *
 ns_browser_select(ns_browser *browser, int kind, int x, int y)
 {
     if (!browser || !browser->layout) return NULL;
+    gboolean no_select = browser->press_active && browser->press_prevented;
     switch (kind) {
-    case 0: ns_selection_anchor_at(&browser->selection, browser->layout,
+    case 0: if (no_select) return NULL;
+            ns_selection_anchor_at(&browser->selection, browser->layout,
                                    (double)x, (double)y); break;
     case 1: if (browser_media_seek_drag(browser, x)) return NULL;
+            if (no_select) return NULL;
             ns_selection_extend_to(&browser->selection, browser->layout,
                                    (double)x, (double)y);
             browser->selection_dragged = TRUE; break;
@@ -2747,15 +2756,17 @@ browser_hover_dispatch(ns_browser *b, const ns_node *target, int x, int y,
                        const ns_node *related)
 {
     if (!b->js || !target) return;
+    /* the primary button stays down between press and release */
+    int buttons = b->press_active ? 1 : 0;
     ns_js_dispatch_mouse_event(b->js, target, ptr_type,
                                (double)x - b->cur_scroll_x,
                                (double)y - b->cur_scroll_y,
-                               (double)x, (double)y, 0, 0,
+                               (double)x, (double)y, 0, buttons,
                                FALSE, FALSE, FALSE, FALSE, related, NULL);
     ns_js_dispatch_mouse_event(b->js, target, mouse_type,
                                (double)x - b->cur_scroll_x,
                                (double)y - b->cur_scroll_y,
-                               (double)x, (double)y, 0, 0,
+                               (double)x, (double)y, 0, buttons,
                                FALSE, FALSE, FALSE, FALSE, related, NULL);
 }
 
@@ -2772,6 +2783,12 @@ ns_browser_hover(ns_browser *browser, int x, int y)
     const ns_node *prev = browser->hover_node;
     gboolean changed = node != prev;
     browser->hover_node = node;
+    if (browser->press_active) {
+        if (x != browser->pointer_x || y != browser->pointer_y)
+            browser->pointer_moved = TRUE;
+        browser->pointer_x = x;
+        browser->pointer_y = y;
+    }
 
     gboolean dirty = FALSE;
     if (browser->js) {
@@ -3396,6 +3413,10 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
     browser->press_node = node;
     browser->press_x = x;
     browser->press_y = y;
+    browser->pointer_x = x;
+    browser->pointer_y = y;
+    browser->pointer_moved = FALSE;
+    browser->press_prevented = FALSE;
     browser->press_mods = mods;
     browser->press_active = node != NULL;
 
@@ -3417,7 +3438,8 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
                                    (double)x - browser->cur_scroll_x,
                                    (double)y - browser->cur_scroll_y,
                                    (double)x, (double)y,
-                                   0, 1, sh, ct, al, me, NULL, NULL);
+                                   0, 1, sh, ct, al, me, NULL,
+                                   &browser->press_prevented);
         browser_absorb_js_mutation(browser);
     }
 
@@ -3558,9 +3580,23 @@ browser_dropdown_click(ns_browser *browser, const ns_node *node)
     return FALSE;
 }
 
-/* Pointer up: fires pointerup/mouseup/click, then select, summary, form or link actions. */
-char *
-ns_browser_release_click(ns_browser *browser, int *out_changed)
+/* Nearest common inclusive ancestor of two nodes, or NULL. */
+static const ns_node *
+browser_common_ancestor(const ns_node *a, const ns_node *b)
+{
+    for (const ns_node *p = a; p; p = p->parent)
+        for (const ns_node *q = b; q; q = q->parent)
+            if (p == q) return p;
+    return NULL;
+}
+
+/* Pointer up at (rx, ry) when have_pos, else where the pointer last moved:
+ * fires pointerup/mouseup under the pointer and click at the nearest
+ * common ancestor of the press and release targets, then select,
+ * summary, form or link actions. */
+static char *
+browser_release(ns_browser *browser, gboolean have_pos, int rx, int ry,
+                int *out_changed)
 {
     if (out_changed) *out_changed = 0;
     if (!browser) {
@@ -3571,12 +3607,32 @@ ns_browser_release_click(ns_browser *browser, int *out_changed)
     g_clear_pointer(&browser->pending_nav, g_free);
 
     browser_prune_cached_nodes(browser);
-    const ns_node *node = browser->press_active ? browser->press_node : NULL;
+    const ns_node *press_node =
+        browser->press_active ? browser->press_node : NULL;
     int x = browser->press_x;
     int y = browser->press_y;
+    if (have_pos) {
+        if (rx != x || ry != y) browser->pointer_moved = TRUE;
+        browser->pointer_x = rx;
+        browser->pointer_y = ry;
+    }
+    const ns_node *up_node = press_node;
+    const ns_node *node = press_node;
+    gboolean moved = press_node && browser->pointer_moved;
+    if (moved) {
+        x = browser->pointer_x;
+        y = browser->pointer_y;
+        const ns_node *hit = browser->layout
+            ? browser_hit_node(browser, x, y) : NULL;
+        if (hit) {
+            up_node = hit;
+            node = browser_common_ancestor(press_node, hit);
+        }
+    }
     int mods = browser->press_mods;
     browser->press_node = NULL;
     browser->press_active = FALSE;
+    browser->pointer_moved = FALSE;
     browser->media_seek_node = NULL;
 
     gboolean drag_selected = browser->selection_dragged &&
@@ -3585,20 +3641,20 @@ ns_browser_release_click(ns_browser *browser, int *out_changed)
 
     gboolean prevented = FALSE;
     ns_js_click_state click_state = {0};
-    if (browser->js && node) {
+    if (browser->js && up_node) {
         gboolean sh = (mods & 1) != 0, ct = (mods & 2) != 0;
         gboolean al = (mods & 4) != 0, me = (mods & 8) != 0;
-        ns_js_dispatch_mouse_event(browser->js, node, "pointerup",
+        ns_js_dispatch_mouse_event(browser->js, up_node, "pointerup",
                                    (double)x - browser->cur_scroll_x,
                                    (double)y - browser->cur_scroll_y,
                                    (double)x, (double)y,
                                    0, 0, sh, ct, al, me, NULL, NULL);
-        ns_js_dispatch_mouse_event(browser->js, node, "mouseup",
+        ns_js_dispatch_mouse_event(browser->js, up_node, "mouseup",
                                    (double)x - browser->cur_scroll_x,
                                    (double)y - browser->cur_scroll_y,
                                    (double)x, (double)y,
                                    0, 0, sh, ct, al, me, NULL, NULL);
-        if (!drag_selected) {
+        if (!drag_selected && node) {
             ns_js_click_begin(browser->js, node, &click_state);
             ns_js_dispatch_mouse_event(browser->js, node, "click",
                                        (double)x - browser->cur_scroll_x,
@@ -3637,7 +3693,7 @@ ns_browser_release_click(ns_browser *browser, int *out_changed)
                 if (h && *h) href = h;
             }
         }
-        if (!href)
+        if (!href && node == press_node)
             href = ns_box_hit_link(browser->layout, (double)x, (double)y);
         if (href && *href)
             browser->pending_nav = browser_resolve_navigation(browser, href);
@@ -3661,6 +3717,20 @@ ns_browser_release_click(ns_browser *browser, int *out_changed)
     char *nav = browser->pending_nav;
     browser->pending_nav = NULL;
     return nav;
+}
+
+/* Pointer up where the pointer last moved (the press point if it did not). */
+char *
+ns_browser_release_click(ns_browser *browser, int *out_changed)
+{
+    return browser_release(browser, FALSE, 0, 0, out_changed);
+}
+
+/* Pointer up at a page point. */
+char *
+ns_browser_release_at(ns_browser *browser, int x, int y, int *out_changed)
+{
+    return browser_release(browser, TRUE, x, y, out_changed);
 }
 
 /* Replaces a byte range of a control's value, firing beforeinput (cancellable) and input. */

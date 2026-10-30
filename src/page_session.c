@@ -982,6 +982,23 @@ ns_page_session_release(ns_page_session *s, int *out_changed)
     return empty_to_null(href);
 }
 
+/* Sends a pointer release at a page point, so a drag ends where it was dropped. */
+char *
+ns_page_session_release_at(ns_page_session *s, int x, int y, int *out_changed)
+{
+    if (out_changed)
+        *out_changed = 0;
+    if (!s || !s->cur)
+        return NULL;
+    s->frame_valid = 0;
+    int changed = 0;
+    char *href = ns_browser_release_at(s->cur, x, y, &changed);
+    session_stash_post(s, href);
+    if (out_changed)
+        *out_changed = changed > 0 ? 1 : 0;
+    return empty_to_null(href);
+}
+
 char *
 ns_page_session_select(ns_page_session *s, int kind, int x, int y)
 {

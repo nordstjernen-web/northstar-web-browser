@@ -79,6 +79,8 @@ int   ns_page_session_hover(ns_page_session *s, int x, int y,
                             char **out_href, char **out_cursor);
 char *ns_page_session_click(ns_page_session *s, int x, int y, int mods);
 char *ns_page_session_release(ns_page_session *s, int *out_changed);
+char *ns_page_session_release_at(ns_page_session *s, int x, int y,
+                                 int *out_changed);
 char *ns_page_session_select(ns_page_session *s, int kind, int x, int y);
 char *ns_page_session_key(ns_page_session *s, int kind, const char *key,
                           const char *code, int keycode, int mods,

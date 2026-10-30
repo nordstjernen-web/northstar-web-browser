@@ -1,3 +1,11 @@
+northstar (1.0.19+ds-1) unstable; urgency=medium
+
+  * New upstream release: mouse drag and guest pairing fixes for
+    chess.com, BankID sign-in and Cloudflare Turnstile fixes, and a
+    clearer error page for files the sandbox will not open.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Fri, 30 Oct 2026 12:00:00 +0100
+
 northstar (1.0.18+ds-1) unstable; urgency=medium
 
   * New upstream release: browser pages open again from the menu and

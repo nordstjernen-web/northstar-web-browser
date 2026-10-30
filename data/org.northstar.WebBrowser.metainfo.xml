@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.19" date="2026-10-30">
+      <description>
+        <p>Bug fix release.</p>
+        <ul>
+          <li>Dragging with the mouse ends where the button is released, so chess.com pieces can be dragged, and chess.com guests are paired with an opponent again.</li>
+          <li>BankID sign-in works: sessionStorage lasts for the window, and unknown Content-Encoding values no longer fail the request.</li>
+          <li>Cloudflare Turnstile no longer fails, as shadow roots stay out of light-DOM walks and cross-origin messages keep their source.</li>
+          <li>Function.prototype.caller works for sloppy-mode functions, fixing freecivweb.com singleplayer games.</li>
+          <li>Local files the Linux sandbox will not open get an error page that explains why.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.18" date="2026-10-28">
       <description>
         <p>Bug fix release.</p>

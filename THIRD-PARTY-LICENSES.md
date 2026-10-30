@@ -352,8 +352,6 @@ Where Northstar Web Browser changes a third-party source, the change is carried 
 patch rather than as an edited copy, so what was modified stays legible
 and separable:
 
-- `subprojects/packagefiles/lexbor-conv-buffer-bound.patch` — a bounds
-  check in lexbor's integer-to-string conversion (`core/conv.c`).
 - `subprojects/packagefiles/lexbor-named-charref-bound.patch` — grows
   the HTML tokenizer's temporary buffer before a named character
   reference is written into it (`html/tokenizer/state.c`).

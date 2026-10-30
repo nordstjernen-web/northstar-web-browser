@@ -1,6 +1,7 @@
 [wrap-git]
-# v3.0.1, pinned to its commit so a moved tag cannot change the source.
+# master after v3.0.1 (no newer release), pinned to its commit for its
+# memory-safety fixes.
 url = https://github.com/lexbor/lexbor.git
-revision = 7e278c0188489bfce6b71ced0cc900cbb31e6244
+revision = 145872a2e5d6c22d923afcd3c386a21e59f9a0e2
 depth = 1
-diff_files = lexbor-conv-buffer-bound.patch, lexbor-named-charref-bound.patch
+diff_files = lexbor-named-charref-bound.patch

@@ -2,6 +2,21 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.20:
+=======
+* lexbor moves from the v3.0.1 release to master `145872a` (no newer
+  release exists) for its memory-safety fixes: memory corruption in
+  `lexbor_mraw_realloc()`, wrong allocation sizes in `lexbor_array_obj_t`,
+  an out-of-bounds write in `lxb_dom_character_data_replace()`, encoder
+  bounds checks, geometric growth of the tokenizer's temporary buffers,
+  and the textarea insertion mode. The `lexbor-conv-buffer-bound.patch`
+  wrap patch is dropped, since upstream now carries the same fix.
+* quickjs-ng moves to master `7b5f588`, which fixes a use-after-free
+  when a WeakMap with symbol values is freed, an infinite loop in
+  `unicode_script()` on allocation failure, and a leak in
+  `JS_ReadBigInt()` on truncated input.
+* The Arch Linux PKGBUILD builds 1.0.19.
+
 1.0.19:
 =======
 * Input: a mouse drag ends where the button is released. `pointerup`

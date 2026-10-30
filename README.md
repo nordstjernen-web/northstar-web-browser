@@ -3,7 +3,7 @@
 Northstar Web Browser is a minimalist web browser written from scratch in C. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
-is the primary platform; macOS and Windows are also supported.
+is the primary platform; macOS, Windows and the BSDs are also supported.
 
 ![Northstar Web Browser showing a Wikipedia article](docs/screenshot.png)
 
@@ -46,7 +46,7 @@ gaps.
 the main thread and the page engine on one dedicated thread with its own
 main loop, so a slow page never freezes the window; the shell posts
 requests to that thread and gets rendered frames back, all inside the
-same process. The engine is a compact body of C — about 207,000 lines of
+same process. The engine is a compact body of C — about 214,000 lines of
 original C, excluding the vendored web-text-lib, WAMR, Wuffs and audio
 decoders — small enough for one person to read and audit end-to-end. See
 [docs/architecture.md](docs/architecture.md) for how it fits together.
@@ -208,13 +208,15 @@ a pin is moved.
 
 ### The `open-internet-browser` command
 
-`meson install` puts `open-internet-browser` beside `northstar` in the
-binary directory, a symbolic link to it, so `open-internet-browser
+Outside Windows, `meson install` puts `open-internet-browser` beside
+`northstar` in the binary directory, a symbolic link to it, so `open-internet-browser
 https://nordstjernen.org` starts Northstar Web Browser. Nordstjernen Sol
 and Southstar install commands of their own (`open-browser-nordstjernen`
 and `internet-browser-southstar`), so the three browsers install side by
-side. The `.deb` and `.rpm` packages register `open-internet-browser`
-with `update-alternatives` instead of shipping the link. On Windows the installer
+side. The release `.deb` and `.rpm` packages (`scripts/pack-deb.sh`,
+`scripts/pack-rpm.sh`, `northstar.spec`) register `open-internet-browser`
+with `update-alternatives` instead of shipping the link; the Debian
+archive packaging in `debian/` drops it and registers `x-www-browser`. On Windows the installer
 registers `open-internet-browser` as an App Paths alias (the Run dialog
 and `start open-internet-browser` find it) and the MSIX package declares
 it as an app execution alias.
@@ -237,7 +239,8 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 lexbor (3.0 or newer) and quickjs-ng take a system copy instead when the
 build finds one.
 
-**Vendored in-tree** (built from the main tree, no submodules):
+**Vendored in-tree** (checked into this repository — under `src/`, or
+`subprojects/` for Wuffs and pl_mpeg — so no network or submodules):
 
 | Component | Role |
 |-----------|------|
@@ -260,13 +263,18 @@ with `-Daudio=enabled`.
 
 **Optional** (auto-detected): libdav1d, libvpx and OpenH264 (AV1, VP9
 and H.264 video), libopus (Opus audio in WebM and MP4), libavif (AVIF
-images), opusfile / vorbisfile (in-process Ogg audio), Enchant
-(spell-checking) and libthai (Thai line breaking).
+images), opusfile / vorbisfile (in-process Ogg audio), libbrotlidec and
+libzstd (Brotli and zstd `Content-Encoding`), Enchant (spell-checking)
+and libthai (Thai line breaking).
 
 ## License
 
 Northstar Web Browser is free software, licensed under the **GNU General Public
-License, version 3 or later** — see [LICENSE](LICENSE).
+License, version 3 or later** — see [LICENSE](LICENSE). Bundled and
+linked third-party components keep their own licences (web-text-lib is
+LGPL 2.1+; lexbor, Wuffs and WAMR are Apache 2.0; quickjs-ng, QuickJS and
+pl_mpeg are MIT; minimp3 is CC0); see
+[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 Project home: <https://nordstjernen.org/northstar-browser/> · Copyright 2026 Andreas Røsdal.
 

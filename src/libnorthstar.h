@@ -54,6 +54,8 @@ char *ns_browser_link_at(ns_browser *browser, int x, int y);
 char *ns_browser_cursor_at(ns_browser *browser, int x, int y);
 char *ns_browser_press(ns_browser *browser, int x, int y, int mods);
 char *ns_browser_release_click(ns_browser *browser, int *out_changed);
+char *ns_browser_release_at(ns_browser *browser, int x, int y,
+                            int *out_changed);
 char *ns_browser_key_full(ns_browser *browser, int kind, const char *key,
                           const char *code, int keycode, int mods,
                           int *out_prevented);

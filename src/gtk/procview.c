@@ -897,7 +897,7 @@ run_req(gpointer data)
         break;
     case REQ_RELEASE:
         res = res_new(v, RES_RELEASE, req->seq);
-        res->href = ns_page_session_release(s, &res->ok);
+        res->href = ns_page_session_release_at(s, req->x, req->y, &res->ok);
         if (!res->href || !*res->href)
             res->media_url = ns_page_session_media_at(s, req->x, req->y,
                                                       &res->media_is_video,

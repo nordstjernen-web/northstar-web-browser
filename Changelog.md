@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.19:
 =======
+* Input: a mouse drag ends where the button is released. `pointerup`
+  and `mouseup` went to the element under the press point with the
+  press coordinates, `pointermove`/`mousemove` reported `buttons: 0`
+  while the button was held, and `click` went to the pressed element
+  even when the release was elsewhere. chess.com reads the drop square
+  from `pointerup`, so dragging a piece put it back where it started.
+  The release now targets the element under the pointer, `click` goes
+  to the nearest common ancestor of the press and release targets, and
+  a cancelled `mousedown` no longer starts a text selection while
+  dragging.
 * Scripts: scripts in content added to the document while a script was
   being fetched now run. Every external script fetch runs a nested event
   loop, and anything inserted during it, including the streamed rest of

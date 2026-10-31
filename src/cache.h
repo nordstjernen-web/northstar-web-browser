@@ -11,6 +11,17 @@
 
 G_BEGIN_DECLS
 
+/* Response headers that carry security policy. A cache hit must restore them,
+ * or a revisit would drop the page's CSP, framing and nosniff rules. */
+typedef struct ns_cache_policy_headers {
+    char *csp_header;
+    char *xframe_options;
+    char *x_content_type_options;
+    char *content_disposition;
+    char *refresh;
+    char *content_language;
+} ns_cache_policy_headers;
+
 typedef struct ns_cache_entry {
     char       *final_url;
     long        status;
@@ -18,6 +29,7 @@ typedef struct ns_cache_entry {
     char       *cors_allow_origin;
     char       *etag;
     char       *last_modified;
+    ns_cache_policy_headers policy;
     gint64      expires_at;
     gint64      fetched_at;
     GByteArray *body;
@@ -38,6 +50,7 @@ void   ns_cache_put(const char *url,
                     long status,
                     const char *content_type,
                     const char *cors_allow_origin,
+                    const ns_cache_policy_headers *policy,
                     const char *etag,
                     const char *last_modified,
                     const char *cache_control,

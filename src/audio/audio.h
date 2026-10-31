@@ -37,6 +37,9 @@ typedef struct {
 } NsAudioStatus;
 
 void ns_audio_set_silent(gboolean silent);
+/* Starts the thread that opens the output device; call from the main
+ * thread before the engine thread starts. */
+void ns_audio_start_device_helper(void);
 
 /* policy is the document's fetch policy (CSP media-src, mixed content);
  * the context keeps a reference. */

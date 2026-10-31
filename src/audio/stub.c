@@ -14,6 +14,7 @@ struct NsAudioContext {
 };
 
 void ns_audio_set_silent(gboolean silent) { (void)silent; }
+void ns_audio_start_device_helper(void) {}
 NsAudioContext *ns_audio_context_new(const char *document_url,
                                      ns_fetch_policy *policy)
 { (void)document_url; (void)policy; return g_new0(NsAudioContext, 1); }

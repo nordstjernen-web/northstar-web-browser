@@ -104,6 +104,7 @@ ns_security_downloads_dir(void)
 #include <seccomp.h>
 #include <sys/ioctl.h>
 #include <sys/shm.h>
+#include <sys/socket.h>
 #ifndef SHM_EXEC
 #define SHM_EXEC 0100000
 #endif
@@ -1137,6 +1138,15 @@ ns_security_deny_exec_memory(gboolean whole_process)
         if (nr != __NR_SCMP_ERROR)
             (void)seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), nr, 0);
     }
+    /* No new UNIX sockets. Landlock does not mediate connect() to a
+     * socket path, so content code could otherwise reach the session bus
+     * (and through it systemd --user, which runs programs outside the
+     * sandbox), ssh-agent, gpg-agent or the X server. Name lookups that
+     * try nscd or systemd-resolved over a socket fall back to DNS. */
+    int socket_nr = seccomp_syscall_resolve_name("socket");
+    if (socket_nr != __NR_SCMP_ERROR)
+        (void)seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EACCES), socket_nr, 1,
+                               SCMP_A0(SCMP_CMP_EQ, AF_UNIX));
     int rc = seccomp_load(ctx);
     if (rc != 0)
         g_info("seccomp: executable-memory filter not loaded: %s",

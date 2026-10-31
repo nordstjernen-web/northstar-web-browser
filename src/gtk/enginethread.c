@@ -8,6 +8,7 @@
 #define _GNU_SOURCE
 #endif
 #include "enginethread.h"
+#include "audio/audio.h"
 #include "mainctx.h"
 #include "security.h"
 #include "trace.h"
@@ -103,6 +104,9 @@ engine_main(gpointer data)
 static void
 engine_spawn(void)
 {
+    /* The engine thread may not create UNIX sockets, so the audio device
+     * is opened by a helper started from this unconfined thread. */
+    ns_audio_start_device_helper();
 #ifndef G_OS_WIN32
     pthread_attr_t attr;
     pthread_t thread;

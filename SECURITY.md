@@ -83,7 +83,8 @@ is parsed and run: the engine thread installs a second seccomp filter on
 itself, inherited by every thread it starts (media decoding, audio,
 workers), that refuses an anonymous or shared executable `mmap` and any
 `mprotect`/`pkey_mprotect` adding `PROT_EXEC` with `EACCES`, and denies
-`memfd_create`, `memfd_secret` and `remap_file_pages`; download threads
+`memfd_create`, `memfd_secret` and `remap_file_pages`, as well as new
+UNIX sockets (see *Linux sandbox*); download threads
 install the same filter, and headless and tooling runs install it for
 the whole process. The GUI's main thread is left out because GPU drivers
 such as Mesa's llvmpipe compile shaders to machine code there. Headless
@@ -166,8 +167,19 @@ unconfined.
     the open file, so no directory is granted for them.
 
   Landlock governs opening paths, not connecting to UNIX sockets that
-  already exist, so the session bus and other per-user sockets in the
-  runtime directory stay reachable. Unpacked extensions are loaded from
+  already exist. Left alone, that would let a compromised engine reach
+  the session bus (and through it `systemd --user`, which can start
+  programs outside the sandbox), `ssh-agent`, `gpg-agent` and the X
+  server. So the content-thread seccomp filter (see *Compile-time
+  hardening*) refuses `socket(AF_UNIX, …)` with `EACCES` on the engine
+  thread, every thread it starts, and download threads, and on the whole
+  process in headless and tooling runs. The GUI's main thread keeps its
+  UNIX sockets for Wayland or X11, D-Bus and accessibility, and the
+  audio output device is opened by a helper thread started before the
+  engine thread, because PulseAudio and PipeWire clients connect through
+  a UNIX socket. The filter is per thread, so it does not stop a
+  compromised engine from using sockets the main thread already has
+  open. Unpacked extensions are loaded from
   `~/.local/share/northstar-extensions`, which is outside the writable
   profile directory.
 

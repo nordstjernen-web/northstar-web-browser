@@ -1151,14 +1151,11 @@ audio_worker(gpointer data)
     return NULL;
 }
 
-/* Lazily opens the SDL device (or null output) and starts the worker thread. */
-static gboolean
-audio_start(void)
+/* Opens the SDL output device; the backend's client threads start here. */
+static void
+audio_open_device(void)
 {
-    if (g_worker) return TRUE;
-    SDL_SetMainReady();
-    if (!g_atomic_int_get(&g_silent) &&
-        SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
         SDL_AudioSpec want, have;
         SDL_memset(&want, 0, sizeof want);
         want.freq = NS_AUDIO_DEVICE_RATE;
@@ -1171,6 +1168,66 @@ audio_start(void)
             g_dev_ok = 1;
             SDL_PauseAudioDevice(g_dev, 0);
         }
+    }
+}
+
+/* Content threads may not create UNIX sockets (see
+ * ns_security_deny_exec_memory), but PulseAudio and PipeWire clients
+ * connect through one, and SDL starts their threads from the thread that
+ * opens the device. A helper thread started before the engine thread opens
+ * the device on request instead. It touches no page data. */
+static GMutex   g_dev_helper_lock;
+static GCond    g_dev_helper_cond;
+static gboolean g_dev_helper_running;
+static int      g_dev_helper_state; /* 0 idle, 1 open requested, 2 done */
+
+static gpointer
+audio_device_helper(gpointer data)
+{
+    (void)data;
+    g_mutex_lock(&g_dev_helper_lock);
+    while (g_dev_helper_state != 1)
+        g_cond_wait(&g_dev_helper_cond, &g_dev_helper_lock);
+    g_mutex_unlock(&g_dev_helper_lock);
+    audio_open_device();
+    g_mutex_lock(&g_dev_helper_lock);
+    g_dev_helper_state = 2;
+    g_cond_broadcast(&g_dev_helper_cond);
+    g_mutex_unlock(&g_dev_helper_lock);
+    return NULL;
+}
+
+/* Starts the device helper; call from an unconfined thread before any
+ * content thread exists. */
+void
+ns_audio_start_device_helper(void)
+{
+    if (g_atomic_int_get(&g_silent)) return;
+    g_mutex_lock(&g_dev_helper_lock);
+    gboolean start = !g_dev_helper_running;
+    g_dev_helper_running = TRUE;
+    g_mutex_unlock(&g_dev_helper_lock);
+    if (start)
+        g_thread_unref(g_thread_new("ns-audio-dev", audio_device_helper, NULL));
+}
+
+/* Lazily opens the SDL device (or null output) and starts the worker thread. */
+static gboolean
+audio_start(void)
+{
+    if (g_worker) return TRUE;
+    SDL_SetMainReady();
+    if (!g_atomic_int_get(&g_silent)) {
+        g_mutex_lock(&g_dev_helper_lock);
+        gboolean helper = g_dev_helper_running && g_dev_helper_state == 0;
+        if (helper) {
+            g_dev_helper_state = 1;
+            g_cond_broadcast(&g_dev_helper_cond);
+            while (g_dev_helper_state != 2)
+                g_cond_wait(&g_dev_helper_cond, &g_dev_helper_lock);
+        }
+        g_mutex_unlock(&g_dev_helper_lock);
+        if (!helper) audio_open_device();
     }
     if (!g_dev_ok) null_audio_start();
     g_atomic_int_set(&g_shutting_down, 0);

@@ -5162,6 +5162,12 @@ response_from_cache_entry(ns_cache_entry *e)
     resp->final_url    = g_strdup(e->final_url);
     resp->content_type = g_strdup(e->content_type);
     resp->cors_allow_origin = g_strdup(e->cors_allow_origin);
+    resp->csp_header   = g_strdup(e->policy.csp_header);
+    resp->xframe_options = g_strdup(e->policy.xframe_options);
+    resp->x_content_type_options = g_strdup(e->policy.x_content_type_options);
+    resp->content_disposition = g_strdup(e->policy.content_disposition);
+    resp->refresh      = g_strdup(e->policy.refresh);
+    resp->content_language = g_strdup(e->policy.content_language);
     resp->body         = e->body;
     e->body = NULL;
     return resp;
@@ -5939,12 +5945,30 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
             resp->content_type = g_strdup(cached->content_type);
             g_free(resp->cors_allow_origin);
             resp->cors_allow_origin = g_strdup(cached->cors_allow_origin);
+            /* A 304 that omits a policy header keeps the stored one. */
+#define NS_KEEP_CACHED(field)             if (!resp->field) resp->field = g_strdup(cached->policy.field)
+            NS_KEEP_CACHED(csp_header);
+            NS_KEEP_CACHED(xframe_options);
+            NS_KEEP_CACHED(x_content_type_options);
+            NS_KEEP_CACHED(content_disposition);
+            NS_KEEP_CACHED(refresh);
+            NS_KEEP_CACHED(content_language);
+#undef NS_KEEP_CACHED
         } else if (resp->status > 0 && resp->status < 300 &&
                    resp->body && resp->body->len > 0) {
             ns_cache_put(url, cache_partition,
                          resp->final_url, resp->status,
                          resp->content_type,
                          resp->cors_allow_origin,
+                         &(const ns_cache_policy_headers){
+                             .csp_header = resp->csp_header,
+                             .xframe_options = resp->xframe_options,
+                             .x_content_type_options =
+                                 resp->x_content_type_options,
+                             .content_disposition = resp->content_disposition,
+                             .refresh = resp->refresh,
+                             .content_language = resp->content_language,
+                         },
                          header_ctx.etag, header_ctx.last_modified,
                          header_ctx.cache_control, header_ctx.expires,
                          header_ctx.vary, cache_request_headers,

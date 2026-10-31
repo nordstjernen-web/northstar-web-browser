@@ -1354,6 +1354,7 @@ int ns_css_used_column_count(const ns_style *s, double avail_w,
                              double *out_gap);
 
 char *ns_css_value_serialize(const ns_css_value *v);
+char *ns_css_font_src_best_url(const char *src);
 char *ns_css_individual_transform_serialize(const ns_css_value *v, int prop);
 char *ns_css_calc_canonical(const char *text);
 char *ns_css_tracks_computed_serialize(const ns_style *s, const ns_style *root,

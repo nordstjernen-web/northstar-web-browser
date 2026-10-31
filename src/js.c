@@ -10100,12 +10100,71 @@ ns_promise_resolve_take(JSContext *ctx, JSValue value)
 static void ns_js_resolve_when_fonts_loaded(JSContext *ctx, ns_js *js,
                                             JSValue resolve, JSValue value);
 
-/* FontFace.load(): marks loaded and resolves once pending fonts finish. */
+/* URL to fetch for a FontFace source: the best url() of a CSS src string,
+ * or a data: URL holding the bytes of an ArrayBuffer/view; caller frees. */
+static char *
+ns_fontface_source_url(JSContext *ctx, JSValueConst src)
+{
+    const uint8_t *data = NULL;
+    size_t len = 0;
+    JSValue holder = JS_UNDEFINED;
+    if (ns_js_bytes_view(ctx, src, &data, &len, &holder)) {
+        char *url = NULL;
+        if (data && len > 0) {
+            char *b64 = g_base64_encode(data, len);
+            url = g_strconcat("data:font/ttf;base64,", b64, NULL);
+            g_free(b64);
+        }
+        JS_FreeValue(ctx, holder);
+        return url;
+    }
+    if (!JS_IsString(src)) return NULL;
+    const char *text = JS_ToCString(ctx, src);
+    char *url = ns_css_font_src_best_url(text);
+    if (text) JS_FreeCString(ctx, text);
+    return url;
+}
+
+/* Hands a FontFace's source to the web font loader under its family, so
+ * faces made by script load like @font-face rules do. */
+static void
+ns_fontface_request(JSContext *ctx, JSValueConst face)
+{
+    ns_js *js = js_from_ctx(ctx);
+    if (!js || !JS_IsObject(face) || !ns_font_available()) return;
+    JSValue fam_v = JS_GetPropertyStr(ctx, face, "family");
+    JSValue src_v = JS_GetPropertyStr(ctx, face, "__nsFontSrc");
+    const char *family = JS_IsString(fam_v) ? JS_ToCString(ctx, fam_v) : NULL;
+    const char *src = JS_IsString(src_v) ? JS_ToCString(ctx, src_v) : NULL;
+    if (family && *family && src && *src) {
+        char *base = ns_js_doc_base_url(js);
+        char *abs = base ? ns_url_resolve(base, src) : g_strdup(src);
+        char *refusal = abs
+            ? ns_js_policy_refusal(js, ctx, NS_FETCH_DEST_FONT, abs) : NULL;
+        if (abs && !refusal) {
+            ns_font_request(family, abs, base,
+                            ns_js_caller_fetch_policy(js, ctx));
+            if (ns_font_pending_count() > 0)
+                JS_SetPropertyStr(ctx, face, "status",
+                                  JS_NewString(ctx, "loading"));
+        }
+        g_free(refusal);
+        g_free(abs);
+        g_free(base);
+    }
+    if (family) JS_FreeCString(ctx, family);
+    if (src) JS_FreeCString(ctx, src);
+    JS_FreeValue(ctx, fam_v);
+    JS_FreeValue(ctx, src_v);
+}
+
+/* FontFace.load(): starts the fetch and resolves once pending fonts finish. */
 static JSValue
 ns_fontface_load(JSContext *ctx, JSValueConst this_val,
                  int argc, JSValueConst *argv)
 {
     (void)argc; (void)argv;
+    ns_fontface_request(ctx, this_val);
     JS_SetPropertyStr(ctx, this_val, "status", JS_NewString(ctx, "loaded"));
     ns_js *js = js_from_ctx(ctx);
     if (js) ns_js_flush_layout(js);
@@ -10146,6 +10205,11 @@ ns_window_fontface_ctor(JSContext *ctx, JSValueConst this_val,
         }
         JS_SetPropertyStr(ctx, f, descs[i].k, v);
     }
+    char *src_url = argc >= 2 ? ns_fontface_source_url(ctx, argv[1]) : NULL;
+    if (src_url)
+        JS_DefinePropertyValueStr(ctx, f, "__nsFontSrc",
+                                  JS_NewString(ctx, src_url), JS_PROP_WRITABLE);
+    g_free(src_url);
     JS_SetPropertyStr(ctx, f, "status", JS_NewString(ctx, "unloaded"));
     JS_SetPropertyStr(ctx, f, "loaded",
                       ns_promise_resolve_take(ctx, JS_DupValue(ctx, f)));
@@ -47075,6 +47139,15 @@ ns_fontfaceset_load(JSContext *ctx, JSValueConst this_val,
     return promise;
 }
 
+/* FontFaceSet.add(face): loads the face's source under its family; returns the set. */
+static JSValue
+ns_fontfaceset_add(JSContext *ctx, JSValueConst this_val,
+                   int argc, JSValueConst *argv)
+{
+    if (argc >= 1) ns_fontface_request(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
 /* document.fonts: minimal FontFaceSet whose ready/status reflect pending web fonts. */
 static JSValue
 ns_document_get_fonts(JSContext *ctx, JSValueConst this_val)
@@ -47094,7 +47167,7 @@ ns_document_get_fonts(JSContext *ctx, JSValueConst this_val)
                       JS_NewString(ctx, loading ? "loading" : "loaded"));
     ns_bind_fn(ctx, fs, "check", ns_returns_true,                    1);
     ns_bind_fn(ctx, fs, "load",  ns_fontfaceset_load,              2);
-    ns_bind_fn(ctx, fs, "add",   ns_returns_undefined,                    1);
+    ns_bind_fn(ctx, fs, "add",   ns_fontfaceset_add,               1);
     ns_bind_fn(ctx, fs, "delete",  ns_returns_undefined, 1);
     ns_bind_fn(ctx, fs, "clear",   ns_returns_undefined, 0);
     ns_bind_fn(ctx, fs, "forEach", ns_returns_undefined, 1);

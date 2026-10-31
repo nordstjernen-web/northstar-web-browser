@@ -57767,8 +57767,20 @@ ns_js_module_loader(JSContext *ctx, const char *module_name, void *opaque,
         ns_csp_allows(module_csp, NS_CSP_SCRIPT, module_name, top_url)
             ? ns_fetch_policy_new_script_hops(ns_js_fetch_policy(js, NULL))
             : ns_fetch_policy_ref(ns_js_fetch_policy(js, NULL));
+    /* Module scripts are fetched in CORS mode with "same-origin"
+     * credentials: cookies go only to the importer's own origin. */
+    const char *module_headers[8];
+    gsize n_module_headers = 0;
+    const char *const *accept = json_module ? NULL
+        : ns_net_accept_headers_for(NS_FETCH_DEST_SCRIPT);
+    for (; accept && accept[n_module_headers] &&
+           n_module_headers < G_N_ELEMENTS(module_headers) - 2;
+         n_module_headers++)
+        module_headers[n_module_headers] = accept[n_module_headers];
+    module_headers[n_module_headers++] = "X-ND-Credentials: same-origin";
+    module_headers[n_module_headers] = NULL;
     ns_response *resp = ns_js_fetch_resource(js, module_name, top_url,
-        json_module ? NULL : ns_net_accept_headers_for(NS_FETCH_DEST_SCRIPT),
+        module_headers,
         json_module ? NS_FETCH_DEST_CONNECT : NS_FETCH_DEST_SCRIPT,
         module_policy, &err);
     ns_fetch_policy_unref(module_policy);
@@ -57794,6 +57806,27 @@ ns_js_module_loader(JSContext *ctx, const char *module_name, void *opaque,
         JS_ThrowReferenceError(ctx,
             "module %s refused by Content-Security-Policy", module_name);
         return NULL;
+    }
+    /* A cross-origin module must opt in with Access-Control-Allow-Origin,
+     * or script could read another origin's JSON or module exports. */
+    if (js) {
+        g_autofree char *importer = js->worker_host
+            ? g_strdup(js->worker_host->base_url)
+            : ns_js_realm_origin(js, ctx);
+        if (!cors_allows(importer, resp->final_url,
+                         resp->cors_allow_origin)) {
+            if (js->log_cb) {
+                char *line = g_strdup_printf(
+                    "module %s: blocked by CORS policy", module_name);
+                js->log_cb(line, js->log_user_data);
+                g_free(line);
+            }
+            ns_response_free(resp);
+            g_clear_error(&err);
+            JS_ThrowReferenceError(ctx,
+                "module %s blocked by CORS policy", module_name);
+            return NULL;
+        }
     }
     if (js) js->module_load_bytes += resp->body->len;
     char *copy = g_strndup((const char *)resp->body->data, resp->body->len);

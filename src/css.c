@@ -19346,6 +19346,15 @@ font_src_consider_urls(char **best, const char *value)
     }
 }
 
+/* Best-ranked url() of a @font-face or FontFace src value, or NULL; caller frees. */
+char *
+ns_css_font_src_best_url(const char *src)
+{
+    char *best = NULL;
+    if (src) font_src_consider_urls(&best, src);
+    return best;
+}
+
 /* Returns the trimmed @keyframes name, unquoting a string name; caller frees. */
 static char *
 css_keyframes_name_from_range(const char *start, const char *end)

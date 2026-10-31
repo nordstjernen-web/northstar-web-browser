@@ -652,9 +652,10 @@ resample_to_device(const float *src, size_t src_frames, int src_rate, int src_ch
     return 1;
 }
 
-/* Sniffs and decodes encoded audio, resamples it and installs it in the player. */
+/* Sniffs and decodes encoded audio and resamples it to device format. */
 static int
-load_audio_bytes(ns_audio_player *p, const unsigned char *bytes, size_t n)
+decode_audio_bytes(const unsigned char *bytes, size_t n,
+                   float **out_pcm, size_t *out_frames)
 {
     if (!bytes || n == 0 || n > NS_AUDIO_MAX_BYTES) return 0;
 
@@ -681,16 +682,8 @@ load_audio_bytes(ns_audio_player *p, const unsigned char *bytes, size_t n)
     ok = resample_to_device(src, src_frames, src_rate, src_ch, &dev, &dev_frames);
     free(src);
     if (!ok) return 0;
-
-    audio_lock();
-    p->pcm = dev;
-    p->frames = dev_frames;
-    p->cursor = 0;
-    p->clock_floor_valid = 0;
-    p->clock_offset_valid = 0;
-    p->reached_end = 0;
-    p->playing = 0;
-    audio_unlock();
+    *out_pcm = dev;
+    *out_frames = dev_frames;
     return 1;
 }
 
@@ -795,17 +788,33 @@ fetch_audio_bytes(NsAudioContext *context, const char *url,
     return bytes;
 }
 
-/* Logs a load error, releases the player and records the failure for status queries. */
+/* TRUE while p is still the non-streaming load that open number seq began.
+ * Fetching and decoding run unlocked, and meanwhile the engine thread may
+ * turn the slot into a streaming player, or a context reset may hand it
+ * to another token. Call with the audio lock held. */
+static gboolean
+player_owns_load(const ns_audio_player *p, NsAudioContext *context,
+                 const char *token, guint seq)
+{
+    return p->used && p->owner == context && !p->streaming &&
+           p->open_seq == seq && strcmp(p->token, token) == 0;
+}
+
+/* Logs a load error, releases the player and records the failure for
+ * status queries. Does nothing when the slot no longer belongs to the
+ * load that failed. */
 static void
 player_fail(NsAudioContext *context, ns_audio_player *p, const char *token,
-            NsAudioError error, const char *what)
+            guint seq, NsAudioError error, const char *what)
 {
-    emit("error %s %s", token, what);
     if (p) {
         audio_lock();
-        player_release(p);
+        gboolean owned = player_owns_load(p, context, token, seq);
+        if (owned) player_release(p);
         audio_unlock();
+        if (!owned) return;
     }
+    emit("error %s %s", token, what);
     context_set_failure(context, token, error);
 }
 
@@ -821,31 +830,51 @@ player_begin_load(NsAudioContext *context, const char *token, guint seq)
     if (p) p->open_seq = seq;
     audio_unlock();
     if (!p) {
-        player_fail(context, NULL, token, NS_AUDIO_ERROR_TOO_MANY,
+        player_fail(context, NULL, token, seq, NS_AUDIO_ERROR_TOO_MANY,
                     "too-many-players");
         return NULL;
     }
     if (!g_dev_ok && !g_null_thread) {
-        player_fail(context, p, token, NS_AUDIO_ERROR_NO_DEVICE,
+        player_fail(context, p, token, seq, NS_AUDIO_ERROR_NO_DEVICE,
                     "no-audio-device");
         return NULL;
     }
     return p;
 }
 
-/* Decodes bytes into the player, recording failure on decode error. */
+/* Decodes bytes into the player, recording failure on decode error. The
+ * PCM is dropped if the slot stopped being this load while decoding. */
 static void
 player_load_bytes(NsAudioContext *context, ns_audio_player *p,
-                  const char *token, GBytes *bytes)
+                  const char *token, guint seq, GBytes *bytes)
 {
     gsize size = 0;
     const guint8 *data = g_bytes_get_data(bytes, &size);
-    if (!load_audio_bytes(p, data, size)) {
-        player_fail(context, p, token, NS_AUDIO_ERROR_DECODE, "decode-failed");
+    float *pcm = NULL;
+    size_t frames = 0;
+    if (!decode_audio_bytes(data, size, &pcm, &frames)) {
+        player_fail(context, p, token, seq, NS_AUDIO_ERROR_DECODE,
+                    "decode-failed");
         return;
     }
+    audio_lock();
+    if (!player_owns_load(p, context, token, seq)) {
+        audio_unlock();
+        free(pcm);
+        return;
+    }
+    free(p->pcm);
+    p->pcm = pcm;
+    p->frames = frames;
+    p->capacity = frames;
+    p->cursor = 0;
+    p->clock_floor_valid = 0;
+    p->clock_offset_valid = 0;
+    p->reached_end = 0;
+    p->playing = 0;
     p->reload_size = (long)size;
-    emit("meta %s %.3f", token, (double)p->frames / NS_AUDIO_DEVICE_RATE);
+    audio_unlock();
+    emit("meta %s %.3f", token, (double)frames / NS_AUDIO_DEVICE_RATE);
 }
 
 /* Worker: fetches and decodes a URL, discarding the result if the context was reset. */
@@ -860,16 +889,17 @@ cmd_open(NsAudioContext *context, const ns_audio_command *command)
     if (command->generation != g_atomic_int_get(&context->generation)) {
         if (bytes) g_bytes_unref(bytes);
         audio_lock();
-        player_release(p);
+        if (player_owns_load(p, context, command->token, command->seq))
+            player_release(p);
         audio_unlock();
         return;
     }
     if (!bytes) {
-        player_fail(context, p, command->token, NS_AUDIO_ERROR_FETCH,
-                    "fetch-failed");
+        player_fail(context, p, command->token, command->seq,
+                    NS_AUDIO_ERROR_FETCH, "fetch-failed");
         return;
     }
-    player_load_bytes(context, p, command->token, bytes);
+    player_load_bytes(context, p, command->token, command->seq, bytes);
     g_bytes_unref(bytes);
 }
 
@@ -879,7 +909,7 @@ cmd_open_bytes(NsAudioContext *context, const char *token, GBytes *bytes,
                guint seq)
 {
     ns_audio_player *p = player_begin_load(context, token, seq);
-    if (p) player_load_bytes(context, p, token, bytes);
+    if (p) player_load_bytes(context, p, token, seq, bytes);
 }
 
 /* Worker: swaps in re-decoded PCM when a growing blob changes size, keeping position. */
@@ -887,7 +917,11 @@ static void
 cmd_reload_bytes(NsAudioContext *context, const char *token, GBytes *bytes,
                  guint seq)
 {
+    audio_lock();
     ns_audio_player *p = player_find(context, token);
+    gboolean streaming = p && p->streaming;
+    audio_unlock();
+    if (streaming) return;
     if (!p) { cmd_open_bytes(context, token, bytes, seq); return; }
 
     gsize size = 0;
@@ -900,17 +934,25 @@ cmd_reload_bytes(NsAudioContext *context, const char *token, GBytes *bytes,
     }
     if ((gsize)p->reload_size == size) return;
 
-    ns_audio_player fresh;
-    memset(&fresh, 0, sizeof fresh);
-    if (!load_audio_bytes(&fresh, data, size)) {
+    float *fresh_pcm = NULL;
+    size_t fresh_frames = 0;
+    if (!decode_audio_bytes(data, size, &fresh_pcm, &fresh_frames)) {
         emit("error %s decode-failed", token);
         return;
     }
 
     audio_lock();
+    /* The slot may have become a streaming player, or been released,
+     * while the bytes were decoding. */
+    if (player_find(context, token) != p || p->streaming) {
+        audio_unlock();
+        free(fresh_pcm);
+        return;
+    }
     float *old_pcm = p->pcm;
-    p->pcm = fresh.pcm;
-    p->frames = fresh.frames;
+    p->pcm = fresh_pcm;
+    p->frames = fresh_frames;
+    p->capacity = fresh_frames;
     if (p->cursor > p->frames) p->cursor = p->frames;
     if (p->reached_end && p->cursor < p->frames) {
         p->reached_end = 0;

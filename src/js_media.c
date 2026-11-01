@@ -84,6 +84,8 @@ typedef struct {
     ns_audio_decoder *decoder;
     double     mse_audio_next;
     gboolean   mse_waiting;
+    int        reported_width;
+    int        reported_height;
 } ns_media_player;
 
 typedef struct {
@@ -98,6 +100,7 @@ static void media_poll_ensure(ns_js *js);
 static void media_controls_dirty(ns_media_player *p);
 static void media_mse_restart_audio(ns_media_player *p, double t);
 static void media_internal_pause(ns_media_player *p, gboolean fire_events);
+static void media_check_resize(ns_media_player *p);
 static gboolean media_connected(ns_js *js, const ns_node *node);
 
 gboolean
@@ -571,6 +574,12 @@ media_load(ns_media_player *p)
     p->start_position = 0.0;
     p->duration = NAN;
     p->error = 0;
+    p->reported_width = 0;
+    p->reported_height = 0;
+    if (ns_element_get_attr(p->el, NS_MEDIA_SIZE_ATTR)) {
+        ns_element_remove_attr(p->el, NS_MEDIA_SIZE_ATTR);
+        ns_js_note_media_size_change(p->js, p->el);
+    }
     g_clear_pointer(&p->error_message, g_free);
     g_clear_pointer(&p->src, g_free);
     media_pin(p, FALSE);
@@ -1079,6 +1088,7 @@ media_poll_player(ns_media_player *p, gint64 now)
     if (p->mse) {
         media_mse_poll(p);
         if (!p->mse) return FALSE;
+        media_check_resize(p);
         ns_image *frames = media_video_frames(p);
         if (!p->paused && frames && !p->mse_waiting)
             media_video_follow_audio(p, frames, now);
@@ -1102,6 +1112,7 @@ media_poll_player(ns_media_player *p, gint64 now)
             }
             return p->ready_state < HAVE_METADATA || !p->paused;
         }
+        media_check_resize(p);
         ns_image *frames = media_video_frames(p);
         if (!p->paused && frames) {
             media_video_follow_audio(p, frames, now);
@@ -1657,15 +1668,45 @@ media_mse_video_track(ns_media_player *p)
     return ns_mse_buffer_track(ns_mse_source_track_buffer(p->mse, NS_MSE_TRACK_VIDEO));
 }
 
+/* Natural video size from the shown frames, falling back to the MSE track. */
+static void
+media_video_size(ns_media_player *p, int *width, int *height)
+{
+    ns_image *frames = p ? media_video_frames(p) : NULL;
+    *width = frames ? frames->natural_width : 0;
+    *height = frames ? frames->natural_height : 0;
+    const ns_mp4_track *track = media_mse_video_track(p);
+    if (*width <= 0 && track) *width = track->width;
+    if (*height <= 0 && track) *height = track->height;
+}
+
+/* Fires resize when the natural video size becomes known or changes (an
+ * adaptive switch to a stream of another shape), and records it on the
+ * element for layout. */
+static void
+media_check_resize(ns_media_player *p)
+{
+    if (!p->video || p->ready_state < HAVE_METADATA) return;
+    int width = 0, height = 0;
+    media_video_size(p, &width, &height);
+    if (width <= 0 || height <= 0 ||
+        (width == p->reported_width && height == p->reported_height))
+        return;
+    p->reported_width = width;
+    p->reported_height = height;
+    char size[32];
+    g_snprintf(size, sizeof size, "%dx%d", width, height);
+    ns_element_set_attr(p->el, NS_MEDIA_SIZE_ATTR, size);
+    ns_js_note_media_size_change(p->js, p->el);
+    media_queue_task(p, "resize");
+}
+
 /* videoWidth from decoded frames, falling back to the MSE track. */
 JSValue
 ns_media_get_video_width(JSContext *ctx, JSValueConst this_val)
 {
-    ns_media_player *p = media_player_this(ctx, this_val);
-    ns_image *frames = p ? media_video_frames(p) : NULL;
-    int width = frames ? frames->natural_width : 0;
-    const ns_mp4_track *track = media_mse_video_track(p);
-    if (width <= 0 && track) width = track->width;
+    int width = 0, height = 0;
+    media_video_size(media_player_this(ctx, this_val), &width, &height);
     return JS_NewInt32(ctx, width);
 }
 
@@ -1673,11 +1714,8 @@ ns_media_get_video_width(JSContext *ctx, JSValueConst this_val)
 JSValue
 ns_media_get_video_height(JSContext *ctx, JSValueConst this_val)
 {
-    ns_media_player *p = media_player_this(ctx, this_val);
-    ns_image *frames = p ? media_video_frames(p) : NULL;
-    int height = frames ? frames->natural_height : 0;
-    const ns_mp4_track *track = media_mse_video_track(p);
-    if (height <= 0 && track) height = track->height;
+    int width = 0, height = 0;
+    media_video_size(media_player_this(ctx, this_val), &width, &height);
     return JS_NewInt32(ctx, height);
 }
 

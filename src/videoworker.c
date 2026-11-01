@@ -116,6 +116,19 @@ decode_job(ns_video_worker *worker, worker_job *job, gboolean flush)
         ns_texture_unref(texture);
     }
     g_mutex_unlock(&worker->lock);
+    /* A reordering decoder may finish an earlier frame only now; slot it in. */
+    gint64 late_stamp = 0;
+    ns_texture *late;
+    while ((late = ns_video_decoder_take_late(worker->decoder, &late_stamp)) != NULL) {
+        g_mutex_lock(&worker->lock);
+        if (job->epoch == worker->epoch) {
+            worker_picture picture = { (double)late_stamp / 1e6, late };
+            g_array_append_val(worker->pictures, picture);
+        } else {
+            ns_texture_unref(late);
+        }
+        g_mutex_unlock(&worker->lock);
+    }
     if (trace_start)
         ns_trace_completef("media", "video decode", trace_start,
                            "pts %.3f %dx%d%s%s", job->pts, tex_w, tex_h,

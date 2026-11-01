@@ -61,7 +61,9 @@ an embedded PDF viewer and AI-style web APIs. It does not send telemetry
 or update pings.
 
 Audio and video still play in-process (MP3, MP2, AAC, Ogg Opus/Vorbis;
-MPEG-1, and AV1, VP9 and H.264 when their decoders are present). Images
+MPEG-1, and AV1, VP9 and H.264 when their decoders are present — on Linux
+through GStreamer by default, so YouTube streams with the system's
+GStreamer plugins). Images
 decode in-tree (PNG/APNG, GIF, BMP, JPEG and WebP via Wuffs, AVIF
 through libavif when available, and SVG in the engine).
 
@@ -111,13 +113,28 @@ through libavif when available, and SVG in the engine).
   pl_mpeg that already handles MP2 audio, a program stream's MP2 track
   included, with no extra dependency or licence. Streaming sites play
   through Media Source Extensions: `MediaSource` and `SourceBuffer`
-  demux fragmented MP4 and WebM, a decoder thread per video decodes AV1
-  (libdav1d), VP9 (libvpx) or H.264 (OpenH264) a few frames ahead, and
+  demux fragmented MP4 and WebM, a decoder thread per video decodes AV1,
+  VP9 or H.264 a few frames ahead, and
   the sound decodes AAC-LC (in-tree) or Opus (libopus). A plain MP4 or
   WebM file in `<video src>` is fetched progressively with HTTP range
   requests and plays through the same path. Decoded pictures are kept
   only a few frames ahead of the playhead, and `controls` draws a
   play/pause button, seek bar, time and mute button.
+- **Video decoding through GStreamer** — on Linux, GStreamer is the
+  default video decoder: each `<video>` gets a small pipeline
+  (`[parser] ! decoder ! videoconvert ! appsink`) built from the
+  highest-ranked installed software decoder for its codec (for example
+  `dav1ddec` or `av1dec` for AV1, `vp9dec` or `avdec_vp9` for VP9, and
+  `avdec_h264` or `h264parse ! openh264dec` for H.264), fed one coded
+  frame at a time on the decoder thread. YouTube (tested with
+  <https://www.youtube.com/watch?v=iqL1BLzn3qc>) plays this way in real
+  time at 720p. The plugins are loaded before the sandbox starts, since
+  the sandbox refuses the executable mappings `dlopen` needs; Orc runs
+  its portable C kernels for the same reason. Hardware (VA-API)
+  decoders are opt-in with `NS_GST_HARDWARE=1`, and
+  `NS_VIDEO_DECODER=native` switches back to the built-in libdav1d,
+  libvpx and OpenH264 backends. Where GStreamer is not built in, or has
+  no decoder for a codec, those native backends are used.
 - **Camera** — `getUserMedia` video capture through V4L2 on Linux, asked
   for per site; a frame shares the page's permission only when it is
   same-origin or delegated with `allow="camera"`.
@@ -194,8 +211,8 @@ single page can also be rendered directly:
 ```
 
 Meson feature options include `-Davif=disabled`, `-Daudio=disabled`,
-`-Dwasm=disabled`, `-Dav1=disabled`, `-Dvp9=disabled` and
-`-Dh264=disabled` for smaller builds; only Cisco's prebuilt OpenH264
+`-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dav1=disabled`,
+`-Dvp9=disabled` and `-Dh264=disabled` for smaller builds; only Cisco's prebuilt OpenH264
 binaries carry Cisco's H.264 patent licence, so `-Dh264=disabled` drops
 it where that matters. `-Djs_engine=quickjs` builds on
 Fabrice Bellard's original QuickJS instead of the default quickjs-ng.
@@ -261,7 +278,11 @@ every symbol in the fork is renamed. Linux builds also require libseccomp.
 SDL2 provides audio output: it is picked up when present and required
 with `-Daudio=enabled`.
 
-**Optional** (auto-detected): libdav1d, libvpx and OpenH264 (AV1, VP9
+**Optional** (auto-detected): GStreamer ≥ 1.18 with gst-plugins-base
+(`gstreamer-1.0`, `gstreamer-app-1.0`, `gstreamer-video-1.0`; the
+default video decoder on Linux, using whichever decoder plugins are
+installed — e.g. gst-plugins-good for VP9, gst-plugins-bad for AV1 and
+the H.264 parser, gst-libav), libdav1d, libvpx and OpenH264 (AV1, VP9
 and H.264 video), libopus (Opus audio in WebM and MP4), libavif (AVIF
 images), opusfile / vorbisfile (in-process Ogg audio), libbrotlidec and
 libzstd (Brotli and zstd `Content-Encoding`), Enchant (spell-checking)

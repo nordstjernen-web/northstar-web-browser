@@ -18,6 +18,8 @@ pkgbase = northstar-browser
 	depends = freetype2
 	depends = fribidi
 	depends = gdk-pixbuf2
+	depends = gst-plugins-base-libs
+	depends = gstreamer
 	depends = glib2
 	depends = glibc
 	depends = gtk4
@@ -39,6 +41,9 @@ pkgbase = northstar-browser
 	depends = zlib
 	optdepends = hunspell: spell checking
 	optdepends = hunspell-en_us: English dictionary for spell checking
+	optdepends = gst-plugins-good: VP9 video through GStreamer
+	optdepends = gst-plugins-bad: AV1 video and the H.264 parser through GStreamer
+	optdepends = gst-libav: H.264 and other video through GStreamer
 	source = northstar-browser-1.0.19.tar.gz::https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.19.tar.gz
 	source = lexbor::git+https://github.com/lexbor/lexbor.git#commit=7e278c0188489bfce6b71ced0cc900cbb31e6244
 	source = quickjs-ng::git+https://github.com/quickjs-ng/quickjs.git#commit=9b061718955874e648d8c2bf2910a717aac8fa63

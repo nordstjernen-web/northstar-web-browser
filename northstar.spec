@@ -34,6 +34,9 @@ BuildRequires:  pkgconfig(libcurl) >= 8.5
 BuildRequires:  pkgconfig(libpsl)
 BuildRequires:  pkgconfig(libseccomp)
 BuildRequires:  pkgconfig(libavif)
+BuildRequires:  pkgconfig(gstreamer-1.0) >= 1.18
+BuildRequires:  pkgconfig(gstreamer-app-1.0) >= 1.18
+BuildRequires:  pkgconfig(gstreamer-video-1.0) >= 1.18
 BuildRequires:  pkgconfig(sdl2)
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(uchardet)
@@ -41,6 +44,9 @@ Requires:       hicolor-icon-theme
 Requires(post): update-alternatives
 Requires(postun): update-alternatives
 Recommends:     myspell-en_US
+Recommends:     gstreamer-plugins-good
+Recommends:     gstreamer-plugins-bad
+Recommends:     gstreamer-plugins-libav
 
 %description
 Northstar Web Browser is a clean-room web browser written from scratch in C, with a

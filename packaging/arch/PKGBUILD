@@ -16,6 +16,8 @@ depends=(
   freetype2
   fribidi
   gdk-pixbuf2
+  gst-plugins-base-libs
+  gstreamer
   glib2
   glibc
   gtk4
@@ -40,6 +42,9 @@ makedepends=(cmake git meson python)
 optdepends=(
   'hunspell: spell checking'
   'hunspell-en_us: English dictionary for spell checking'
+  'gst-plugins-good: VP9 video through GStreamer'
+  'gst-plugins-bad: AV1 video and the H.264 parser through GStreamer'
+  'gst-libav: H.264 and other video through GStreamer'
 )
 _lexbor_commit=7e278c0188489bfce6b71ced0cc900cbb31e6244
 _quickjs_ng_commit=9b061718955874e648d8c2bf2910a717aac8fa63

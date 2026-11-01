@@ -13,8 +13,8 @@
 <meta property="og:title" content="Northstar Browser">
 <meta property="og:description" content="A minimalist, free-software web browser written from scratch in C. One window, one page, one process. No telemetry, no JIT.">
 <meta property="og:url" content="https://www.nordstjernen.org/northstar-browser/">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-15.png">
-<meta property="og:image:alt" content="Northstar 1.0.15 showing the English Wikipedia article on Vrije Universiteit Amsterdam">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-20.png">
+<meta property="og:image:alt" content="Northstar 1.0.20 playing a YouTube video">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="../assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -24,9 +24,9 @@
   "name": "Northstar Browser",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Linux, macOS, Windows",
-  "softwareVersion": "1.0.15",
+  "softwareVersion": "1.0.20",
   "url": "https://www.nordstjernen.org/northstar-browser/",
-  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15",
+  "downloadUrl": "https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -73,11 +73,11 @@
         <h1 id="about" style="color:#003366;">Northstar Browser</h1>
         <p class="lead">Northstar is a minimalist web browser written from scratch in C. One window, one page, one process &mdash; about 188,000 lines of original C, small enough for one person to read and audit end-to-end. It carries no upstream browser engine: no Gecko, no WebKit, no Blink. It is free software under the <b>GNU General Public License, version 3 or later</b>, and it runs on Linux, macOS and Windows &mdash; on Windows from the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
 
-        <p class="release-line">Northstar Browser version 1.0.15 released! The kernel now refuses executable memory wherever page content runs, the Landlock sandbox no longer opens the home directory on <code>~/.Xauthority</code> sessions, every <code>file:</code> URL is its own origin, <code>document.cookie</code> follows the cookie store, the browser identifies itself as Northstar instead of Chrome, and about 3,800 lines of dead and duplicated code are gone. Since 1.0.13 it also plays streaming video through Media Source Extensions. <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">More info here</a>.</p>
+        <p class="release-line">Northstar Browser version 1.0.20 released! Video is now decoded by the operating system by default &mdash; Media Foundation on Windows, GStreamer on Linux &mdash; fonts created with the FontFace API load, YouTube and Media Source fixes come over from Nordstjernen Sol, and security fixes cover module-import CORS, security headers on cached responses, HttpOnly cookies written from script and CSP sandboxing of frames. <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">More info here</a>.</p>
 
         <figure class="shot">
-          <a href="../screenshots/northstar-1-0-15.png"><img src="../screenshots/northstar-1-0-15.png" width="1285" height="993" loading="lazy" alt="Northstar 1.0.15 showing the English Wikipedia article on Vrije Universiteit Amsterdam, with the contents sidebar and the infobox, below the classic labelled toolbar"></a>
-          <figcaption class="cap">Northstar 1.0.15 on Wikipedia &mdash; one window, one page, the classic labelled toolbar, and the article text flowing beside the floated infobox. <a href="../screenshots.html">more screenshots &raquo;</a></figcaption>
+          <a href="../screenshots/northstar-1-0-20.png"><img src="../screenshots/northstar-1-0-20.png" width="1138" height="851" loading="lazy" alt="Northstar 1.0.20 playing a YouTube video, with the mix playlist beside it, below the classic labelled toolbar"></a>
+          <figcaption class="cap">Northstar 1.0.20 playing a YouTube video &mdash; one window, one page, the classic labelled toolbar, with the video decoded by Windows Media Foundation. <a href="../screenshots.html">more screenshots &raquo;</a></figcaption>
         </figure>
 
         <div class="features">
@@ -114,9 +114,9 @@
         <h2 id="specs">specifications</h2>
         <div class="table-scroll">
         <table class="spec">
-          <caption class="sr-only">Technical specifications of Northstar 1.0.15</caption>
+          <caption class="sr-only">Technical specifications of Northstar 1.0.20</caption>
           <tr><th scope="row">version</th>
-              <td><b>1.0.15</b> &mdash; released 18 October 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">release notes</a></td></tr>
+              <td><b>1.0.20</b> &mdash; released 1 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">release notes</a></td></tr>
           <tr><th scope="row">character</th>
               <td>minimalist GPL edition of the Nordstjernen project &middot; single window, single page, single process</td></tr>
           <tr><th scope="row">language</th>
@@ -162,9 +162,9 @@
         <p>See the <a href="../index.html#specs">side-by-side comparison of Nordstjernen and Northstar</a> on the home page.</p>
 
         <h2 id="download">download</h2>
-        <p>Latest release: Northstar <b>1.0.15</b> &mdash; released 18 October 2026, as source and on the
+        <p>Latest release: Northstar <b>1.0.20</b> &mdash; released 1 November 2026, as source and on the
         <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.
-        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">full release notes &raquo;</a></p>
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">full release notes &raquo;</a></p>
 
         <p>The most recent prebuilt Linux and Windows zips are from Northstar <b>1.0.7</b> &mdash; released 8 August 2026.
         <a href="../northstar-release-1-0-7.html">read the announcement &raquo;</a> &middot;
@@ -173,9 +173,9 @@
         <table class="spec dl">
           <caption class="sr-only">Northstar downloads</caption>
           <tr>
-            <th scope="row">Source (1.0.15)</th>
-            <td><a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/archive/refs/tags/1.0.15.tar.gz">1.0.15.tar.gz</a> &middot;
-                <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/archive/refs/tags/1.0.15.zip">1.0.15.zip</a></td>
+            <th scope="row">Source (1.0.20)</th>
+            <td><a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.20.tar.gz">1.0.20.tar.gz</a> &middot;
+                <a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.20.zip">1.0.20.zip</a></td>
           </tr>
           <tr>
             <th scope="row">Windows</th>
@@ -219,7 +219,7 @@
         archive first saves repeating it on <code>northstar.exe</code> afterwards, since the
         mark is copied to every file extracted from a blocked archive.</p>
 
-        <p><a class="btn-red" href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">Download Northstar 1.0.15 &raquo;</a></p>
+        <p><a class="btn-red" href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">Download Northstar 1.0.20 &raquo;</a></p>
 
         <h2 id="build">build and run</h2>
         <p>Linux is the primary platform. On Debian or Ubuntu, install the development
@@ -259,9 +259,13 @@
 
         <h2 id="news">news</h2>
         <ul class="news">
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.20</b> released &mdash; video decoded by Media Foundation on Windows and GStreamer on Linux by default, the FontFace API, YouTube and Media Source fixes, and security fixes.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">Release notes &raquo;</a></li>
+
         <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
         Northstar <b>1.0.15</b> released &mdash; no executable memory for the engine, a Landlock fix for <code>~/.Xauthority</code> sessions, opaque <code>file:</code> origins, a live <code>document.cookie</code>, the browser named as itself in client hints, and about 3,800 lines of dead and duplicated code removed.
-        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">Release notes &raquo;</a></li>
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.15">Release notes &raquo;</a></li>
         <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
         Nordstjernen <b>1.0.33</b> and Southstar <b>1.0.0</b>, the all-Rust version, released.
         <a href="../index.html#news">More &raquo;</a></li>

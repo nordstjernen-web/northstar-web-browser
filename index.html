@@ -13,8 +13,8 @@
 <meta property="og:title" content="Nordstjernen Web Browser">
 <meta property="og:description" content="A web browser written from scratch in C.">
 <meta property="og:url" content="https://www.nordstjernen.org/">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot.png">
-<meta property="og:image:alt" content="Nordstjernen 1.0.33 showing a Google search for Amsterdam">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-20.png">
+<meta property="og:image:alt" content="Northstar 1.0.20 playing a YouTube video">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -24,9 +24,9 @@
   "name": "Nordstjernen",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
-  "softwareVersion": "1.0.33",
+  "softwareVersion": "1.0.40",
   "url": "https://www.nordstjernen.org/",
-  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.33",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.40",
   "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -72,13 +72,13 @@
         <h1 id="about" style="color:#003366;">Nordstjernen Web Browser</h1>
         <p class="lead">Nordstjernen is a web browser, written from scratch in C, focused on supporting the HTML and CSS standards. It runs on Windows, macOS and Linux, with builds for Android, FreeBSD, NetBSD and the JVM. Nordstjernen is built in Norway.</p>
 
-        <p class="release-line">Nordstjernen Browser version 1.0.33 released! MP4 video with H.264 and AAC decoded by the operating system, WebGPU on by default, a built-in MCP server so a local agent can drive the browser window, Temporal and the full <code>Intl</code> API in the JavaScript engine, CSS anchor positioning, the Streams standard, and a long run of real-site layout fixes. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.33">More info here</a>.</p>
-        <p class="release-line">Northstar Browser version 1.0.15 released! The minimalist GPL sibling &mdash; streaming video through Media Source Extensions (AV1, VP9 and H.264) since 1.0.13, a sandbox that refuses executable memory to the engine, and about 3,800 lines of dead and duplicated code removed. <a href="northstar-browser/">About Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">More info here</a>.</p>
-        <p class="release-line">Southstar Browser version 1.0.0 released! The Rust version of Nordstjernen, now entirely Rust, with page JavaScript on the Boa engine. <a href="#southstar">About Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.0">More info here</a>.</p>
+        <p class="release-line">Nordstjernen Sol Explorer version 1.0.40 released! Shared Web Workers, <code>ElementInternals</code> for form-associated custom elements, real popups that talk to their opener, <code>&lt;frame&gt;</code> documents, hardware VP9, AV1 and HEVC decoding through GStreamer, H.264 preferred wherever the operating system decodes it, an optional memory-safe Rust IPC parser, and a run of frame, CORS and cookie security fixes. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.40">More info here</a>.</p>
+        <p class="release-line">Northstar Browser version 1.0.20 released! Video decoded by the operating system by default &mdash; Media Foundation on Windows, GStreamer on Linux &mdash; fonts loaded through the FontFace API, YouTube and Media Source fixes from Nordstjernen Sol, and security fixes for module-import CORS, cached security headers, HttpOnly cookies and frame sandboxing. <a href="northstar-browser/">About Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">More info here</a>.</p>
+        <p class="release-line">Southstar Browser version 1.0.6 released! The Rust version of Nordstjernen now plays MP4 and H.264 video on Windows through Media Foundation, with fixes for iframe event realms and HttpOnly cookies. <a href="#southstar">About Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.6">More info here</a>.</p>
 
         <figure class="shot">
-          <a href="screenshots/screenshot.png"><img src="screenshots/screenshot.png" width="1319" height="970" loading="lazy" alt="Nordstjernen 1.0.33 showing a Google search for Amsterdam, with the image gallery, a map, the weather, travel times and the knowledge panel"></a>
-          <figcaption class="cap">Nordstjernen 1.0.33 running Google&rsquo;s own search page for Amsterdam &mdash; image gallery, map, weather, travel times and the knowledge panel. <a href="screenshots.html">more screenshots &raquo;</a></figcaption>
+          <a href="screenshots/northstar-1-0-20.png"><img src="screenshots/northstar-1-0-20.png" width="1138" height="851" loading="lazy" alt="Northstar 1.0.20 playing a YouTube video, with the mix playlist beside it, below the classic labelled toolbar"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.20 playing a YouTube video &mdash; one window, one page, the classic labelled toolbar, with the video decoded by Windows Media Foundation. <a href="screenshots.html">more screenshots &raquo;</a></figcaption>
         </figure>
 
         <div class="features">
@@ -105,6 +105,18 @@
 
         <h2 id="news">news</h2>
         <ul class="news">
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen Sol Explorer <b>1.0.40</b> released &mdash; the browser takes the name Nordstjernen Sol Explorer, with shared Web Workers, <code>ElementInternals</code>, real popups with an opener link and cross-tab <code>postMessage</code>, <code>&lt;frame&gt;</code> documents, hardware video decoding through GStreamer, and frame, CORS and cookie security fixes.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.40">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.20</b> released &mdash; video decoded by Media Foundation on Windows and GStreamer on Linux by default, the FontFace API, YouTube and Media Source fixes, and security fixes.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.6</b> released &mdash; H.264 and AAC through Windows Media Foundation, so MP4 video and YouTube play on Windows.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.6">Release notes &raquo;</a></li>
+
         <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
         Nordstjernen <b>1.0.33</b> released &mdash; a built-in MCP server for local agents, <code>text-wrap: balance</code>, seventy more CSS properties, streaming XMLHttpRequest responses, sturdier workers and service workers, a run of table, float and inline layout fixes, and security fixes from a source review.
         <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.33">Release notes &raquo;</a></li>

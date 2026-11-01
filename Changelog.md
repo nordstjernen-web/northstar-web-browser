@@ -4,6 +4,23 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* JavaScript: an iframe's scripts get a microtask checkpoint after each
+  script, as the top-level document's already did. YouTube's embed
+  defines `writeEmbed` in a promise callback and calls it from the next
+  inline script, so embedded YouTube players stayed black with
+  "writeEmbed is not defined". (From Nordstjernen Sol.)
+* JavaScript: `TimeRanges.start()`/`end()` and `XPathResult.snapshotItem()`
+  convert their index as a WebIDL `unsigned long`, so `start(undefined)`
+  is `start(0)` instead of an error, as MSE players such as TikTok's
+  expect. A missing argument is a `TypeError`, and an index out of
+  range is an `IndexSizeError` DOMException rather than a `RangeError`.
+  (From Nordstjernen Sol.)
+* Media: a `<video>` fires `resize` when its natural size becomes known
+  and whenever it changes, for example on YouTube's adaptive switch to
+  a stream of another shape. Layout sizes the video box from that
+  natural size once metadata arrives, so a video sized on one axis only
+  (`height: 200px; width: auto`) takes its other side from the video's
+  aspect ratio instead of staying square. (From Nordstjernen Sol.)
 * Video decodes through GStreamer on Linux by default. Each `<video>`
   gets a small pipeline built from the best installed software decoder
   for its codec (`[parser] ! decoder ! videoconvert ! appsink`), fed one

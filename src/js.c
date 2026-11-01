@@ -44583,6 +44583,28 @@ ns_media_canPlayType(JSContext *ctx, JSValueConst this_val,
     return JS_NewString(ctx, ns_media_answer_string(answer));
 }
 
+/* Converts a TimeRanges start()/end() index as a WebIDL unsigned long
+ * (undefined and NaN are 0, fractions truncate): a missing argument is a
+ * TypeError and an index past len an IndexSizeError. FALSE when thrown. */
+static gboolean
+ns_time_ranges_index(JSContext *ctx, int argc, JSValueConst *argv, int magic,
+                     int32_t len, uint32_t *idx)
+{
+    if (argc < 1) {
+        JS_ThrowTypeError(ctx, "Failed to execute '%s' on 'TimeRanges': "
+                          "1 argument required, but only 0 present.",
+                          magic == 0 ? "start" : "end");
+        return FALSE;
+    }
+    if (JS_ToUint32(ctx, idx, argv[0]) < 0) return FALSE;
+    if (*idx >= (uint32_t)MAX(len, 0)) {
+        ns_throw_dom_exception(ctx, "IndexSizeError", 1,
+                               "index out of TimeRanges bounds");
+        return FALSE;
+    }
+    return TRUE;
+}
+
 /* TimeRanges start/end for the single [0, dur] range; RangeError when out of bounds. */
 static JSValue
 ns_time_ranges_edge(JSContext *ctx, JSValueConst this_val,
@@ -44594,10 +44616,9 @@ ns_time_ranges_edge(JSContext *ctx, JSValueConst this_val,
     int32_t len = 0;
     JS_ToFloat64(ctx, &dur, func_data[0]);
     JS_ToInt32(ctx, &len, func_data[1]);
-    int32_t idx = 0;
-    if (argc >= 1) JS_ToInt32(ctx, &idx, argv[0]);
-    if (idx < 0 || idx >= len)
-        return JS_ThrowRangeError(ctx, "index out of TimeRanges bounds");
+    uint32_t idx = 0;
+    if (!ns_time_ranges_index(ctx, argc, argv, magic, len, &idx))
+        return JS_EXCEPTION;
     return JS_NewFloat64(ctx, magic == 0 ? 0.0 : dur);
 }
 
@@ -44610,11 +44631,10 @@ ns_time_ranges_list_edge(JSContext *ctx, JSValueConst this_val,
     (void)this_val;
     int32_t len = 0;
     JS_ToInt32(ctx, &len, func_data[1]);
-    int32_t idx = 0;
-    if (argc >= 1) JS_ToInt32(ctx, &idx, argv[0]);
-    if (idx < 0 || idx >= len)
-        return JS_ThrowRangeError(ctx, "index out of TimeRanges bounds");
-    return JS_GetPropertyUint32(ctx, func_data[0], (uint32_t)(idx * 2 + magic));
+    uint32_t idx = 0;
+    if (!ns_time_ranges_index(ctx, argc, argv, magic, len, &idx))
+        return JS_EXCEPTION;
+    return JS_GetPropertyUint32(ctx, func_data[0], idx * 2 + (uint32_t)magic);
 }
 
 /* Builds a TimeRanges object from n_ranges start/end pairs in edges. */
@@ -59919,6 +59939,10 @@ ns_js_run_iframe_scripts(ns_js *js, ns_node *content_root,
                 JS_FreeValue(fctx, ex);
             }
             JS_FreeValue(fctx, v);
+            /* Microtask checkpoint after each script, as for the top-level
+             * document: YouTube's embed defines writeEmbed in a promise
+             * callback and calls it from the next inline script. */
+            if (js->eval_depth == 0) ns_drain_microtasks(js);
         }
     } else if (concat->len > 0 && !ns_iframe_sandbox_isolates(sandbox)) {
         GString *w = g_string_new(
@@ -61237,4 +61261,15 @@ ns_js_eval_source(ns_js *js, const char *src, const char *origin)
     JS_FreeValue(js->ctx, v);
     ns_drain_microtasks(js);
     return out;
+}
+
+/* A media element's natural video size changed: relayout around it. */
+void
+ns_js_note_media_size_change(ns_js *js, const ns_node *el)
+{
+    if (!js || !el || !ns_js_node_in_page(js, el)) return;
+    js->mutated = TRUE;
+    ns_css_mark_restyle_dirty((ns_node *)el);
+    if (el->parent) ns_js_note_layout_target(js, el->parent);
+    else ns_js_note_layout_unscoped(js, "video natural size");
 }

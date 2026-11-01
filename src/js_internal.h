@@ -368,6 +368,7 @@ JSValue ns_throw_dom_exception(JSContext *ctx, const char *name, int code,
                                const char *message);
 JSValue ns_media_time_ranges_for(JSContext *ctx, double dur);
 JSValue ns_media_time_ranges_from(JSContext *ctx, const double *edges, guint n_ranges);
+void    ns_js_note_media_size_change(ns_js *js, const ns_node *el);
 
 gboolean ns_node_is_media_element(const ns_node *n);
 double   ns_media_position(JSContext *ctx, JSValueConst this_val);

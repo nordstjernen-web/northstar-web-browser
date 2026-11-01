@@ -790,6 +790,21 @@ is_inline_level_replaced(const ns_node *n, GHashTable *styles)
     return !ns_display_is_block_level(ns_css_display_of(s));
 }
 
+/* Natural size of a <video> recorded by the media element once its
+ * metadata is known; FALSE before then. */
+static gboolean
+video_natural_size(const ns_node *n, double *w, double *h)
+{
+    const char *size = n ? ns_element_get_attr(n, NS_MEDIA_SIZE_ATTR) : NULL;
+    int vw = 0, vh = 0;
+    if (!size || sscanf(size, "%dx%d", &vw, &vh) != 2 || vw <= 0 || vh <= 0 ||
+        vw > 65535 || vh > 65535)
+        return FALSE;
+    *w = vw;
+    *h = vh;
+    return TRUE;
+}
+
 static gboolean
 node_has_media_metadata(const ns_node *n)
 {
@@ -4482,6 +4497,12 @@ build_video_box(const ns_node *n)
     const ns_image *decoded = m->video;
     int intrinsic_w = decoded && decoded->loaded ? decoded->natural_width : 0;
     int intrinsic_h = decoded && decoded->loaded ? decoded->natural_height : 0;
+    double reported_w, reported_h;
+    if ((intrinsic_w <= 0 || intrinsic_h <= 0) &&
+        video_natural_size(n, &reported_w, &reported_h)) {
+        intrinsic_w = (int)reported_w;
+        intrinsic_h = (int)reported_h;
+    }
     double default_w = intrinsic_w > 0 ? intrinsic_w : (metadata ? 640 : 300);
     double default_h = intrinsic_h > 0 ? intrinsic_h : (metadata ? 360 : 150);
     box->content_width  = ws ? g_ascii_strtod(ws, NULL) : default_w;
@@ -7360,6 +7381,12 @@ layout_image(ns_box *box, double parent_content_width)
                    ? (double)img->natural_width / density : -1;
     double nat_h = (img && img->loaded && img->natural_height > 0)
                    ? (double)img->natural_height / density : -1;
+    double video_w, video_h;
+    if (box->kind == NS_BOX_VIDEO && nat_w < 0 && nat_h < 0 &&
+        video_natural_size(box->dom, &video_w, &video_h)) {
+        nat_w = video_w;
+        nat_h = video_h;
+    }
     if (declared_size) {
         if (nat_w < 0 && box->content_width  > 0) nat_w = box->content_width;
         if (nat_h < 0 && box->content_height > 0) nat_h = box->content_height;

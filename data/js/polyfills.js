@@ -564,15 +564,21 @@
         error.name = name;
         return error;
     }
+    // The index converts as a WebIDL unsigned long: undefined and NaN are
+    // 0 and fractions truncate, so start(undefined) is start(0).
+    function ndTimeRangeAt(ranges, args, edge, method) {
+        if (args.length < 1)
+            throw new TypeError("Failed to execute '" + method +
+                "' on 'TimeRanges': 1 argument required, but only 0 present.");
+        var index = args[0] >>> 0;
+        if (index >= ranges.length) throw ndMseError('IndexSizeError');
+        return ranges._edges[2 * index + edge];
+    }
     ndTimeRanges.prototype.start = function (index) {
-        index = Number(index);
-        if (!(index >= 0 && index < this.length)) throw ndMseError('IndexSizeError');
-        return this._edges[2 * Math.floor(index)];
+        return ndTimeRangeAt(this, arguments, 0, 'start');
     };
     ndTimeRanges.prototype.end = function (index) {
-        index = Number(index);
-        if (!(index >= 0 && index < this.length)) throw ndMseError('IndexSizeError');
-        return this._edges[2 * Math.floor(index) + 1];
+        return ndTimeRangeAt(this, arguments, 1, 'end');
     };
     if (typeof global.TimeRanges === 'function' && global.TimeRanges.prototype) {
         try {
@@ -1766,8 +1772,8 @@
         });
         defineMethod(XPathResult.prototype, 'snapshotItem', function (i) {
             var s = state(this, [6, 7], 'a snapshot');
-            i = Number(i);
-            return i >= 0 && i < s.nodes.length ? s.nodes[Math.floor(i)] : null;
+            i = i >>> 0;
+            return i < s.nodes.length ? s.nodes[i] : null;
         });
 
         var RESULT_TYPES = [

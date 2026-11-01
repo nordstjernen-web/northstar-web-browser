@@ -167,15 +167,16 @@ find_codec(const char *codec, gsize *index)
 
 static ns_mf_video_decoder *build(const ns_mf_codec *codec);
 
-void
-ns_mf_video_preinit(void)
+/* Runs on its own thread: the main thread must stay out of the
+ * multithreaded apartment, since GTK initialises OLE there. */
+static gpointer
+preinit_thread(gpointer data)
 {
-    if (g_preinit_done) return;
-    g_preinit_done = TRUE;
-    if (native_forced() || !mf_load() || !com_ready()) return;
+    (void)data;
+    if (!com_ready()) return NULL;
     if (FAILED(g_mf.startup(MF_VERSION, MFSTARTUP_LITE))) {
         g_info("mfvideo: Media Foundation unavailable");
-        return;
+        return NULL;
     }
     g_mf_ok = TRUE;
     /* Open each decoder once now, so the DLLs behind it are mapped
@@ -187,6 +188,17 @@ ns_mf_video_preinit(void)
         g_debug("mfvideo: %s %s", g_codecs[i].codec,
                 g_available[i] ? "decodes through Media Foundation" : "has no decoder");
     }
+    CoUninitialize();
+    return NULL;
+}
+
+void
+ns_mf_video_preinit(void)
+{
+    if (g_preinit_done) return;
+    g_preinit_done = TRUE;
+    if (native_forced() || !mf_load()) return;
+    g_thread_join(g_thread_new("mf-preinit", preinit_thread, NULL));
 }
 
 gboolean

@@ -12723,7 +12723,26 @@ ns_js_incumbent_window(ns_js *js)
     return fctx ? JS_GetGlobalObject(fctx) : JS_UNDEFINED;
 }
 
-/* postMessage(target, source, ...) helper with an explicit source window. */
+/* TRUE when win is the calling realm's own global or its frame's outward
+ * window: the only sources a caller may claim for postMessage. */
+static gboolean
+ns_post_message_source_is_callers(ns_js *js, JSContext *caller,
+                                  JSValueConst win)
+{
+    if (!caller || !JS_IsObject(win)) return FALSE;
+    JSValue g = JS_GetGlobalObject(caller);
+    gboolean own = JS_VALUE_GET_PTR(g) == JS_VALUE_GET_PTR(win);
+    JS_FreeValue(caller, g);
+    if (own) return TRUE;
+    const ns_node *frame = ns_js_frame_of_window(js, win);
+    return frame && js->frame_contexts &&
+           g_hash_table_lookup(js->frame_contexts, frame) == (gpointer)caller;
+}
+
+/* postMessage(target, source, ...) helper with an explicit source window.
+ * Page script can reach this helper and the __ndWindowProxy it is fed
+ * from, so a source that does not belong to the calling realm is replaced
+ * by the caller's own global: event.origin must not be forgeable. */
 static JSValue
 ns_window_post_message_from(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
@@ -12731,7 +12750,11 @@ ns_window_post_message_from(JSContext *ctx, JSValueConst this_val,
     (void)this_val;
     if (argc < 3 || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1]))
         return JS_UNDEFINED;
-    JSValue source = JS_DupValue(ctx, argv[1]);
+    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    if (!caller) caller = ctx;
+    JSValue source = ns_post_message_source_is_callers(js_from_ctx(ctx),
+                                                       caller, argv[1])
+        ? JS_DupValue(ctx, argv[1]) : JS_GetGlobalObject(caller);
     if (JS_VALUE_GET_PTR(argv[0]) == JS_VALUE_GET_PTR(argv[1])) {
         JSValue incumbent = ns_js_incumbent_window(js_from_ctx(ctx));
         if (JS_IsObject(incumbent)) {

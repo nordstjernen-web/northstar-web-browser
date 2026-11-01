@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.20" date="2026-11-01">
+      <description>
+        <p>Bug fix release.</p>
+        <ul>
+          <li>Video decodes through GStreamer on Linux and Media Foundation on Windows by default, using the system's installed codecs.</li>
+          <li>Nested frames are classified against their own embedder, and script can no longer read or set HttpOnly cookies.</li>
+          <li>A form in a frame submits into that frame, and a frame's CSP sandbox directive is applied.</li>
+          <li>Embedded YouTube players no longer stay black, and videos sized on one axis keep their aspect ratio.</li>
+          <li>A synchronous XMLHttpRequest no longer runs the page's other tasks while it waits.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.19" date="2026-10-30">
       <description>
         <p>Bug fix release.</p>

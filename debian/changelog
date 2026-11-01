@@ -1,3 +1,12 @@
+northstar (1.0.20+ds-1) unstable; urgency=medium
+
+  * New upstream release: video decodes through GStreamer on Linux and
+    Media Foundation on Windows by default, frame isolation, HttpOnly
+    cookie and framed form submission security fixes, a synchronous
+    XHR fix, and embedded YouTube player fixes.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Sun, 01 Nov 2026 12:00:00 +0100
+
 northstar (1.0.19+ds-1) unstable; urgency=medium
 
   * New upstream release: mouse drag and guest pairing fixes for

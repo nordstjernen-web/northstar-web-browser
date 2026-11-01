@@ -1,6 +1,6 @@
 --- a/quickjs.c
 +++ b/quickjs.c
-@@ -16643,6 +16643,33 @@
+@@ -16643,6 +16643,37 @@
      return JS_UNDEFINED;
  }
  
@@ -10,11 +10,13 @@
 +                                        int argc, JSValueConst *argv)
 +{
 +    JSFunctionBytecode *b = JS_GetFunctionBytecode(this_val);
++    JSContext *realm;
 +    JSStackFrame *sf;
 +
 +    if (!b || b->is_strict_mode || !b->has_prototype) {
 +        return JS_ThrowTypeError(ctx, "invalid property access");
 +    }
++    realm = b->realm;
 +    for (sf = ctx->rt->current_stack_frame; sf; sf = sf->prev_frame) {
 +        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_OBJECT &&
 +            JS_VALUE_GET_OBJ(sf->cur_func) == JS_VALUE_GET_OBJ(this_val))
@@ -24,9 +26,11 @@
 +        return JS_NULL;
 +    sf = sf->prev_frame;
 +    b = JS_GetFunctionBytecode(sf->cur_func);
-+    /* script/eval code, builtins, strict and non-plain functions are hidden */
++    /* script/eval code, builtins, strict and non-plain functions are hidden,
++       and so are functions of another realm and source-stripped engine
++       code, which may hold another realm's objects */
 +    if (!b || b->is_strict_mode || !b->has_prototype ||
-+        b->func_kind != JS_FUNC_NORMAL)
++        b->func_kind != JS_FUNC_NORMAL || b->realm != realm || !b->source)
 +        return JS_NULL;
 +    return js_dup(sf->cur_func);
 +}
@@ -34,7 +38,7 @@
  static JSValue js_function_proto_fileName(JSContext *ctx,
                                            JSValueConst this_val)
  {
-@@ -59141,11 +59168,17 @@
+@@ -59141,11 +59172,17 @@
      if (JS_IsException(ctx->throw_type_error))
          return -1;
      /* add caller and arguments properties to throw a TypeError */

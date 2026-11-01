@@ -17846,6 +17846,7 @@ typedef struct ns_xhr_state {
     char      *doc_url;
     double     start_ms;
     GPtrArray *request_headers;
+    gboolean   sync;
 } ns_xhr_state;
 
 /* Reason phrase for an HTTP status code, or "". */
@@ -18704,7 +18705,9 @@ ns_on_xhr_done(GObject *src, GAsyncResult *result, gpointer user_data)
     ns_xhr_state *st = user_data;
     GError *err = NULL;
     ns_response *resp = ns_net_fetch_finish(result, &err);
-    if (st->js && st->js->in_pump) {
+    /* A synchronous request completes on its private context while its
+     * send() waits for it, so it is never deferred to the page loop. */
+    if (st->js && st->js->in_pump && !st->sync) {
         ns_xhr_delivery *d = g_new0(ns_xhr_delivery, 1);
         d->st = st;
         d->resp = resp;
@@ -18854,12 +18857,14 @@ ns_xhr_open(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
     return JS_UNDEFINED;
 }
 
-/* Runs the main loop until a sync XHR finishes or 60 s pass. */
+/* Iterates mc (the page's main context when NULL) until a sync XHR
+ * finishes or 60 s pass. */
 static void
-ns_xhr_pump_until_done(JSContext *ctx, JSValueConst this_val)
+ns_xhr_pump_until_done_in(JSContext *ctx, JSValueConst this_val,
+                          GMainContext *mc)
 {
     ns_js *js = js_from_ctx(ctx);
-    GMainContext *mc = js && js->main_context ? js->main_context : NULL;
+    if (!mc) mc = js && js->main_context ? js->main_context : NULL;
     gint64 pump_start_us = g_get_monotonic_time();
     gint64 deadline = pump_start_us + 60 * G_USEC_PER_SEC;
     while (g_get_monotonic_time() < deadline) {
@@ -18874,6 +18879,12 @@ ns_xhr_pump_until_done(JSContext *ctx, JSValueConst this_val)
         g_main_context_iteration(mc, TRUE);
     }
     ns_js_credit_pumped_time(js, pump_start_us);
+}
+
+static void
+ns_xhr_pump_until_done(JSContext *ctx, JSValueConst this_val)
+{
+    ns_xhr_pump_until_done_in(ctx, this_val, NULL);
 }
 
 /* True if the XHR was opened synchronously. */
@@ -19134,6 +19145,18 @@ ns_xhr_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
         return JS_UNDEFINED;
     }
 
+    /* A synchronous request blocks the page's event loop: its completion
+     * is delivered on a private context and only that context is pumped,
+     * so no timer, network callback or other task of the page runs inside
+     * the script that called send().  Pumping the page's own loop let an
+     * embedder's XHR callback remove the frame whose script was waiting. */
+    gboolean sync = ns_xhr_is_sync(ctx, this_val);
+    st->sync = sync;
+    GMainContext *isolated = NULL;
+    if (sync) {
+        isolated = g_main_context_new();
+        g_main_context_push_thread_default(isolated);
+    }
     ns_net_request_async(st->url,
                          st->doc_url,
                          st->method ? st->method : "GET",
@@ -19145,8 +19168,11 @@ ns_xhr_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
     g_ptr_array_free(hdr_terminated, TRUE);
     g_free(body);
     g_free(auto_content_type);
-    if (ns_xhr_is_sync(ctx, this_val))
-        ns_xhr_pump_until_done(ctx, this_val);
+    if (sync) {
+        ns_xhr_pump_until_done_in(ctx, this_val, isolated);
+        g_main_context_pop_thread_default(isolated);
+        g_main_context_unref(isolated);
+    }
     return JS_UNDEFINED;
 }
 

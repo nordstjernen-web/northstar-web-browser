@@ -4,6 +4,13 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* JavaScript: a synchronous `XMLHttpRequest` no longer runs the page's
+  other tasks while it waits. It used to pump the page's whole event
+  loop, so timers and other network callbacks ran in the middle of the
+  script that called `send()`. When an embedder's callback removed the
+  frame whose script was waiting, the page's later requests never
+  completed; browseraudit.com's test run stopped at test 389 this way.
+  The request now completes on a private main context.
 * Security: a frame inside a frame is classified as cross-origin against
   the frame that embeds it, not against the top-level page. A page A
   that framed a cross-origin B, which in turn framed a page from A, let

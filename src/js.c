@@ -54930,6 +54930,7 @@ typedef struct {
     gboolean samesite_none;
     gboolean path_is_root;
     gboolean has_max_age;
+    gboolean httponly;
 } ns_cookie_attrs;
 
 /* Parses cookie attributes (Secure, Max-Age, Expires, Domain, Path, SameSite=None). */
@@ -54942,6 +54943,7 @@ ns_cookie_parse_attrs(const char *attrs, ns_cookie_attrs *out)
     out->samesite_none = FALSE;
     out->path_is_root  = FALSE;
     out->has_max_age   = FALSE;
+    out->httponly      = FALSE;
     if (!attrs) return;
     while (*attrs) {
         while (*attrs == ';' || *attrs == ' ' || *attrs == '\t') attrs++;
@@ -54957,6 +54959,8 @@ ns_cookie_parse_attrs(const char *attrs, ns_cookie_attrs *out)
         while (vlen && (vp[0] == ' ' || vp[0] == '\t')) { vp++; vlen--; }
         if (klen == 6 && g_ascii_strncasecmp(attrs, "secure", 6) == 0) {
             out->secure = TRUE;
+        } else if (klen == 8 && g_ascii_strncasecmp(attrs, "httponly", 8) == 0) {
+            out->httponly = TRUE;
         } else if (klen == 7 && g_ascii_strncasecmp(attrs, "max-age", 7) == 0 && eq) {
             const char *p = vp;
             while (*p == ' ') p++;
@@ -55020,8 +55024,10 @@ ns_document_set_cookie(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     const char *semi = strchr(s, ';');
     gsize key_len  = (gsize)(eq - s);
     gsize pair_len = semi ? (gsize)(semi - s) : strlen(s);
-    ns_cookie_attrs attrs = { FALSE, FALSE, FALSE, FALSE, FALSE, FALSE };
+    ns_cookie_attrs attrs = { FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE };
     if (semi) ns_cookie_parse_attrs(semi, &attrs);
+    /* RFC 6265 5.3 step 10: a non-HTTP API must ignore an HttpOnly cookie. */
+    if (attrs.httponly) { JS_FreeCString(ctx, s); return JS_UNDEFINED; }
 
     gboolean is_https = js->partition_key &&
                         g_str_has_prefix(js->partition_key, "https://");

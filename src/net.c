@@ -1763,6 +1763,9 @@ ns_net_cookie_store_from_js(const char *url, const char *cookie)
         while (avlen && (av[0] == ' ' || av[0] == '\t')) { av++; avlen--; }
         if (klen == 6 && g_ascii_strncasecmp(p, "secure", 6) == 0) {
             secure = TRUE;
+        } else if (klen == 8 && g_ascii_strncasecmp(p, "httponly", 8) == 0) {
+            /* RFC 6265 5.3 step 10: script may not create HttpOnly cookies. */
+            g_free(domain_attr); g_free(path_attr); return;
         } else if (klen == 7 && g_ascii_strncasecmp(p, "max-age", 7) == 0 && aeq) {
             g_autofree char *tmp = g_strndup(av, avlen);
             char *end = NULL;

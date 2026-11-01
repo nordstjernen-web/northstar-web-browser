@@ -10,6 +10,12 @@ Significant changes in each release:
   and the origin from that object's `location.origin`, so a page could
   make a framed victim see `event.origin` as any site it liked. The
   sender must now be the calling script's own window.
+* Security: `Function.prototype.caller` returns `null` when the calling
+  function belongs to another realm (another frame's or the embedding
+  page's script) or is the browser's own internal script. Internal
+  scripts hold the embedding page's real window, so handing one to a
+  frame's script could have let it reach a cross-origin page. Callers
+  from the same page are still returned.
 * Security: `importScripts()` in a worker follows `'strict-dynamic'`.
   Its requests are not parser-inserted, so a worker whose
   Content-Security-Policy has `script-src 'nonce-...' 'strict-dynamic'`

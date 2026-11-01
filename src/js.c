@@ -22969,8 +22969,11 @@ ns_worker_import_scripts(JSContext *ctx, JSValueConst this_val,
         char *abs_url = ns_url_resolve(js->current_url ? js->current_url : host->url, raw);
         JS_FreeCString(ctx, raw);
         if (!abs_url) return JS_ThrowTypeError(ctx, "importScripts: invalid URL");
-        if (js->csp && !ns_csp_allows(js->csp, NS_CSP_SCRIPT, abs_url,
-                                      js->current_url)) {
+        /* importScripts() requests are not parser-inserted, so
+         * 'strict-dynamic' allows them (CSP3 script pre-request check). */
+        if (js->csp && !ns_csp_allows_with_nonce(js->csp, NS_CSP_SCRIPT,
+                                                 abs_url, js->current_url,
+                                                 NULL, FALSE)) {
             g_free(abs_url);
             return JS_ThrowTypeError(ctx,
                 "importScripts: refused by Content-Security-Policy");
@@ -22980,8 +22983,8 @@ ns_worker_import_scripts(JSContext *ctx, JSValueConst this_val,
         char *body = ns_worker_fetch_script(host, abs_url, TRUE, &final_url, &error);
         g_free(abs_url);
         if (body && final_url && js->csp &&
-            !ns_csp_allows(js->csp, NS_CSP_SCRIPT, final_url,
-                           js->current_url)) {
+            !ns_csp_allows_with_nonce(js->csp, NS_CSP_SCRIPT, final_url,
+                                      js->current_url, NULL, FALSE)) {
             g_free(body);
             g_free(final_url);
             g_free(error);

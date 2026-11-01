@@ -4,6 +4,13 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* Security: a frame inside a frame is classified as cross-origin against
+  the frame that embeds it, not against the top-level page. A page A
+  that framed a cross-origin B, which in turn framed a page from A, let
+  that inner page read B's document through `window.parent`
+  (browseraudit.com critical tests 1 and 25), while a frame nested in
+  a same-origin frame was wrongly cut off from it. (From Nordstjernen
+  Sol.)
 * Security: `document.cookie` ignores a cookie with the `HttpOnly`
   attribute, as RFC 6265 requires for non-HTTP APIs. Such a cookie used
   to be stored without the flag, readable from script and sent to the

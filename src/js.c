@@ -60573,11 +60573,26 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
 
         const char *iorigin = abs_url && *abs_url ? abs_url : origin;
         ns_js_mark_iframe_source(iframe, origin, abs_url);
-        if ((iorigin && js->current_url &&
-             !ns_url_same_origin(iorigin, js->current_url)) ||
+        /* Compare with the document that embeds this frame, not with
+         * js->current_url: frame loads run from the page's scope, so for a
+         * frame inside a frame that is still the top document's URL. */
+        const char *embedder_url = embedder && *embedder ? embedder
+                                                         : js->current_url;
+        if ((iorigin && embedder_url &&
+             !ns_url_same_origin(iorigin, embedder_url)) ||
             ((sandbox & NS_SANDBOX_ACTIVE) &&
              !(sandbox & NS_SANDBOX_ALLOW_SAME_ORIGIN)))
             sandbox |= NS_FRAME_CROSS_ORIGIN;
+        /* An enclosing frame without a script realm hands this frame the
+         * top window as its parent; that is only safe when this frame is
+         * same-origin with the top document too. */
+        if (iorigin && ns_js_node_frame(iframe->parent) &&
+            !ns_js_node_realm_context(js, iframe->parent) &&
+            js->document_origin) {
+            g_autofree char *io = ns_url_origin_from(iorigin);
+            if (!io || g_ascii_strcasecmp(io, js->document_origin) != 0)
+                sandbox |= NS_FRAME_CROSS_ORIGIN;
+        }
         const char *cs = ns_element_get_attr(iframe, "data-nd-frame-charset");
         if (!cs || !*cs) cs = "UTF-8";
         JSValue realm_doc = ns_make_realm_document(

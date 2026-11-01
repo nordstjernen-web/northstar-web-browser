@@ -2,6 +2,16 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.21:
+=======
+* Security: `importScripts()` in a worker follows `'strict-dynamic'`.
+  Its requests are not parser-inserted, so a worker whose
+  Content-Security-Policy has `script-src 'nonce-...' 'strict-dynamic'`
+  may import scripts, as CSP3 specifies. They were refused, and
+  YouTube's service worker failed with "importScripts: refused by
+  Content-Security-Policy". Scripts still check against `script-src`
+  after a redirect.
+
 1.0.20:
 =======
 * JavaScript: a synchronous `XMLHttpRequest` no longer runs the page's

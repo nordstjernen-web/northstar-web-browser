@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* Security: `document.cookie` ignores a cookie with the `HttpOnly`
+  attribute, as RFC 6265 requires for non-HTTP APIs. Such a cookie used
+  to be stored without the flag, readable from script and sent to the
+  server. browseraudit.com flagged both as critical. (From Nordstjernen
+  Sol.)
 * Security: a form in a frame now submits into that frame. GET and POST
   submissions from a framed document used to navigate the whole tab,
   so a framed page could replace the page that embeds it. The action

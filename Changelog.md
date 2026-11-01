@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* Video decodes through GStreamer on Linux by default. Each `<video>`
+  gets a small pipeline built from the best installed software decoder
+  for its codec (`[parser] ! decoder ! videoconvert ! appsink`), fed one
+  coded frame at a time from the decoder thread, so YouTube plays
+  (AV1, VP9 or H.264) wherever the distribution's GStreamer plugins
+  are installed, without the browser linking libdav1d, libvpx or
+  OpenH264. Plugins load before the sandbox starts; hardware decoders
+  are opt-in with `NS_GST_HARDWARE=1`, and `NS_VIDEO_DECODER=native`
+  selects the built-in backends. GStreamer stays optional:
+  `-Dgstreamer=disabled`, or a system without it, builds as before.
 * lexbor moves from the v3.0.1 release to master `145872a` (no newer
   release exists) for its memory-safety fixes: memory corruption in
   `lexbor_mraw_realloc()`, wrong allocation sizes in `lexbor_array_obj_t`,

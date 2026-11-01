@@ -8,6 +8,8 @@ option('vp9', type: 'feature', value: 'auto',
        description: 'Decode VP9 <video> through libvpx (on by default when libvpx is present).')
 option('h264', type: 'feature', value: 'auto',
        description: 'Decode H.264 (AVC) <video> through OpenH264 (on by default when openh264 is present): the codec of HLS streams such as PeerTube and Twitch. Only Cisco-built OpenH264 binaries are covered by the H.264 patent license Cisco pays for; distribution builds from source are not.')
+option('gstreamer', type: 'feature', value: 'auto',
+       description: 'Decode <video> through GStreamer decoder plugins (on by default on Linux when GStreamer is present, where it is the default video backend; set NS_VIDEO_DECODER=native at run time to use the built-in AV1/VP9/H.264 backends instead).')
 option('avif', type: 'feature', value: 'auto',
        description: 'Decode AVIF images through libavif (on by default when libavif is present). AVIF is a rare format on the web and libavif pulls in a full AV1 decoder; disable to drop it.')
 option('audio', type: 'feature', value: 'auto',

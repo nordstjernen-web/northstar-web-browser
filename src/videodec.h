@@ -23,6 +23,8 @@ ns_texture       *ns_video_decoder_decode(ns_video_decoder *decoder,
                                           GBytes *sample, GBytes *config,
                                           gint64 timestamp,
                                           gboolean want_texture);
+ns_texture       *ns_video_decoder_take_late(ns_video_decoder *decoder,
+                                             gint64 *timestamp);
 
 G_END_DECLS
 

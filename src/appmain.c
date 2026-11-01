@@ -37,6 +37,7 @@
 #include "config.h"
 #include "debuglog.h"
 #include "font.h"
+#include "gstvideo.h"
 #include "engine.h"
 #include "headless.h"
 #include "spellcheck.h"
@@ -562,6 +563,9 @@ main(int argc, char **argv)
         ns_security_add_writable_dir("/dev/shm");
         ns_security_allow_gpu_devices();
     }
+    /* GStreamer's decoder plugins are shared objects; load them while the
+     * sandbox still lets dlopen map code. */
+    ns_gst_video_preinit();
     ns_security_sandbox_init(g_self_exe);
     if (!proc_mode)
         ns_security_deny_exec_memory(TRUE);

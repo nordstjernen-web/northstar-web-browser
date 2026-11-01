@@ -26,6 +26,8 @@ Build-Depends:
  libenchant-2-dev,
  libdav1d-dev (>= 1.0.0),
  libvpx-dev (>= 1.8.0),
+ libgstreamer1.0-dev (>= 1.18) [linux-any],
+ libgstreamer-plugins-base1.0-dev (>= 1.18) [linux-any],
  libopus-dev,
  libopusfile-dev,
  libvorbis-dev,
@@ -44,6 +46,9 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-en-us | hunspell-dictionary,
+ gstreamer1.0-plugins-good [linux-any],
+ gstreamer1.0-plugins-bad [linux-any],
+ gstreamer1.0-libav [linux-any],
 Description: minimalist GTK 4 web browser with an original engine
  Northstar Web Browser is a web browser written from scratch
  in C, with a GTK 4 user interface and a libcurl network stack. It is built

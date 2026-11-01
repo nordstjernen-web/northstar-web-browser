@@ -54,7 +54,12 @@ GLib or Cairo from source; on an older release, build inside an Ubuntu
 With a libcurl older than 8.11 the build warns that WebSocket is
 unavailable unless that libcurl was built with WebSocket support.
 
-**Optional, auto-detected:** `libavif-dev` (AVIF images — it pulls in a
+**Optional, auto-detected:** `libgstreamer1.0-dev` and
+`libgstreamer-plugins-base1.0-dev` (`gstreamer-devel` /
+`gstreamer-plugins-base-devel` on Fedora and openSUSE) for GStreamer
+video decoding, the Linux default; install decoder plugins such as
+`gstreamer1.0-plugins-good`, `-bad` and `gstreamer1.0-libav` to play
+VP9, AV1 and H.264. `libavif-dev` (AVIF images — it pulls in a
 full AV1 decoder for a format that is rare on the web, so
 `-Davif=disabled` drops it), `libenchant-2-dev` (+ a dictionary such as
 `hunspell-en-us`) for on-screen spell-checking, `libopusfile-dev` /
@@ -263,6 +268,7 @@ once (`apt install ccache` / `dnf install ccache`). Optionally use the
 |--------|---------|--------|
 | `wasm` | `auto` | Build the WebAssembly JS API over vendored WAMR. `auto` turns it off on 32-bit x86, which WAMR does not support; disable it on other platforms WAMR does not support. |
 | `audio` | `auto` | Enable in-process audio playback (needs SDL2). |
+| `gstreamer` | `auto` | Decode `<video>` through GStreamer decoder plugins. `auto` enables it on Linux when GStreamer (≥ 1.18, with gstreamer-app and gstreamer-video) is present, where it becomes the default video decoder; other platforms need `-Dgstreamer=enabled`. Not a required dependency: without it the native libdav1d/libvpx/OpenH264 backends decode video. |
 | `avif` | `auto` | Decode AVIF through libavif. Disabling drops a full AV1 decoder; AVIF images then fail to decode. |
 | `build_date` | *(configure date)* | Build-date stamp shown in the About dialog. |
 

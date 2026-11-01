@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.21:
 =======
+* Security: a page can no longer forge the `origin` of a message it
+  posts to another window. The cross-origin window wrapper took the
+  sender from a `__ndWindowProxy` property that page script could set,
+  and the origin from that object's `location.origin`, so a page could
+  make a framed victim see `event.origin` as any site it liked. The
+  sender must now be the calling script's own window.
 * Security: `importScripts()` in a worker follows `'strict-dynamic'`.
   Its requests are not parser-inserted, so a worker whose
   Content-Security-Policy has `script-src 'nonce-...' 'strict-dynamic'`

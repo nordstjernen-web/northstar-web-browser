@@ -46,7 +46,7 @@ gaps.
 the main thread and the page engine on one dedicated thread with its own
 main loop, so a slow page never freezes the window; the shell posts
 requests to that thread and gets rendered frames back, all inside the
-same process. The engine is a compact body of C — about 214,000 lines of
+same process. The engine is a compact body of C — about 216,000 lines of
 original C, excluding the vendored web-text-lib, WAMR, Wuffs and audio
 decoders — small enough for one person to read and audit end-to-end. See
 [docs/architecture.md](docs/architecture.md) for how it fits together.
@@ -100,8 +100,9 @@ through libavif when available, and SVG in the engine).
 - **Networking** over HTTP/2 with libcurl — HTTP/3 through Alt-Svc when
   the linked libcurl provides it — HTTPS-first navigation, HSTS,
   optional DNS-over-HTTPS, CSP, subresource-integrity (SRI) checks for
-  scripts, and cookies partitioned by site — one libcurl cookie store per
-  site, shared by `document.cookie` and that site's network requests.
+  scripts and stylesheets, and cookies partitioned by site — one libcurl
+  cookie store per site, shared by `document.cookie` and that site's
+  network requests.
 - **Safe browsing** — before a top-level navigation is fetched, its host
   is checked against a local SHA-256 blocklist. The check runs entirely
   on-device. The bundled list carries only test entries; a real list goes
@@ -156,7 +157,8 @@ through libavif when available, and SVG in the engine).
 - **MathML** — a minimalist presentation-MathML renderer.
 - **Spell checking** — optional, via the Enchant library.
 - **WebAssembly** — the JavaScript API over WAMR's fast interpreter,
-  vendored in-tree; no JIT and no ahead-of-time compilation.
+  vendored in-tree; no JIT and no ahead-of-time compilation. Built by
+  default on x86-64 and 64-bit Arm (not Arm Windows).
 - **One process, no tabs** — each window shows one page (*New Window*
   opens another in the same process), and the page engine runs on its own
   thread inside the shell process; there are no renderer processes. A
@@ -164,7 +166,7 @@ through libavif when available, and SVG in the engine).
 - **UI** — bookmarks, history, downloads, find-in-page, zoom, full
   screen, printing, save as PDF or image, page source, developer tools
   with a JS console, settings, private browsing (`--private`), and a UI
-  translated into 40 languages that follows the operating-system
+  available in 40 languages that follows the operating-system
   language.
 - **Headless mode** — text, DOM, layout, PNG and PDF dumps, scripted
   input and web-platform-tests runs from the command line; see
@@ -193,14 +195,15 @@ sudo apt install build-essential git pkg-config meson ninja-build cmake \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
-    zlib1g-dev
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev zlib1g-dev
 meson setup builddir
 meson compile -C builddir
 ./builddir/src/gtk/northstar
 ```
 
 For macOS (Homebrew or MacPorts), other Linux distributions and Windows,
-see [docs/building.md](docs/building.md). To build, run and debug from
+see [docs/building.md](docs/building.md); for the Arch Linux package, see
+[docs/Arch.md](docs/Arch.md). To build, run and debug from
 Visual Studio Code, see [docs/vscode.md](docs/vscode.md).
 
 The development helper configures the default build directory when

@@ -31,6 +31,19 @@ Significant changes in each release:
   are opt-in with `NS_GST_HARDWARE=1`, and `NS_VIDEO_DECODER=native`
   selects the built-in backends. GStreamer stays optional:
   `-Dgstreamer=disabled`, or a system without it, builds as before.
+* Video decodes through Media Foundation on Windows by default, using the
+  operating system's own codecs: the H.264 decoder that ships with
+  Windows, and the AV1 and VP9 Video Extensions where installed. Each
+  `<video>` gets a synchronous `IMFTransform`, fed one coded frame at a
+  time from the decoder thread (MP4 H.264 samples are rewritten to
+  Annex B with the avcC parameter sets in front), and its NV12 or P010
+  pictures convert through the shared YUV path. YouTube's AV1 stream
+  plays this way. `mfplat.dll` loads at run time, so Windows N editions
+  without the Media Feature Pack fall back to the built-in libdav1d,
+  libvpx and OpenH264 backends, as do codecs Media Foundation has no
+  decoder for and `NS_VIDEO_DECODER=native`. The decoders open before
+  the process mitigation policies apply. `-Dmediafoundation=disabled`
+  builds without it.
 * lexbor moves from the v3.0.1 release to master `145872a` (no newer
   release exists) for its memory-safety fixes: memory corruption in
   `lexbor_mraw_realloc()`, wrong allocation sizes in `lexbor_array_obj_t`,

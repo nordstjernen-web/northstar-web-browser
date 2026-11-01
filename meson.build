@@ -217,6 +217,19 @@ have_gstreamer = libgstreamer.found() and libgstapp.found() and libgstvideo.foun
 if have_gstreamer
   add_project_arguments('-DNS_HAVE_GSTREAMER', language: 'c')
 endif
+# Media Foundation is the default <video> decoder on Windows: the H.264
+# decoder that ships with the system, plus the AV1 and VP9 Video Extensions
+# where installed. mfplat.dll itself is loaded at runtime.
+mf_wanted = get_option('mediafoundation')
+if host_machine.system() != 'windows'
+  mf_wanted = mf_wanted.disable_auto_if(true)
+endif
+libmfuuid = cc.find_library('mfuuid', required: mf_wanted)
+libole32 = cc.find_library('ole32', required: mf_wanted)
+have_media_foundation = libmfuuid.found() and libole32.found() and   cc.has_header('mftransform.h', required: mf_wanted)
+if have_media_foundation
+  add_project_arguments('-DNS_HAVE_MEDIA_FOUNDATION', language: 'c')
+endif
 libopus = dependency('opus', required: false)
 if libopus.found()
   add_project_arguments('-DNS_HAVE_OPUS', language: 'c')
@@ -437,6 +450,7 @@ summary({'AV1 video (dav1d)': have_av1}, section: 'Features')
 summary({'VP9 video (libvpx)': have_vp9}, section: 'Features')
 summary({'H.264 video (OpenH264)': have_h264}, section: 'Features')
 summary({'Video via GStreamer': have_gstreamer}, section: 'Features')
+summary({'Video via Media Foundation': have_media_foundation}, section: 'Features')
 summary({'Opus in WebM (libopus)': libopus.found()}, section: 'Features')
 summary({'AVIF images (libavif)': have_avif}, section: 'Features')
 summary({'JavaScript engine': js_engine + ' ' + libquickjs.version()}, section: 'Features')

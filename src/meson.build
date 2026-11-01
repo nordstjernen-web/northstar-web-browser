@@ -81,6 +81,7 @@ northstar_engine_sources = files(
   'h264.c',
   'videodec.c',
   'gstvideo.c',
+  'mfvideo.c',
   'videoworker.c',
   'videolayer.c',
   'audiodec.c',
@@ -183,6 +184,9 @@ if have_h264
 endif
 if have_gstreamer
   northstar_deps += [libgstreamer, libgstapp, libgstvideo]
+endif
+if have_media_foundation
+  northstar_deps += [libmfuuid, libole32]
 endif
 if libopus.found()
   northstar_deps += [libopus]

@@ -63,7 +63,8 @@ or update pings.
 Audio and video still play in-process (MP3, MP2, AAC, Ogg Opus/Vorbis;
 MPEG-1, and AV1, VP9 and H.264 when their decoders are present — on Linux
 through GStreamer by default, so YouTube streams with the system's
-GStreamer plugins). Images
+GStreamer plugins, and on Windows through the system's Media Foundation
+codecs). Images
 decode in-tree (PNG/APNG, GIF, BMP, JPEG and WebP via Wuffs, AVIF
 through libavif when available, and SVG in the engine).
 
@@ -135,6 +136,14 @@ through libavif when available, and SVG in the engine).
   `NS_VIDEO_DECODER=native` switches back to the built-in libdav1d,
   libvpx and OpenH264 backends. Where GStreamer is not built in, or has
   no decoder for a codec, those native backends are used.
+- **Video decoding through Media Foundation** — on Windows, the
+  system's own Media Foundation decoders are the default: the H.264
+  decoder that ships with Windows, and the AV1 and VP9 Video Extensions
+  where installed. YouTube (tested with
+  <https://www.youtube.com/watch?v=iqL1BLzn3qc>) plays its AV1 stream
+  this way. `mfplat.dll` is loaded at run time, so Windows N editions
+  without the Media Feature Pack still start and use the native
+  backends, as does `NS_VIDEO_DECODER=native`.
 - **Camera** — `getUserMedia` video capture through V4L2 on Linux, asked
   for per site; a frame shares the page's permission only when it is
   same-origin or delegated with `allow="camera"`.
@@ -211,7 +220,7 @@ single page can also be rendered directly:
 ```
 
 Meson feature options include `-Davif=disabled`, `-Daudio=disabled`,
-`-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dav1=disabled`,
+`-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dmediafoundation=disabled`, `-Dav1=disabled`,
 `-Dvp9=disabled` and `-Dh264=disabled` for smaller builds; only Cisco's prebuilt OpenH264
 binaries carry Cisco's H.264 patent licence, so `-Dh264=disabled` drops
 it where that matters. `-Djs_engine=quickjs` builds on

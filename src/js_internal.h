@@ -249,6 +249,7 @@ struct ns_js {
     int           iframe_doc_set;
     ns_csp *csp;
     GHashTable   *doc_csp;
+    GHashTable   *frame_posts;
     ns_fetch_policy *fetch_policy;
     GHashTable   *doc_fetch_policy;
     char         *selection_text;

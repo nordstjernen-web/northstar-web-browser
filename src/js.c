@@ -52,6 +52,7 @@
 #include "net.h"
 #include "paint.h"
 #include "eventsource.h"
+#include "forms.h"
 #include "security.h"
 #include "wasm.h"
 #include "mainctx.h"
@@ -484,17 +485,56 @@ ns_sandbox_parse_tokens(const char *val)
     return flags;
 }
 
-/* Intersects sandbox flags of all ancestor iframes; returns 0 when none are sandboxed. */
+/* The token lists of every "sandbox" directive in a CSP header, one per
+ * line (a header may carry several policies), or NULL when there is none. */
+static char *
+ns_csp_header_sandbox_tokens(const char *header)
+{
+    if (!header) return NULL;
+    GString *tokens = NULL;
+    g_auto(GStrv) directives = g_strsplit_set(header, ";,", -1);
+    for (char **d = directives; *d; d++) {
+        const char *s = *d;
+        while (g_ascii_isspace((guchar)*s)) s++;
+        if (g_ascii_strncasecmp(s, "sandbox", 7) != 0) continue;
+        if (s[7] && !g_ascii_isspace((guchar)s[7])) continue;
+        if (!tokens) tokens = g_string_new(NULL);
+        else g_string_append_c(tokens, '\n');
+        g_string_append(tokens, s + 7);
+    }
+    return tokens ? g_string_free(tokens, FALSE) : NULL;
+}
+
+/* Intersects the flags of each policy line from ns_csp_header_sandbox_tokens. */
+static unsigned
+ns_sandbox_from_policy_lines(const char *lines)
+{
+    unsigned flags = ~0u;
+    g_auto(GStrv) policies = g_strsplit(lines, "\n", -1);
+    for (char **p = policies; *p; p++)
+        flags &= ns_sandbox_parse_tokens(*p);
+    return flags;
+}
+
+/* Intersects sandbox flags of all ancestor iframes (their sandbox attribute
+ * and the CSP sandbox directive of the document they hold); returns 0 when
+ * none are sandboxed. */
 static unsigned
 ns_iframe_effective_sandbox(const ns_node *node)
 {
     unsigned flags = 0;
     gboolean any = FALSE;
     for (const ns_node *p = node; p; p = p->parent) {
-        if (!ns_node_is_element_named(p, "iframe")) continue;
+        if (!ns_node_is_element_named(p, "iframe") &&
+            !ns_node_is_element_named(p, "frame"))
+            continue;
         const char *val = ns_element_get_attr(p, "sandbox");
-        if (!val) continue;
-        unsigned f = ns_sandbox_parse_tokens(val);
+        const char *csp_val = ns_element_get_attr(p, "data-nd-csp-sandbox");
+        if (!ns_node_is_element_named(p, "iframe")) val = NULL;
+        if (!val && !csp_val) continue;
+        unsigned f = ~0u;
+        if (val) f &= ns_sandbox_parse_tokens(val);
+        if (csp_val) f &= ns_sandbox_from_policy_lines(csp_val);
         if (!any) { flags = f; any = TRUE; }
         else flags &= f;
     }
@@ -608,6 +648,25 @@ typedef struct {
     gboolean     done;
 } ns_js_pumped_fetch;
 
+/* A form POST waiting for its frame to load the action URL. */
+typedef struct {
+    char  *url;
+    char  *body;
+    gsize  body_len;
+    char  *content_type;
+} ns_frame_post;
+
+static void
+ns_frame_post_free(gpointer p)
+{
+    ns_frame_post *post = p;
+    if (!post) return;
+    g_free(post->url);
+    g_free(post->body);
+    g_free(post->content_type);
+    g_free(post);
+}
+
 static void
 ns_js_pumped_fetch_done(GObject *src, GAsyncResult *result, gpointer user_data)
 {
@@ -618,20 +677,24 @@ ns_js_pumped_fetch_done(GObject *src, GAsyncResult *result, gpointer user_data)
     if (pf->loop) g_main_loop_quit(pf->loop);
 }
 
-/* Synchronous GET; on the main thread pumps a nested loop so the budget isn't charged. */
+/* Synchronous request; on the main thread pumps a nested loop so the budget isn't charged. */
 static ns_response *
-ns_js_fetch_resource(ns_js *js, const char *url, const char *top_url,
-                     const char *const *headers, ns_fetch_destination dest,
-                     ns_fetch_policy *policy, GError **error)
+ns_js_fetch_resource_with_body(ns_js *js, const char *url, const char *top_url,
+                               const char *method, const char *body,
+                               gsize body_len, const char *content_type,
+                               const char *const *headers,
+                               ns_fetch_destination dest,
+                               ns_fetch_policy *policy, GError **error)
 {
     if (!js || js->worker_host)
-        return ns_net_request_blocking(url, top_url, "GET", NULL, 0, NULL,
-                                       headers, dest, policy, NULL, error);
+        return ns_net_request_blocking(url, top_url, method, body, body_len,
+                                       content_type, headers, dest, policy,
+                                       NULL, error);
 
     ns_js_pumped_fetch pf = {0};
     pf.loop = g_main_loop_new(ns_engine_context(), FALSE);
-    ns_net_request_async(url, top_url, "GET", NULL, 0, NULL, headers, dest,
-                         policy, NULL,
+    ns_net_request_async(url, top_url, method, body, body_len, content_type,
+                         headers, dest, policy, NULL,
                          ns_js_pumped_fetch_done, &pf);
     gboolean saved = js->in_pump;
     js->in_pump = TRUE;
@@ -646,6 +709,16 @@ ns_js_fetch_resource(ns_js *js, const char *url, const char *top_url,
         else g_error_free(pf.err);
     }
     return pf.resp;
+}
+
+/* Synchronous GET through ns_js_fetch_resource_with_body. */
+static ns_response *
+ns_js_fetch_resource(ns_js *js, const char *url, const char *top_url,
+                     const char *const *headers, ns_fetch_destination dest,
+                     ns_fetch_policy *policy, GError **error)
+{
+    return ns_js_fetch_resource_with_body(js, url, top_url, "GET", NULL, 0,
+                                          NULL, headers, dest, policy, error);
 }
 
 typedef struct ns_budget_guard {
@@ -56694,6 +56767,7 @@ ns_js_free(ns_js *js)
     if (js->import_map) g_ptr_array_free(js->import_map, TRUE);
     if (js->csp) { ns_csp_free(js->csp); js->csp = NULL; }
     if (js->doc_csp) { g_hash_table_destroy(js->doc_csp); js->doc_csp = NULL; }
+    g_clear_pointer(&js->frame_posts, g_hash_table_destroy);
     g_clear_pointer(&js->fetch_policy, ns_fetch_policy_unref);
     g_clear_pointer(&js->doc_fetch_policy, g_hash_table_destroy);
     g_free(js->early_inject_src);
@@ -60207,6 +60281,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (srcdoc && *srcdoc) {
         decoded = g_strdup(srcdoc);
         abs_url = g_strdup(origin);
+        ns_element_remove_attr(iframe, "data-nd-csp-sandbox");
     } else if (src && *src && g_ascii_strncasecmp(src, "about:", 6) != 0 &&
                g_ascii_strncasecmp(src, "javascript:", 11) != 0) {
         abs_url = ns_url_resolve(origin, src);
@@ -60261,10 +60336,29 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
         }
         if (abs_url) {
             GError *err = NULL;
-            resp = ns_js_fetch_resource(
-                js, abs_url, origin, NULL,
-                is_object ? NS_FETCH_DEST_OBJECT : NS_FETCH_DEST_FRAME,
-                ns_js_fetch_policy(js, iframe), &err);
+            ns_frame_post *post = js->frame_posts
+                ? g_hash_table_lookup(js->frame_posts, iframe) : NULL;
+            ns_fetch_destination frame_dest =
+                is_object ? NS_FETCH_DEST_OBJECT : NS_FETCH_DEST_FRAME;
+            if (post && g_strcmp0(post->url, abs_url) == 0)
+                resp = ns_js_fetch_resource_with_body(
+                    js, abs_url, origin, "POST", post->body, post->body_len,
+                    post->content_type, NULL, frame_dest,
+                    ns_js_fetch_policy(js, iframe), &err);
+            else
+                resp = ns_js_fetch_resource(
+                    js, abs_url, origin, NULL, frame_dest,
+                    ns_js_fetch_policy(js, iframe), &err);
+            if (post) g_hash_table_remove(js->frame_posts, iframe);
+            g_autofree char *csp_sandbox = resp
+                ? ns_csp_header_sandbox_tokens(resp->csp_header) : NULL;
+            if (csp_sandbox)
+                ns_element_set_attr(iframe, "data-nd-csp-sandbox", csp_sandbox);
+            else
+                ns_element_remove_attr(iframe, "data-nd-csp-sandbox");
+            sandbox = ns_iframe_effective_sandbox(iframe);
+            scripts_ok = !(sandbox & NS_SANDBOX_ACTIVE) ||
+                         (sandbox & NS_SANDBOX_ALLOW_SCRIPTS);
             if (resp && resp->final_url && *resp->final_url &&
                 strcmp(resp->final_url, abs_url) != 0) {
                 g_free(abs_url);
@@ -60996,6 +61090,108 @@ ns_js_csp_form_action_allowed(const ns_js *js, const char *action_url)
     if (!js || !js->csp || !action_url) return TRUE;
     return ns_csp_allows(js->csp, NS_CSP_FORM_ACTION, action_url,
                          js->current_url);
+}
+
+/* Submits a form that lives in a frame's document into that frame, as a
+ * browser navigates the form's own browsing context: the action resolves
+ * against the frame's URL, the frame's CSP form-action applies, and a GET
+ * reloads the frame with the query while a POST is sent by the frame
+ * loader.  Returns FALSE when the form is not in a loadable frame or its
+ * target leaves the frame (_top, _parent, _blank), so the caller navigates
+ * the page as before; TRUE when the submission was handled or refused. */
+gboolean
+ns_js_submit_form_in_frame(ns_js *js, const ns_node *form,
+                           const ns_node *submitter)
+{
+    if (!js || !form || js->halted) return FALSE;
+    ns_node *frame = ns_js_node_frame(form->parent);
+    const char *src_attr = frame ? ns_frame_src_attr(frame) : NULL;
+    if (!src_attr) return FALSE;
+    const ns_node *button = submitter && submitter != form &&
+                            !ns_node_is_text_input(submitter)
+                            ? submitter : NULL;
+    const char *target = ns_element_get_attr(form, "target");
+    const char *formtarget = button
+        ? ns_element_get_attr(button, "formtarget") : NULL;
+    if (formtarget && *formtarget) target = formtarget;
+    if (target && (g_ascii_strcasecmp(target, "_top") == 0 ||
+                   g_ascii_strcasecmp(target, "_parent") == 0 ||
+                   g_ascii_strcasecmp(target, "_blank") == 0))
+        return FALSE;
+    if (ns_node_sandbox_blocks_forms(form)) return TRUE;
+
+    const char *frame_url = ns_js_node_doc_base(js, form);
+    if (!frame_url || !*frame_url) return TRUE;
+    const char *method = ns_element_get_attr(form, "method");
+    const char *formmethod = button
+        ? ns_element_get_attr(button, "formmethod") : NULL;
+    if (formmethod && *formmethod) method = formmethod;
+    gboolean is_post = method && g_ascii_strcasecmp(method, "post") == 0;
+    const char *action = ns_element_get_attr(form, "action");
+    const char *formaction = button
+        ? ns_element_get_attr(button, "formaction") : NULL;
+    if (formaction && *formaction) action = formaction;
+    g_autofree char *abs_action = (action && *action)
+        ? ns_url_resolve(frame_url, action) : g_strdup(frame_url);
+    if (!abs_action) return TRUE;
+    if (g_ascii_strncasecmp(abs_action, "http:", 5) != 0 &&
+        g_ascii_strncasecmp(abs_action, "https:", 6) != 0 &&
+        g_ascii_strncasecmp(abs_action, "data:", 5) != 0)
+        return TRUE;
+    const ns_csp *csp = ns_js_csp_for_node(js, form);
+    if (csp && !ns_csp_allows(csp, NS_CSP_FORM_ACTION, abs_action, frame_url)) {
+        if (js->log_cb) {
+            char *line = g_strdup_printf("Blocked form submission to %s by "
+                                         "Content-Security-Policy form-action",
+                                         abs_action);
+            js->log_cb(line, js->log_user_data);
+            g_free(line);
+        }
+        return TRUE;
+    }
+
+    const ns_node *doc = NULL;
+    for (const ns_node *c = frame->first_child; c; c = c->next_sibling)
+        if (c->kind == NS_NODE_DOCUMENT) { doc = c; break; }
+    if (!doc) doc = frame;
+    const char *accept_charset = ns_element_get_attr(form, "accept-charset");
+    const char *frame_charset = ns_element_get_attr(frame, "data-nd-frame-charset");
+    ns_form_set_submission_charset(
+        (accept_charset && *accept_charset) ? accept_charset : frame_charset);
+    GString *data = g_string_new(NULL);
+    gboolean first = TRUE;
+    if (!ns_js_form_entry_list(js, form, button, data, &first))
+        ns_form_collect_inputs(form, doc, doc, data, &first, submitter);
+    ns_form_set_submission_charset(NULL);
+
+    char *url;
+    if (is_post) {
+        url = g_strdup(abs_action);
+        if (!js->frame_posts)
+            js->frame_posts = g_hash_table_new_full(g_direct_hash,
+                                                    g_direct_equal, NULL,
+                                                    ns_frame_post_free);
+        ns_frame_post *post = g_new0(ns_frame_post, 1);
+        post->url = g_strdup(url);
+        post->body_len = data->len;
+        post->body = g_string_free(data, FALSE);
+        post->content_type = g_strdup("application/x-www-form-urlencoded");
+        g_hash_table_replace(js->frame_posts, frame, post);
+    } else {
+        char *frag = strchr(abs_action, '#');
+        if (frag) *frag = '\0';
+        if (data->len == 0)
+            url = g_strdup(abs_action);
+        else
+            url = g_strdup_printf("%s%c%s", abs_action,
+                                  strchr(abs_action, '?') ? '&' : '?',
+                                  data->str);
+        g_string_free(data, TRUE);
+    }
+    ns_js_set_attr_recorded(js, frame, src_attr, url);
+    ns_js_schedule_iframe_load_full(js, frame, TRUE);
+    g_free(url);
+    return TRUE;
 }
 
 void

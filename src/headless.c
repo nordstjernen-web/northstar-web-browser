@@ -183,6 +183,8 @@ headless_js_form_submit(const ns_node *form, const ns_node *submitter,
 {
     headless_nav_capture *cap = user_data;
     if (!cap || !form) return;
+    if (cap->js && ns_js_submit_form_in_frame(cap->js, form, submitter))
+        return;
     const char *method = ns_element_get_attr(form, "method");
     gboolean is_post = method && g_ascii_strcasecmp(method, "post") == 0;
     const char *action = ns_element_get_attr(form, "action");

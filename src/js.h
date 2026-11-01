@@ -95,6 +95,8 @@ void   ns_js_set_early_inject_src(ns_js *js, const char *src);
 void   ns_js_add_csp_header(ns_js *js, const char *header_value);
 void   ns_js_apply_meta_csp(ns_js *js, const ns_node *doc);
 gboolean ns_js_csp_form_action_allowed(const ns_js *js, const char *action_url);
+gboolean ns_js_submit_form_in_frame(ns_js *js, const ns_node *form,
+                                   const ns_node *submitter);
 const char *ns_js_current_url(const ns_js *js);
 const char *ns_js_storage_partition(const ns_js *js);
 void   ns_js_free(ns_js *js);

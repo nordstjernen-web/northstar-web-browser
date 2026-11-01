@@ -3261,7 +3261,11 @@ browser_perform_form_navigation(ns_browser *b, const ns_node *form,
                                 const ns_node *clicked)
 {
     if (!b || !form || !b->doc) return;
-    /* Forms inside a frame are navigated by the top-level browser.  The
+    if (b->js && ns_js_submit_form_in_frame(b->js, form, clicked)) {
+        b->dirty = TRUE;
+        return;
+    }
+    /* Forms whose target leaves their frame are navigated by the top-level browser.  The
      * request must still carry the frame's identity -- its URL as the
      * base for the action and as the initiator (Origin, Sec-Fetch-Site,
      * Lax cookies) -- not the embedder's, or a cross-origin frame could

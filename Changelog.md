@@ -4,6 +4,15 @@ Significant changes in each release:
 
 1.0.20:
 =======
+* Security: a form in a frame now submits into that frame. GET and POST
+  submissions from a framed document used to navigate the whole tab,
+  so a framed page could replace the page that embeds it. The action
+  resolves against the frame's URL and the frame's CSP `form-action`
+  applies; `target="_top"`, `_parent` and `_blank` still leave the
+  frame. The `sandbox` directive of a frame's Content-Security-Policy
+  is now applied as well, so a CSP sandbox without `allow-forms` blocks
+  the submission. Found with browseraudit.com's CSP sandbox tests.
+  (From Nordstjernen Sol.)
 * JavaScript: an iframe's scripts get a microtask checkpoint after each
   script, as the top-level document's already did. YouTube's embed
   defines `writeEmbed` in a promise callback and calls it from the next

@@ -62,7 +62,7 @@ jobs:
 
       - name: Configure ccache
         run: |
-          ccache --max-size=200M
+          ccache --max-size=400M
           ccache --zero-stats
 
       - name: Show toolchain versions
@@ -79,7 +79,10 @@ jobs:
         run: |
           set -o pipefail
           export CC="ccache clang"
-          meson setup builddir 2>&1 | tee build.log
+          # Pull requests build without LTO (several times faster to link);
+          # pushes to main keep the release configuration with LTO.
+          lto=true; [ "$GITHUB_EVENT_NAME" = pull_request ] && lto=false
+          meson setup builddir -Db_lto=$lto 2>&1 | tee build.log
           meson compile -C builddir 2>&1 | tee -a build.log
 
       - name: Publish build log on failure

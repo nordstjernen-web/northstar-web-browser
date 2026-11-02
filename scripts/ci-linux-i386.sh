@@ -37,11 +37,12 @@ meson --version
 pkg-config --modversion gtk4
 
 export CC="ccache gcc" CXX="ccache g++"
-ccache --max-size=200M >/dev/null
+ccache --max-size=400M >/dev/null
 ccache --zero-stats >/dev/null
 
 builddir=${BUILDDIR:-builddir-i386}
-meson setup "$builddir" --werror
+# NS_CI_LTO=false (pull requests) skips LTO, which dominates the link time.
+meson setup "$builddir" --werror -Db_lto="${NS_CI_LTO:-true}"
 meson compile -C "$builddir" 2>&1 | tee build-i386.log
 ccache --show-stats
 

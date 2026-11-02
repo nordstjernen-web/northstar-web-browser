@@ -58,6 +58,7 @@ jobs:
           docker run --rm --pull=never --platform linux/386 \
             --security-opt seccomp=unconfined \
             -v "$PWD:/src" -w /src -e CCACHE_DIR=/src/.ccache \
+            -e NS_CI_LTO=$([ "$GITHUB_EVENT_NAME" = pull_request ] && echo false || echo true) \
             debian:trixie bash scripts/ci-linux-i386.sh
 
       - name: Fix ownership of container-written files

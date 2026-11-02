@@ -5,6 +5,14 @@ engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS, Windows and the BSDs are also supported.
 
+**Downloads** of the three browser variants:
+
+| Browser | All releases | Latest release |
+|---------|--------------|----------------|
+| [Nordstjernen Sol](https://github.com/nordstjernen-web/nordstjernen-sol-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/latest) |
+| [Southstar](https://github.com/nordstjernen-web/southstar-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases/latest) |
+| [Northstar Web Browser](https://github.com/nordstjernen-web/northstar-web-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/northstar-web-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/northstar-web-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/northstar-web-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/northstar-web-browser/releases/latest) |
+
 ![Northstar Web Browser showing a Wikipedia article](docs/screenshot.png)
 
 Repository: <https://github.com/nordstjernen-web/northstar-web-browser>.  

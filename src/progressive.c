@@ -5,6 +5,7 @@
  */
 
 #include "progressive.h"
+#include "bytes.h"
 
 #include <math.h>
 #include <string.h>
@@ -272,8 +273,7 @@ progressive_walk_boxes(ns_progressive *file, guint64 start, const guint8 *data,
             return;
         }
         const guint8 *box = data + rel;
-        guint64 size = (guint64)box[0] << 24 | (guint64)box[1] << 16 |
-                       (guint64)box[2] << 8 | box[3];
+        guint64 size = ns_get_be32(box);
         gsize header = 8;
         if (size == 1 && rel + 16 <= len) {
             size = 0;

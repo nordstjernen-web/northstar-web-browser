@@ -1,5 +1,7 @@
 # Northstar Web Browser
 
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
+
 Northstar Web Browser is a minimalist web browser written from scratch in C. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux

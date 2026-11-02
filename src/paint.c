@@ -5705,6 +5705,7 @@ deferred_capture_cmp(const deferred_capture *a, const deferred_capture *b)
 {
     int za = box_z_index(a->box), zb = box_z_index(b->box);
     if (za != zb) return za < zb ? -1 : 1;
+    if (!a->box || !b->box) return (a->box != NULL) - (b->box != NULL);
     int c = dom_tree_order_cmp(a->box->dom, b->box->dom);
     if (c) return c;
     return a->seq < b->seq ? -1 : a->seq > b->seq ? 1 : 0;

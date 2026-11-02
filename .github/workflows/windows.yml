@@ -45,7 +45,11 @@ jobs:
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         with:
           msystem: UCRT64
-          update: true
+          # No full system upgrade (pacman -Syuu) on every run: it took most
+          # of this job. Packages come from the MSYS2 release the action
+          # installs; if its databases go stale and installs 404, set this
+          # back to true.
+          update: false
           cache: true
           install: >-
             git
@@ -103,17 +107,21 @@ jobs:
           pkg-config --modversion gtk4
           pkg-config --modversion libcurl
 
-      - name: Build (ThinLTO via LLD)
+      - name: Build (ThinLTO via LLD on main, no LTO on pull requests)
         if: hashFiles('meson.build') != ''
         run: |
           export CC="ccache clang"
           export CXX="ccache clang++"
           export CC_LD=lld
           export CXX_LD=lld
-          meson setup builddir --werror -Db_lto=true -Db_lto_mode=thin
-          THINLTO_CACHE_DIR=$(cygpath -m "$RUNNER_TEMP/thinlto-cache")
-          mkdir -p "$THINLTO_CACHE_DIR"
-          meson configure builddir -Dc_link_args="-Wl,--thinlto-cache-dir=$THINLTO_CACHE_DIR -Wl,--thinlto-cache-policy=cache_size_bytes=300m"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            meson setup builddir --werror -Db_lto=false
+          else
+            meson setup builddir --werror -Db_lto=true -Db_lto_mode=thin
+            THINLTO_CACHE_DIR=$(cygpath -m "$RUNNER_TEMP/thinlto-cache")
+            mkdir -p "$THINLTO_CACHE_DIR"
+            meson configure builddir -Dc_link_args="-Wl,--thinlto-cache-dir=$THINLTO_CACHE_DIR -Wl,--thinlto-cache-policy=cache_size_bytes=300m"
+          fi
           meson compile -C builddir
 
       - name: ccache stats

@@ -62,7 +62,7 @@ jobs:
 
       - name: Configure ccache
         run: |
-          ccache --max-size=200M
+          ccache --max-size=400M
           ccache --zero-stats
 
       - name: Select compiler
@@ -84,7 +84,10 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          meson setup builddir --werror
+          # Pull requests build without LTO (several times faster to link);
+          # pushes to main keep the release configuration with LTO.
+          lto=true; [ "$GITHUB_EVENT_NAME" = pull_request ] && lto=false
+          meson setup builddir --werror -Db_lto=$lto
           meson compile -C builddir 2>&1 | tee build.log
 
       - name: ccache stats

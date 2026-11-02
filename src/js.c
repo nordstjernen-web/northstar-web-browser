@@ -3812,6 +3812,7 @@ ns_listeners_sweep(ns_js *js)
     guint w = 0;
     for (guint r = 0; r < js->listeners->len; r++) {
         ns_listener *l = g_ptr_array_index(js->listeners, r);
+        if (!l) continue;
         if (ns_listener_is_tombstoned(l)) {
             ns_listener_unregister(js, l);
             JS_FreeValue(js->ctx, l->cb);
@@ -22296,10 +22297,11 @@ ns_worker_walk_transfers(JSContext *ctx, int argc, JSValueConst *argv,
         g_hash_table_add(port_seen, g_ptr_array_index(transfer_ports, i));
     for (uint32_t i = 0; i < len; i++) {
         JSValue item = JS_GetPropertyUint32(ctx, transfer, i);
+        ns_port_state *item_port = ns_port_state_of(item);
         if (JS_IsArrayBuffer(item)) {
             if (detach) JS_DetachArrayBuffer(ctx, item);
-        } else if (ns_worker_transfer_is_port(ctx, item)) {
-            JSValue pair = JS_DupValue(ctx, ns_port_state_of(item)->pair);
+        } else if (item_port) {
+            JSValue pair = JS_DupValue(ctx, item_port->pair);
             if (!JS_IsObject(pair)) {
                 all_ok = FALSE;
                 if (has_nontransferable) *has_nontransferable = TRUE;
@@ -29051,6 +29053,7 @@ ns_invoke_window_listeners_full(ns_js *js, const ns_node *target,
                                 gboolean capture_phase, gboolean at_target,
                                 gboolean *fired)
 {
+    if (!js) return FALSE;
     const ns_node *event_doc = ns_event_document_for_target(js, target);
     const ns_node *visible_target = ns_event_retarget_node(
         target, js->current_doc);

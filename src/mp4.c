@@ -675,7 +675,7 @@ build_sample_index(const sample_tables *tables)
     if (!tables->stts.payload || !run_reader_open(&tables->stts, &durations) ||
         !run_reader_open(&tables->ctts, &offsets_in_time))
         return NULL;
-    byte_cursor sync;
+    byte_cursor sync = { 0 };
     guint32 sync_left = 0;
     gboolean all_sync = tables->stss.payload == NULL;
     if (!all_sync && !table_open(&tables->stss, 4, 4, &sync, &sync_left))

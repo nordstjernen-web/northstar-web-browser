@@ -2,7 +2,7 @@
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/nordstjernen-web/northstar-web-browser?style=flat-square)](https://github.com/nordstjernen-web/northstar-web-browser/releases/latest)
-[![Best viewed in Northstar](docs/best-viewed-in-northstar-badge.svg)](https://nordstjernen.org)
+[![Best viewed in Northstar Browser](docs/best-viewed-in-northstar-badge.svg)](https://nordstjernen.org)
 
 Northstar Web Browser is a minimalist web browser written from scratch in C. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility
@@ -32,8 +32,8 @@ making multiple web browser variants to test and compare.
 
 | Browser | All releases | Latest release |
 |---------|--------------|----------------|
-| [Nordstjernen Sol](https://github.com/nordstjernen-web/nordstjernen-sol-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/latest) |
-| [Southstar](https://github.com/nordstjernen-web/southstar-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases/latest) |
+| [Nordstjernen Sol Browser](https://github.com/nordstjernen-web/nordstjernen-sol-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/nordstjernen-sol-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/latest) |
+| [Southstar Browser](https://github.com/nordstjernen-web/southstar-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/southstar-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/southstar-browser/releases/latest) |
 | [Northstar Web Browser](https://github.com/nordstjernen-web/northstar-web-browser) | [![GitHub All Releases](https://img.shields.io/github/downloads/nordstjernen-web/northstar-web-browser/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/northstar-web-browser/releases) | [![GitHub Release](https://img.shields.io/github/downloads/nordstjernen-web/northstar-web-browser/latest/total?style=flat-square&logo=github)](https://github.com/nordstjernen-web/northstar-web-browser/releases/latest) |
 
 ![Best viewed in Northstar Web Browser](docs/best-viewed-in-northstar.gif)

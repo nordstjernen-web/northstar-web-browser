@@ -262,38 +262,20 @@ static guint8 *
 ns_wasm_copy_buffer_source(JSContext *ctx, JSValueConst v, size_t *out_len)
 {
     *out_len = 0;
-    size_t off = 0, blen = 0, bpe = 0;
-    JSValue buf = JS_GetTypedArrayBuffer(ctx, v, &off, &blen, &bpe);
-    if (!JS_IsException(buf)) {
-        size_t total = 0;
-        uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-        guint8 *out = NULL;
-        if (base && off <= total && blen <= total - off) {
-            if (blen > G_MAXUINT32) {
-                JS_ThrowRangeError(ctx, "wasm module too large");
-                JS_FreeValue(ctx, buf);
-                return NULL;
-            }
-            out = ns_wasm_memdup_bytes(base + off, blen);
-            *out_len = blen;
-        }
-        JS_FreeValue(ctx, buf);
-        return out;
-    }
-    JS_FreeValue(ctx, JS_GetException(ctx));
-    size_t total = 0;
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, v);
-    if (base) {
-        if (total > G_MAXUINT32) {
+    const uint8_t *data = NULL;
+    size_t len = 0;
+    JSValue hold = JS_UNDEFINED;
+    guint8 *out = NULL;
+    if (ns_js_buffer_source_bytes(ctx, v, &data, &len, &hold) && data) {
+        if (len > G_MAXUINT32) {
             JS_ThrowRangeError(ctx, "wasm module too large");
-            return NULL;
+        } else {
+            out = ns_wasm_memdup_bytes(data, len);
+            *out_len = len;
         }
-        *out_len = total;
-        return ns_wasm_memdup_bytes(base, total);
     }
-    if (JS_HasException(ctx))
-        JS_FreeValue(ctx, JS_GetException(ctx));
-    return NULL;
+    JS_FreeValue(ctx, hold);
+    return out;
 }
 
 /* Propagates a pending exception or throws a TypeError with msg. */

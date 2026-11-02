@@ -68,41 +68,6 @@ mse_register(ns_js *js, ns_mse_source *source, ns_mse_buffer *buffer)
     return id;
 }
 
-/* Gets the bytes of an ArrayBuffer or view; *holder keeps the backing buffer alive. */
-static gboolean
-mse_bytes(JSContext *ctx, JSValueConst value, const guint8 **data, size_t *len,
-          JSValue *holder)
-{
-    *data = NULL;
-    *len = 0;
-    *holder = JS_UNDEFINED;
-    if (JS_IsArrayBuffer(value)) {
-        size_t total = 0;
-        guint8 *base = JS_GetArrayBuffer(ctx, &total, value);
-        if (!base) return FALSE;
-        *data = base;
-        *len = total;
-        *holder = JS_DupValue(ctx, value);
-        return TRUE;
-    }
-    size_t offset = 0, byte_len = 0, element = 0;
-    JSValue buffer = JS_GetTypedArrayBuffer(ctx, value, &offset, &byte_len, &element);
-    if (JS_IsException(buffer)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        return FALSE;
-    }
-    size_t total = 0;
-    guint8 *base = JS_GetArrayBuffer(ctx, &total, buffer);
-    if (!base || offset + byte_len > total) {
-        JS_FreeValue(ctx, buffer);
-        return FALSE;
-    }
-    *data = base + offset;
-    *len = byte_len;
-    *holder = buffer;
-    return TRUE;
-}
-
 /* Converts flat [start, end] range pairs to a JS array; frees the GArray. */
 static JSValue
 ranges_to_array(JSContext *ctx, GArray *ranges)
@@ -235,7 +200,8 @@ js_mse_append(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *arg
     size_t len = 0;
     JSValue holder = JS_UNDEFINED;
     if (!handle || !handle->buffer ||
-        !mse_bytes(ctx, argv[1], &data, &len, &holder))
+        !ns_js_buffer_source_bytes(ctx, argv[1], &data, &len, &holder) ||
+        !data)
         return mse_append_result(ctx, "error", 0, NULL);
     gint64 trace_start = ns_trace_now();
     ns_mse_append_result status = ns_mse_buffer_append(handle->buffer, data, len,

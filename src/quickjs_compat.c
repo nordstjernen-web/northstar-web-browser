@@ -558,3 +558,82 @@ JSValue JS_EvalThis2(JSContext *ctx, JSValueConst this_obj, const char *input,
 }
 
 #endif
+
+/* Sets data/len to [offset, offset+length) of an ArrayBuffer if in bounds; else leaves them. */
+static gboolean
+ns_view_bytes(JSContext *ctx, JSValueConst buffer, uint64_t offset,
+              uint64_t length, const uint8_t **data, size_t *len)
+{
+    size_t total = 0;
+    uint8_t *base = JS_GetArrayBuffer(ctx, &total, buffer);
+    if (!base) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return TRUE;
+    }
+    if (offset <= total && length <= total - offset) {
+        *data = base + offset;
+        *len = (size_t)length;
+    }
+    return TRUE;
+}
+
+/* Resolves a BufferSource (ArrayBuffer, typed array or DataView) to its
+ * bytes; the one place that does so, so every caller gets the same bounds
+ * checks.  Returns FALSE when v is not a BufferSource; TRUE with *data NULL
+ * when it is one whose bytes are gone (detached, or a view out of range).
+ * *hold receives a reference that keeps the backing ArrayBuffer alive; the
+ * caller frees it with JS_FreeValue once it no longer reads *data
+ * (JS_UNDEFINED when v itself keeps the bytes alive).  A DataView's
+ * accessors can be replaced by the page, so this may run page script:
+ * callers resolve the bytes before taking pointers into their own state. */
+bool
+ns_js_buffer_source_bytes(JSContext *ctx, JSValueConst v, const uint8_t **data,
+                          size_t *len, JSValue *hold)
+{
+    *data = NULL;
+    *len = 0;
+    *hold = JS_UNDEFINED;
+    if (!JS_IsObject(v)) return FALSE;
+    if (JS_GetTypedArrayType(v) >= 0) {
+        size_t offset = 0, length = 0;
+        JSValue buf = JS_GetTypedArrayBuffer(ctx, v, &offset, &length, NULL);
+        if (JS_IsException(buf)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+            return TRUE;
+        }
+        ns_view_bytes(ctx, buf, offset, length, data, len);
+        JS_FreeValue(ctx, buf);
+        return TRUE;
+    }
+    size_t total = 0;
+    uint8_t *base = JS_GetArrayBuffer(ctx, &total, v);
+    if (base) {
+        *data = base;
+        *len = total;
+        return TRUE;
+    }
+    JS_FreeValue(ctx, JS_GetException(ctx));
+    if (JS_IsArrayBuffer(v)) return TRUE;
+    /* DataView: only a genuine one, never an object that merely claims to
+     * be a view.  Its buffer/byteOffset/byteLength accessors can still be
+     * replaced by the page, so the buffer they return is held for the
+     * caller (it may be a fresh object nothing else references) and the
+     * range is checked against that buffer's real size. */
+    if (!JS_IsDataView(v)) return FALSE;
+    JSValue buf = JS_GetPropertyStr(ctx, v, "buffer");
+    JSValue off_v = JS_GetPropertyStr(ctx, v, "byteOffset");
+    JSValue len_v = JS_GetPropertyStr(ctx, v, "byteLength");
+    uint64_t offset = 0, length = 0;
+    if (JS_ToIndex(ctx, &offset, off_v) == 0 &&
+        JS_ToIndex(ctx, &length, len_v) == 0)
+        ns_view_bytes(ctx, buf, offset, length, data, len);
+    else
+        JS_FreeValue(ctx, JS_GetException(ctx));
+    JS_FreeValue(ctx, len_v);
+    JS_FreeValue(ctx, off_v);
+    if (*data)
+        *hold = buf;
+    else
+        JS_FreeValue(ctx, buf);
+    return TRUE;
+}

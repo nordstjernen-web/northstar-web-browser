@@ -44,6 +44,9 @@ void ns_security_win32_mitigations_init(gboolean interactive);
 
 gboolean ns_security_csprng_fill(void *buf, gsize len);
 
+gboolean ns_digest_b64_matches(GChecksumType type, const char *want_b64,
+                               gsize want_len, const void *body,
+                               gsize body_len, gboolean allow_b64url);
 gboolean ns_security_sri_check(const char *integrity_attr,
                                const void *body,
                                gsize       body_len);

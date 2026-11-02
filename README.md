@@ -2,6 +2,7 @@
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/nordstjernen-web/northstar-web-browser?style=flat-square)](https://github.com/nordstjernen-web/northstar-web-browser/releases/latest)
+[![Best viewed in Northstar](docs/best-viewed-in-northstar-badge.svg)](https://nordstjernen.org)
 
 Northstar Web Browser is a minimalist web browser written from scratch in C. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility

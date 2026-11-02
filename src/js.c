@@ -864,75 +864,6 @@ ns_js_get_string_prop(JSContext *ctx, JSValueConst obj, const char *key)
     return out;
 }
 
-/* Borrows the bytes of an ArrayBuffer or view; out_holder keeps the buffer alive. */
-static gboolean
-ns_js_bytes_view(JSContext *ctx, JSValueConst value, const uint8_t **out_data,
-                 size_t *out_len, JSValue *out_holder)
-{
-    if (out_data) *out_data = NULL;
-    if (out_len) *out_len = 0;
-    if (out_holder) *out_holder = JS_UNDEFINED;
-
-    if (JS_IsArrayBuffer(value)) {
-        size_t total = 0;
-        uint8_t *base = JS_GetArrayBuffer(ctx, &total, value);
-        if (base) {
-            if (out_data) *out_data = base;
-            if (out_len) *out_len = total;
-            if (out_holder) *out_holder = JS_DupValue(ctx, value);
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    if (!JS_IsObject(value)) return FALSE;
-
-    JSValue buf = JS_GetPropertyStr(ctx, value, "buffer");
-    if (JS_IsException(buf)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        return FALSE;
-    }
-    if (!JS_IsArrayBuffer(buf)) {
-        JS_FreeValue(ctx, buf);
-        return FALSE;
-    }
-
-    JSValue off_v = JS_GetPropertyStr(ctx, value, "byteOffset");
-    JSValue len_v = JS_GetPropertyStr(ctx, value, "byteLength");
-    if (JS_IsException(off_v) || JS_IsException(len_v)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        JS_FreeValue(ctx, off_v);
-        JS_FreeValue(ctx, len_v);
-        JS_FreeValue(ctx, buf);
-        return FALSE;
-    }
-    gboolean ok = JS_IsNumber(off_v) && JS_IsNumber(len_v);
-    uint64_t byte_off = 0, byte_len = 0;
-    if (ok && (JS_ToIndex(ctx, &byte_off, off_v) < 0 ||
-               JS_ToIndex(ctx, &byte_len, len_v) < 0)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        ok = FALSE;
-    }
-    JS_FreeValue(ctx, off_v);
-    JS_FreeValue(ctx, len_v);
-    if (!ok) {
-        JS_FreeValue(ctx, buf);
-        return FALSE;
-    }
-
-    size_t total = 0;
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-    if (!base || byte_off > total || byte_len > total - byte_off) {
-        JS_FreeValue(ctx, buf);
-        return FALSE;
-    }
-    if (out_data) *out_data = base + byte_off;
-    if (out_len) *out_len = (size_t)byte_len;
-    if (out_holder) *out_holder = buf;
-    else JS_FreeValue(ctx, buf);
-    return TRUE;
-}
-
 /* NUL-terminated copy of a byte range, refusing bodies over NS_JS_BODY_BYTES_MAX. */
 static char *
 ns_js_copy_bytes(const uint8_t *data, gsize len)
@@ -964,7 +895,7 @@ ns_js_body_bytes(JSContext *ctx, JSValueConst value, gsize *out_len)
     const uint8_t *data = NULL;
     size_t len = 0;
     JSValue holder = JS_UNDEFINED;
-    if (ns_js_bytes_view(ctx, value, &data, &len, &holder)) {
+    if (ns_js_buffer_source_bytes(ctx, value, &data, &len, &holder) && data) {
         char *copy = ns_js_copy_bytes(data, (gsize)len);
         JS_FreeValue(ctx, holder);
         if (copy && out_len) *out_len = (gsize)len;
@@ -10181,7 +10112,7 @@ ns_fontface_source_url(JSContext *ctx, JSValueConst src)
     const uint8_t *data = NULL;
     size_t len = 0;
     JSValue holder = JS_UNDEFINED;
-    if (ns_js_bytes_view(ctx, src, &data, &len, &holder)) {
+    if (ns_js_buffer_source_bytes(ctx, src, &data, &len, &holder)) {
         char *url = NULL;
         if (data && len > 0) {
             char *b64 = g_base64_encode(data, len);
@@ -10372,23 +10303,18 @@ ns_cam_request(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     return JS_NewString(ctx, "pending");
 }
 
-/* Borrows the bytes of a typed array argument. */
+/* Borrows the bytes of a typed array argument (the array keeps them alive). */
 static gboolean
 ns_audio_u8_buffer(JSContext *ctx, JSValueConst arg, uint8_t **data, size_t *len)
 {
     *data = NULL; *len = 0;
-    size_t byte_off = 0, byte_len = 0, bpe = 0;
-    JSValue buf = JS_GetTypedArrayBuffer(ctx, arg, &byte_off, &byte_len, &bpe);
-    if (JS_IsException(buf)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        return FALSE;
-    }
-    size_t total = 0;
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-    if (!base) JS_FreeValue(ctx, JS_GetException(ctx));
-    if (base && byte_off + byte_len <= total) { *data = base + byte_off; *len = byte_len; }
-    JS_FreeValue(ctx, buf);
-    return *data != NULL;
+    if (JS_GetTypedArrayType(arg) < 0) return FALSE;
+    const uint8_t *bytes = NULL;
+    JSValue hold = JS_UNDEFINED;
+    ns_js_buffer_source_bytes(ctx, arg, &bytes, len, &hold);
+    JS_FreeValue(ctx, hold);
+    *data = (uint8_t *)bytes;
+    return bytes != NULL;
 }
 
 /* AnalyserNode.getByteTimeDomainData() stub filling silence (128). */
@@ -20806,23 +20732,14 @@ ns_attach_body_consumers(JSContext *ctx, JSValueConst obj)
 static JSValue
 ns_body_extract_buffer(JSContext *ctx, JSValueConst body)
 {
-    size_t off = 0, len = 0, bpe = 0;
-    JSValue view_buf = JS_GetTypedArrayBuffer(ctx, body, &off, &len, &bpe);
-    if (!JS_IsException(view_buf)) {
-        size_t total = 0;
-        uint8_t *base = JS_GetArrayBuffer(ctx, &total, view_buf);
-        JSValue out = (base && off + len <= total)
-            ? JS_NewArrayBufferCopy(ctx, base + off, len) : JS_UNDEFINED;
-        JS_FreeValue(ctx, view_buf);
-        return out;
-    }
-    JS_FreeValue(ctx, JS_GetException(ctx));
-    size_t total = 0;
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, body);
-    if (base)
-        return JS_NewArrayBufferCopy(ctx, base, total);
-    JS_FreeValue(ctx, JS_GetException(ctx));
-    return JS_UNDEFINED;
+    const uint8_t *data = NULL;
+    size_t len = 0;
+    JSValue hold = JS_UNDEFINED;
+    if (!ns_js_buffer_source_bytes(ctx, body, &data, &len, &hold) || !data)
+        return JS_UNDEFINED;
+    JSValue out = JS_NewArrayBufferCopy(ctx, data, len);
+    JS_FreeValue(ctx, hold);
+    return out;
 }
 
 static void
@@ -21673,26 +21590,14 @@ ns_js_ws_send(JSContext *ctx, JSValueConst this_val,
             "WebSocket.send: still in CONNECTING state");
     if (cur != NS_WS_STATE_OPEN) return JS_UNDEFINED;
 
+    const uint8_t *bdata = NULL;
     size_t bsize = 0;
-    uint8_t *bdata = JS_GetArrayBuffer(ctx, &bsize, argv[0]);
-    if (bdata) {
-        ns_ws_send_binary(s->ws, bdata, bsize);
+    JSValue hold = JS_UNDEFINED;
+    if (ns_js_buffer_source_bytes(ctx, argv[0], &bdata, &bsize, &hold)) {
+        if (bdata) ns_ws_send_binary(s->ws, bdata, bsize);
+        JS_FreeValue(ctx, hold);
         return JS_UNDEFINED;
     }
-    JS_FreeValue(ctx, JS_GetException(ctx));
-
-    size_t byte_offset = 0, byte_len = 0, bytes_per = 0;
-    JSValue arrbuf = JS_GetTypedArrayBuffer(ctx, argv[0],
-                                            &byte_offset, &byte_len, &bytes_per);
-    if (!JS_IsException(arrbuf)) {
-        bdata = JS_GetArrayBuffer(ctx, &bsize, arrbuf);
-        if (bdata && byte_offset + byte_len <= bsize)
-            ns_ws_send_binary(s->ws, bdata + byte_offset, byte_len);
-        JS_FreeValue(ctx, arrbuf);
-        return JS_UNDEFINED;
-    }
-    JSValue ex = JS_GetException(ctx);
-    JS_FreeValue(ctx, ex);
 
     if (JS_IsObject(argv[0])) {
         JSValue b = JS_GetPropertyStr(ctx, argv[0], "_b");
@@ -23596,20 +23501,15 @@ ns_sw_fetch_result(JSContext *ctx, JSValueConst this_val,
             res->raw_headers = g_string_free(raw, FALSE);
         }
         if (argc > 5 && JS_IsObject(argv[5])) {
-            size_t off = 0, len = 0, bpe = 0;
-            JSValue buf = JS_GetTypedArrayBuffer(ctx, argv[5], &off, &len, &bpe);
-            if (!JS_IsException(buf)) {
-                size_t total = 0;
-                uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-                if (base && off + len <= total && len > 0) {
-                    res->body = g_malloc(len);
-                    memcpy(res->body, base + off, len);
-                    res->body_len = len;
-                }
-                JS_FreeValue(ctx, buf);
-            } else {
-                JS_FreeValue(ctx, JS_GetException(ctx));
+            const uint8_t *data = NULL;
+            size_t len = 0;
+            JSValue hold = JS_UNDEFINED;
+            if (ns_js_buffer_source_bytes(ctx, argv[5], &data, &len, &hold) &&
+                data && len > 0) {
+                res->body = g_memdup2(data, len);
+                res->body_len = len;
             }
+            JS_FreeValue(ctx, hold);
         }
     } else if (res->outcome == 2) {
         if (argc > 2 && JS_IsString(argv[2])) {
@@ -50556,24 +50456,22 @@ ns_zlib_push(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv
     (void)this_val;
     if (argc < 2)
         return JS_ThrowTypeError(ctx, "zlib push: codec and data required");
+    /* Bytes first: resolving a DataView can run page script. */
+    const uint8_t *data = NULL;
+    size_t len = 0;
+    JSValue hold = JS_UNDEFINED;
+    if (!ns_js_buffer_source_bytes(ctx, argv[1], &data, &len, &hold))
+        return JS_ThrowTypeError(ctx, "zlib push: ArrayBufferView expected");
     ns_zlib_codec *c = ns_zlib_unwrap(argv[0]);
-    if (!c) return JS_ThrowTypeError(ctx, "zlib push: invalid codec");
-
-    size_t off = 0, len = 0, bpe = 0;
-    JSValue buf = JS_GetTypedArrayBuffer(ctx, argv[1], &off, &len, &bpe);
-    if (JS_IsException(buf)) {
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        size_t total = 0;
-        uint8_t *base = JS_GetArrayBuffer(ctx, &total, argv[1]);
-        if (!base) return JS_ThrowTypeError(ctx, "zlib push: ArrayBufferView expected");
-        return ns_zlib_run(ctx, c, base, total, FALSE);
-    }
-    size_t total = 0;
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-    JS_FreeValue(ctx, buf);
-    if (!base || off + len > total)
-        return JS_ThrowInternalError(ctx, "zlib push: backing buffer unavailable");
-    return ns_zlib_run(ctx, c, base + off, len, FALSE);
+    JSValue out;
+    if (!c)
+        out = JS_ThrowTypeError(ctx, "zlib push: invalid codec");
+    else if (!data)
+        out = JS_ThrowInternalError(ctx, "zlib push: backing buffer unavailable");
+    else
+        out = ns_zlib_run(ctx, c, data, len, FALSE);
+    JS_FreeValue(ctx, hold);
+    return out;
 }
 
 /* Flushes a codec with Z_FINISH and returns the remaining output. */

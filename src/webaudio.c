@@ -62,16 +62,15 @@ static float *
 ns_wa_float32(JSContext *ctx, JSValueConst arr, uint32_t *count)
 {
     *count = 0;
-    if (!JS_IsObject(arr)) return NULL;
-    size_t off = 0, blen = 0, bpe = 0, total = 0;
-    JSValue buf = JS_GetTypedArrayBuffer(ctx, arr, &off, &blen, &bpe);
-    if (JS_IsException(buf)) { JS_FreeValue(ctx, JS_GetException(ctx)); return NULL; }
-    uint8_t *base = JS_GetArrayBuffer(ctx, &total, buf);
-    JS_FreeValue(ctx, buf);
-    if (!base || bpe != sizeof(float) || off + blen > total) return NULL;
-    if ((off % sizeof(float)) != 0) return NULL;
-    *count = (uint32_t)(blen / sizeof(float));
-    return (float *)(void *)(base + off);
+    if (JS_GetTypedArrayType(arr) != JS_TYPED_ARRAY_FLOAT32) return NULL;
+    const uint8_t *data = NULL;
+    size_t len = 0;
+    JSValue hold = JS_UNDEFINED;
+    ns_js_buffer_source_bytes(ctx, arr, &data, &len, &hold);
+    JS_FreeValue(ctx, hold);
+    if (!data || ((uintptr_t)data % _Alignof(float)) != 0) return NULL;
+    *count = (uint32_t)MIN(len / sizeof(float), (size_t)G_MAXUINT32);
+    return (float *)(void *)data;
 }
 
 /* Converts a source node's start/stop times into a frame range within the render. */

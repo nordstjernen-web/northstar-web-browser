@@ -23,6 +23,9 @@ int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
                           size_t byte_length);
 
 JSClassID ns_new_class_id(JSClassID *pclass_id);
+bool ns_js_buffer_source_bytes(JSContext *ctx, JSValueConst v,
+                               const uint8_t **data, size_t *len,
+                               JSValue *hold);
 
 JSValue ns_js_compile_without_source(JSContext *ctx, const char *input, size_t input_len,
                                      const char *filename);

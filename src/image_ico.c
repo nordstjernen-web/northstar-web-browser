@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include "bytes.h"
 #include "image.h"
 
 #include <string.h>
@@ -12,26 +13,6 @@ enum {
     NS_ICO_MAX_DIM     = 1024,
     NS_ICO_MAX_BMP     = 64 * 1024 * 1024,
 };
-
-static guint16
-read_u16(const guchar *p)
-{
-    return (guint16)((guint16)p[0] | ((guint16)p[1] << 8));
-}
-
-static guint32
-read_u32(const guchar *p)
-{
-    return (guint32)p[0] | ((guint32)p[1] << 8) |
-           ((guint32)p[2] << 16) | ((guint32)p[3] << 24);
-}
-
-static void
-write_u32(guint8 *p, guint32 v)
-{
-    p[0] = (guint8)v; p[1] = (guint8)(v >> 8);
-    p[2] = (guint8)(v >> 16); p[3] = (guint8)(v >> 24);
-}
 
 static gboolean
 is_png(const guchar *d, gsize len)
@@ -45,12 +26,12 @@ static ns_texture *
 decode_dib_entry(const guchar *p, gsize len, int *out_w, int *out_h)
 {
     if (len < 40) return NULL;
-    guint32 hdr = read_u32(p);
+    guint32 hdr = ns_get_le32(p);
     if (hdr < 40 || hdr > len) return NULL;
-    gint32 bw = (gint32)read_u32(p + 4);
-    gint32 bh = (gint32)read_u32(p + 8);
-    guint16 bitcount = read_u16(p + 14);
-    guint32 compression = read_u32(p + 16);
+    gint32 bw = (gint32)ns_get_le32(p + 4);
+    gint32 bh = (gint32)ns_get_le32(p + 8);
+    guint16 bitcount = ns_get_le16(p + 14);
+    guint32 compression = ns_get_le32(p + 16);
     if (bw <= 0 || bh <= 0 || (bh & 1)) return NULL;
     if (bw > NS_ICO_MAX_DIM || bh > 2 * NS_ICO_MAX_DIM) return NULL;
     if (compression != 0) return NULL;
@@ -60,7 +41,7 @@ decode_dib_entry(const guchar *p, gsize len, int *out_w, int *out_h)
     guint32 w = (guint32)bw;
     guint32 real_h = (guint32)bh / 2;
 
-    guint32 clr_used = read_u32(p + 32);
+    guint32 clr_used = ns_get_le32(p + 32);
     guint32 pal_count = bitcount <= 8
         ? (clr_used ? clr_used : (1u << bitcount)) : 0;
     if (pal_count > 256) return NULL;
@@ -79,12 +60,12 @@ decode_dib_entry(const guchar *p, gsize len, int *out_w, int *out_h)
     guint8 *bmp = g_try_malloc((gsize)bmp_len);
     if (!bmp) return NULL;
     bmp[0] = 'B'; bmp[1] = 'M';
-    write_u32(bmp + 2, (guint32)bmp_len);
-    write_u32(bmp + 6, 0);
-    write_u32(bmp + 10, data_off);
+    ns_put_le32(bmp + 2, (guint32)bmp_len);
+    ns_put_le32(bmp + 6, 0);
+    ns_put_le32(bmp + 10, data_off);
     memcpy(bmp + 14, p, (gsize)hdr + pal_bytes);
-    write_u32(bmp + 14 + 8, real_h);
-    write_u32(bmp + 14 + 20, 0);
+    ns_put_le32(bmp + 14 + 8, real_h);
+    ns_put_le32(bmp + 14 + 20, 0);
     memcpy(bmp + data_off, p + pixel_off, (gsize)xor_size);
 
     int dw = 0, dh = 0;
@@ -127,10 +108,10 @@ ns_texture *
 ns_image_decode_ico(const guchar *data, gsize len, int *out_w, int *out_h)
 {
     if (!data || len < 6) return NULL;
-    if (read_u16(data) != 0) return NULL;
-    guint16 type = read_u16(data + 2);
+    if (ns_get_le16(data) != 0) return NULL;
+    guint16 type = ns_get_le16(data + 2);
     if (type != 1 && type != 2) return NULL;
-    guint16 count = read_u16(data + 4);
+    guint16 count = ns_get_le16(data + 4);
     if (count == 0 || count > NS_ICO_MAX_ENTRIES) return NULL;
     if (6 + (gsize)count * 16 > len) return NULL;
 
@@ -141,9 +122,9 @@ ns_image_decode_ico(const guchar *data, gsize len, int *out_w, int *out_h)
         const guchar *e = data + 6 + (gsize)i * 16;
         guint32 ew = e[0] ? e[0] : 256;
         guint32 eh = e[1] ? e[1] : 256;
-        guint16 bits = read_u16(e + 6);
-        guint32 size = read_u32(e + 8);
-        guint32 off = read_u32(e + 12);
+        guint16 bits = ns_get_le16(e + 6);
+        guint32 size = ns_get_le32(e + 8);
+        guint32 off = ns_get_le32(e + 12);
         if (size == 0 || (guint64)off + size > len) continue;
         guint64 px = (guint64)ew * eh;
         if (best < 0 || px > best_px || (px == best_px && bits > best_bits)) {
@@ -155,8 +136,8 @@ ns_image_decode_ico(const guchar *data, gsize len, int *out_w, int *out_h)
     if (best < 0) return NULL;
 
     const guchar *e = data + 6 + (gsize)best * 16;
-    guint32 size = read_u32(e + 8);
-    guint32 off = read_u32(e + 12);
+    guint32 size = ns_get_le32(e + 8);
+    guint32 off = ns_get_le32(e + 12);
     const guchar *payload = data + off;
 
     if (is_png(payload, size))

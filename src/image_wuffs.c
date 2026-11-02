@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include "bytes.h"
 #include "image.h"
 
 #include <stdlib.h>
@@ -47,13 +48,6 @@ ns_wuffs_detect(const guchar *data, gsize len)
     return NS_WUFFS_NONE;
 }
 
-static guint32
-ns_riff_u32le(const guchar *p)
-{
-    return (guint32)p[0] | ((guint32)p[1] << 8) |
-           ((guint32)p[2] << 16) | ((guint32)p[3] << 24);
-}
-
 typedef struct ns_webp_chunks {
     const guchar *alpha;
     gsize         alpha_len;
@@ -75,7 +69,7 @@ ns_webp_find_chunks(const guchar *data, gsize len, ns_webp_chunks *out)
 {
     enum { NS_WEBP_ANMF_HEADER = 16 };
     if (len < 12 + 8) return FALSE;
-    gsize riff_len = (gsize)ns_riff_u32le(data + 4) + 8;
+    gsize riff_len = (gsize)ns_get_le32(data + 4) + 8;
     if (riff_len > len) riff_len = len;
 
     memset(out, 0, sizeof *out);
@@ -83,7 +77,7 @@ ns_webp_find_chunks(const guchar *data, gsize len, ns_webp_chunks *out)
     gsize pos = 12;
     while (pos + 8 <= riff_len) {
         const guchar *tag = data + pos;
-        gsize size = ns_riff_u32le(data + pos + 4);
+        gsize size = ns_get_le32(data + pos + 4);
         gsize payload = pos + 8;
         if (size > riff_len - payload) break;
 
@@ -101,7 +95,7 @@ ns_webp_find_chunks(const guchar *data, gsize len, ns_webp_chunks *out)
             gsize sub_end = payload + size;
             while (sub + 8 <= sub_end) {
                 const guchar *stag = data + sub;
-                gsize ssize = ns_riff_u32le(data + sub + 4);
+                gsize ssize = ns_get_le32(data + sub + 4);
                 gsize spayload = sub + 8;
                 if (ssize > sub_end - spayload) break;
                 if (memcmp(stag, "ALPH", 4) == 0) {

@@ -5,6 +5,7 @@
  */
 
 #include "font.h"
+#include "bytes.h"
 
 #include <gio/gio.h>
 #include "ns_pango.h"
@@ -210,15 +211,6 @@ ns_font_bytes_are_woff(const guint8 *d, gsize len)
            (d[3] == 'F' || d[3] == '2');
 }
 
-static void
-ns_put_be16(guint8 *p, guint16 v) { p[0] = v >> 8; p[1] = (guint8)v; }
-
-static void
-ns_put_be32(guint8 *p, guint32 v)
-{
-    p[0] = v >> 24; p[1] = v >> 16; p[2] = v >> 8; p[3] = (guint8)v;
-}
-
 /* Decodes WOFF/WOFF2 via FreeType and rebuilds a plain sfnt; caller frees. */
 static guint8 *
 ns_font_woff_to_sfnt(const guint8 *data, gsize len, gsize *out_len,
@@ -298,8 +290,7 @@ ns_font_woff_to_sfnt(const guint8 *data, gsize len, gsize *out_len,
                 gsize padded = (tabs[i].len + 3) & ~(gsize)3;
                 for (gsize k = 0; k < padded; k += 4) {
                     const guint8 *q = buf + tabs[i].off + k;
-                    sum += ((guint32)q[0] << 24) | ((guint32)q[1] << 16) |
-                           ((guint32)q[2] << 8) | q[3];
+                    sum += ns_get_be32(q);
                 }
                 guint8 *dir = buf + 12 + (gsize)i * 16;
                 ns_put_be32(dir, tabs[i].tag);

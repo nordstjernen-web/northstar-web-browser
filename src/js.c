@@ -13177,6 +13177,8 @@ typedef struct { void *orig; JSValue clone; } ns_sc_pair;
 typedef struct {
     JSContext *ctx;
     GArray    *memo;
+    GHashTable *memo_index;     /* original ptr -> memo index + 1 */
+    GHashTable *port_index;     /* transfer_ports ptr -> index + 1 */
     GPtrArray *transfer_ports;
     gboolean   ports_by_identity;
     const JSValue *port_subst;  /* per transfer_ports entry, or NULL */
@@ -13325,11 +13327,9 @@ ns_sc_copy_array_buffer(ns_sc *s, JSValueConst src)
 static JSValue
 ns_sc_memo_get(ns_sc *s, void *ptr)
 {
-    for (guint i = 0; i < s->memo->len; i++) {
-        ns_sc_pair *p = &g_array_index(s->memo, ns_sc_pair, i);
-        if (p->orig == ptr) return JS_DupValue(s->ctx, p->clone);
-    }
-    return JS_UNDEFINED;
+    guint i = GPOINTER_TO_UINT(g_hash_table_lookup(s->memo_index, ptr));
+    if (!i) return JS_UNDEFINED;
+    return JS_DupValue(s->ctx, g_array_index(s->memo, ns_sc_pair, i - 1).clone);
 }
 
 /* Records an object's clone in the structured-clone memory. */
@@ -13338,6 +13338,9 @@ ns_sc_memo_put(ns_sc *s, void *ptr, JSValueConst clone)
 {
     ns_sc_pair p = { ptr, JS_DupValue(s->ctx, clone) };
     g_array_append_val(s->memo, p);
+    if (!g_hash_table_contains(s->memo_index, ptr))
+        g_hash_table_insert(s->memo_index, ptr,
+                            GUINT_TO_POINTER(s->memo->len));
 }
 
 /* Clones Map entries or Set values via iteration into the target. */
@@ -13401,23 +13404,23 @@ ns_sc_clone_value(ns_sc *s, JSValueConst v)
     JSValue memo = ns_sc_memo_get(s, ptr);
     if (!JS_IsUndefined(memo)) return memo;
 
-    if (s->transfer_ports) {
-        for (guint i = 0; i < s->transfer_ports->len; i++) {
-            if (g_ptr_array_index(s->transfer_ports, i) != ptr) continue;
-            if (s->port_subst) {
-                ns_sc_memo_put(s, ptr, s->port_subst[i]);
-                return JS_DupValue(ctx, s->port_subst[i]);
-            }
-            if (s->ports_by_identity) {
-                ns_sc_memo_put(s, ptr, v);
-                return JS_DupValue(ctx, v);
-            }
-            JSValue marker = JS_NewObject(ctx);
-            JS_SetPropertyStr(ctx, marker, NS_SC_TRANSFERRED_PORT,
-                              JS_NewUint32(ctx, i));
-            ns_sc_memo_put(s, ptr, marker);
-            return marker;
+    guint port_slot = s->port_index
+        ? GPOINTER_TO_UINT(g_hash_table_lookup(s->port_index, ptr)) : 0;
+    if (port_slot) {
+        guint i = port_slot - 1;
+        if (s->port_subst) {
+            ns_sc_memo_put(s, ptr, s->port_subst[i]);
+            return JS_DupValue(ctx, s->port_subst[i]);
         }
+        if (s->ports_by_identity) {
+            ns_sc_memo_put(s, ptr, v);
+            return JS_DupValue(ctx, v);
+        }
+        JSValue marker = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, marker, NS_SC_TRANSFERRED_PORT,
+                          JS_NewUint32(ctx, i));
+        ns_sc_memo_put(s, ptr, marker);
+        return marker;
     }
 
     if (JS_IsArrayBuffer(v)) {
@@ -13718,6 +13721,16 @@ ns_sc_run_subst(JSContext *ctx, JSValueConst value, GPtrArray *transfer_ports,
     ns_sc s;
     s.ctx = ctx;
     s.memo = g_array_new(FALSE, FALSE, sizeof(ns_sc_pair));
+    s.memo_index = g_hash_table_new(NULL, NULL);
+    s.port_index = NULL;
+    if (transfer_ports && transfer_ports->len) {
+        s.port_index = g_hash_table_new(NULL, NULL);
+        for (guint i = 0; i < transfer_ports->len; i++) {
+            gpointer tp = g_ptr_array_index(transfer_ports, i);
+            if (!g_hash_table_contains(s.port_index, tp))
+                g_hash_table_insert(s.port_index, tp, GUINT_TO_POINTER(i + 1));
+        }
+    }
     s.transfer_ports = transfer_ports;
     s.ports_by_identity = ports_by_identity;
     s.port_subst = port_subst;
@@ -13743,6 +13756,8 @@ ns_sc_run_subst(JSContext *ctx, JSValueConst value, GPtrArray *transfer_ports,
     for (guint i = 0; i < s.memo->len; i++)
         JS_FreeValue(ctx, g_array_index(s.memo, ns_sc_pair, i).clone);
     g_array_free(s.memo, TRUE);
+    g_hash_table_destroy(s.memo_index);
+    if (s.port_index) g_hash_table_destroy(s.port_index);
     JS_FreeValue(ctx, s.date_ctor);
     JS_FreeValue(ctx, s.regexp_ctor);
     JS_FreeValue(ctx, s.map_ctor);
@@ -13803,7 +13818,7 @@ ns_window_structured_clone(JSContext *ctx, JSValueConst this_val,
     }
     uint32_t len = JS_IsArray(transfer) ? ns_js_array_length(ctx, transfer) : 0;
     GPtrArray *ports = g_ptr_array_new();
-    GPtrArray *seen = g_ptr_array_new();
+    GHashTable *seen = g_hash_table_new(NULL, NULL);
     GArray *buffers = g_array_new(FALSE, FALSE, sizeof(JSValue));
     JSValue res = JS_UNDEFINED;
     for (uint32_t i = 0; i < len && JS_IsUndefined(res); i++) {
@@ -13815,8 +13830,7 @@ ns_window_structured_clone(JSContext *ctx, JSValueConst this_val,
             break;
         }
         void *ptr = JS_VALUE_GET_PTR(item);
-        gboolean ok = !g_ptr_array_find(seen, ptr, NULL);
-        g_ptr_array_add(seen, ptr);
+        gboolean ok = g_hash_table_add(seen, ptr);
         if (ok && JS_IsArrayBuffer(item) &&
             !ns_sc_buffer_detached(ctx, item)) {
             g_array_append_val(buffers, item);
@@ -13840,7 +13854,7 @@ ns_window_structured_clone(JSContext *ctx, JSValueConst this_val,
     for (guint i = 0; i < buffers->len; i++)
         JS_FreeValue(ctx, g_array_index(buffers, JSValue, i));
     g_array_free(buffers, TRUE);
-    g_ptr_array_free(seen, TRUE);
+    g_hash_table_destroy(seen);
     g_ptr_array_free(ports, TRUE);
     return res;
 }
@@ -22277,6 +22291,9 @@ ns_worker_walk_transfers(JSContext *ctx, int argc, JSValueConst *argv,
     }
     uint32_t len = ns_js_array_length(ctx, transfer);
     gboolean all_ok = TRUE;
+    GHashTable *port_seen = transfer_ports ? g_hash_table_new(NULL, NULL) : NULL;
+    for (guint i = 0; port_seen && i < transfer_ports->len; i++)
+        g_hash_table_add(port_seen, g_ptr_array_index(transfer_ports, i));
     for (uint32_t i = 0; i < len; i++) {
         JSValue item = JS_GetPropertyUint32(ctx, transfer, i);
         if (JS_IsArrayBuffer(item)) {
@@ -22290,7 +22307,7 @@ ns_worker_walk_transfers(JSContext *ctx, int argc, JSValueConst *argv,
                 ns_worker_transfer_port(ctx, item, pair, msg, bridge_worker);
             } else if (transfer_ports) {
                 void *ptr = JS_VALUE_GET_PTR(item);
-                if (g_ptr_array_find(transfer_ports, ptr, NULL)) {
+                if (!g_hash_table_add(port_seen, ptr)) {
                     all_ok = FALSE;
                     if (has_nontransferable) *has_nontransferable = TRUE;
                 } else {
@@ -22304,6 +22321,7 @@ ns_worker_walk_transfers(JSContext *ctx, int argc, JSValueConst *argv,
         }
         JS_FreeValue(ctx, item);
     }
+    if (port_seen) g_hash_table_destroy(port_seen);
     JS_FreeValue(ctx, transfer);
     return all_ok;
 }

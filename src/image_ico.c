@@ -78,7 +78,36 @@ decode_dib_entry(const guchar *p, gsize len, int *out_w, int *out_h)
     guint64 and_row  = (((guint64)w + 31) / 32) * 4;
     guint64 and_off  = pixel_off + xor_size;
     guint64 and_size = and_row * real_h;
-    if (dw == (int)w && dh == (int)real_h && and_off + and_size <= len) {
+    gboolean same_size = dw == (int)w && dh == (int)real_h;
+
+    /* A 32-bpp entry carries per-pixel alpha in its fourth byte, which the
+     * BMP decoder treats as unused padding.  When any alpha byte is set,
+     * take the pixels straight from the (bottom-up) XOR bitmap with that
+     * alpha, premultiplied, and ignore the AND mask, as Windows does; an
+     * all-zero alpha channel means an old-style icon that relies on the
+     * mask. */
+    gboolean has_alpha = FALSE;
+    if (bitcount == 32 && same_size) {
+        const guchar *xor = p + pixel_off;
+        for (guint64 i = 3; i < xor_size && !has_alpha; i += 4)
+            has_alpha = xor[i] != 0;
+    }
+    if (has_alpha) {
+        for (int y = 0; y < dh; y++) {
+            const guchar *srow =
+                p + pixel_off + (guint64)(real_h - 1 - (guint32)y) * xor_row;
+            guint8 *prow = pix + (gsize)y * stride;
+            for (int x = 0; x < dw; x++) {
+                const guchar *s = srow + (gsize)x * 4;
+                guint8 *px = prow + (gsize)x * 4;
+                guint a = s[3];
+                px[0] = (guint8)((s[0] * a + 127) / 255);
+                px[1] = (guint8)((s[1] * a + 127) / 255);
+                px[2] = (guint8)((s[2] * a + 127) / 255);
+                px[3] = (guint8)a;
+            }
+        }
+    } else if (same_size && and_off + and_size <= len) {
         for (int y = 0; y < dh; y++) {
             const guchar *mrow =
                 p + and_off + (guint64)(real_h - 1 - (guint32)y) * and_row;

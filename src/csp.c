@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "net.h"
+#include "security.h"
 
 typedef struct {
     GPtrArray *sources[NS_CSP_KIND_COUNT];
@@ -501,24 +502,7 @@ hash_token_matches(const char *src, const char *body, gsize body_len)
     else return FALSE;
     gsize b64_len = strlen(b64);
     if (b64_len < 2 || b64[b64_len - 1] != '\'') return FALSE;
-    char *want = g_strndup(b64, b64_len - 1);
-    GChecksum *cs = g_checksum_new(type);
-    g_checksum_update(cs, (const guchar *)body, (gssize)body_len);
-    guint8 raw[64];
-    gsize  raw_len = sizeof raw;
-    g_checksum_get_digest(cs, raw, &raw_len);
-    char *got = g_base64_encode(raw, raw_len);
-    char *got_alt = g_strdup(got);
-    for (char *p = got_alt; *p; p++) {
-        if (*p == '+') *p = '-';
-        else if (*p == '/') *p = '_';
-    }
-    gboolean ok = strcmp(want, got) == 0 || strcmp(want, got_alt) == 0;
-    g_free(got);
-    g_free(got_alt);
-    g_free(want);
-    g_checksum_free(cs);
-    return ok;
+    return ns_digest_b64_matches(type, b64, b64_len - 1, body, body_len, TRUE);
 }
 
 /* Checks an inline script against one policy via nonce, hash or 'unsafe-inline'. */

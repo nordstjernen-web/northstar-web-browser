@@ -201,11 +201,12 @@ ns_security_csprng_fill(void *buf, gsize len)
 #endif
 }
 
-/* Returns TRUE if the base64 digest of body under type equals want_b64. */
-static gboolean
-ns_sri_digest_equal_b64(GChecksumType type,
-                        const char *want_b64, gsize want_len,
-                        const void *body, gsize body_len)
+/* TRUE if the base64 digest of body under type equals want_b64 (want_len
+ * bytes, not NUL-terminated).  With allow_b64url the base64url alphabet
+ * ('-' and '_') is accepted as well, as CSP hash sources allow. */
+gboolean
+ns_digest_b64_matches(GChecksumType type, const char *want_b64, gsize want_len,
+                      const void *body, gsize body_len, gboolean allow_b64url)
 {
     GChecksum *cs = g_checksum_new(type);
     g_checksum_update(cs, (const guchar *)body, (gssize)body_len);
@@ -214,10 +215,15 @@ ns_sri_digest_equal_b64(GChecksumType type,
     g_checksum_get_digest(cs, raw, &raw_len);
     g_checksum_free(cs);
     g_autofree char *got = g_base64_encode(raw, raw_len);
-    if (!got) return FALSE;
-    gsize got_len = strlen(got);
-    if (got_len != want_len) return FALSE;
-    return memcmp(got, want_b64, want_len) == 0;
+    if (!got || strlen(got) != want_len) return FALSE;
+    for (gsize i = 0; i < want_len; i++) {
+        char w = want_b64[i], g = got[i];
+        if (w == g) continue;
+        if (allow_b64url && ((g == '+' && w == '-') || (g == '/' && w == '_')))
+            continue;
+        return FALSE;
+    }
+    return TRUE;
 }
 
 /* Subresource Integrity check: body must match a digest of the strongest listed algorithm. */
@@ -251,7 +257,7 @@ ns_security_sri_check(const char *integrity_attr,
         const char *qmark = strchr(b64, '?');
         gsize b64_len = qmark ? (gsize)(qmark - b64) : strlen(b64);
         if (b64_len == 0) continue;
-        if (ns_sri_digest_equal_b64(ctype, b64, b64_len, body, body_len))
+        if (ns_digest_b64_matches(ctype, b64, b64_len, body, body_len, FALSE))
             return TRUE;
     }
     return FALSE;

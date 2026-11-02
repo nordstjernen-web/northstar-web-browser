@@ -1008,13 +1008,22 @@ ns_url_origin_from(const char *url)
     return out;
 }
 
+/* TRUE if two serialized origins are the same origin.  An opaque origin
+ * ("null") is never the same as anything, not even another "null". */
+gboolean
+ns_origin_equal(const char *a, const char *b)
+{
+    return a && b && *a && *b && strcmp(a, "null") != 0 &&
+           g_ascii_strcasecmp(a, b) == 0;
+}
+
 /* TRUE if both URLs have equal non-null http(s) origins. */
 gboolean
 ns_url_same_origin(const char *a, const char *b)
 {
     char *oa = ns_url_origin_from(a);
     char *ob = ns_url_origin_from(b);
-    gboolean eq = oa && *oa && ob && *ob && g_ascii_strcasecmp(oa, ob) == 0;
+    gboolean eq = ns_origin_equal(oa, ob);
     g_free(oa);
     g_free(ob);
     return eq;
@@ -6995,7 +7004,7 @@ ns_net_blob_origin_allowed(const char *url, const char *top_url)
     g_autofree char *top_origin = ns_url_origin_from(top_url);
     /* Neither is a web origin (e.g. a file: page and its own blobs). */
     if (!blob_origin && !top_origin) return TRUE;
-    return blob_origin && top_origin && strcmp(blob_origin, top_origin) == 0;
+    return ns_origin_equal(blob_origin, top_origin);
 }
 
 /* Resolves a blob: URL only if the requesting document shares its origin. */

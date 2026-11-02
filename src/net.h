@@ -171,6 +171,7 @@ char *ns_net_log_dump(void);
 char *ns_url_host_from(const char *url);
 char *ns_url_origin_from(const char *url);
 char *ns_url_site_from(const char *url);
+gboolean ns_origin_equal(const char *a, const char *b);
 gboolean ns_url_same_origin(const char *a, const char *b);
 gboolean ns_url_is_http_or_https(const char *url);
 gboolean ns_url_host_is_loopback(const char *host);

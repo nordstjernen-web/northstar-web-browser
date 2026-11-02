@@ -3232,7 +3232,7 @@ ns_storage_frame_is_origin(const ns_node *frame, const char *origin)
     if (ns_element_get_attr(frame, "data-nd-frame-opaque")) return FALSE;
     const char *fu = ns_element_get_attr(frame, "data-nd-frame-url");
     g_autofree char *fo = fu ? ns_url_origin_from(fu) : NULL;
-    return fo && g_ascii_strcasecmp(fo, origin) == 0;
+    return ns_origin_equal(fo, origin);
 }
 
 /* Walks subframes delivering a per-realm storage event to same-origin non-source frames. */
@@ -8882,8 +8882,7 @@ cors_allows(const char *doc_url, const char *resp_url, const char *cors_header)
         ok = TRUE;
     } else if (*trimmed) {
         char *doc_origin = ns_url_origin_from(doc_url);
-        if (doc_origin && *doc_origin &&
-            g_ascii_strcasecmp(trimmed, doc_origin) == 0)
+        if (ns_origin_equal(doc_origin, trimmed))
             ok = TRUE;
         g_free(doc_origin);
     }
@@ -10278,8 +10277,7 @@ ns_cam_caller_may_use(ns_js *js, JSContext *ctx)
         if (ns_element_get_attr(f, "data-nd-frame-opaque")) return FALSE;
         const char *fu = ns_element_get_attr(f, "data-nd-frame-url");
         g_autofree char *fo = fu ? ns_url_origin_from(fu) : NULL;
-        gboolean same = fo && js->document_origin &&
-                        g_ascii_strcasecmp(fo, js->document_origin) == 0;
+        gboolean same = ns_origin_equal(fo, js->document_origin);
         if (!same &&
             !ns_allow_attr_delegates(ns_element_get_attr(f, "allow"), "camera"))
             return FALSE;
@@ -14295,11 +14293,10 @@ ns_history_set_state_impl(JSContext *ctx, int argc, JSValueConst *argv,
     if (new_url) {
         g_autofree char *new_origin  = ns_url_origin_from(new_url);
         g_autofree char *curr_origin = ns_url_origin_from(js->current_url);
-        gboolean same_origin = new_origin && *new_origin &&
-                               curr_origin && *curr_origin &&
-                               strcmp(new_origin, curr_origin) == 0 &&
+        gboolean same_origin = ns_origin_equal(new_origin, curr_origin) &&
                                (!js->document_origin ||
-                                strcmp(new_origin, js->document_origin) == 0);
+                                ns_origin_equal(new_origin,
+                                                js->document_origin));
         if (!same_origin) {
             g_free(new_url);
             JS_FreeValue(ctx, state);
@@ -14753,8 +14750,7 @@ ns_nav_navigate(JSContext *ctx, JSValueConst this_val,
                       ns_url_same_origin(url, js->current_url);
         if (same_origin && js->document_origin) {
             g_autofree char *uo = ns_url_origin_from(url);
-            same_origin = uo &&
-                g_ascii_strcasecmp(uo, js->document_origin) == 0;
+            same_origin = ns_origin_equal(uo, js->document_origin);
         }
     }
 
@@ -45858,7 +45854,7 @@ ns_iframe_is_cross_origin(ns_js *js, const ns_node *iframe)
     gboolean nested = ns_js_node_frame(iframe->parent) != NULL;
     if (!nested && js && js->document_origin) {
         g_autofree char *fo = ns_url_origin_from(frame_url);
-        return !fo || g_ascii_strcasecmp(fo, js->document_origin) != 0;
+        return !ns_origin_equal(fo, js->document_origin);
     }
     return !ns_js_urls_same_origin(frame_url, ns_js_node_doc_base(js, iframe));
 }
@@ -54592,7 +54588,7 @@ ns_document_cookie_caller_allowed(ns_js *js, JSContext *ctx,
     if (caller == main_ctx) return TRUE;
     if (!js->document_origin) return FALSE;
     g_autofree char *co = ns_js_caller_origin(js, ctx);
-    return co && g_ascii_strcasecmp(co, js->document_origin) == 0;
+    return ns_origin_equal(co, js->document_origin);
 }
 
 static const char ns_element_shapes_src[] =
@@ -54974,7 +54970,7 @@ ns_js_current_url_is_main_origin(ns_js *js)
 {
     if (!js->document_origin) return TRUE;
     g_autofree char *cur = ns_url_origin_from(js->current_url);
-    return cur && strcmp(cur, js->document_origin) == 0;
+    return ns_origin_equal(cur, js->document_origin);
 }
 
 /* Refreshes the cached document.cookie string when the cookie jar version changed. */
@@ -60699,7 +60695,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             !ns_js_node_realm_context(js, iframe->parent) &&
             js->document_origin) {
             g_autofree char *io = ns_url_origin_from(iorigin);
-            if (!io || g_ascii_strcasecmp(io, js->document_origin) != 0)
+            if (!ns_origin_equal(io, js->document_origin))
                 sandbox |= NS_FRAME_CROSS_ORIGIN;
         }
         const char *cs = ns_element_get_attr(iframe, "data-nd-frame-charset");

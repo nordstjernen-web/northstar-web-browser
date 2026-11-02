@@ -538,6 +538,13 @@ decode_vorbis(const unsigned char *bytes, size_t n,
         long got = ov_read_float(&vf, &chans, 4096, &bitstream);
         if (got == 0) break;
         if (got < 0) continue;
+        /* A chained stream can change channel count or rate between
+         * links; chans then has the new link's channel count, not ch.
+         * Channels are mapped onto the first link's layout; a rate change
+         * would need resampling, so decoding stops there. */
+        vorbis_info *li = ov_info(&vf, bitstream);
+        if (!li || li->channels < 1 || li->rate != rate) break;
+        int link_ch = li->channels;
         size_t add = (size_t)got * (size_t)ch;
         if (len + add > cap) {
             size_t want = cap ? cap : (size_t)rate * (size_t)ch;
@@ -552,7 +559,9 @@ decode_vorbis(const unsigned char *bytes, size_t n,
         }
         for (long i = 0; i < got; i++)
             for (int c = 0; c < ch; c++)
-                pcm[len + (size_t)i * (size_t)ch + (size_t)c] = chans[c][i];
+                pcm[len + (size_t)i * (size_t)ch + (size_t)c] =
+                    link_ch == 1 ? chans[0][i]
+                    : c < link_ch ? chans[c][i] : 0.0f;
         len += add;
         if (len >= max_floats) break;
     }
@@ -589,9 +598,14 @@ decode_opus(const unsigned char *bytes, size_t n,
     float *pcm = NULL;
     size_t cap = 0, len = 0;
     for (;;) {
-        int got = op_read_float(of, frame, frame_cap, NULL);
+        int link_idx = -1;
+        int got = op_read_float(of, frame, frame_cap, &link_idx);
         if (got == 0) break;
         if (got < 0) { free(frame); free(pcm); op_free(of); return 0; }
+        /* frame holds got samples of the current link's channel count,
+         * which a chained stream can change; map them onto ch. */
+        int link_ch = op_channel_count(of, link_idx);
+        if (link_ch < 1 || link_ch > 8) break;
         size_t add = (size_t)got * (size_t)ch;
         if (len + add > cap) {
             size_t want = cap ? cap : (size_t)rate * (size_t)ch;
@@ -606,7 +620,16 @@ decode_opus(const unsigned char *bytes, size_t n,
             pcm = grown;
             cap = want;
         }
-        memcpy(pcm + len, frame, add * sizeof(float));
+        if (link_ch == ch) {
+            memcpy(pcm + len, frame, add * sizeof(float));
+        } else {
+            for (int i = 0; i < got; i++)
+                for (int c = 0; c < ch; c++)
+                    pcm[len + (size_t)i * (size_t)ch + (size_t)c] =
+                        link_ch == 1 ? frame[(size_t)i]
+                        : c < link_ch ? frame[(size_t)i * (size_t)link_ch + (size_t)c]
+                                      : 0.0f;
+        }
         len += add;
         if (len >= max_floats) break;
     }

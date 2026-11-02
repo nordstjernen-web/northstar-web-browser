@@ -11805,8 +11805,6 @@ ns_port_is(JSValueConst v)
     return ns_port_state_of(v) != NULL;
 }
 
-static JSContext *ns_js_window_realm(ns_js *js, JSValueConst window);
-
 /* The live realm a port belongs to; NULL once its frame is gone. */
 static JSContext *
 ns_port_realm(JSContext *ctx, const ns_port_state *st)

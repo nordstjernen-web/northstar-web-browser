@@ -352,6 +352,23 @@ the top-level navigation itself, which the address bar then marks as not
 secure; a subresource, frame, `fetch()`, worker or media request that
 fails verification is never retried without it.
 
+The `--ignore-certificate-errors` command-line option, for home lab
+servers with self-signed certificates, applies the same top-level rule
+for one run, without changing the setting. The GUI shows a warning
+dialog first and loads nothing until the user chooses *Continue*;
+headless runs print the warning to stderr. Once a top-level navigation
+to a host has proceeded past a certificate error, later requests to that
+same host (subresources, frames, `fetch()`, workers, media, WebSocket and
+EventSource) skip verification for the rest of the run, so the page
+works; their responses are marked not secure and never enter the HTTP
+cache, and an unverified EventSource does not follow redirects. Every
+other host keeps full verification, and an HSTS host is still never
+bypassed. curl records `Strict-Transport-Security` even from a
+connection whose certificate it did not verify (RFC 6797 §8.1 says to
+ignore it), so such a run keeps its HSTS state in a copy of the HSTS
+file seeded at startup, and a home lab server's header does not pin its
+host for later runs.
+
 Every subresource request passes one policy check,
 `ns_fetch_policy_check` (`src/fetch_policy.c`), before it is sent and
 again at every redirect hop. The request carries its destination

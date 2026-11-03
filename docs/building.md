@@ -286,6 +286,7 @@ is the manual page.
 | `--version` | Print the version and exit. |
 | `--private` | Keep history, cookies, cache and site storage off disk for this session. |
 | `--proxy=URL` | Use an HTTP(S) proxy. |
+| `--ignore-certificate-errors` | Open pages with a self-signed or otherwise untrusted TLS certificate, such as home lab servers, after a warning dialog. The page is marked not secure; its own subresources, `fetch()` calls and WebSockets to the same host load too, and other hosts stay fully verified. See [SECURITY.md](../SECURITY.md#network). |
 | `--window-size=WxH` | Initial window size. |
 | `--gsk-renderer=gl\|ngl\|vulkan\|cairo` | GTK renderer. |
 | `--no-watchdog` | Run without the watchdog. |

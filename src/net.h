@@ -225,6 +225,9 @@ char *ns_net_proxy_mask(const char *proxy_url);
 char *ns_executable_dir(void);
 void  ns_net_apply_curl_proxy(void *curl_handle, const char *url);
 void  ns_net_apply_curl_tls(void *curl_handle);
+void     ns_net_set_ignore_cert_errors(gboolean on);
+gboolean ns_net_ignore_cert_errors(void);
+gboolean ns_net_apply_curl_tls_exception(void *curl_handle, const char *url);
 
 gboolean ns_address_is_search(const char *s);
 char *ns_search_url_for(const char *query);

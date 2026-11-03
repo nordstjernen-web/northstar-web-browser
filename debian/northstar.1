@@ -48,6 +48,17 @@ profile on disk for this session.
 .BI \-\-proxy= URL
 Send HTTP and HTTPS traffic through the given proxy.
 .TP
+.B \-\-ignore\-certificate\-errors
+Open pages whose TLS certificate is self-signed, expired or otherwise not
+trusted, for example on home lab servers. A warning dialog appears at
+startup, and the first page loads only after
+.B Continue
+is chosen. Such a page is marked as not secure, and its scripts, images,
+.BR fetch ()
+calls and WebSockets to the same host load too; other hosts keep full
+certificate checks. A host that has sent HSTS over a verified connection
+is not bypassed. Use it only for servers you control.
+.TP
 .BI \-\-window\-size= W x H
 Open the window at the given size in pixels.
 .TP

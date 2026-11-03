@@ -2434,6 +2434,61 @@ write_session_cb(gpointer data)
     return G_SOURCE_CONTINUE;
 }
 
+typedef struct {
+    GtkWindow *win;
+    char      *url;
+} CertWarningCtx;
+
+/* "Continue" loads the first page; "Quit" closes the window the normal way. */
+static void
+on_cert_warning_chosen(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+    CertWarningCtx *c = user_data;
+    int choice = gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(source),
+                                                res, NULL);
+    ProcWindow *pw = g_object_get_data(G_OBJECT(c->win), "ns-procwindow");
+    if (pw && gtk_widget_get_visible(GTK_WIDGET(c->win))) {
+        if (choice == 0)
+            gtk_window_close(c->win);
+        else
+            proc_window_load(pw, c->url);
+    }
+    g_object_unref(c->win);
+    g_free(c->url);
+    g_free(c);
+}
+
+/* Warns, over the first window, that --ignore-certificate-errors is on, and
+ * loads url only once the user chooses to continue, so no connection skips
+ * certificate checks before the warning has been seen. */
+static void
+show_cert_warning(ProcWindow *pw, const char *url)
+{
+    GtkAlertDialog *dlg = gtk_alert_dialog_new(
+        "%s", ns_i18n("Certificate errors are being ignored"));
+    gtk_alert_dialog_set_detail(dlg, ns_i18n(
+        "Northstar was started with --ignore-certificate-errors. Pages "
+        "whose certificate is self-signed, expired or otherwise not "
+        "trusted will open, marked “Not secure” in the address bar, "
+        "together with their scripts, images and connections.\n\n"
+        "Anyone between you and such a server can read and change what "
+        "it sends. Use this only for servers you control, such as a home "
+        "lab, and restart without the option for everyday browsing."));
+    const char *labels[3] = {
+        ns_i18n("Quit"), ns_i18n("Continue"), NULL,
+    };
+    gtk_alert_dialog_set_buttons(dlg, labels);
+    gtk_alert_dialog_set_cancel_button(dlg, 1);
+    gtk_alert_dialog_set_default_button(dlg, 1);
+    gtk_alert_dialog_set_modal(dlg, TRUE);
+    CertWarningCtx *c = g_new0(CertWarningCtx, 1);
+    c->win = GTK_WINDOW(g_object_ref(pw->window));
+    c->url = g_strdup(url);
+    gtk_alert_dialog_choose(dlg, GTK_WINDOW(pw->window), NULL,
+                            on_cert_warning_chosen, c);
+    g_object_unref(dlg);
+}
+
 /* App activate: sets up media, icons and CSS, opens a window, loads recovered or start URL. */
 static void
 on_proc_activate(GtkApplication *app, gpointer user_data)
@@ -2464,8 +2519,12 @@ on_proc_activate(GtkApplication *app, gpointer user_data)
     }
     gtk_window_present(GTK_WINDOW(pw->window));
     apply_color_scheme(pw);
-    proc_window_load(pw, recovered_url ? recovered_url
-                                      : ctx->url ? ctx->url : "about:start");
+    const char *first_url = recovered_url ? recovered_url
+                          : ctx->url ? ctx->url : "about:start";
+    if (ns_net_ignore_cert_errors())
+        show_cert_warning(pw, first_url);
+    else
+        proc_window_load(pw, first_url);
     if (recovered_url)
         pw_set_status(pw, ns_i18n("Recovered the previous session after "
                                   "an unexpected exit"));

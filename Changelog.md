@@ -4,6 +4,17 @@ Significant changes in each release:
 
 1.0.21:
 =======
+* Network: `--ignore-certificate-errors` opens pages with a self-signed
+  or otherwise untrusted certificate, such as home lab servers (issue
+  #11). A warning dialog appears at startup and the first page loads
+  only after *Continue*. The page is marked not secure; its scripts,
+  images, `fetch()` calls and WebSockets to the same host load too,
+  while every other host keeps full certificate checks and HSTS hosts
+  are never bypassed. An HSTS header from an unverified server is kept
+  for that run only, so it cannot pin the host for later runs.
+* Network: a top-level page loaded past a certificate error with
+  `tls_allow_insecure_override` now sends and stores its cookies. The
+  unverified retry switched to the cookie-less connection share.
 * Security: a page can no longer forge the `origin` of a message it
   posts to another window. The cross-origin window wrapper took the
   sender from a `__ndWindowProxy` property that page script could set,

@@ -78,6 +78,12 @@ static char *g_ca_bundle;
 static const char *g_ec_curves = "X25519:P-256:P-384";
 static char *g_accept_encoding;
 static char *g_proxy_override;
+/* --ignore-certificate-errors: set from the command line before ns_net_init. */
+static gint        g_ignore_cert_errors;
+/* Hosts (lower case) whose top-level navigation proceeded past a
+ * certificate error this run under --ignore-certificate-errors. */
+static GHashTable *g_tls_accepted_hosts;
+static GMutex      g_tls_accepted_lock;
 static CURLSH *g_share;
 static GMutex g_fetch_throttle_mutex;
 static GCond  g_fetch_idle_cond;
@@ -415,23 +421,41 @@ ns_net_is_private(void)
     return cfg && cfg->private_mode;
 }
 
-/* Path of curl's HSTS file; in private mode a temp copy seeded from the real one. */
+/* Path of curl's HSTS file; in private mode a temp copy seeded from the real
+ * one.  Under --ignore-certificate-errors it is a per-run copy in the data
+ * directory, also seeded from the real one: curl records
+ * Strict-Transport-Security from a connection whose certificate it did not
+ * verify, and a home-lab server's header must not pin its host for good
+ * (RFC 6797 section 8.1 says to ignore it). */
 static char *
 ns_net_hsts_curl_path(void)
 {
     if (g_hsts_curl_path) return g_hsts_curl_path;
-    if (!ns_net_is_private())
+    gboolean priv = ns_net_is_private();
+    if (!priv && !g_atomic_int_get(&g_ignore_cert_errors))
         return ns_net_data_path(&g_hsts_curl_path, "hsts-curl.txt");
-    const char *root = ns_net_private_root();
-    if (!root) return NULL;
-    g_hsts_curl_path = g_build_filename(root, "hsts-curl.txt", NULL);
     char *real_dir = g_build_filename(g_get_user_data_dir(), NS_APP_DIR_NAME,
                                       NULL);
+    if (priv) {
+        const char *root = ns_net_private_root();
+        if (!root) {
+            g_free(real_dir);
+            return NULL;
+        }
+        g_hsts_curl_path = g_build_filename(root, "hsts-curl.txt", NULL);
+    } else {
+        g_mkdir_with_parents(real_dir, 0700);
+        g_hsts_curl_path = g_build_filename(real_dir,
+                                            "hsts-curl-unverified-run.txt",
+                                            NULL);
+    }
     char *real = g_build_filename(real_dir, "hsts-curl.txt", NULL);
     char *contents = NULL;
     gsize len = 0;
     if (g_file_get_contents(real, &contents, &len, NULL))
         g_file_set_contents(g_hsts_curl_path, contents, (gssize)len, NULL);
+    else
+        g_file_set_contents(g_hsts_curl_path, "", 0, NULL);
     g_free(contents);
     g_free(real);
     g_free(real_dir);
@@ -2171,6 +2195,12 @@ ns_net_shutdown(void)
     g_accept_encoding = NULL;
     g_free(g_proxy_override);
     g_proxy_override = NULL;
+    g_mutex_lock(&g_tls_accepted_lock);
+    if (g_tls_accepted_hosts) {
+        g_hash_table_destroy(g_tls_accepted_hosts);
+        g_tls_accepted_hosts = NULL;
+    }
+    g_mutex_unlock(&g_tls_accepted_lock);
     g_free(g_cookie_dir);
     g_cookie_dir = NULL;
     g_free(g_hsts_curl_path);
@@ -2199,6 +2229,68 @@ ns_net_set_proxy_override(const char *proxy_url)
 {
     g_free(g_proxy_override);
     g_proxy_override = (proxy_url && *proxy_url) ? g_strdup(proxy_url) : NULL;
+}
+
+/* Turns --ignore-certificate-errors on or off; call before ns_net_init. */
+void
+ns_net_set_ignore_cert_errors(gboolean on)
+{
+    g_atomic_int_set(&g_ignore_cert_errors, on ? 1 : 0);
+}
+
+/* TRUE when the browser was started with --ignore-certificate-errors. */
+gboolean
+ns_net_ignore_cert_errors(void)
+{
+    return g_atomic_int_get(&g_ignore_cert_errors) != 0;
+}
+
+/* Remembers a host whose top-level navigation proceeded past a certificate
+ * error, so the page's own subresources, fetch() calls and WebSockets to
+ * that host may load too. */
+static void
+ns_net_tls_accept_host(const char *host)
+{
+    if (!host || !*host) return;
+    g_mutex_lock(&g_tls_accepted_lock);
+    if (!g_tls_accepted_hosts)
+        g_tls_accepted_hosts = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                                     g_free, NULL);
+    g_hash_table_add(g_tls_accepted_hosts, g_ascii_strdown(host, -1));
+    g_mutex_unlock(&g_tls_accepted_lock);
+}
+
+/* TRUE when --ignore-certificate-errors is on and host was accepted this run. */
+static gboolean
+ns_net_tls_host_accepted(const char *host)
+{
+    if (!host || !*host || !ns_net_ignore_cert_errors()) return FALSE;
+    char *lower = g_ascii_strdown(host, -1);
+    g_mutex_lock(&g_tls_accepted_lock);
+    gboolean hit = g_tls_accepted_hosts &&
+                   g_hash_table_contains(g_tls_accepted_hosts, lower);
+    g_mutex_unlock(&g_tls_accepted_lock);
+    g_free(lower);
+    return hit;
+}
+
+/* Under --ignore-certificate-errors, turns certificate verification off on
+ * a curl handle whose https: or wss: URL names a host the user already
+ * proceeded to past a certificate error this run.  Every other host keeps
+ * full verification.  Returns TRUE when verification was turned off. */
+gboolean
+ns_net_apply_curl_tls_exception(void *curl_handle, const char *url)
+{
+    if (!curl_handle || !url || !ns_net_ignore_cert_errors()) return FALSE;
+    if (!g_str_has_prefix(url, "https://") && !g_str_has_prefix(url, "wss://"))
+        return FALSE;
+    char *host = ns_url_host_from(url);
+    gboolean accepted = ns_net_tls_host_accepted(host);
+    g_free(host);
+    if (!accepted) return FALSE;
+    curl_easy_setopt((CURL *)curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt((CURL *)curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+    return TRUE;
 }
 
 static gboolean g_allow_file_urls = FALSE;
@@ -5741,6 +5833,10 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
     ns_net_apply_curl_tls(curl);
+    /* --ignore-certificate-errors: a host the user already proceeded to
+     * past a certificate error is fetched unverified up front, so the
+     * page's scripts, styles, images and fetch() calls load as well. */
+    gboolean tls_exception = ns_net_apply_curl_tls_exception(curl, url);
 
     if (cookie_partition && cookie_partition->share)
         curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
@@ -5795,10 +5891,17 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
     double fetch_start_real_ms = (double)g_get_real_time() / 1000.0;
     CURLcode rc = ns_net_multi_perform(curl);
 
-    if ((rc == CURLE_PEER_FAILED_VERIFICATION ||
-         rc == CURLE_SSL_CACERT_BADFILE) &&
-        g_str_has_prefix(url, "https://")) {
-        gboolean opt_in = cfg && cfg->tls_allow_insecure_override;
+    if (tls_exception) {
+        if (rc == CURLE_OK)
+            resp->tls_warning = g_strdup(
+                "Insecure: TLS certificate not verified "
+                "(--ignore-certificate-errors)");
+    } else if ((rc == CURLE_PEER_FAILED_VERIFICATION ||
+                rc == CURLE_SSL_CACERT_BADFILE) &&
+               g_str_has_prefix(url, "https://")) {
+        gboolean cmdline_opt_in = ns_net_ignore_cert_errors();
+        gboolean opt_in = cmdline_opt_in ||
+                          (cfg && cfg->tls_allow_insecure_override);
         char *fb_host = ns_url_host_from(url);
         gboolean hsts_pinned = ns_net_hsts_should_upgrade(fb_host);
         /* Only the page the user is navigating to may proceed past a
@@ -5806,7 +5909,8 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
          * as not secure.  A subresource, frame, fetch(), worker or media
          * request retried without verification would hand an on-path
          * attacker every script on every site with no indication, so
-         * those keep failing. */
+         * those keep failing; under --ignore-certificate-errors they load
+         * only from a host accepted here (ns_net_apply_curl_tls_exception). */
         if (opt_in && !hsts_pinned && top_level_nav) {
             char *warn = g_strdup_printf(
                 "Insecure: TLS certificate not trusted (%s)",
@@ -5818,12 +5922,17 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
             errbuf[0] = '\0';
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-            if (g_share) curl_easy_setopt(curl, CURLOPT_SHARE, g_share);
+            /* The same share as the first attempt: a top-level navigation
+             * carries its cookie partition, whose share holds the jar. */
+            if (share) curl_easy_setopt(curl, CURLOPT_SHARE, share);
             rc = ns_net_multi_perform(curl);
-            if (rc == CURLE_OK)
+            if (rc == CURLE_OK) {
                 resp->tls_warning = warn;
-            else
+                if (cmdline_opt_in)
+                    ns_net_tls_accept_host(fb_host);
+            } else {
                 g_free(warn);
+            }
         }
         g_free(fb_host);
     }

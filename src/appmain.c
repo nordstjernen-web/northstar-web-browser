@@ -610,6 +610,8 @@ main(int argc, char **argv)
             gsk_renderer_override = argv[i] + 15;
         } else if (g_strcmp0(argv[i], "--private") == 0) {
             private_window = TRUE;
+        } else if (g_strcmp0(argv[i], "--ignore-certificate-errors") == 0) {
+            ns_net_set_ignore_cert_errors(TRUE);
         } else if (g_str_has_prefix(argv[i], "--window-size=")) {
             char *end = NULL;
             gint64 w = g_ascii_strtoll(argv[i] + 14, &end, 10);
@@ -700,6 +702,10 @@ main(int argc, char **argv)
     }
     if (private_window)
         ns_config_mut()->private_mode = TRUE;
+    if (ns_net_ignore_cert_errors())
+        g_printerr("northstar: warning: --ignore-certificate-errors is on; "
+                   "pages with an untrusted TLS certificate will load. Use "
+                   "it only for servers you control.\n");
     if (!dump_set && (hopts.inspect || hopts.inspect_at || hopts.wpt))
         hopts.dump = NS_DUMP_NONE;
 

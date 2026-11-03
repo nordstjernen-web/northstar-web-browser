@@ -373,8 +373,12 @@ ns_es_connect_once(ns_es *es, gboolean *opened_out)
     curl_easy_setopt(curl, CURLOPT_USERAGENT, NS_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
     ns_net_apply_curl_tls(curl);
+    /* An unverified stream (--ignore-certificate-errors, accepted host)
+     * does not follow redirects: curl would carry the lifted verification
+     * to whatever host the redirect names. */
+    gboolean unverified = ns_net_apply_curl_tls_exception(curl, es->url);
     ns_net_apply_curl_proxy(curl, es->url);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, unverified ? 0L : 1L);
 #ifdef CURLOPT_PROTOCOLS_STR
     curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
 #endif

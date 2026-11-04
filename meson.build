@@ -1,11 +1,10 @@
 project(
   'northstar',
-  ['c', 'cpp'],
+  'c',
   version: '1.0.21-dev',
   license: 'GPL-3.0-or-later',
   default_options: [
     'c_std=gnu2x,c2x,gnu11,c11',
-    'cpp_std=c++17',
     'warning_level=2',
     'quickjs-ng:warning_level=0',
     'quickjs-ng:default_library=static',

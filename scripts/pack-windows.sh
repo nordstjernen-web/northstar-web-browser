@@ -49,7 +49,7 @@ done
 
 if [ -z "${CC_LD:-}" ] && command -v ld.lld >/dev/null 2>&1 &&
    ${CC:-cc} --version 2>/dev/null | grep -q clang; then
-    export CC_LD=lld CXX_LD=lld
+    export CC_LD=lld
 fi
 
 if [ ! -d "$BUILDDIR" ]; then

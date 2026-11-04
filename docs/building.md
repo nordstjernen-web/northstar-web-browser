@@ -20,7 +20,7 @@ sudo apt install build-essential git pkg-config meson ninja-build \
 Fedora / RHEL:
 
 ```sh
-sudo dnf install gcc gcc-c++ git pkgconf meson ninja-build gtk4-devel \
+sudo dnf install gcc git pkgconf meson ninja-build gtk4-devel \
     libcurl-devel openssl-devel uchardet-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype-devel \
     libpsl-devel sqlite-devel libseccomp-devel SDL2-devel zlib-devel
@@ -29,7 +29,7 @@ sudo dnf install gcc gcc-c++ git pkgconf meson ninja-build gtk4-devel \
 openSUSE:
 
 ```sh
-sudo zypper install gcc gcc-c++ git pkgconf meson ninja gtk4-devel \
+sudo zypper install gcc git pkgconf meson ninja gtk4-devel \
     libcurl-devel libopenssl-devel libuchardet-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype2-devel \
     libpsl-devel sqlite3-devel libseccomp-devel libSDL2-devel zlib-devel

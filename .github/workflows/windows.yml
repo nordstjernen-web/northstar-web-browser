@@ -110,9 +110,7 @@ jobs:
         if: hashFiles('meson.build') != ''
         run: |
           export CC="ccache clang"
-          export CXX="ccache clang++"
           export CC_LD=lld
-          export CXX_LD=lld
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             meson setup builddir --werror -Db_lto=false
           else

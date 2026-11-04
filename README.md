@@ -203,7 +203,7 @@ missing. See [npm/README.md](npm/README.md).
 On Debian or Ubuntu, install the required development packages:
 
 ```sh
-sudo apt install build-essential git pkg-config meson ninja-build cmake \
+sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \

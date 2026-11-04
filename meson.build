@@ -315,20 +315,7 @@ add_project_arguments('-DNS_BUILD_DATE="' + build_date + '"', language: 'c')
 add_project_arguments('-DNS_VERSION="' + meson.project_version() + '"', language: 'c')
 
 if not liblexbor.found()
-  cmake = import('cmake')
-  lexbor_opts = cmake.subproject_options()
-  lexbor_opts.add_cmake_defines({
-    'LEXBOR_BUILD_SHARED': false,
-    'LEXBOR_BUILD_STATIC': true,
-    'LEXBOR_BUILD_TESTS': false,
-    'LEXBOR_BUILD_EXAMPLES': false,
-    'LEXBOR_BUILD_UTILS': false,
-    'LEXBOR_BUILD_SEPARATELY': false,
-    'CMAKE_POSITION_INDEPENDENT_CODE': true,
-  })
-  lexbor_opts.append_compile_args('c', '-w')
-  lexbor_subproject = cmake.subproject('lexbor', options: lexbor_opts)
-  liblexbor = lexbor_subproject.dependency('lexbor_static').as_system('system')
+  liblexbor = subproject('lexbor').get_variable('lexbor_dep')
 endif
 
 js_engine = get_option('js_engine')

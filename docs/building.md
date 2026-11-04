@@ -10,7 +10,7 @@ though no C++ source is built.
 Debian / Ubuntu:
 
 ```sh
-sudo apt install build-essential git pkg-config meson ninja-build cmake \
+sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
@@ -20,7 +20,7 @@ sudo apt install build-essential git pkg-config meson ninja-build cmake \
 Fedora / RHEL:
 
 ```sh
-sudo dnf install gcc gcc-c++ git pkgconf meson ninja-build cmake gtk4-devel \
+sudo dnf install gcc gcc-c++ git pkgconf meson ninja-build gtk4-devel \
     libcurl-devel openssl-devel uchardet-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype-devel \
     libpsl-devel sqlite-devel libseccomp-devel SDL2-devel zlib-devel
@@ -29,7 +29,7 @@ sudo dnf install gcc gcc-c++ git pkgconf meson ninja-build cmake gtk4-devel \
 openSUSE:
 
 ```sh
-sudo zypper install gcc gcc-c++ git pkgconf meson ninja cmake gtk4-devel \
+sudo zypper install gcc gcc-c++ git pkgconf meson ninja gtk4-devel \
     libcurl-devel libopenssl-devel libuchardet-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype2-devel \
     libpsl-devel sqlite3-devel libseccomp-devel libSDL2-devel zlib-devel
@@ -72,7 +72,7 @@ and `libthai-dev` for Thai word breaking. The build works without them.
 With Homebrew:
 
 ```sh
-brew install meson ninja pkg-config cmake gtk4 curl openssl@3 uchardet libpsl \
+brew install meson ninja pkg-config gtk4 curl openssl@3 uchardet libpsl \
     sqlite sdl2 zlib
 ```
 
@@ -85,7 +85,7 @@ With MacPorts (verified on macOS 27.0.1, Apple Silicon, Xcode 27 /
 Apple clang 21):
 
 ```sh
-sudo port install meson ninja pkgconfig cmake gtk4 +quartz curl openssl3 \
+sudo port install meson ninja pkgconfig gtk4 +quartz curl openssl3 \
     uchardet libpsl sqlite3 libsdl2 zlib
 ```
 
@@ -171,7 +171,7 @@ dependencies:
 
 | Dependency | Pinned to | Resolution |
 |------------|-----------|------------|
-| [lexbor](https://github.com/lexbor/lexbor) — HTML parser and WHATWG URL module | master commit `145872a` (after v3.0.1) | A system lexbor ≥ 3.0.0 is used when `pkg-config` or CMake finds one; otherwise the wrap is cloned and its static library built through meson's CMake module. |
+| [lexbor](https://github.com/lexbor/lexbor) — HTML parser and WHATWG URL module | master commit `145872a` (after v3.0.1) | A system lexbor ≥ 3.0.0 is used when `pkg-config` finds one; otherwise the wrap is cloned and built as a static library by `subprojects/packagefiles/lexbor/meson.build`, which stands in for lexbor's CMake build. |
 | [quickjs-ng](https://github.com/quickjs-ng/quickjs) — JavaScript | master commit `7b5f588` | A system quickjs-ng first, of any version; the wrap as fallback. |
 | [QuickJS](https://github.com/bellard/quickjs) — JavaScript, with `-Djs_engine=quickjs` | the `2026-06-04` release commit | Always the subproject, built by the meson file in `subprojects/packagefiles/quickjs/`; upstream ships none. See [quickjs.md](quickjs.md). |
 

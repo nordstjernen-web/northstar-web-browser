@@ -5,7 +5,6 @@ Build-Depends:
  debhelper-compat (= 14),
  meson (>= 1.0),
  ninja-build,
- cmake,
  pkgconf,
  libgtk-4-dev (>= 4.14),
  libglib2.0-dev (>= 2.80),

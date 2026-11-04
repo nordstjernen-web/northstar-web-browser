@@ -43,13 +43,6 @@ compile_commands.json
 /subprojects/quickjs-ng/
 /subprojects/quickjs/
 
-# CMake (lexbor's subproject build)
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-CTestTestfile.cmake
-Testing/
-
 # Editor / OS
 *~
 *.swp

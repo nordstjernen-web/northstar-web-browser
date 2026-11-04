@@ -9,7 +9,7 @@ plain build-from-source instructions see [building.md](building.md).
 ## Build from source
 
 ```sh
-sudo pacman -S --needed base-devel git meson cmake python gtk4 curl uchardet \
+sudo pacman -S --needed base-devel git meson python gtk4 curl uchardet \
     libpsl sqlite libseccomp libavif dav1d libvpx sdl2 enchant opusfile libvorbis
 git clone https://github.com/nordstjernen-web/northstar-web-browser.git
 cd northstar-web-browser

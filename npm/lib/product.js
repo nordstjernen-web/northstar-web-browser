@@ -24,8 +24,6 @@ module.exports = {
       apt: 'ninja-build', dnf: 'ninja-build', zypper: 'ninja', pacman: 'ninja', apk: 'samurai', brew: 'ninja', msys: 'ninja' },
     { label: 'pkg-config', probe: ['pkg-config', 'pkgconf'],
       apt: 'pkgconf', dnf: 'pkgconf', zypper: 'pkgconf', pacman: 'pkgconf', apk: 'pkgconf', brew: 'pkgconf', msys: 'pkgconf' },
-    { label: 'cmake', probe: ['cmake'],
-      apt: 'cmake', dnf: 'cmake', zypper: 'cmake', pacman: 'cmake', apk: 'cmake', brew: 'cmake', msys: 'cmake' },
     { label: 'git', probe: ['git'],
       apt: 'git', dnf: 'git', zypper: 'git', pacman: 'git', apk: 'git', brew: 'git', msysBase: 'git' },
     { label: 'tar', probe: ['tar'],

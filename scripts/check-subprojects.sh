@@ -51,6 +51,16 @@ for wrap in "$ROOT"/subprojects/*.wrap; do
             stale=1
         fi
     done
+    overlay=$(wrap_value "$wrap" patch_directory)
+    if [ -n "$overlay" ]; then
+        while IFS= read -r -d '' file; do
+            rel=${file#"$ROOT/subprojects/packagefiles/$overlay/"}
+            if ! cmp -s "$file" "$dir/$rel"; then
+                echo "check-subprojects: $name lacks the current $rel from packagefiles/$overlay" >&2
+                stale=1
+            fi
+        done < <(find "$ROOT/subprojects/packagefiles/$overlay" -type f -print0)
+    fi
 done
 
 if [ "$stale" -ne 0 ]; then

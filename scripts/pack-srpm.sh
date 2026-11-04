@@ -51,7 +51,6 @@ URL:            https://nordstjernen.org
 Source0:        ${SLUG}.tar.gz
 
 BuildRequires:  gcc
-BuildRequires:  gcc-c++
 BuildRequires:  meson >= 1.0
 BuildRequires:  ninja-build
 BuildRequires:  pkgconf-pkg-config

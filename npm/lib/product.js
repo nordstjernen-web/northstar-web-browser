@@ -13,7 +13,7 @@ module.exports = {
   sourceDirectory: `northstar-web-browser-${version}`,
   executable: process.platform === 'win32' ? 'bin/northstar.exe' : 'bin/northstar',
   mesonOptions: process.platform === 'win32' ? ['--buildtype=release', '-Db_lto_mode=thin'] : ['--buildtype=release'],
-  windowsEnv: { CC: 'clang', CXX: 'clang++', CC_LD: 'lld', CXX_LD: 'lld' },
+  windowsEnv: { CC: 'clang', CC_LD: 'lld' },
   supportedDistributions: 'Ubuntu 24.04, Debian 13, Fedora 40, openSUSE Tumbleweed, Arch Linux, Alpine 3.21 or newer',
 
   tools: [
@@ -30,8 +30,6 @@ module.exports = {
       apt: 'tar', dnf: 'tar', zypper: 'tar', pacman: 'tar', apk: 'tar', msysBase: 'tar' },
     { label: 'a C compiler (gcc or clang)', probe: ['cc', 'gcc', 'clang'], compiler: true,
       apt: 'build-essential', dnf: 'gcc', zypper: 'gcc', pacman: 'base-devel', apk: 'build-base', msys: 'clang' },
-    { label: 'a C++ compiler (g++ or clang++)', probe: ['c++', 'g++', 'clang++'], compiler: true,
-      apt: 'build-essential', dnf: 'gcc-c++', zypper: 'gcc-c++', pacman: 'base-devel', apk: 'build-base', msys: 'clang' },
     { label: 'llvm-ar (for link-time optimisation with clang)', probe: ['llvm-ar'], windows: true, msys: 'llvm-tools' },
     { label: 'lld', probe: ['ld.lld'], windows: true, msys: 'lld' },
   ],

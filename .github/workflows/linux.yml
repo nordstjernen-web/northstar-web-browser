@@ -44,7 +44,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            ccache gcc g++ make pkg-config meson ninja-build \
+            ccache gcc pkg-config meson ninja-build \
             libgtk-4-dev libcurl4-openssl-dev libssl-dev \
             libharfbuzz-dev libfribidi-dev libcairo2-dev \
             libfontconfig-dev libfreetype-dev \
@@ -67,8 +67,7 @@ jobs:
 
       - name: Select compiler
         run: |
-          echo "CC=ccache gcc"  >> $GITHUB_ENV
-          echo "CXX=ccache g++" >> $GITHUB_ENV
+          echo "CC=ccache gcc" >> $GITHUB_ENV
 
       - name: Show toolchain versions
         run: |

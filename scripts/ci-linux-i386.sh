@@ -18,7 +18,7 @@ export DEBIAN_FRONTEND=noninteractive
 echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80retries
 apt-get update -qq --error-on=any
 apt-get install -y -qq --no-install-recommends \
-    ccache gcc g++ make cmake pkg-config meson ninja-build git file \
+    ccache gcc g++ make pkg-config meson ninja-build git file \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev \
     libfontconfig-dev libfreetype-dev \

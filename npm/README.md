@@ -44,7 +44,7 @@ HarfBuzz, Cairo or libcurl that is too old.
 Debian/Ubuntu:
 
 ```sh
-sudo apt install build-essential git pkg-config meson ninja-build cmake \
+sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
@@ -54,7 +54,7 @@ sudo apt install build-essential git pkg-config meson ninja-build cmake \
 macOS ([Homebrew](https://brew.sh), plus `xcode-select --install`):
 
 ```sh
-brew install meson ninja pkg-config cmake gtk4 curl openssl@3 uchardet libpsl \
+brew install meson ninja pkg-config gtk4 curl openssl@3 uchardet libpsl \
     sqlite sdl2 zlib
 ```
 
@@ -62,7 +62,7 @@ Windows: install [MSYS2](https://www.msys2.org) in `C:\msys64` (or set
 `MSYS2_ROOT`), then in its UCRT64 terminal:
 
 ```sh
-pacman -S --needed git tar mingw-w64-ucrt-x86_64-{clang,lld,llvm-tools,pkgconf,meson,ninja,cmake,gtk4,curl,uchardet,libpsl,sqlite3}
+pacman -S --needed git tar mingw-w64-ucrt-x86_64-{clang,lld,llvm-tools,pkgconf,meson,ninja,gtk4,curl,uchardet,libpsl,sqlite3}
 ```
 
 The browser runs against the MSYS2 libraries it was built with, so keep MSYS2

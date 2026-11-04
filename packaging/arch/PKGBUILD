@@ -38,7 +38,7 @@ depends=(
   uchardet
   zlib
 )
-makedepends=(cmake git meson python)
+makedepends=(git meson python)
 optdepends=(
   'hunspell: spell checking'
   'hunspell-en_us: English dictionary for spell checking'
@@ -58,7 +58,7 @@ sha256sums=('af2ff9195da62e4bf0e72a43ac2e6fbb4d298e02aaaa3b9eaaab5c61a963c9d3'
 _srcdir=northstar-web-browser-$pkgver
 
 _add_subproject() {
-  local name=$1 commit=$2 wrap="$_srcdir/subprojects/$1.wrap" patch
+  local name=$1 commit=$2 wrap="$_srcdir/subprojects/$1.wrap" patch overlay
 
   # arch-meson never downloads a wrap, so the pinned checkout is put where
   # meson looks for it, with the patches the wrap would have applied.
@@ -69,6 +69,10 @@ _add_subproject() {
   for patch in $(sed -n 's/^diff_files *= *//p' "$wrap" | tr ',' ' '); do
     patch -d "$_srcdir/subprojects/$name" -Np1 -i "../packagefiles/$patch"
   done
+  overlay=$(sed -n 's/^patch_directory *= *//p' "$wrap")
+  if [ -n "$overlay" ]; then
+    cp -a "$_srcdir/subprojects/packagefiles/$overlay/." "$_srcdir/subprojects/$name/"
+  fi
 }
 
 prepare() {

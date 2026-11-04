@@ -5,3 +5,4 @@ url = https://github.com/lexbor/lexbor.git
 revision = 145872a2e5d6c22d923afcd3c386a21e59f9a0e2
 depth = 1
 diff_files = lexbor-named-charref-bound.patch
+patch_directory = lexbor

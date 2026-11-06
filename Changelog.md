@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.21:
 =======
+* Dependencies: quickjs-ng updated to 0.18.0 plus three later upstream
+  memory-safety fixes (`Array.prototype.find` value ownership, RegExp
+  bytecode lifetime when a match is deleted, BJSON RegExp reference
+  registration). Wuffs updated to 0.4.0-alpha.12, which stops number
+  parsing from reading past the end of its input and parses PNG cICP
+  chunks.
 * Network: `--ignore-certificate-errors` opens pages with a self-signed
   or otherwise untrusted certificate, such as home lab servers (issue
   #11). A warning dialog appears at startup and the first page loads

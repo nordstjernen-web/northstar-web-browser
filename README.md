@@ -274,7 +274,7 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 | Component | Role |
 |-----------|------|
 | [lexbor](https://github.com/lexbor/lexbor) master commit `145872a` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
-| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.17.0+ (master `7b5f588`) | JavaScript engine — no JIT |
+| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `e22ce4d`) | JavaScript engine — no JIT |
 | [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
 
 lexbor (3.0 or newer) and quickjs-ng take a system copy instead when the

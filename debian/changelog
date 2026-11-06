@@ -1,3 +1,12 @@
+northstar (1.0.21+ds-1) unstable; urgency=medium
+
+  * New upstream release: --ignore-certificate-errors for self-signed
+    home lab servers, Save Page As, postMessage origin and
+    Function.caller security fixes, importScripts() under
+    'strict-dynamic', and quickjs-ng 0.18.0 and Wuffs 0.4.0-alpha.12.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Fri, 06 Nov 2026 12:00:00 +0100
+
 northstar (1.0.20+ds-1) unstable; urgency=medium
 
   * New upstream release: video decodes through GStreamer on Linux and

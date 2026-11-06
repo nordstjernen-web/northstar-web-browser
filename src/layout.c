@@ -3295,8 +3295,17 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
         gsize start = ctx->out->len;
         g_string_append(ctx->out, "\xc2\xa0");
         if (*label) g_string_append(ctx->out, label);
-        g_string_append(ctx->out, n == g_open_select_for_layout
-                                  ? " \xe2\x96\xb4\xc2\xa0" : " \xe2\x96\xbe\xc2\xa0");
+        /* appearance: none drops the native arrow; pages that use it
+         * draw their own (DuckDuckGo Lite uses two gradient tiles). */
+        const ns_style *sel_style = ctx->styles
+            ? g_hash_table_lookup(ctx->styles, n) : NULL;
+        if (sel_style &&
+            keyword_is(sel_style->values[NS_CSS_APPEARANCE], "none"))
+            g_string_append(ctx->out, "\xc2\xa0");
+        else
+            g_string_append(ctx->out, n == g_open_select_for_layout
+                                      ? " \xe2\x96\xb4\xc2\xa0"
+                                      : " \xe2\x96\xbe\xc2\xa0");
         emit_form_attr_sized(ctx->attrs, NS_INLINE_INPUT_FIELD,
                              start, ctx->out->len, n, ctx->styles);
         g_free(label);

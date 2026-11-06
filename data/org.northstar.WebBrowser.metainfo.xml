@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.21" date="2026-11-06">
+      <description>
+        <p>Bug fix release.</p>
+        <ul>
+          <li>The --ignore-certificate-errors option opens pages with a self-signed certificate, such as home lab servers, after a warning.</li>
+          <li>Save Page As (Ctrl+S) saves the current page.</li>
+          <li>A page can no longer forge the origin of a message it posts to another window, and Function.caller no longer exposes callers from another frame or the browser's internal scripts.</li>
+          <li>importScripts() in a worker follows 'strict-dynamic', which fixes YouTube's service worker.</li>
+          <li>The QuickJS-ng JavaScript engine is updated to 0.18.0 and the Wuffs image decoders to 0.4.0-alpha.12.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.20" date="2026-11-01">
       <description>
         <p>Bug fix release.</p>

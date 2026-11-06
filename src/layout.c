@@ -2712,6 +2712,49 @@ append_pseudo_content(GString *out, const ns_css_value *cv,
     g_free(resolved);
 }
 
+static void register_abs_pseudo(const ns_node *host, const ns_style *ps);
+
+/* Appends an inline element's ::before/::after content to the run with
+ * the pseudo-element's own color, font size, family and weight, as a
+ * child element's text gets. An absolutely positioned or fixed one is
+ * laid out out of flow instead, and display: none adds nothing. */
+static void
+append_inline_pseudo(collector_ctx *ctx, const ns_node *host,
+                     const ns_style *ps)
+{
+    if (!ps || !ps->values[NS_CSS_CONTENT]) return;
+    if (ps->values[NS_CSS_DISPLAY] &&
+        ns_display_is_none(ns_css_display_of(ps)))
+        return;
+    if (style_is_absolute_or_fixed(ps)) {
+        register_abs_pseudo(host, ps);
+        return;
+    }
+    gsize start = ctx->out->len;
+    append_pseudo_content(ctx->out, ps->values[NS_CSS_CONTENT], host, ps);
+    gsize end = ctx->out->len;
+    if (end <= start) return;
+    const ns_css_value *fv = ps->values[NS_CSS_FONT_SIZE];
+    if (fv && fv->kind == NS_CSS_V_LENGTH && fv->u.length.unit == NS_CSS_UNIT_PX &&
+        fv->u.length.v > 0)
+        emit_font_size_attr(ctx->attrs, start, end, fv->u.length.v);
+    const ns_css_value *cv = ps->values[NS_CSS_COLOR];
+    const char *vis = ns_style_keyword(ps, NS_CSS_VISIBILITY);
+    gboolean hidden = vis && (strcmp(vis, "hidden") == 0 ||
+                              strcmp(vis, "collapse") == 0);
+    if (cv && cv->kind == NS_CSS_V_COLOR)
+        emit_color_attr(ctx->attrs, start, end, cv->u.color.r, cv->u.color.g,
+                        cv->u.color.b, hidden ? 0 : cv->u.color.a);
+    else if (hidden)
+        emit_color_attr(ctx->attrs, start, end, 0, 0, 0, 0);
+    const ns_css_value *ff = ps->values[NS_CSS_FONT_FAMILY];
+    if (ff && ff->kind == NS_CSS_V_KEYWORD && ff->u.keyword)
+        emit_font_family_attr(ctx->attrs, start, end, ff->u.keyword);
+    int weight = ns_css_font_weight_number(ps->values[NS_CSS_FONT_WEIGHT], -1);
+    if (weight > 0)
+        emit_font_weight_attr(ctx->attrs, start, end, weight);
+}
+
 /* Appends one line-separated option row of an open select dropdown as an input-field attr. */
 static void
 emit_open_select_option(collector_ctx *ctx, const ns_node *option)
@@ -3570,16 +3613,12 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
             ctx->text_transform = kw;
     }
 
-    if (s && s->before && s->before->values[NS_CSS_CONTENT])
-        append_pseudo_content(ctx->out, s->before->values[NS_CSS_CONTENT], n,
-                              s->before);
+    if (s) append_inline_pseudo(ctx, n, s->before);
 
     for (const ns_node *c = n->first_child; c; c = c->next_sibling)
         collect_walk(c, ctx, depth + 1);
 
-    if (s && s->after && s->after->values[NS_CSS_CONTENT])
-        append_pseudo_content(ctx->out, s->after->values[NS_CSS_CONTENT], n,
-                              s->after);
+    if (s) append_inline_pseudo(ctx, n, s->after);
 
     ctx->text_transform = prev_text_transform;
 
@@ -4933,6 +4972,10 @@ register_abs_pseudo(const ns_node *host, const ns_style *ps)
     if (!style_is_absolute_or_fixed(ps)) return;
     const ns_css_value *cv = ps->values[NS_CSS_CONTENT];
     if (!cv || cv->kind != NS_CSS_V_KEYWORD || !cv->u.keyword) return;
+    for (guint i = 0; i < g_abs_pending->len; i++) {
+        const ns_abs_entry *q = &g_array_index(g_abs_pending, ns_abs_entry, i);
+        if (q->dom == host && q->pseudo == ps) return;
+    }
     ns_abs_entry e;
     e.dom = host;
     e.pseudo = ps;

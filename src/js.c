@@ -56767,6 +56767,15 @@ ns_js_install_document(ns_js *js, ns_node *doc, const char *base_url,
         }
     }
     {
+        /* classList.constructor must be DOMTokenList, not the Array it
+         * would otherwise inherit: core-js tags
+         * classList.constructor.prototype with Symbol.toStringTag, which
+         * turned every array into "[object DOMTokenList]". */
+        JSValue tlist_proto = JS_GetClassProto(ctx, ns_token_list_class_id);
+        ns_set_ctor_proto(ctx, global, "DOMTokenList", tlist_proto);
+        JS_FreeValue(ctx, tlist_proto);
+    }
+    {
         JSValue validity_proto = ns_proto_of(ctx, global, "ValidityState");
         if (JS_IsObject(validity_proto)) {
             JS_SetPropertyFunctionList(ctx, validity_proto,

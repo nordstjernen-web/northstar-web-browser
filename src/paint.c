@@ -722,10 +722,58 @@ conic_color_at(const ns_css_gradient *gr, double frac,
             (gr->stops[hi].pos - gr->stops[lo].pos);
     if (t < 0) t = 0;
     if (t > 1) t = 1;
-    *r = (gr->stops[lo].r * (1 - t) + gr->stops[hi].r * t) / 255.0;
-    *g = (gr->stops[lo].g * (1 - t) + gr->stops[hi].g * t) / 255.0;
-    *b = (gr->stops[lo].b * (1 - t) + gr->stops[hi].b * t) / 255.0;
-    *a = (gr->stops[lo].a * (1 - t) + gr->stops[hi].a * t) / 255.0;
+    /* Premultiplied interpolation, as CSS Images 4 requires. */
+    const ns_css_gradient_stop *s0 = &gr->stops[lo], *s1 = &gr->stops[hi];
+    double a0 = s0->a / 255.0, a1 = s1->a / 255.0;
+    double am = a0 * (1 - t) + a1 * t;
+    *a = am;
+    if (am <= 0) {
+        *r = *g = *b = 0;
+        return;
+    }
+    *r = (s0->r * a0 * (1 - t) + s1->r * a1 * t) / (255.0 * am);
+    *g = (s0->g * a0 * (1 - t) + s1->g * a1 * t) / (255.0 * am);
+    *b = (s0->b * a0 * (1 - t) + s1->b * a1 * t) / (255.0 * am);
+}
+
+/* Adds gr's color stops to a cairo pattern so that the result matches
+ * premultiplied-alpha interpolation (CSS Images 4). Cairo interpolates
+ * stops unpremultiplied, which turns "transparent -> white" grey halfway.
+ * Each segment is emitted on its own: a fully transparent end takes the
+ * other end's color, which makes both interpolations identical, and a
+ * segment between two different non-zero alphas is subdivided. */
+static void
+paint_gradient_add_stops(cairo_pattern_t *pat, const ns_css_gradient *gr,
+                         const double *frac, double period)
+{
+    enum { SUBDIV = 8 };
+    if (gr->n_stops == 1) {
+        const ns_css_gradient_stop *st = &gr->stops[0];
+        cairo_pattern_add_color_stop_rgba(pat, frac[0] / period,
+            st->r / 255.0, st->g / 255.0, st->b / 255.0, st->a / 255.0);
+        return;
+    }
+    for (int i = 0; i + 1 < gr->n_stops; i++) {
+        const ns_css_gradient_stop *s0 = &gr->stops[i], *s1 = &gr->stops[i + 1];
+        double o0 = frac[i] / period, o1 = frac[i + 1] / period;
+        double r0 = s0->r / 255.0, g0 = s0->g / 255.0, b0 = s0->b / 255.0;
+        double r1 = s1->r / 255.0, g1 = s1->g / 255.0, b1 = s1->b / 255.0;
+        double a0 = s0->a / 255.0, a1 = s1->a / 255.0;
+        if (s0->a == 0 && s1->a != 0) { r0 = r1; g0 = g1; b0 = b1; }
+        if (s1->a == 0 && s0->a != 0) { r1 = r0; g1 = g0; b1 = b0; }
+        cairo_pattern_add_color_stop_rgba(pat, o0, r0, g0, b0, a0);
+        if (s0->a != s1->a && s0->a != 0 && s1->a != 0 && o1 > o0) {
+            for (int k = 1; k < SUBDIV; k++) {
+                double t = (double)k / SUBDIV;
+                double am = a0 * (1 - t) + a1 * t;
+                cairo_pattern_add_color_stop_rgba(pat, o0 + (o1 - o0) * t,
+                    (r0 * a0 * (1 - t) + r1 * a1 * t) / am,
+                    (g0 * a0 * (1 - t) + g1 * a1 * t) / am,
+                    (b0 * a0 * (1 - t) + b1 * a1 * t) / am, am);
+            }
+        }
+        cairo_pattern_add_color_stop_rgba(pat, o1, r1, g1, b1, a1);
+    }
 }
 
 /* Paints a linear, radial or conic gradient; conic is built from mesh-pattern wedges. */
@@ -827,11 +875,7 @@ paint_bg_gradient_core(cairo_t *cr, const ns_css_gradient *gr,
                 x0, y0,
                 x0 + (x1 - x0) * period, y0 + (y1 - y0) * period);
         }
-        for (int i = 0; i < gr->n_stops; i++) {
-            const ns_css_gradient_stop *st = &gr->stops[i];
-            cairo_pattern_add_color_stop_rgba(pat, frac[i] / period,
-                st->r / 255.0, st->g / 255.0, st->b / 255.0, st->a / 255.0);
-        }
+        paint_gradient_add_stops(pat, gr, frac, period);
         if (gr->repeating)
             cairo_pattern_set_extend(pat, CAIRO_EXTEND_REPEAT);
         cairo_save(cr);
@@ -5886,11 +5930,7 @@ mask_gradient_pattern(const ns_css_gradient *gr,
         pat = cairo_pattern_create_linear(x0, y0,
             x0 + 2.0 * dxh * period, y0 + 2.0 * dyh * period);
     }
-    for (int i = 0; i < gr->n_stops; i++) {
-        const ns_css_gradient_stop *st = &gr->stops[i];
-        cairo_pattern_add_color_stop_rgba(pat, frac[i] / period,
-            st->r / 255.0, st->g / 255.0, st->b / 255.0, st->a / 255.0);
-    }
+    paint_gradient_add_stops(pat, gr, frac, period);
     if (gr->repeating) cairo_pattern_set_extend(pat, CAIRO_EXTEND_REPEAT);
     return pat;
 }

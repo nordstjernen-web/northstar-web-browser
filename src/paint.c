@@ -600,6 +600,22 @@ style_pixelated(const ns_style *s)
             strcmp(ir->u.keyword, "crisp-edges") == 0);
 }
 
+/* Offset of a background layer along one axis from its position value:
+ * percentages and calc() percentages resolve against free_space (the
+ * positioning area minus the tile). */
+static double
+bg_position_offset(const ns_css_value *p, double free_space)
+{
+    if (p && p->kind == NS_CSS_V_LENGTH) {
+        if (p->u.length.unit == NS_CSS_UNIT_PERCENT)
+            return free_space * (p->u.length.v / 100.0);
+        return p->u.length.v;
+    }
+    if (p && p->kind == NS_CSS_V_CALC)
+        return free_space * (p->u.calc.pct / 100.0) + p->u.calc.px;
+    return 0;
+}
+
 /* Paints a background image honoring repeat, size (cover/contain) and position, clipped. */
 static void
 paint_bg_image_core(cairo_t *cr, ns_image *img,
@@ -651,23 +667,8 @@ paint_bg_image_core(cairo_t *cr, ns_image *img,
     }
     if (draw_w < 1) draw_w = 1;
     if (draw_h < 1) draw_h = 1;
-    double off_x = 0, off_y = 0;
-    if (px && px->kind == NS_CSS_V_LENGTH) {
-        if (px->u.length.unit == NS_CSS_UNIT_PERCENT)
-            off_x = (w - draw_w) * (px->u.length.v / 100.0);
-        else
-            off_x = px->u.length.v;
-    } else if (px && px->kind == NS_CSS_V_CALC) {
-        off_x = (w - draw_w) * (px->u.calc.pct / 100.0) + px->u.calc.px;
-    }
-    if (py && py->kind == NS_CSS_V_LENGTH) {
-        if (py->u.length.unit == NS_CSS_UNIT_PERCENT)
-            off_y = (h - draw_h) * (py->u.length.v / 100.0);
-        else
-            off_y = py->u.length.v;
-    } else if (py && py->kind == NS_CSS_V_CALC) {
-        off_y = (h - draw_h) * (py->u.calc.pct / 100.0) + py->u.calc.px;
-    }
+    double off_x = bg_position_offset(px, w - draw_w);
+    double off_y = bg_position_offset(py, h - draw_h);
     cairo_surface_t *surf = texture_surface_cached(img->texture, NULL);
     if (!surf) return;
     cairo_save(cr);
@@ -886,6 +887,97 @@ paint_bg_gradient_core(cairo_t *cr, const ns_css_gradient *gr,
         cairo_pattern_destroy(pat);
         cairo_restore(cr);
     }
+}
+
+/* Paints a gradient background layer honoring background-size, -position
+ * and -repeat. A gradient has no intrinsic size, so an auto dimension
+ * (and cover/contain) takes the positioning area's. One tile is painted
+ * clipped to itself; repeated tiles come from a rendered pattern. */
+static void
+paint_bg_gradient_layer(cairo_t *cr, const ns_css_gradient *gr,
+                        const ns_css_value *rep_v, const ns_css_value *sz,
+                        const ns_css_value *px, const ns_css_value *py,
+                        double x, double y, double w, double h,
+                        double clip_x, double clip_y,
+                        double clip_w, double clip_h, corner_radii radii)
+{
+    double tw = w, th = h;
+    if (sz && sz->kind == NS_CSS_V_LENGTH) {
+        tw = bg_size_px(sz->u.length.v, sz->u.length.unit, w);
+    } else if (sz && sz->kind == NS_CSS_V_SIZE) {
+        if (!sz->u.size.w_auto)
+            tw = bg_size_px(sz->u.size.w, sz->u.size.w_unit, w);
+        if (!sz->u.size.h_auto)
+            th = bg_size_px(sz->u.size.h, sz->u.size.h_unit, h);
+    }
+    if (!(tw > 0) || !(th > 0)) return;
+    double ox = bg_position_offset(px, w - tw);
+    double oy = bg_position_offset(py, h - th);
+    if (fabs(tw - w) < 0.01 && fabs(th - h) < 0.01 &&
+        fabs(ox) < 0.01 && fabs(oy) < 0.01) {
+        paint_bg_gradient_core(cr, gr, x, y, w, h,
+                               clip_x, clip_y, clip_w, clip_h, radii);
+        return;
+    }
+    gboolean tile_x = TRUE, tile_y = TRUE;
+    const char *repeat = (rep_v && rep_v->kind == NS_CSS_V_KEYWORD)
+                         ? rep_v->u.keyword : NULL;
+    if (repeat) {
+        if (strcmp(repeat, "no-repeat") == 0) { tile_x = tile_y = FALSE; }
+        else if (strcmp(repeat, "repeat-x") == 0) { tile_y = FALSE; }
+        else if (strcmp(repeat, "repeat-y") == 0) { tile_x = FALSE; }
+    }
+    double tx = x + ox, ty = y + oy;
+    if (!tile_x && !tile_y) {
+        cairo_save(cr);
+        cairo_rectangle(cr, tx, ty, tw, th);
+        cairo_clip(cr);
+        paint_bg_gradient_core(cr, gr, tx, ty, tw, th,
+                               clip_x, clip_y, clip_w, clip_h, radii);
+        cairo_restore(cr);
+        return;
+    }
+    double sx = 1, sy = 1;
+    cairo_surface_get_device_scale(cairo_get_target(cr), &sx, &sy);
+    int pw = (int)ceil(tw * sx), ph = (int)ceil(th * sy);
+    if (pw < 1) pw = 1;
+    if (ph < 1) ph = 1;
+    if (pw > 4096) pw = 4096;
+    if (ph > 4096) ph = 4096;
+    cairo_surface_t *tile = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                       pw, ph);
+    if (cairo_surface_status(tile) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(tile);
+        return;
+    }
+    cairo_t *tc = cairo_create(tile);
+    cairo_scale(tc, pw / tw, ph / th);
+    corner_radii none;
+    memset(&none, 0, sizeof none);
+    paint_bg_gradient_core(tc, gr, 0, 0, tw, th, 0, 0, tw, th, none);
+    cairo_destroy(tc);
+    cairo_save(cr);
+    rounded_rect_path(cr, clip_x, clip_y, clip_w, clip_h, radii);
+    cairo_clip(cr);
+    cairo_pattern_t *pat = cairo_pattern_create_for_surface(tile);
+    cairo_pattern_set_extend(pat, CAIRO_EXTEND_REPEAT);
+    cairo_matrix_t m;
+    cairo_matrix_init_scale(&m, pw / tw, ph / th);
+    cairo_matrix_translate(&m, -tx, -ty);
+    cairo_pattern_set_matrix(pat, &m);
+    cairo_set_source(cr, pat);
+    if (tile_x && tile_y)
+        cairo_paint(cr);
+    else if (tile_x) {
+        cairo_rectangle(cr, clip_x, ty, clip_w, th);
+        cairo_fill(cr);
+    } else {
+        cairo_rectangle(cr, tx, clip_y, tw, clip_h);
+        cairo_fill(cr);
+    }
+    cairo_pattern_destroy(pat);
+    cairo_surface_destroy(tile);
+    cairo_restore(cr);
 }
 
 /* Paints an inline box's background-image over its full rect. */
@@ -1425,7 +1517,11 @@ paint_block(cairo_t *cr, const ns_box *b)
         bg_layer_origin_area(b, li, border_x, border_y, border_w, border_h,
                              &lpos_x, &lpos_y, &lpos_w, &lpos_h);
         if (lv->kind == NS_CSS_V_GRADIENT) {
-            paint_bg_gradient_core(cr, &lv->u.gradient,
+            paint_bg_gradient_layer(cr, &lv->u.gradient,
+                ns_css_value_layer(s->values[NS_CSS_BACKGROUND_REPEAT], li),
+                ns_css_value_layer(s->values[NS_CSS_BACKGROUND_SIZE], li),
+                ns_css_value_layer(s->values[NS_CSS_BACKGROUND_POSITION_X], li),
+                ns_css_value_layer(s->values[NS_CSS_BACKGROUND_POSITION_Y], li),
                 lpos_x, lpos_y, lpos_w, lpos_h,
                 lclip_x, lclip_y, lclip_w, lclip_h, radii);
             continue;

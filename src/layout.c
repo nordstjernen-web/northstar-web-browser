@@ -11661,6 +11661,30 @@ grid_extend_with_auto_tracks(ns_css_tracks *tracks, int from, int to,
     if (to > from) tracks->n = to;
 }
 
+/* A grid item's minimum contribution to an auto-minimum row (CSS Grid
+ * 6.6): its min-height when that is a length, nothing when it is a
+ * scroll container, otherwise its content height. */
+static double
+grid_item_row_min_contribution(const ns_box *c, double cw, double item_outer)
+{
+    if (!c->style) return item_outer;
+    double pb = c->padding.top + c->padding.bottom +
+                c->border.top + c->border.bottom;
+    double edges = pb + c->margin.top + c->margin.bottom;
+    const ns_css_value *mnh = c->style->values[NS_CSS_MIN_HEIGHT];
+    if (mnh && (mnh->kind == NS_CSS_V_LENGTH || mnh->kind == NS_CSS_V_CALC)) {
+        double mn = resolve_used_height(c, mnh, cw, 0);
+        if (mn >= 0 && flex_box_is_border_box(c)) mn -= pb;
+        if (mn < 0) mn = 0;
+        return MIN(item_outer, mn + edges);
+    }
+    const char *ov = overflow_axis_keyword(c->style, NS_CSS_OVERFLOW_Y);
+    if (ov && g_ascii_strcasecmp(ov, "visible") != 0 &&
+        g_ascii_strcasecmp(ov, "clip") != 0)
+        return edges;
+    return item_outer;
+}
+
 /* Lays out a grid: repeat expansion, auto-placement, track sizing and alignment. */
 static void
 layout_grid(ns_box *box, double cw,
@@ -12227,6 +12251,10 @@ layout_grid(ns_box *box, double cw,
     double *row_height = g_new0(double, n_rows + 1);
     gboolean *row_fixed = g_new0(gboolean, n_rows + 1);
     gboolean *row_flex = g_new0(gboolean, n_rows + 1);
+    /* Flex factor of fr rows sized against indefinite free space, else -1;
+     * row_auto_min marks those whose minimum comes from their items. */
+    double *row_fr = g_new0(double, n_rows + 1);
+    gboolean *row_auto_min = g_new0(gboolean, n_rows + 1);
     for (int r = 0; r < n_rows; r++) {
         double fixed = 0;
         const ns_css_track *tk = NULL;
@@ -12248,6 +12276,17 @@ layout_grid(ns_box *box, double cw,
                            (definite_rows && flex && tk->has_min &&
                             !track_is_intrinsic(tk->min_kind));
             row_flex[r] = definite_rows && flex;
+            row_fr[r] = -1;
+            if (flex && !definite_rows) {
+                /* Sized below from the flex fraction, not grown to the
+                 * full content of its items (so 0fr collapses). */
+                row_fr[r] = MAX(tk->v, 0);
+                row_fixed[r] = TRUE;
+                row_auto_min[r] = !tk->has_min ||
+                                  track_is_intrinsic(tk->min_kind);
+            }
+        } else {
+            row_fr[r] = -1;
         }
         if (fixed > row_height[r]) row_height[r] = fixed;
     }
@@ -12265,21 +12304,79 @@ layout_grid(ns_box *box, double cw,
         double item_outer = g_array_index(item_heights, double, i);
         double used = row_gap * (rs - 1);
         int growable = 0;
-        gboolean crosses_flex = FALSE;
+        gboolean crosses_flex = FALSE, crosses_indef_fr = FALSE;
         for (int k = 0; k < rs; k++) {
             used += row_height[row + k];
             if (!row_fixed[row + k]) growable++;
             if (row_flex[row + k]) crosses_flex = TRUE;
+            if (row_fr[row + k] >= 0) crosses_indef_fr = TRUE;
         }
         if (crosses_flex && rs > 1) continue;
+        if (crosses_indef_fr) continue;
         if (item_outer > used && growable > 0) {
             double add = (item_outer - used) / growable;
             for (int k = 0; k < rs; k++)
                 if (!row_fixed[row + k]) row_height[row + k] += add;
         }
     }
+    /* fr rows against indefinite free space (CSS Grid 12.7.1): the flex
+     * fraction is the largest of each row's base size (divided by its
+     * factor when that exceeds 1) and, for each item crossing fr rows,
+     * its height beyond the non-fr rows it spans divided by
+     * max(1, sum of spanned factors). Each row is then
+     * max(base, fraction * factor). */
+    {
+        gboolean any_fr = FALSE;
+        for (int r = 0; r < n_rows; r++)
+            if (row_fr[r] >= 0) any_fr = TRUE;
+        if (any_fr) {
+            for (guint i = 0; i < items->len; i++) {
+                int row = g_array_index(placed_rows, int, i);
+                int rs = g_array_index(row_spans, int, i);
+                if (row < 0 || row >= n_rows) continue;
+                if (rs != 1 || row_fr[row] < 0 || !row_auto_min[row]) continue;
+                double mn = grid_item_row_min_contribution(
+                    items->pdata[i], cw, g_array_index(item_heights, double, i));
+                if (mn > row_height[row]) row_height[row] = mn;
+            }
+            double fraction = 0;
+            for (int r = 0; r < n_rows; r++) {
+                if (row_fr[r] < 0) continue;
+                double f = row_fr[r] > 1 ? row_height[r] / row_fr[r]
+                                         : row_height[r];
+                if (f > fraction) fraction = f;
+            }
+            for (guint i = 0; i < items->len; i++) {
+                int row = g_array_index(placed_rows, int, i);
+                int rs = g_array_index(row_spans, int, i);
+                if (row < 0 || row >= n_rows) continue;
+                if (rs < 1) rs = 1;
+                if (row + rs > n_rows) rs = n_rows - row;
+                double space = g_array_index(item_heights, double, i) -
+                               row_gap * (rs - 1);
+                double factors = 0;
+                gboolean crosses = FALSE;
+                for (int k = 0; k < rs; k++) {
+                    if (row_fr[row + k] >= 0) {
+                        crosses = TRUE;
+                        factors += row_fr[row + k];
+                    } else {
+                        space -= row_height[row + k];
+                    }
+                }
+                if (!crosses || space <= 0) continue;
+                double f = space / MAX(factors, 1.0);
+                if (f > fraction) fraction = f;
+            }
+            for (int r = 0; r < n_rows; r++)
+                if (row_fr[r] >= 0 && fraction * row_fr[r] > row_height[r])
+                    row_height[r] = fraction * row_fr[r];
+        }
+    }
     g_free(row_fixed);
     g_free(row_flex);
+    g_free(row_fr);
+    g_free(row_auto_min);
 
     if (!rows_subgrid && row_basis > 0 && n_rows > 0) {
         double over = (n_rows > 1 ? row_gap * (n_rows - 1) : 0) - row_basis;
@@ -12460,9 +12557,11 @@ layout_grid(ns_box *box, double cw,
             gboolean row_definite = FALSE;
             if (!rows_subgrid && rows_tracks && r < rows_tracks->n) {
                 ns_css_track_kind rk = rows_tracks->tracks[r].kind;
+                /* fr rows are resolved by now even in an auto-height
+                 * grid, and are never below an item's minimum. */
                 row_definite = rk == NS_CSS_TRACK_PX ||
                                rk == NS_CSS_TRACK_PERCENT ||
-                               (rk == NS_CSS_TRACK_FR && row_basis > 0);
+                               rk == NS_CSS_TRACK_FR;
             }
             if (!i_has_h && c->kind == NS_BOX_BLOCK &&
                 (free_h > 0.5 || (row_definite && span == 1 && free_h < -0.5)))

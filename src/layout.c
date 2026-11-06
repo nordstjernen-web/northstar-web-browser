@@ -2712,8 +2712,6 @@ append_pseudo_content(GString *out, const ns_css_value *cv,
     g_free(resolved);
 }
 
-static void register_abs_pseudo(const ns_node *host, const ns_style *ps);
-
 /* Appends an inline element's ::before/::after content to the run with
  * the pseudo-element's own color, font size, family and weight, as a
  * child element's text gets. An absolutely positioned or fixed one is

@@ -13,6 +13,7 @@
 #include "page_session.h"
 #include "videolayer.h"
 #include "net.h"
+#include "security.h"
 
 #include <cairo.h>
 #include <glib/gstdio.h>
@@ -2465,6 +2466,153 @@ view_save(NsProcView *v, gboolean pdf)
     g_free(name);
 }
 
+typedef struct {
+    NsProcView *view;
+    char       *url;
+    char       *dest;
+    gboolean    ok;
+} SavePageCtx;
+
+static void
+save_page_ctx_free(SavePageCtx *c)
+{
+    pv_unref(c->view);
+    g_free(c->url);
+    g_free(c->dest);
+    g_free(c);
+}
+
+/* Main-thread tail of Save Page As: reports where the file went. */
+static gboolean
+save_page_finish_idle(gpointer ud)
+{
+    SavePageCtx *c = ud;
+    post_emit(c->view, NS_PROC_EVT_STATUS,
+              c->ok ? c->dest : ns_i18n("Could not save page"));
+    save_page_ctx_free(c);
+    return G_SOURCE_REMOVE;
+}
+
+/* Only network and data: documents can be fetched again for saving. */
+static gboolean
+save_page_url_allowed(const char *url)
+{
+    static const char *const ok[] = { "http://", "https://", "data:", NULL };
+    for (gsize i = 0; url && ok[i]; i++)
+        if (g_ascii_strncasecmp(url, ok[i], strlen(ok[i])) == 0)
+            return TRUE;
+    return FALSE;
+}
+
+/* Thread body: fetches the document again and writes its original bytes. */
+static gpointer
+save_page_worker(gpointer ud)
+{
+    SavePageCtx *c = ud;
+    GError *err = NULL;
+    ns_response *resp = ns_net_fetch_blocking(c->url, NULL, &err);
+    if (resp && resp->final_url && !save_page_url_allowed(resp->final_url)) {
+        ns_response_free(resp);
+        resp = NULL;
+    }
+    if (resp && !resp->error && resp->body &&
+        g_file_set_contents(c->dest, (const char *)resp->body->data,
+                            (gssize)resp->body->len, NULL)) {
+        c->ok = TRUE;
+        ns_security_mark_download_origin(
+            c->dest, resp->final_url ? resp->final_url : c->url);
+    }
+    if (resp)
+        ns_response_free(resp);
+    g_clear_error(&err);
+    g_idle_add(save_page_finish_idle, c);
+    return NULL;
+}
+
+static void
+on_save_page_dialog_done(GObject *src, GAsyncResult *res, gpointer ud)
+{
+    SavePageCtx *c = ud;
+    GFile *file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(src), res, NULL);
+    c->dest = file ? g_file_get_path(file) : NULL;
+    if (file)
+        g_object_unref(file);
+    if (!c->dest) {
+        save_page_ctx_free(c);
+        return;
+    }
+    GThread *t = g_thread_new("ns-save-page", save_page_worker, c);
+    if (t)
+        g_thread_unref(t);
+}
+
+/* Suggested file name: the URL's own name when it has a non-page extension
+ * (e.g. report.pdf), otherwise the page title with .html. */
+static char *
+save_page_initial_name(NsProcView *v, const char *url)
+{
+    static const char *const page_exts[] = {
+        ".html", ".htm", ".xhtml", ".php", ".asp", ".aspx", ".jsp", ".cgi",
+        NULL,
+    };
+    char *name = NULL;
+    if (g_ascii_strncasecmp(url, "data:", 5) != 0) {
+        char *path = g_strdup(url);
+        char *q = strpbrk(path, "?#");
+        if (q)
+            *q = '\0';
+        const char *slash = strrchr(path, '/');
+        const char *base = slash ? slash + 1 : path;
+        const char *dot = strrchr(base, '.');
+        gboolean host_only = slash && slash > path && slash[-1] == '/';
+        if (*base && dot && dot != base && !host_only) {
+            gboolean is_page = FALSE;
+            for (gsize i = 0; page_exts[i]; i++)
+                if (g_ascii_strcasecmp(dot, page_exts[i]) == 0)
+                    is_page = TRUE;
+            if (!is_page)
+                name = g_uri_unescape_string(base, NULL);
+        }
+        g_free(path);
+    }
+    if (!name || !*name) {
+        g_free(name);
+        const char *t = (v->current_title && *v->current_title)
+            ? v->current_title : "page";
+        name = g_strdup_printf("%s.html", t);
+    }
+    g_strdelimit(name, "/\\:*?\"<>|", '_');
+    return name;
+}
+
+/* Opens a save dialog and writes the current document's original bytes
+ * (HTML, PDF, ...); a view-source: page saves the source it shows. */
+static void
+view_save_page(NsProcView *v)
+{
+    if (!v->area)
+        return;
+    const char *url = v->current_url;
+    if (url && g_ascii_strncasecmp(url, "view-source:", 12) == 0)
+        url += 12;
+    if (!save_page_url_allowed(url)) {
+        post_emit(v, NS_PROC_EVT_STATUS, ns_i18n("Could not save page"));
+        return;
+    }
+    GtkRoot *root = gtk_widget_get_root(v->area);
+    GtkFileDialog *dialog = gtk_file_dialog_new();
+    gtk_file_dialog_set_title(dialog, ns_i18n("Save Page As"));
+    char *name = save_page_initial_name(v, url);
+    gtk_file_dialog_set_initial_name(dialog, name);
+    SavePageCtx *c = g_new0(SavePageCtx, 1);
+    c->view = pv_ref(v);
+    c->url = g_strdup(url);
+    gtk_file_dialog_save(dialog, GTK_WINDOW(root), NULL,
+                         on_save_page_dialog_done, c);
+    g_object_unref(dialog);
+    g_free(name);
+}
+
 static void
 ctx_set_clipboard(NsProcView *v, const char *text, const char *status)
 {
@@ -2535,8 +2683,16 @@ ns_proc_view_print(NsProcView *view)
 }
 
 void
+ns_proc_view_save_page(NsProcView *view)
+{ if (view) view_save_page(view); }
+
+void
 ns_proc_view_save_pdf(NsProcView *view)
 { if (view) view_save(view, TRUE); }
+
+static void
+on_ctx_save_page(GSimpleAction *a, GVariant *p, gpointer ud)
+{ (void)a; (void)p; view_save_page(ud); }
 
 void
 ns_proc_view_save_image(NsProcView *view)
@@ -2572,7 +2728,8 @@ ctx_install_actions(NsProcView *v)
         { "copy-link",   on_ctx_copy_link,   NULL, NULL, NULL, {0} },
         { "copy-sel",    on_ctx_copy_sel,    NULL, NULL, NULL, {0} },
         { "select-all",  on_ctx_select_all,  NULL, NULL, NULL, {0} },
-        { "save-pdf",    on_ctx_save_pdf,    NULL, NULL, NULL, {0} },
+        { "save-page",   on_ctx_save_page,   NULL, NULL, NULL, {0} },
+        { "save-pdf",    on_ctx_save_pdf,   NULL, NULL, NULL, {0} },
         { "save-png",    on_ctx_save_png,    NULL, NULL, NULL, {0} },
     };
     v->ctx_actions = g_simple_action_group_new();
@@ -2606,6 +2763,22 @@ ns_popover_menu_fit(GtkWidget *popover)
 {
     if (!GTK_IS_POPOVER(popover)) return;
     g_signal_connect(popover, "map", G_CALLBACK(on_popover_menu_mapped), NULL);
+}
+
+/* Turns off scrolling in a popover menu's internal scrolled windows so the
+ * menu is sized to show every item instead of a scrollable slice. */
+static void
+popover_menu_no_scroll(GtkWidget *w)
+{
+    if (GTK_IS_SCROLLED_WINDOW(w)) {
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(w),
+                                       GTK_POLICY_NEVER, GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_propagate_natural_height(
+            GTK_SCROLLED_WINDOW(w), TRUE);
+    }
+    for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+         c = gtk_widget_get_next_sibling(c))
+        popover_menu_no_scroll(c);
 }
 
 /* Builds and pops up the page context menu at the click point, with link/selection items. */
@@ -2644,6 +2817,7 @@ show_context_menu(NsProcView *v, const char *href)
     GMenu *page = g_menu_new();
     g_menu_append(page, ns_i18n("Select All"), "ctx.select-all");
     g_menu_append(page, ns_i18n("Copy Page Address"), "ctx.copy-url");
+    g_menu_append(page, ns_i18n("Save Page As…"), "ctx.save-page");
     g_menu_append(page, ns_i18n("Save Page as PDF…"), "ctx.save-pdf");
     g_menu_append(page, ns_i18n("Save Page as Image…"), "ctx.save-png");
     g_menu_append_section(menu, NULL, G_MENU_MODEL(page));
@@ -2655,6 +2829,7 @@ show_context_menu(NsProcView *v, const char *href)
     g_object_unref(menu);
     gtk_widget_set_parent(v->ctx_popover, v->area);
     ns_popover_menu_fit(v->ctx_popover);
+    popover_menu_no_scroll(v->ctx_popover);
     gtk_popover_set_has_arrow(GTK_POPOVER(v->ctx_popover), FALSE);
     gtk_popover_set_pointing_to(GTK_POPOVER(v->ctx_popover),
         &(GdkRectangle){ (int)v->ctx_x, (int)v->ctx_y, 1, 1 });
@@ -2986,6 +3161,8 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
             return TRUE;
         case GDK_KEY_p:
         case GDK_KEY_P:           view_save(v, TRUE); return TRUE;
+        case GDK_KEY_s:
+        case GDK_KEY_S:           view_save_page(v); return TRUE;
         default: return FALSE;
         }
     }

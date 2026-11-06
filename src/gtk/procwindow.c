@@ -1783,6 +1783,8 @@ static void act_history(GSimpleAction *action, GVariant *parameter,
                         gpointer user_data);
 static void act_print(GSimpleAction *action, GVariant *parameter,
                       gpointer user_data);
+static void act_save_page(GSimpleAction *action, GVariant *parameter,
+                          gpointer user_data);
 static void act_save_pdf(GSimpleAction *action, GVariant *parameter,
                          gpointer user_data);
 static void act_save_image(GSimpleAction *action, GVariant *parameter,
@@ -1857,6 +1859,8 @@ install_shortcuts(ProcWindow *pw)
                    (const char *[]){ "<Ctrl>h", NULL });
     install_action(pw, "print", G_CALLBACK(act_print),
                    (const char *[]){ "<Ctrl>p", NULL });
+    install_action(pw, "save-page", G_CALLBACK(act_save_page),
+                   (const char *[]){ "<Ctrl>s", NULL });
     install_action(pw, "save-pdf", G_CALLBACK(act_save_pdf),
                    (const char *[]){ "<Ctrl><Shift>p", NULL });
     install_action(pw, "save-image", G_CALLBACK(act_save_image), NULL);
@@ -1931,6 +1935,8 @@ build_app_menu_model(void)
     menu_append_accel(page, ns_i18n("History"), "win.history", "<Ctrl>h");
     menu_append_accel(page, ns_i18n("Downloads"), "win.downloads", "<Ctrl>j");
     menu_append_accel(page, ns_i18n("Print…"), "win.print", "<Ctrl>p");
+    menu_append_accel(page, ns_i18n("Save Page As…"), "win.save-page",
+                      "<Ctrl>s");
     menu_append_accel(page, ns_i18n("Save Page as PDF…"), "win.save-pdf",
                       "<Ctrl><Shift>p");
     menu_append_accel(page, ns_i18n("Save Page as Image…"),
@@ -2231,6 +2237,13 @@ act_print(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     (void)action; (void)parameter;
     ns_proc_view_print(current_view(user_data));
+}
+
+static void
+act_save_page(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    (void)action; (void)parameter;
+    ns_proc_view_save_page(current_view(user_data));
 }
 
 static void

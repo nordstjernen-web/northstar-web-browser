@@ -54,6 +54,7 @@ int         ns_proc_view_security(NsProcView *view);
 const char *ns_proc_view_remote_ip(NsProcView *view);
 
 void   ns_proc_view_print(NsProcView *view);
+void   ns_proc_view_save_page(NsProcView *view);
 void   ns_proc_view_save_pdf(NsProcView *view);
 void   ns_proc_view_save_image(NsProcView *view);
 

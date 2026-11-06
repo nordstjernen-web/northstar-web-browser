@@ -51088,6 +51088,8 @@ ns_install_dom_hierarchy(ns_js *js, JSContext *ctx, JSValueConst global)
     JSValue htmldoc_proto = ns_proto_of(ctx, global, "HTMLDocument");
     if (JS_IsObject(htmldoc_proto) && JS_IsObject(doc_proto))
         JS_SetPrototype(ctx, htmldoc_proto, doc_proto);
+    /* ns_js_new() already cached HTMLDocument.prototype here. */
+    JS_FreeValue(ctx, js->proto_document);
     js->proto_document = JS_IsObject(htmldoc_proto) ? htmldoc_proto
                                                     : JS_DupValue(ctx, doc_proto);
     if (JS_IsObject(htmldoc_proto)) JS_FreeValue(ctx, doc_proto);

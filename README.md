@@ -9,7 +9,7 @@ engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS, Windows and the BSDs are also supported.
 
-![Northstar Web Browser showing a Wikipedia article](docs/screenshot.png)
+![Northstar Web Browser showing a duck.ai chat](docs/screenshot.png)
 
 Repository: <https://github.com/nordstjernen-web/northstar-web-browser>.  
 Windows store: https://apps.microsoft.com/detail/9p39zb79jv0t  

@@ -1726,6 +1726,14 @@ ns_media_position(JSContext *ctx, JSValueConst this_val)
     return p ? media_current_time(p) : 0.0;
 }
 
+/* The <video> element's decoded frames (current frame in ->texture); NULL if none yet. */
+const ns_image *
+ns_media_video_image(ns_js *js, const ns_node *el)
+{
+    ns_media_player *p = js && el ? media_player_find(js, el) : NULL;
+    return p ? media_video_frames(p) : NULL;
+}
+
 /* Presented and dropped video frame counts; FALSE if not available. */
 gboolean
 ns_media_frame_counts(JSContext *ctx, JSValueConst this_val,

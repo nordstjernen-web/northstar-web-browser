@@ -426,21 +426,6 @@ static const char ns_ext_shim_prelude[] =
 
 static const char ns_ext_shim_epilogue[] = "})\n";
 
-/* Returns a string-valued property of obj as a new C string, or NULL; caller frees. */
-static char *
-ns_ext_js_string(JSContext *ctx, JSValueConst obj, const char *key)
-{
-    JSValue v = JS_GetPropertyStr(ctx, obj, key);
-    char *out = NULL;
-    if (JS_IsString(v)) {
-        const char *s = JS_ToCString(ctx, v);
-        if (s) out = g_strdup(s);
-        JS_FreeCString(ctx, s);
-    }
-    JS_FreeValue(ctx, v);
-    return out;
-}
-
 /* Appends each element of a JS array, stringified, to out. */
 static void
 ns_ext_collect_strings(JSContext *ctx, JSValueConst arr, GPtrArray *out)
@@ -562,7 +547,7 @@ ns_ext_parse_content_scripts(ns_ext *e, JSContext *ctx, JSValueConst manifest)
                 ns_ext_collect_strings(ctx, m, cs->exclude_globs);
                 JS_FreeValue(ctx, m);
                 g_autofree char *run_at =
-                    ns_ext_js_string(ctx, entry, "run_at");
+                    ns_js_get_string_prop(ctx, entry, "run_at");
                 cs->at_start = run_at && strcmp(run_at, "document_start") == 0;
                 cs->all_js = ns_ext_read_files(e->base_dir, ctx, entry, "js");
                 cs->all_css = ns_ext_read_files(e->base_dir, ctx, entry, "css");
@@ -622,7 +607,7 @@ ns_dnr_parse_rule(JSContext *ctx, JSValueConst r)
     if (!JS_IsObject(r)) return NULL;
     JSValue act = JS_GetPropertyStr(ctx, r, "action");
     g_autofree char *atype =
-        JS_IsObject(act) ? ns_ext_js_string(ctx, act, "type") : NULL;
+        JS_IsObject(act) ? ns_js_get_string_prop(ctx, act, "type") : NULL;
     JS_FreeValue(ctx, act);
     int action;
     if (atype && strcmp(atype, "block") == 0)
@@ -642,11 +627,11 @@ ns_dnr_parse_rule(JSContext *ctx, JSValueConst r)
 
     JSValue cond = JS_GetPropertyStr(ctx, r, "condition");
     if (JS_IsObject(cond)) {
-        rule->url_filter = ns_ext_js_string(ctx, cond, "urlFilter");
+        rule->url_filter = ns_js_get_string_prop(ctx, cond, "urlFilter");
         JSValue csv = JS_GetPropertyStr(ctx, cond, "isUrlFilterCaseSensitive");
         rule->case_sensitive = JS_ToBool(ctx, csv) > 0;
         JS_FreeValue(ctx, csv);
-        g_autofree char *rx = ns_ext_js_string(ctx, cond, "regexFilter");
+        g_autofree char *rx = ns_js_get_string_prop(ctx, cond, "regexFilter");
         if (rx)
             rule->regex = g_regex_new(rx,
                 rule->case_sensitive ? 0 : G_REGEX_CASELESS, 0, NULL);
@@ -713,7 +698,7 @@ ns_ext_parse_dnr(ns_ext *e, JSContext *ctx, JSValueConst manifest)
                     JSValue ev = JS_GetPropertyStr(ctx, item, "enabled");
                     if (JS_IsBool(ev)) enabled = JS_ToBool(ctx, ev) > 0;
                     JS_FreeValue(ctx, ev);
-                    g_autofree char *path = ns_ext_js_string(ctx, item, "path");
+                    g_autofree char *path = ns_js_get_string_prop(ctx, item, "path");
                     if (enabled && path)
                         ns_ext_load_rule_file(e, ctx, path);
                 }
@@ -950,7 +935,7 @@ ns_ext_parse_id(JSContext *ctx, JSValueConst manifest, const char *dir)
             JSValue gecko = JS_GetPropertyStr(ctx, bss, "gecko");
             char *id = NULL;
             if (JS_IsObject(gecko))
-                id = ns_ext_js_string(ctx, gecko, "id");
+                id = ns_js_get_string_prop(ctx, gecko, "id");
             JS_FreeValue(ctx, gecko);
             JS_FreeValue(ctx, bss);
             if (id) return id;
@@ -1065,8 +1050,8 @@ ns_ext_load_one(const char *dir, JSContext *ctx)
     ns_ext *e = g_new0(ns_ext, 1);
     e->base_dir = g_strdup(dir);
     e->manifest_json = raw;
-    e->name = ns_ext_js_string(ctx, obj, "name");
-    e->version = ns_ext_js_string(ctx, obj, "version");
+    e->name = ns_js_get_string_prop(ctx, obj, "name");
+    e->version = ns_js_get_string_prop(ctx, obj, "version");
     e->id = ns_ext_parse_id(ctx, obj, dir);
     if (!e->name || !*e->name || !e->version || !*e->version ||
         !e->id || !*e->id || ns_ext_lookup(e->id)) {

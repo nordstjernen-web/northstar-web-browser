@@ -637,3 +637,34 @@ ns_js_buffer_source_bytes(JSContext *ctx, JSValueConst v, const uint8_t **data,
         JS_FreeValue(ctx, buf);
     return TRUE;
 }
+
+char *
+ns_js_get_string_prop(JSContext *ctx, JSValueConst obj, const char *key)
+{
+    if (!JS_IsObject(obj)) return NULL;
+    JSValue v = JS_GetPropertyStr(ctx, obj, key);
+    char *out = NULL;
+    if (JS_IsString(v)) {
+        const char *s = JS_ToCString(ctx, v);
+        if (s) {
+            out = g_strdup(s);
+            JS_FreeCString(ctx, s);
+        }
+    }
+    JS_FreeValue(ctx, v);
+    return out;
+}
+
+int
+ns_js_get_int_prop(JSContext *ctx, JSValueConst obj, const char *key, int dflt)
+{
+    if (!JS_IsObject(obj)) return dflt;
+    JSValue v = JS_GetPropertyStr(ctx, obj, key);
+    int out = dflt;
+    if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
+        int32_t t;
+        if (JS_ToInt32(ctx, &t, v) == 0) out = t;
+    }
+    JS_FreeValue(ctx, v);
+    return out;
+}

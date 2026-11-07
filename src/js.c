@@ -850,20 +850,6 @@ ns_js_get_double_prop(JSContext *ctx, JSValueConst obj, const char *key,
     return r;
 }
 
-/* Returns a g_strdup copy of obj[key] if it is a string, else NULL; caller frees. */
-static char *
-ns_js_get_string_prop(JSContext *ctx, JSValueConst obj, const char *key)
-{
-    JSValue v = JS_GetPropertyStr(ctx, obj, key);
-    char *out = NULL;
-    if (JS_IsString(v)) {
-        const char *s = JS_ToCString(ctx, v);
-        if (s) { out = g_strdup(s); JS_FreeCString(ctx, s); }
-    }
-    JS_FreeValue(ctx, v);
-    return out;
-}
-
 /* NUL-terminated copy of a byte range, refusing bodies over NS_JS_BODY_BYTES_MAX. */
 static char *
 ns_js_copy_bytes(const uint8_t *data, gsize len)
@@ -24109,24 +24095,6 @@ ns_worker_thread(gpointer data)
     return NULL;
 }
 
-/* Returns options[name] as a new string when it is a string, else NULL. */
-static char *
-ns_worker_option_string(JSContext *ctx, JSValueConst options, const char *name)
-{
-    if (!JS_IsObject(options)) return NULL;
-    JSValue v = JS_GetPropertyStr(ctx, options, name);
-    char *out = NULL;
-    if (JS_IsString(v)) {
-        const char *s = JS_ToCString(ctx, v);
-        if (s) {
-            out = g_strdup(s);
-            JS_FreeCString(ctx, s);
-        }
-    }
-    JS_FreeValue(ctx, v);
-    return out;
-}
-
 /* Worker ctor: resolves URL or blob, checks policy, creates the host and spawns it. */
 static JSValue
 ns_worker_ctor(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -24157,14 +24125,14 @@ ns_worker_ctor(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     JS_FreeCString(ctx, raw);
     if (!abs_url) return JS_ThrowTypeError(ctx, "Worker: invalid script URL");
 
-    g_autofree char *type = argc >= 2 ? ns_worker_option_string(ctx, argv[1], "type") : NULL;
+    g_autofree char *type = argc >= 2 ? ns_js_get_string_prop(ctx, argv[1], "type") : NULL;
     gboolean is_module = type && g_ascii_strcasecmp(type, "module") == 0;
     if (type && *type && !is_module && g_ascii_strcasecmp(type, "classic") != 0) {
         g_free(abs_url);
         g_free(inline_script);
         return JS_ThrowTypeError(ctx, "Worker: unsupported worker type");
     }
-    g_autofree char *name = argc >= 2 ? ns_worker_option_string(ctx, argv[1], "name") : NULL;
+    g_autofree char *name = argc >= 2 ? ns_js_get_string_prop(ctx, argv[1], "name") : NULL;
 
     if (!inline_script) {
         char *policy_error = NULL;

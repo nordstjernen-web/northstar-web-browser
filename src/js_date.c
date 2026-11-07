@@ -87,19 +87,6 @@ tmp_make(JSContext *ctx, JSValueConst global_or_proto, int kind,
     return obj;
 }
 
-/* Reads an int32 property, returning dflt when it is undefined, null or not convertible. */
-static int
-tmp_int_prop(JSContext *ctx, JSValueConst o, const char *key, int dflt)
-{
-    JSValue v = JS_GetPropertyStr(ctx, o, key);
-    int r = dflt;
-    if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
-        int32_t t; if (JS_ToInt32(ctx, &t, v) == 0) r = t;
-    }
-    JS_FreeValue(ctx, v);
-    return r;
-}
-
 static gboolean
 tmp_has_prop(JSContext *ctx, JSValueConst o, const char *key)
 {
@@ -440,12 +427,12 @@ tmp_instant_add_impl(JSContext *ctx, JSValueConst this_val,
     int64_t add_ns = 0;
     if (dur && dur->kind == TK_DURATION) add_ns = tmp_dur_time_ns(dur);
     else if (JS_IsObject(durv)) {
-        add_ns = (int64_t)tmp_int_prop(ctx, durv, "hours", 0) * 3600000000000LL +
-                 (int64_t)tmp_int_prop(ctx, durv, "minutes", 0) * 60000000000LL +
-                 (int64_t)tmp_int_prop(ctx, durv, "seconds", 0) * 1000000000LL +
-                 (int64_t)tmp_int_prop(ctx, durv, "milliseconds", 0) * 1000000LL +
-                 (int64_t)tmp_int_prop(ctx, durv, "microseconds", 0) * 1000LL +
-                 (int64_t)tmp_int_prop(ctx, durv, "nanoseconds", 0);
+        add_ns = (int64_t)ns_js_get_int_prop(ctx, durv, "hours", 0) * 3600000000000LL +
+                 (int64_t)ns_js_get_int_prop(ctx, durv, "minutes", 0) * 60000000000LL +
+                 (int64_t)ns_js_get_int_prop(ctx, durv, "seconds", 0) * 1000000000LL +
+                 (int64_t)ns_js_get_int_prop(ctx, durv, "milliseconds", 0) * 1000000LL +
+                 (int64_t)ns_js_get_int_prop(ctx, durv, "microseconds", 0) * 1000LL +
+                 (int64_t)ns_js_get_int_prop(ctx, durv, "nanoseconds", 0);
     }
     int64_t total = t->epoch_sec * 1000000000LL + t->nanos + sign * add_ns;
     JSValue gp = JS_GetPropertyStr(ctx, this_val, "constructor");
@@ -503,9 +490,9 @@ tmp_date_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *arg
             tmp_set_date_fields(t, src->year, src->month, src->day);
         else
             tmp_set_date_fields(t,
-                tmp_int_prop(ctx, argv[0], "year", 1970),
-                tmp_int_prop(ctx, argv[0], "month", 1),
-                tmp_int_prop(ctx, argv[0], "day", 1));
+                ns_js_get_int_prop(ctx, argv[0], "year", 1970),
+                ns_js_get_int_prop(ctx, argv[0], "month", 1),
+                ns_js_get_int_prop(ctx, argv[0], "day", 1));
     }
     tmp_fill(ctx, out, t);
     return out;
@@ -564,7 +551,7 @@ tmp_read_dur(JSContext *ctx, JSValueConst durv, int64_t out[10])
     static const char *const names[] = {
         "years","months","weeks","days","hours","minutes",
         "seconds","milliseconds","microseconds","nanoseconds" };
-    for (int i = 0; i < 10; i++) out[i] = tmp_int_prop(ctx, durv, names[i], 0);
+    for (int i = 0; i < 10; i++) out[i] = ns_js_get_int_prop(ctx, durv, names[i], 0);
 }
 
 /* PlainDate add/subtract of a duration's date units; returns a new PlainDate. */
@@ -603,9 +590,9 @@ tmp_date_with(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *arg
     ns_temporal *nt; JSValue out = tmp_make(ctx, proto, TK_PLAINDATE, &nt);
     JS_FreeValue(ctx, proto); JS_FreeValue(ctx, gp);
     tmp_set_date_fields(nt,
-        tmp_has_prop(ctx, f, "year") ? tmp_int_prop(ctx, f, "year", t->year) : t->year,
-        tmp_has_prop(ctx, f, "month") ? tmp_int_prop(ctx, f, "month", t->month) : t->month,
-        tmp_has_prop(ctx, f, "day") ? tmp_int_prop(ctx, f, "day", t->day) : t->day);
+        tmp_has_prop(ctx, f, "year") ? ns_js_get_int_prop(ctx, f, "year", t->year) : t->year,
+        tmp_has_prop(ctx, f, "month") ? ns_js_get_int_prop(ctx, f, "month", t->month) : t->month,
+        tmp_has_prop(ctx, f, "day") ? ns_js_get_int_prop(ctx, f, "day", t->day) : t->day);
     tmp_fill(ctx, out, nt);
     return out;
 }
@@ -745,12 +732,12 @@ tmp_time_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *arg
             t->hour = src->hour; t->minute = src->minute; t->second = src->second;
             t->ms = src->ms; t->us = src->us; t->ns = src->ns;
         } else {
-            t->hour = tmp_int_prop(ctx, argv[0], "hour", 0);
-            t->minute = tmp_int_prop(ctx, argv[0], "minute", 0);
-            t->second = tmp_int_prop(ctx, argv[0], "second", 0);
-            t->ms = tmp_int_prop(ctx, argv[0], "millisecond", 0);
-            t->us = tmp_int_prop(ctx, argv[0], "microsecond", 0);
-            t->ns = tmp_int_prop(ctx, argv[0], "nanosecond", 0);
+            t->hour = ns_js_get_int_prop(ctx, argv[0], "hour", 0);
+            t->minute = ns_js_get_int_prop(ctx, argv[0], "minute", 0);
+            t->second = ns_js_get_int_prop(ctx, argv[0], "second", 0);
+            t->ms = ns_js_get_int_prop(ctx, argv[0], "millisecond", 0);
+            t->us = ns_js_get_int_prop(ctx, argv[0], "microsecond", 0);
+            t->ns = ns_js_get_int_prop(ctx, argv[0], "nanosecond", 0);
         }
     }
     tmp_norm_time(t);
@@ -821,15 +808,15 @@ tmp_datetime_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
         t->hour = h; t->minute = mi; t->second = se; t->ms = ms; t->us = us; t->ns = ns;
     } else if (argc >= 1 && JS_IsObject(argv[0])) {
         tmp_set_date_fields(t,
-            tmp_int_prop(ctx, argv[0], "year", 1970),
-            tmp_int_prop(ctx, argv[0], "month", 1),
-            tmp_int_prop(ctx, argv[0], "day", 1));
-        t->hour = tmp_int_prop(ctx, argv[0], "hour", 0);
-        t->minute = tmp_int_prop(ctx, argv[0], "minute", 0);
-        t->second = tmp_int_prop(ctx, argv[0], "second", 0);
-        t->ms = tmp_int_prop(ctx, argv[0], "millisecond", 0);
-        t->us = tmp_int_prop(ctx, argv[0], "microsecond", 0);
-        t->ns = tmp_int_prop(ctx, argv[0], "nanosecond", 0);
+            ns_js_get_int_prop(ctx, argv[0], "year", 1970),
+            ns_js_get_int_prop(ctx, argv[0], "month", 1),
+            ns_js_get_int_prop(ctx, argv[0], "day", 1));
+        t->hour = ns_js_get_int_prop(ctx, argv[0], "hour", 0);
+        t->minute = ns_js_get_int_prop(ctx, argv[0], "minute", 0);
+        t->second = ns_js_get_int_prop(ctx, argv[0], "second", 0);
+        t->ms = ns_js_get_int_prop(ctx, argv[0], "millisecond", 0);
+        t->us = ns_js_get_int_prop(ctx, argv[0], "microsecond", 0);
+        t->ns = ns_js_get_int_prop(ctx, argv[0], "nanosecond", 0);
     }
     tmp_fill(ctx, out, t);
     return out;
@@ -956,8 +943,8 @@ tmp_yearmonth_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
         const char *s = JS_ToCString(ctx, argv[0]);
         if (s) { int y, m; if (sscanf(s, "%d-%d", &y, &m) >= 2) { t->year = y; t->month = m; } JS_FreeCString(ctx, s); }
     } else if (argc >= 1 && JS_IsObject(argv[0])) {
-        t->year = tmp_int_prop(ctx, argv[0], "year", 1970);
-        t->month = tmp_int_prop(ctx, argv[0], "month", 1);
+        t->year = ns_js_get_int_prop(ctx, argv[0], "year", 1970);
+        t->month = ns_js_get_int_prop(ctx, argv[0], "month", 1);
     }
     if (t->month < 1) t->month = 1;
     if (t->month > 12) t->month = 12;
@@ -1004,8 +991,8 @@ tmp_monthday_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
             JS_FreeCString(ctx, s);
         }
     } else if (argc >= 1 && JS_IsObject(argv[0])) {
-        t->month = tmp_int_prop(ctx, argv[0], "month", 1);
-        t->day = tmp_int_prop(ctx, argv[0], "day", 1);
+        t->month = ns_js_get_int_prop(ctx, argv[0], "month", 1);
+        t->day = ns_js_get_int_prop(ctx, argv[0], "day", 1);
     }
     if (t->month < 1) t->month = 1;
     if (t->month > 12) t->month = 12;
@@ -1201,7 +1188,7 @@ tmp_duration_from(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
         static const char *const names[] = {
             "years","months","weeks","days","hours","minutes",
             "seconds","milliseconds","microseconds","nanoseconds" };
-        for (int i = 0; i < 10; i++) t->dur[i] = tmp_int_prop(ctx, argv[0], names[i], 0);
+        for (int i = 0; i < 10; i++) t->dur[i] = ns_js_get_int_prop(ctx, argv[0], names[i], 0);
     }
     tmp_fill(ctx, out, t);
     return out;

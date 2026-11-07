@@ -127,48 +127,6 @@ intl_hide(JSContext *ctx, JSValueConst obj, const char *key, JSValue val)
     JS_DefinePropertyValueStr(ctx, obj, key, val, 0);
 }
 
-/* Reads a string internal slot from an Intl object; caller frees, NULL if absent. */
-static char *
-intl_hget_str(JSContext *ctx, JSValueConst obj, const char *key)
-{
-    JSValue v = JS_GetPropertyStr(ctx, obj, key);
-    char *r = NULL;
-    if (JS_IsString(v)) {
-        const char *s = JS_ToCString(ctx, v);
-        if (s) { r = g_strdup(s); JS_FreeCString(ctx, s); }
-    }
-    JS_FreeValue(ctx, v);
-    return r;
-}
-
-/* Reads an integer internal slot from an Intl object, or dflt when missing. */
-static int
-intl_hget_int(JSContext *ctx, JSValueConst obj, const char *key, int dflt)
-{
-    JSValue v = JS_GetPropertyStr(ctx, obj, key);
-    int r = dflt;
-    if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
-        int32_t t; if (JS_ToInt32(ctx, &t, v) == 0) r = t;
-    }
-    JS_FreeValue(ctx, v);
-    return r;
-}
-
-/* Reads a string option from an options bag; NULL if missing or not a string. */
-static char *
-intl_opt_str(JSContext *ctx, JSValueConst o, const char *key)
-{
-    if (!JS_IsObject(o)) return NULL;
-    JSValue v = JS_GetPropertyStr(ctx, o, key);
-    char *r = NULL;
-    if (JS_IsString(v)) {
-        const char *s = JS_ToCString(ctx, v);
-        if (s) { r = g_strdup(s); JS_FreeCString(ctx, s); }
-    }
-    JS_FreeValue(ctx, v);
-    return r;
-}
-
 static gboolean
 intl_opt_present(JSContext *ctx, JSValueConst o, const char *key)
 {
@@ -481,13 +439,13 @@ intl_locale_ctor(JSContext *ctx, JSValueConst this_val,
     }
     g_strfreev(parts);
 
-    char *calendar = intl_opt_str(ctx, options, "calendar");
+    char *calendar = ns_js_get_string_prop(ctx, options, "calendar");
     if (!calendar) calendar = intl_subtag_after(canon, 'c');
-    char *collation = intl_opt_str(ctx, options, "collation");
+    char *collation = ns_js_get_string_prop(ctx, options, "collation");
     if (!collation) collation = intl_subtag_after(canon, 'o');
-    char *numbering = intl_opt_str(ctx, options, "numberingSystem");
+    char *numbering = ns_js_get_string_prop(ctx, options, "numberingSystem");
     if (!numbering) numbering = intl_subtag_after(canon, 'n');
-    char *hourCycle = intl_opt_str(ctx, options, "hourCycle");
+    char *hourCycle = ns_js_get_string_prop(ctx, options, "hourCycle");
     if (!hourCycle) hourCycle = intl_subtag_after(canon, 'h');
 
     JSValue obj = intl_new(ctx, this_val, "Locale");
@@ -547,9 +505,9 @@ intl_collator_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "Collator");
-    char *usage = intl_opt_str(ctx, o, "usage");
-    char *sensitivity = intl_opt_str(ctx, o, "sensitivity");
-    char *caseFirst = intl_opt_str(ctx, o, "caseFirst");
+    char *usage = ns_js_get_string_prop(ctx, o, "usage");
+    char *sensitivity = ns_js_get_string_prop(ctx, o, "sensitivity");
+    char *caseFirst = ns_js_get_string_prop(ctx, o, "caseFirst");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_usage", intl_str(ctx, usage ? usage : "sort"));
     intl_hide(ctx, obj, "_sensitivity",
@@ -667,8 +625,8 @@ intl_collator_compare(JSContext *ctx, JSValueConst this_val,
         JS_FreeCString(ctx, b);
         return JS_EXCEPTION;
     }
-    char *sens = intl_hget_str(ctx, this_val, "_sensitivity");
-    int numeric = intl_hget_int(ctx, this_val, "_numeric", 0);
+    char *sens = ns_js_get_string_prop(ctx, this_val, "_sensitivity");
+    int numeric = ns_js_get_int_prop(ctx, this_val, "_numeric", 0);
     int r;
     if (numeric) {
         r = intl_numeric_compare(a, b);
@@ -688,10 +646,10 @@ intl_collator_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *usage = intl_hget_str(ctx, this_val, "_usage");
-    char *sens = intl_hget_str(ctx, this_val, "_sensitivity");
-    char *cf = intl_hget_str(ctx, this_val, "_caseFirst");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *usage = ns_js_get_string_prop(ctx, this_val, "_usage");
+    char *sens = ns_js_get_string_prop(ctx, this_val, "_sensitivity");
+    char *cf = ns_js_get_string_prop(ctx, this_val, "_caseFirst");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "usage", intl_str(ctx, usage ? usage : "sort"));
     JS_SetPropertyStr(ctx, o, "sensitivity",
@@ -699,7 +657,7 @@ intl_collator_resolved(JSContext *ctx, JSValueConst this_val,
     JS_SetPropertyStr(ctx, o, "caseFirst", intl_str(ctx, cf ? cf : "false"));
     JS_SetPropertyStr(ctx, o, "collation", intl_str(ctx, "default"));
     JS_SetPropertyStr(ctx, o, "numeric",
-                      JS_NewBool(ctx, intl_hget_int(ctx, this_val, "_numeric", 0)));
+                      JS_NewBool(ctx, ns_js_get_int_prop(ctx, this_val, "_numeric", 0)));
     JS_SetPropertyStr(ctx, o, "ignorePunctuation", JS_FALSE);
     g_free(loc); g_free(usage); g_free(sens); g_free(cf);
     return o;
@@ -750,13 +708,13 @@ intl_nf_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "NumberFormat");
-    char *style = intl_opt_str(ctx, o, "style");
-    char *currency = intl_opt_str(ctx, o, "currency");
-    char *currencyDisplay = intl_opt_str(ctx, o, "currencyDisplay");
-    char *unit = intl_opt_str(ctx, o, "unit");
-    char *unitDisplay = intl_opt_str(ctx, o, "unitDisplay");
-    char *notation = intl_opt_str(ctx, o, "notation");
-    char *signDisplay = intl_opt_str(ctx, o, "signDisplay");
+    char *style = ns_js_get_string_prop(ctx, o, "style");
+    char *currency = ns_js_get_string_prop(ctx, o, "currency");
+    char *currencyDisplay = ns_js_get_string_prop(ctx, o, "currencyDisplay");
+    char *unit = ns_js_get_string_prop(ctx, o, "unit");
+    char *unitDisplay = ns_js_get_string_prop(ctx, o, "unitDisplay");
+    char *notation = ns_js_get_string_prop(ctx, o, "notation");
+    char *signDisplay = ns_js_get_string_prop(ctx, o, "signDisplay");
 
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_style", intl_str(ctx, style ? style : "decimal"));
@@ -821,14 +779,14 @@ intl_nf_parts(JSContext *ctx, JSValueConst this_val, double num)
 {
     JSValue arr = JS_NewArray(ctx);
     uint32_t n = 0;
-    char *style = intl_hget_str(ctx, this_val, "_style");
-    char *locale = intl_hget_str(ctx, this_val, "_locale");
-    char *notation = intl_hget_str(ctx, this_val, "_notation");
-    char *signDisplay = intl_hget_str(ctx, this_val, "_signDisplay");
-    int minfd = intl_hget_int(ctx, this_val, "_minfd", -1);
-    int maxfd = intl_hget_int(ctx, this_val, "_maxfd", -1);
-    int minid = intl_hget_int(ctx, this_val, "_minid", 1);
-    int grouping = intl_hget_int(ctx, this_val, "_grouping", 1);
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
+    char *locale = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *notation = ns_js_get_string_prop(ctx, this_val, "_notation");
+    char *signDisplay = ns_js_get_string_prop(ctx, this_val, "_signDisplay");
+    int minfd = ns_js_get_int_prop(ctx, this_val, "_minfd", -1);
+    int maxfd = ns_js_get_int_prop(ctx, this_val, "_maxfd", -1);
+    int minid = ns_js_get_int_prop(ctx, this_val, "_minid", 1);
+    int grouping = ns_js_get_int_prop(ctx, this_val, "_grouping", 1);
     gboolean is_currency = style && !strcmp(style, "currency");
     gboolean is_percent = style && !strcmp(style, "percent");
     gboolean is_unit = style && !strcmp(style, "unit");
@@ -898,8 +856,8 @@ intl_nf_parts(JSContext *ctx, JSValueConst this_val, double num)
         JS_SetPropertyUint32(ctx, arr, n++, intl_part(ctx, "plusSign", "+"));
 
     if (is_currency) {
-        char *cur = intl_hget_str(ctx, this_val, "_currency");
-        char *disp = intl_hget_str(ctx, this_val, "_currencyDisplay");
+        char *cur = ns_js_get_string_prop(ctx, this_val, "_currency");
+        char *disp = ns_js_get_string_prop(ctx, this_val, "_currencyDisplay");
         const char *sym = (disp && !strcmp(disp, "code")) ? (cur ? cur : "")
                         : intl_currency_symbol(cur ? cur : "USD");
         JS_SetPropertyUint32(ctx, arr, n++, intl_part(ctx, "currency", sym));
@@ -925,7 +883,7 @@ intl_nf_parts(JSContext *ctx, JSValueConst this_val, double num)
         JS_SetPropertyUint32(ctx, arr, n++, intl_part(ctx, "percentSign", "%"));
     }
     if (is_unit) {
-        char *unit = intl_hget_str(ctx, this_val, "_unit");
+        char *unit = ns_js_get_string_prop(ctx, this_val, "_unit");
         JS_SetPropertyUint32(ctx, arr, n++, intl_part(ctx, "literal", "\xc2\xa0"));
         JS_SetPropertyUint32(ctx, arr, n++,
                              intl_part(ctx, "unit", unit ? unit : ""));
@@ -1003,24 +961,24 @@ intl_nf_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *style = intl_hget_str(ctx, this_val, "_style");
-    char *notation = intl_hget_str(ctx, this_val, "_notation");
-    char *cur = intl_hget_str(ctx, this_val, "_currency");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
+    char *notation = ns_js_get_string_prop(ctx, this_val, "_notation");
+    char *cur = ns_js_get_string_prop(ctx, this_val, "_currency");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "numberingSystem", intl_str(ctx, "latn"));
     JS_SetPropertyStr(ctx, o, "style", intl_str(ctx, style ? style : "decimal"));
     JS_SetPropertyStr(ctx, o, "notation", intl_str(ctx, notation ? notation : "standard"));
     if (cur) JS_SetPropertyStr(ctx, o, "currency", intl_str(ctx, cur));
     JS_SetPropertyStr(ctx, o, "useGrouping",
-                      JS_NewBool(ctx, intl_hget_int(ctx, this_val, "_grouping", 1)));
-    int minfd = intl_hget_int(ctx, this_val, "_minfd", -1);
-    int maxfd = intl_hget_int(ctx, this_val, "_maxfd", -1);
+                      JS_NewBool(ctx, ns_js_get_int_prop(ctx, this_val, "_grouping", 1)));
+    int minfd = ns_js_get_int_prop(ctx, this_val, "_minfd", -1);
+    int maxfd = ns_js_get_int_prop(ctx, this_val, "_maxfd", -1);
     gboolean is_currency = style && !strcmp(style, "currency");
     if (minfd < 0) minfd = is_currency ? 2 : 0;
     if (maxfd < 0) maxfd = is_currency ? 2 : (style && !strcmp(style, "percent") ? 0 : 3);
     JS_SetPropertyStr(ctx, o, "minimumIntegerDigits",
-                      JS_NewInt32(ctx, intl_hget_int(ctx, this_val, "_minid", 1)));
+                      JS_NewInt32(ctx, ns_js_get_int_prop(ctx, this_val, "_minid", 1)));
     JS_SetPropertyStr(ctx, o, "minimumFractionDigits", JS_NewInt32(ctx, minfd));
     JS_SetPropertyStr(ctx, o, "maximumFractionDigits", JS_NewInt32(ctx, maxfd));
     g_free(loc); g_free(style); g_free(notation); g_free(cur);
@@ -1044,9 +1002,9 @@ intl_dtf_ctor(JSContext *ctx, JSValueConst this_val,
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
 
     JSValue opts = JS_NewObject(ctx);
-    char *dateStyle = intl_opt_str(ctx, o, "dateStyle");
-    char *timeStyle = intl_opt_str(ctx, o, "timeStyle");
-    char *tz = intl_opt_str(ctx, o, "timeZone");
+    char *dateStyle = ns_js_get_string_prop(ctx, o, "dateStyle");
+    char *timeStyle = ns_js_get_string_prop(ctx, o, "timeStyle");
+    char *tz = ns_js_get_string_prop(ctx, o, "timeZone");
     intl_hide(ctx, obj, "_tz", intl_str(ctx, tz ? tz : "local"));
 
     if (dateStyle) {
@@ -1128,14 +1086,14 @@ intl_dtf_parts_core(JSContext *ctx, JSValueConst opts, const char *locale,
     int Y = tmv.tm_year + 1900, Mo = tmv.tm_mon, D = tmv.tm_mday,
         Wd = tmv.tm_wday, H = tmv.tm_hour, Mi = tmv.tm_min, S = tmv.tm_sec;
 
-    char *weekday = intl_opt_str(ctx, opts, "weekday");
-    char *month = intl_opt_str(ctx, opts, "month");
-    char *day = intl_opt_str(ctx, opts, "day");
-    char *year = intl_opt_str(ctx, opts, "year");
-    char *hour = intl_opt_str(ctx, opts, "hour");
-    char *minute = intl_opt_str(ctx, opts, "minute");
-    char *second = intl_opt_str(ctx, opts, "second");
-    char *hourCycle = intl_opt_str(ctx, opts, "hourCycle");
+    char *weekday = ns_js_get_string_prop(ctx, opts, "weekday");
+    char *month = ns_js_get_string_prop(ctx, opts, "month");
+    char *day = ns_js_get_string_prop(ctx, opts, "day");
+    char *year = ns_js_get_string_prop(ctx, opts, "year");
+    char *hour = ns_js_get_string_prop(ctx, opts, "hour");
+    char *minute = ns_js_get_string_prop(ctx, opts, "minute");
+    char *second = ns_js_get_string_prop(ctx, opts, "second");
+    char *hourCycle = ns_js_get_string_prop(ctx, opts, "hourCycle");
     int hour12 = intl_opt_bool(ctx, opts, "hour12", -1);
 
     char buf[32];
@@ -1284,8 +1242,8 @@ static JSValue
 intl_dtf_parts(JSContext *ctx, JSValueConst this_val, double ms)
 {
     JSValue opts = JS_GetPropertyStr(ctx, this_val, "_opts");
-    char *locale = intl_hget_str(ctx, this_val, "_locale");
-    char *tz = intl_hget_str(ctx, this_val, "_tz");
+    char *locale = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *tz = ns_js_get_string_prop(ctx, this_val, "_tz");
     JSValue arr = intl_dtf_parts_core(ctx, opts, locale ? locale : "en-US",
                                       tz ? tz : "local", ms);
     JS_FreeValue(ctx, opts);
@@ -1424,8 +1382,8 @@ intl_dtf_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *tz = intl_hget_str(ctx, this_val, "_tz");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *tz = ns_js_get_string_prop(ctx, this_val, "_tz");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "calendar", intl_str(ctx, "gregory"));
     JS_SetPropertyStr(ctx, o, "numberingSystem", intl_str(ctx, "latn"));
@@ -1452,7 +1410,7 @@ intl_pr_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "PluralRules");
-    char *type = intl_opt_str(ctx, o, "type");
+    char *type = ns_js_get_string_prop(ctx, o, "type");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_type", intl_str(ctx, type ? type : "cardinal"));
     g_free(locale); g_free(type);
@@ -1516,7 +1474,7 @@ intl_pr_select(JSContext *ctx, JSValueConst this_val,
 {
     double n = 0;
     if (argc >= 1) JS_ToFloat64(ctx, &n, argv[0]);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
     const char *cat = intl_plural_category(loc ? loc : "en", n);
     g_free(loc);
     return intl_str(ctx, cat);
@@ -1529,7 +1487,7 @@ intl_pr_selectRange(JSContext *ctx, JSValueConst this_val,
 {
     double b = 1;
     if (argc >= 2) JS_ToFloat64(ctx, &b, argv[1]);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
     const char *cat = intl_plural_category(loc ? loc : "en", b);
     g_free(loc);
     return intl_str(ctx, cat);
@@ -1542,8 +1500,8 @@ intl_pr_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *type = intl_hget_str(ctx, this_val, "_type");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *type = ns_js_get_string_prop(ctx, this_val, "_type");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "type", intl_str(ctx, type ? type : "cardinal"));
     JSValue cats = JS_NewArray(ctx);
@@ -1570,8 +1528,8 @@ intl_lf_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "ListFormat");
-    char *type = intl_opt_str(ctx, o, "type");
-    char *style = intl_opt_str(ctx, o, "style");
+    char *type = ns_js_get_string_prop(ctx, o, "type");
+    char *style = ns_js_get_string_prop(ctx, o, "style");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_type", intl_str(ctx, type ? type : "conjunction"));
     intl_hide(ctx, obj, "_style", intl_str(ctx, style ? style : "long"));
@@ -1585,7 +1543,7 @@ intl_lf_parts(JSContext *ctx, JSValueConst this_val, JSValueConst list)
 {
     JSValue arr = JS_NewArray(ctx);
     uint32_t out = 0;
-    char *type = intl_hget_str(ctx, this_val, "_type");
+    char *type = ns_js_get_string_prop(ctx, this_val, "_type");
     JSValue lv = JS_GetPropertyStr(ctx, list, "length");
     uint32_t len = 0; JS_ToUint32(ctx, &len, lv); JS_FreeValue(ctx, lv);
     if (len > (1u << 20)) len = 1u << 20;
@@ -1647,9 +1605,9 @@ intl_lf_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *type = intl_hget_str(ctx, this_val, "_type");
-    char *style = intl_hget_str(ctx, this_val, "_style");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *type = ns_js_get_string_prop(ctx, this_val, "_type");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "type", intl_str(ctx, type ? type : "conjunction"));
     JS_SetPropertyStr(ctx, o, "style", intl_str(ctx, style ? style : "long"));
@@ -1664,8 +1622,8 @@ intl_rtf_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "RelativeTimeFormat");
-    char *numeric = intl_opt_str(ctx, o, "numeric");
-    char *style = intl_opt_str(ctx, o, "style");
+    char *numeric = ns_js_get_string_prop(ctx, o, "numeric");
+    char *style = ns_js_get_string_prop(ctx, o, "style");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_numeric", intl_str(ctx, numeric ? numeric : "always"));
     intl_hide(ctx, obj, "_style", intl_str(ctx, style ? style : "long"));
@@ -1710,7 +1668,7 @@ intl_rtf_format(JSContext *ctx, JSValueConst this_val,
     double val = 0;
     if (argc >= 1) JS_ToFloat64(ctx, &val, argv[0]);
     char *unit = intl_rtf_unit(ctx, argc >= 2 ? argv[1] : JS_UNDEFINED);
-    char *numeric = intl_hget_str(ctx, this_val, "_numeric");
+    char *numeric = ns_js_get_string_prop(ctx, this_val, "_numeric");
     if (numeric && !strcmp(numeric, "auto")) {
         const char *a = intl_rtf_auto(unit, (int)val);
         if (a) { g_free(unit); g_free(numeric); return intl_str(ctx, a); }
@@ -1732,7 +1690,7 @@ intl_rtf_formatToParts(JSContext *ctx, JSValueConst this_val,
     double val = 0;
     if (argc >= 1) JS_ToFloat64(ctx, &val, argv[0]);
     char *unit = intl_rtf_unit(ctx, argc >= 2 ? argv[1] : JS_UNDEFINED);
-    char *numeric = intl_hget_str(ctx, this_val, "_numeric");
+    char *numeric = ns_js_get_string_prop(ctx, this_val, "_numeric");
     JSValue arr = JS_NewArray(ctx);
     uint32_t n = 0;
     if (numeric && !strcmp(numeric, "auto")) {
@@ -1763,9 +1721,9 @@ intl_rtf_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *numeric = intl_hget_str(ctx, this_val, "_numeric");
-    char *style = intl_hget_str(ctx, this_val, "_style");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *numeric = ns_js_get_string_prop(ctx, this_val, "_numeric");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "numeric", intl_str(ctx, numeric ? numeric : "always"));
     JS_SetPropertyStr(ctx, o, "style", intl_str(ctx, style ? style : "long"));
@@ -1834,9 +1792,9 @@ intl_dn_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "DisplayNames");
-    char *type = intl_opt_str(ctx, o, "type");
-    char *style = intl_opt_str(ctx, o, "style");
-    char *fallback = intl_opt_str(ctx, o, "fallback");
+    char *type = ns_js_get_string_prop(ctx, o, "type");
+    char *style = ns_js_get_string_prop(ctx, o, "style");
+    char *fallback = ns_js_get_string_prop(ctx, o, "fallback");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_type", intl_str(ctx, type ? type : "language"));
     intl_hide(ctx, obj, "_style", intl_str(ctx, style ? style : "long"));
@@ -1853,8 +1811,8 @@ intl_dn_of(JSContext *ctx, JSValueConst this_val,
     if (argc < 1) return JS_UNDEFINED;
     const char *code = JS_ToCString(ctx, argv[0]);
     if (!code) return JS_UNDEFINED;
-    char *type = intl_hget_str(ctx, this_val, "_type");
-    char *fallback = intl_hget_str(ctx, this_val, "_fallback");
+    char *type = ns_js_get_string_prop(ctx, this_val, "_type");
+    char *fallback = ns_js_get_string_prop(ctx, this_val, "_fallback");
     const char *name = NULL;
     if (type && !strcmp(type, "region")) name = intl_region_name(code);
     else if (type && !strcmp(type, "script")) name = intl_script_name(code);
@@ -1876,10 +1834,10 @@ intl_dn_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *type = intl_hget_str(ctx, this_val, "_type");
-    char *style = intl_hget_str(ctx, this_val, "_style");
-    char *fb = intl_hget_str(ctx, this_val, "_fallback");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *type = ns_js_get_string_prop(ctx, this_val, "_type");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
+    char *fb = ns_js_get_string_prop(ctx, this_val, "_fallback");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "type", intl_str(ctx, type ? type : "language"));
     JS_SetPropertyStr(ctx, o, "style", intl_str(ctx, style ? style : "long"));
@@ -1895,7 +1853,7 @@ intl_df_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "DurationFormat");
-    char *style = intl_opt_str(ctx, o, "style");
+    char *style = ns_js_get_string_prop(ctx, o, "style");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_style", intl_str(ctx, style ? style : "short"));
     g_free(locale); g_free(style);
@@ -1915,7 +1873,7 @@ intl_df_parts(JSContext *ctx, JSValueConst this_val, JSValueConst dur)
 {
     JSValue arr = JS_NewArray(ctx);
     uint32_t n = 0;
-    char *style = intl_hget_str(ctx, this_val, "_style");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
     gboolean narrow = style && !strcmp(style, "narrow");
     gboolean digital = style && !strcmp(style, "digital");
     gboolean lng = style && !strcmp(style, "long");
@@ -1983,8 +1941,8 @@ intl_df_resolved(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     JSValue o = JS_NewObject(ctx);
-    char *loc = intl_hget_str(ctx, this_val, "_locale");
-    char *style = intl_hget_str(ctx, this_val, "_style");
+    char *loc = ns_js_get_string_prop(ctx, this_val, "_locale");
+    char *style = ns_js_get_string_prop(ctx, this_val, "_style");
     JS_SetPropertyStr(ctx, o, "locale", intl_str(ctx, loc ? loc : "en-US"));
     JS_SetPropertyStr(ctx, o, "style", intl_str(ctx, style ? style : "short"));
     JS_SetPropertyStr(ctx, o, "numberingSystem", intl_str(ctx, "latn"));
@@ -2000,7 +1958,7 @@ intl_seg_ctor(JSContext *ctx, JSValueConst this_val,
     char *locale = intl_arg_locale(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     JSValueConst o = argc >= 2 ? argv[1] : JS_UNDEFINED;
     JSValue obj = intl_new(ctx, this_val, "Segmenter");
-    char *gran = intl_opt_str(ctx, o, "granularity");
+    char *gran = ns_js_get_string_prop(ctx, o, "granularity");
     intl_hide(ctx, obj, "_locale", intl_str(ctx, locale));
     intl_hide(ctx, obj, "_granularity", intl_str(ctx, gran ? gran : "grapheme"));
     g_free(locale); g_free(gran);
@@ -2038,10 +1996,10 @@ intl_seg_segment(JSContext *ctx, JSValueConst this_val,
 {
     const char *input = JS_ToCString(ctx, argc >= 1 ? argv[0] : JS_UNDEFINED);
     if (!input) return JS_EXCEPTION;
-    char *gran = intl_hget_str(ctx, this_val, "_granularity");
+    char *gran = ns_js_get_string_prop(ctx, this_val, "_granularity");
     gboolean words = gran && !strcmp(gran, "word");
     gboolean sentences = gran && !strcmp(gran, "sentence");
-    char *locale = intl_hget_str(ctx, this_val, "_locale");
+    char *locale = ns_js_get_string_prop(ctx, this_val, "_locale");
     NsPangoLanguage *lang = (locale && *locale)
         ? ns_pango_language_from_string(locale) : NULL;
 
@@ -2190,7 +2148,7 @@ intl_string_localeCompare(JSContext *ctx, JSValueConst this_val,
     char *sens = NULL;
     int numeric = 0;
     if (argc >= 3 && JS_IsObject(argv[2])) {
-        sens = intl_opt_str(ctx, argv[2], "sensitivity");
+        sens = ns_js_get_string_prop(ctx, argv[2], "sensitivity");
         numeric = intl_opt_bool(ctx, argv[2], "numeric", 0);
     }
     int r;

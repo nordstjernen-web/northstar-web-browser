@@ -1959,8 +1959,8 @@ ns_control_css_extra_h(const ns_node *dom, const ns_style *s)
 }
 
 /* Border-box width of an inline form control from its CSS width, else its measured width. */
-static double
-inline_attr_control_width(const ns_inline_attr *r, const ns_box *box)
+double
+ns_inline_control_width(const ns_inline_attr *r, const ns_box *box)
 {
     if (!r || !r->style) return r && r->box_w > 0 ? r->box_w : 0;
     double fs = length_or(r->style->values[NS_CSS_FONT_SIZE], 16);
@@ -5614,7 +5614,7 @@ ns_inline_layout_set_attrs(NsPangoLayout *layout, NsPangoAttrList *list,
             &g_array_index(box->attrs, ns_inline_attr, i);
         if (!field_attr_is_text_input(r)) continue;
         if (r->len < 4) continue;
-        double css_w = inline_attr_control_width(r, box);
+        double css_w = ns_inline_control_width(r, box);
         if (css_w <= 0) continue;
         NsPangoRectangle p0, p1;
         ns_pango_layout_index_to_pos(layout, (int)r->start, &p0);
@@ -6532,7 +6532,7 @@ inline_box_form_hit(const ns_box *box, double local_x, double local_y,
             double y0 = (double)r0.y / NS_PANGO_SCALE - bleed_y;
             double x1 = (double)(r1.x + r1.width) / NS_PANGO_SCALE + bleed_x;
             double y1 = (double)(r0.y + r0.height) / NS_PANGO_SCALE + bleed_y;
-            double css_w = inline_attr_control_width(r, box);
+            double css_w = ns_inline_control_width(r, box);
             if (css_w > 0) {
                 x0 = (double)r0.x / NS_PANGO_SCALE;
                 x1 = x0 + css_w;

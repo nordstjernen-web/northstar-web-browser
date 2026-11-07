@@ -526,19 +526,6 @@ style_uniform_solid_border(const ns_style *s, double *out_w, rgba *out_color)
     return bw > 0;
 }
 
-/* CSS-resolved width of an inline form control plus its chrome, else its layout width. */
-static double
-inline_control_css_width(const ns_inline_attr *r, const ns_box *b)
-{
-    if (!r || !r->style) return r && r->box_w > 0 ? r->box_w : 0;
-    double fs = length_or(r->style->values[NS_CSS_FONT_SIZE], 16);
-    double w = ns_css_clamped_dimension_px(
-        r->style, NS_CSS_WIDTH, NS_CSS_MIN_WIDTH, NS_CSS_MAX_WIDTH,
-        fs, b ? b->content_width : 0);
-    if (w > 0) w += ns_control_css_extra_w(r->dom, r->style);
-    return w > 0 ? w : r->box_w;
-}
-
 /* Resolves an inline control's CSS min-width plus chrome extra; 0 when unset. */
 static double
 inline_control_css_min_width(const ns_inline_attr *r, const ns_box *b)
@@ -3441,7 +3428,7 @@ paint_inline(cairo_t *cr, const ns_box *b, const char *highlight)
             double y0 = y_origin + (double)r0.y / NS_PANGO_SCALE - bleed_y;
             double x1 = text_x + (double)(r1.x + r1.width) / NS_PANGO_SCALE + bleed_x;
             double y1 = y_origin + (double)(r0.y + r0.height) / NS_PANGO_SCALE + bleed_y;
-            double css_w = inline_control_css_width(r, b);
+            double css_w = ns_inline_control_width(r, b);
             if ((r->kind == NS_INLINE_INPUT_FIELD ||
                  r->kind == NS_INLINE_INPUT_FIELD_FOCUSED) && r->dom) {
                 const char *type = ns_element_get_attr(r->dom, "type");

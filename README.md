@@ -54,11 +54,11 @@ held to their own origin and Content-Security-Policy. See
 [SECURITY.md](SECURITY.md) for the exact per-mode posture and the known
 gaps.
 
-**Minimalism:** one page per window, one process. The GTK shell runs on
-the main thread and the page engine on one dedicated thread with its own
-main loop, so a slow page never freezes the window; the shell posts
+**Minimalism:** one page per window, one browser process. The GTK shell
+runs on the main thread and the page engine on one dedicated thread with
+its own main loop, so a slow page never freezes the window; the shell posts
 requests to that thread and gets rendered frames back, all inside the
-same process. The engine is a compact body of C — about 216,000 lines of
+same process. The engine is a compact body of C — about 217,000 lines of
 original C, excluding the vendored web-text-lib, WAMR, Wuffs and audio
 decoders — small enough for one person to read and audit end-to-end. See
 [docs/architecture.md](docs/architecture.md) for how it fits together.
@@ -82,11 +82,12 @@ through libavif when available, and SVG in the engine).
 
 ## Browser features
 
-- **HTML** parsed to a DOM by lexbor; **CSS** by the engine's own
-  cascade — flex, grid and subgrid, transforms, gradients, `@keyframes`,
-  scroll snap, container queries, cascade layers, `:has()`, nesting,
-  `@property`, and typed `calc()` math over lengths, angles, times and
-  resolutions.
+- **HTML** parsed to a DOM by lexbor, with `<dialog>` and popovers;
+  **CSS** by the engine's own cascade — flex, grid and subgrid,
+  transforms, gradients, `@keyframes`, scroll snap, container queries,
+  cascade layers, `@scope`, `:has()`, nesting, `@property`, `oklch()`
+  and `color-mix()` colours, and typed `calc()` math over lengths,
+  angles, times and resolutions.
 - **JavaScript** on the quickjs-ng interpreter (or Fabrice Bellard's
   original QuickJS) — DOM, Shadow DOM, Mutation/Intersection/Resize/
   Performance observers, `Intl`, Canvas 2D (`Path2D`, `ImageBitmap`,
@@ -114,7 +115,9 @@ through libavif when available, and SVG in the engine).
   optional DNS-over-HTTPS, CSP, subresource-integrity (SRI) checks for
   scripts and stylesheets, and cookies partitioned by site — one libcurl
   cookie store per site, shared by `document.cookie` and that site's
-  network requests.
+  network requests. `--ignore-certificate-errors` opens a self-signed
+  site, such as a home lab server, after a warning, while every other
+  host keeps full certificate checks.
 - **Safe browsing** — before a top-level navigation is fetched, its host
   is checked against a local SHA-256 blocklist. The check runs entirely
   on-device. The bundled list carries only test entries; a real list goes
@@ -174,10 +177,12 @@ through libavif when available, and SVG in the engine).
 - **One process, no tabs** — each window shows one page (*New Window*
   opens another in the same process), and the page engine runs on its own
   thread inside the shell process; there are no renderer processes. A
-  watchdog restarts the browser, with its session, after a crash or hang.
+  small watchdog supervisor process, which loads no page content,
+  restarts the browser with its session after a crash or hang;
+  `--no-watchdog` turns it off.
 - **UI** — bookmarks, history, downloads, find-in-page, zoom, full
-  screen, printing, save as PDF or image, page source, developer tools
-  with a JS console, settings, private browsing (`--private`), and a UI
+  screen, printing, save page (`Ctrl+S`), save as PDF or image, page
+  source, developer tools with a JS console, settings, private browsing (`--private`), and a UI
   available in 40 languages that follows the operating-system
   language.
 - **Headless mode** — text, DOM, layout, PNG and PDF dumps, scripted
@@ -216,7 +221,9 @@ meson compile -C builddir
 For macOS (Homebrew or MacPorts), other Linux distributions and Windows,
 see [docs/building.md](docs/building.md); for the Arch Linux package, see
 [docs/Arch.md](docs/Arch.md). To build, run and debug from
-Visual Studio Code, see [docs/vscode.md](docs/vscode.md).
+Visual Studio Code, see [docs/vscode.md](docs/vscode.md). The
+[documentation index](docs/README.md) lists the rest of the developer
+documentation.
 
 The development helper configures the default build directory when
 needed and runs the same compile command:
@@ -271,7 +278,7 @@ build finds one.
 | Component | Role |
 |-----------|------|
 | [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) 2.4.5 (subset) | WebAssembly fast interpreter |
-| [Wuffs](https://github.com/google/wuffs) v0.4 | Memory-safe image decoding — PNG/APNG, GIF, BMP, JPEG, WebP |
+| [Wuffs](https://github.com/google/wuffs) 0.4.0-alpha.12 | Memory-safe image decoding — PNG/APNG, GIF, BMP, JPEG, WebP |
 | [pl_mpeg](https://github.com/phoboslab/pl_mpeg) (MIT) | In-process MPEG-1 video and MP2 audio decode |
 | [minimp3](https://github.com/lieff/minimp3) (CC0) | In-process MP3 audio decode |
 | web-text-lib (`src/web-text-lib/`, LGPL 2.1+) | Text itemization, shaping and line breaking — Nordstjernen's Pango fork with a cross-layout shaping cache, shared with Nordstjernen Sol |
@@ -302,8 +309,8 @@ and libthai (Thai line breaking).
 Northstar Web Browser is free software, licensed under the **GNU General Public
 License, version 3 or later** — see [LICENSE](LICENSE). Bundled and
 linked third-party components keep their own licences (web-text-lib is
-LGPL 2.1+; lexbor, Wuffs and WAMR are Apache 2.0; quickjs-ng, QuickJS and
-pl_mpeg are MIT; minimp3 is CC0); see
+LGPL 2.1+; lexbor and Wuffs are Apache 2.0; WAMR is Apache 2.0 with LLVM
+exceptions; quickjs-ng, QuickJS and pl_mpeg are MIT; minimp3 is CC0); see
 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 Project home: <https://nordstjernen.org/northstar-browser/> · Copyright 2026 Andreas Røsdal.

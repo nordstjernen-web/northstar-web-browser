@@ -40,6 +40,8 @@ const char *ns_css_syntax_scan(const char *input, const char *end,
                                const char *terminators, char *terminator);
 gboolean ns_css_component_value_valid(const char *input);
 gboolean ns_css_syntax_is_self_contained(const char *input, gsize len);
+/* Replaces CSS comments outside strings with a space; caller frees. */
+char *ns_css_strip_comments(const char *input);
 
 G_END_DECLS
 

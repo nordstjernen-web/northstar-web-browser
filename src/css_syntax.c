@@ -487,3 +487,32 @@ ns_css_component_value_valid(const char *input)
     g_ptr_array_free(components, TRUE);
     return valid;
 }
+
+/* Replaces CSS comments outside strings with a space; caller frees. */
+char *
+ns_css_strip_comments(const char *input)
+{
+    GString *out = g_string_sized_new(strlen(input));
+    char quote = 0;
+    for (const char *p = input; *p; p++) {
+        if (quote) {
+            if (*p == '\\' && p[1]) {
+                g_string_append_c(out, *p++);
+            } else if (*p == quote) {
+                quote = 0;
+            }
+            g_string_append_c(out, *p);
+            continue;
+        }
+        if (p[0] == '/' && p[1] == '*') {
+            const char *close = strstr(p + 2, "*/");
+            g_string_append_c(out, ' ');
+            if (!close) break;
+            p = close + 1;
+            continue;
+        }
+        if (*p == '"' || *p == '\'') quote = *p;
+        g_string_append_c(out, *p);
+    }
+    return g_string_free(out, FALSE);
+}

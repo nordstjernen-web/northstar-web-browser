@@ -8,6 +8,7 @@
 #include <math.h>
 #include <string.h>
 #include "css.h"
+#include "css_syntax.h"
 
 #define MQ_MAX_DEPTH 32
 #define MQ_VIEWPORT_STACK 16
@@ -1057,35 +1058,6 @@ mq_split_next(const char *p, const char *end, const char **seg_end)
     return end;
 }
 
-/* Replaces CSS comments outside strings with a space; caller frees. */
-static char *
-mq_strip_comments(const char *query)
-{
-    GString *out = g_string_sized_new(strlen(query));
-    char quote = 0;
-    for (const char *p = query; *p; p++) {
-        if (quote) {
-            if (*p == '\\' && p[1]) {
-                g_string_append_c(out, *p++);
-            } else if (*p == quote) {
-                quote = 0;
-            }
-            g_string_append_c(out, *p);
-            continue;
-        }
-        if (p[0] == '/' && p[1] == '*') {
-            const char *close = strstr(p + 2, "*/");
-            g_string_append_c(out, ' ');
-            if (!close) break;
-            p = close + 1;
-            continue;
-        }
-        if (*p == '"' || *p == '\'') quote = *p;
-        g_string_append_c(out, *p);
-    }
-    return g_string_free(out, FALSE);
-}
-
 /* TRUE if any query in the list matches; an empty list matches. */
 static gboolean
 mq_query_list_matches(const char *query)
@@ -1157,7 +1129,7 @@ static gboolean
 mq_query_matches_parsed(const char *query)
 {
     if (!strstr(query, "/*")) return mq_query_list_matches(query);
-    char *clean = mq_strip_comments(query);
+    char *clean = ns_css_strip_comments(query);
     gboolean matches = mq_query_list_matches(clean);
     g_free(clean);
     return matches;

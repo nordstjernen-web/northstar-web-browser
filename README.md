@@ -247,21 +247,6 @@ lexbor and quickjs-ng are pinned upstream subprojects (see
 [docs/building.md](docs/building.md#updating-a-pinned-dependency) for how
 a pin is moved.
 
-### The `open-internet-browser` command
-
-Outside Windows, `meson install` puts `open-internet-browser` beside
-`northstar` in the binary directory, a symbolic link to it, so `open-internet-browser
-https://nordstjernen.org` starts Northstar Web Browser. Nordstjernen Sol
-and Southstar install commands of their own (`open-browser-nordstjernen`
-and `internet-browser-southstar`), so the three browsers install side by
-side. The release `.deb` and `.rpm` packages (`scripts/pack-deb.sh`,
-`scripts/pack-rpm.sh`, `northstar.spec`) register `open-internet-browser`
-with `update-alternatives` instead of shipping the link; the Debian
-archive packaging in `debian/` drops it and registers `x-www-browser`. On Windows the installer
-registers `open-internet-browser` as an App Paths alias (the Run dialog
-and `start open-internet-browser` find it) and the MSIX package declares
-it as an app execution alias.
-
 ## Dependencies
 
 Northstar Web Browser's engine is written from scratch — it contains no forked

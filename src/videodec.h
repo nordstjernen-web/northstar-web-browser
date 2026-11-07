@@ -26,6 +26,16 @@ ns_texture       *ns_video_decoder_decode(ns_video_decoder *decoder,
 ns_texture       *ns_video_decoder_take_late(ns_video_decoder *decoder,
                                              gint64 *timestamp);
 
+/* TRUE when NS_VIDEO_DECODER=native asks to skip the system decoders. */
+gboolean          ns_video_decoder_native_forced(void);
+
+/* A queue of pictures a system decoder produced for earlier timestamps
+ * (reordering), kept until the worker takes them; holds at most 16. */
+void              ns_video_late_push(GQueue *late, gint64 timestamp,
+                                     ns_texture *texture);
+ns_texture       *ns_video_late_take(GQueue *late, gint64 *timestamp);
+void              ns_video_late_clear(GQueue *late);
+
 G_END_DECLS
 
 #endif

@@ -16,13 +16,13 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 
+#include "videodec.h"
 #include "yuv.h"
 
 /* GstClockTime is unsigned; MSE timestamps may be negative after a
  * timestampOffset, so every buffer is shifted by this much. */
 static const gint64 NS_GST_PTS_BIAS_US = G_GINT64_CONSTANT(36000) * G_USEC_PER_SEC;
 
-enum { NS_GST_MAX_LATE = 16 };
 
 typedef struct {
     const char *codec;
@@ -60,11 +60,6 @@ static gboolean      g_preinit_done;
     "{ I420, YV12, Y42B, Y444, I420_10BE, I422_10BE, Y444_10BE, " \
     "I420_12BE, I422_12BE, Y444_12BE, GRAY8, GRAY16_BE }"
 #endif
-
-typedef struct {
-    gint64      timestamp;
-    ns_texture *texture;
-} ns_gst_late;
 
 struct ns_gst_video_decoder {
     const ns_gst_codec *codec;
@@ -190,13 +185,6 @@ choose(const ns_gst_codec *codec, ns_gst_choice *choice)
                 choice->parser ? " ! " : "", GST_OBJECT_NAME(choice->decoder));
 }
 
-static gboolean
-native_forced(void)
-{
-    const char *backend = g_getenv("NS_VIDEO_DECODER");
-    return backend && g_ascii_strcasecmp(backend, "native") == 0;
-}
-
 static ns_gst_video_decoder *build(const ns_gst_codec *codec,
                                    const ns_gst_choice *choice);
 
@@ -205,7 +193,7 @@ ns_gst_video_preinit(void)
 {
     if (g_preinit_done) return;
     g_preinit_done = TRUE;
-    if (native_forced()) return;
+    if (ns_video_decoder_native_forced()) return;
     /* Orc compiles its kernels into executable memory, which the sandbox
      * refuses; its portable C fallbacks need nothing of the kind. */
     g_setenv("ORC_CODE", "backup", FALSE);
@@ -338,16 +326,6 @@ ns_gst_video_decoder_new(const char *codec)
 }
 
 static void
-late_clear(ns_gst_video_decoder *self)
-{
-    ns_gst_late *late;
-    while ((late = g_queue_pop_head(&self->late)) != NULL) {
-        ns_texture_unref(late->texture);
-        g_free(late);
-    }
-}
-
-static void
 wanted_clear(ns_gst_video_decoder *self)
 {
     GHashTableIter iter;
@@ -372,7 +350,7 @@ ns_gst_video_decoder_free(ns_gst_video_decoder *decoder)
         gst_object_unref(decoder->pipeline);
     }
     if (decoder->config) g_bytes_unref(decoder->config);
-    late_clear(decoder);
+    ns_video_late_clear(&decoder->late);
     if (decoder->wanted) {
         wanted_clear(decoder);
         g_hash_table_unref(decoder->wanted);
@@ -472,15 +450,7 @@ collect(ns_gst_video_decoder *self, gint64 timestamp)
             if (stamp == timestamp && !result) {
                 result = texture;
             } else if (texture) {
-                ns_gst_late *late = g_new(ns_gst_late, 1);
-                late->timestamp = stamp;
-                late->texture = texture;
-                g_queue_push_tail(&self->late, late);
-                while (g_queue_get_length(&self->late) > NS_GST_MAX_LATE) {
-                    ns_gst_late *old = g_queue_pop_head(&self->late);
-                    ns_texture_unref(old->texture);
-                    g_free(old);
-                }
+                ns_video_late_push(&self->late, stamp, texture);
             }
         }
         gst_sample_unref(sample);
@@ -499,7 +469,7 @@ ns_gst_video_decoder_flush(ns_gst_video_decoder *decoder)
     GstSample *sample;
     while ((sample = gst_app_sink_try_pull_sample(decoder->sink, 0)) != NULL)
         gst_sample_unref(sample);
-    late_clear(decoder);
+    ns_video_late_clear(&decoder->late);
     wanted_clear(decoder);
     decoder->broken = FALSE;
 }
@@ -548,13 +518,7 @@ ns_gst_video_decoder_decode(ns_gst_video_decoder *decoder, GBytes *sample,
 ns_texture *
 ns_gst_video_decoder_take_late(ns_gst_video_decoder *decoder, gint64 *timestamp)
 {
-    if (!decoder) return NULL;
-    ns_gst_late *late = g_queue_pop_head(&decoder->late);
-    if (!late) return NULL;
-    ns_texture *texture = late->texture;
-    if (timestamp) *timestamp = late->timestamp;
-    g_free(late);
-    return texture;
+    return decoder ? ns_video_late_take(&decoder->late, timestamp) : NULL;
 }
 
 #else

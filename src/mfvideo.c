@@ -23,11 +23,10 @@
 #include <mfobjects.h>
 #include <mftransform.h>
 
+#include "avc.h"
 #include "yuv.h"
 
 enum { NS_MF_MAX_LATE = 16, NS_MF_MAX_OUTPUTS = 32 };
-
-static const guint8 NS_MF_START_CODE[4] = { 0, 0, 0, 1 };
 
 /* MF_LOW_LATENCY; mfapi.h declares it only for WINVER >= 0x0602. */
 static const GUID NS_MF_LOW_LATENCY = {
@@ -371,50 +370,6 @@ ns_mf_video_decoder_flush(ns_mf_video_decoder *decoder)
     decoder->broken = FALSE;
 }
 
-/* Appends avcC SPS/PPS as Annex B NAL units and reads the NAL length size. */
-static gboolean
-append_parameter_sets(GByteArray *out, GBytes *config, int *length_size)
-{
-    gsize len = 0;
-    const guint8 *avcc = g_bytes_get_data(config, &len);
-    if (len < 7 || avcc[0] != 1) return FALSE;
-    *length_size = (avcc[4] & 3) + 1;
-    gsize pos = 5;
-    for (int group = 0; group < 2; group++) {
-        if (pos >= len) return FALSE;
-        guint count = group == 0 ? avcc[pos] & 0x1F : avcc[pos];
-        pos++;
-        for (guint i = 0; i < count; i++) {
-            if (len - pos < 2) return FALSE;
-            gsize size = (gsize)avcc[pos] << 8 | avcc[pos + 1];
-            pos += 2;
-            if (size > len - pos) return FALSE;
-            g_byte_array_append(out, NS_MF_START_CODE, sizeof NS_MF_START_CODE);
-            g_byte_array_append(out, avcc + pos, (guint)size);
-            pos += size;
-        }
-    }
-    return TRUE;
-}
-
-/* Converts a length-prefixed MP4 sample into Annex B start-code NAL units. */
-static gboolean
-append_nal_units(GByteArray *out, const guint8 *data, gsize len, int length_size)
-{
-    gsize pos = 0;
-    while (pos < len) {
-        if (len - pos < (gsize)length_size) return FALSE;
-        gsize size = 0;
-        for (int i = 0; i < length_size; i++) size = size << 8 | data[pos++];
-        if (size > len - pos) return FALSE;
-        if (size == 0) continue;
-        g_byte_array_append(out, NS_MF_START_CODE, sizeof NS_MF_START_CODE);
-        g_byte_array_append(out, data + pos, (guint)size);
-        pos += size;
-    }
-    return TRUE;
-}
-
 static IMFSample *
 make_sample(const guint8 *data, gsize len, gint64 timestamp)
 {
@@ -627,9 +582,9 @@ ns_mf_video_decoder_decode(ns_mf_video_decoder *decoder, GBytes *sample,
         gboolean new_config = config && !(decoder->config &&
                                           g_bytes_equal(config, decoder->config));
         if ((new_config || decoder->need_param_sets) && config &&
-            !append_parameter_sets(unit, config, &decoder->length_size))
+            !ns_avc_append_parameter_sets(unit, config, &decoder->length_size))
             return NULL;
-        if (!append_nal_units(unit, data, len, decoder->length_size) || unit->len == 0)
+        if (!ns_avc_append_nal_units(unit, data, len, decoder->length_size) || unit->len == 0)
             return NULL;
         if (new_config) {
             if (decoder->config) g_bytes_unref(decoder->config);

@@ -1392,10 +1392,8 @@ paint_block(cairo_t *cr, const ns_box *b)
 {
     double border_x = b->x + b->margin.left;
     double border_y = b->y + b->margin.top;
-    double border_w = b->content_width + b->padding.left + b->padding.right +
-                      b->border.left + b->border.right;
-    double border_h = b->content_height + b->padding.top + b->padding.bottom +
-                      b->border.top + b->border.bottom;
+    double border_w = ns_box_border_width(b);
+    double border_h = ns_box_border_height(b);
     double legend_inset = 0;
     double gap_x0 = 0, gap_x1 = 0, gap_y0 = 0, gap_y1 = 0;
     gboolean legend_gap = ns_box_fieldset_legend_gap(b, &legend_inset,
@@ -5696,10 +5694,8 @@ box_clip_hides(const ns_box *b)
     if (!pv || pv->kind != NS_CSS_V_KEYWORD || !pv->u.keyword) return FALSE;
     if (strcmp(pv->u.keyword, "absolute") != 0 &&
         strcmp(pv->u.keyword, "fixed") != 0) return FALSE;
-    double bw = b->content_width + b->padding.left + b->padding.right +
-                b->border.left + b->border.right;
-    double bh = b->content_height + b->padding.top + b->padding.bottom +
-                b->border.top + b->border.bottom;
+    double bw = ns_box_border_width(b);
+    double bh = ns_box_border_height(b);
     double top    = cv->u.rect.is_auto[0] ? 0  : cv->u.rect.v[0];
     double right  = cv->u.rect.is_auto[1] ? bw : cv->u.rect.v[1];
     double bottom = cv->u.rect.is_auto[2] ? bh : cv->u.rect.v[2];
@@ -6075,18 +6071,6 @@ quad_tex_entry_free(gpointer p)
     g_free(e);
 }
 
-/* Computes the box's border-box rectangle. */
-static void
-box_border_rect(const ns_box *b, double *bx, double *by, double *bw, double *bh)
-{
-    *bx = b->x + b->margin.left;
-    *by = b->y + b->margin.top;
-    *bw = b->content_width + b->padding.left + b->padding.right +
-          b->border.left + b->border.right;
-    *bh = b->content_height + b->padding.top + b->padding.bottom +
-          b->border.top + b->border.bottom;
-}
-
 /* TRUE if a childless box draws nothing outside its border box (no shadow/filter/outline). */
 static gboolean
 box_ink_within_border_box(const ns_box *b)
@@ -6192,7 +6176,7 @@ collect_3d_quads(const ns_box *b, const ns_mat4 *pm, GArray *quads)
 {
     if (box_is_hidden(b) || b == g_paint_skip_box) return;
     double bx, by, bw, bh;
-    box_border_rect(b, &bx, &by, &bw, &bh);
+    ns_box_border_rect(b, &bx, &by, &bw, &bh);
     ns_mat4 m = *pm;
     const ns_css_transform *anim_tf =
         g_paint_anim ? ns_anim_get_transform(g_paint_anim, b->dom) : NULL;
@@ -6657,7 +6641,7 @@ collect_root_quads(const ns_box *b)
         double d = box_perspective_px(b);
         if (d > 0) {
             double bx, by, bw, bh;
-            box_border_rect(b, &bx, &by, &bw, &bh);
+            ns_box_border_rect(b, &bx, &by, &bw, &bh);
             double pox, poy, poz;
             box_transform_origin(b, bx, by, bw, bh,
                                  NS_CSS_PERSPECTIVE_ORIGIN,
@@ -7003,8 +6987,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
                             posv->u.keyword && strcmp(posv->u.keyword, "fixed") == 0;
         if (!is_fixed) {
             double by = b->y + b->margin.top + g_paint_anchor_dy;
-            double bh = b->content_height + b->padding.top + b->padding.bottom +
-                        b->border.top + b->border.bottom;
+            double bh = ns_box_border_height(b);
             if (g_paint_have_clip &&
                 (by + bh < g_paint_clip_y0 - g_paint_cull_margin ||
                  by > g_paint_clip_y1 + g_paint_cull_margin))
@@ -7016,7 +6999,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
                              box_ink_within_border_box(b);
     if (group_clipped) {
         double gx, gy, gw, gh;
-        box_border_rect(b, &gx, &gy, &gw, &gh);
+        ns_box_border_rect(b, &gx, &gy, &gw, &gh);
         cairo_save(cr);
         cairo_rectangle(cr, gx, gy, gw, gh);
         cairo_clip(cr);
@@ -7025,7 +7008,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
     if (has_transform) {
         cairo_save(cr);
         double bx, by, bw, bh;
-        box_border_rect(b, &bx, &by, &bw, &bh);
+        ns_box_border_rect(b, &bx, &by, &bw, &bh);
         double ox, oy, oz;
         box_transform_origin(b, bx, by, bw, bh, NS_CSS_TRANSFORM_ORIGIN,
                              &ox, &oy, &oz);
@@ -7459,10 +7442,8 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         cairo_pattern_t *mp = NULL;
         if (mask_grad) {
             double bx = b->x + b->margin.left, by = b->y + b->margin.top;
-            double bw = b->content_width + b->padding.left + b->padding.right +
-                        b->border.left + b->border.right;
-            double bh = b->content_height + b->padding.top + b->padding.bottom +
-                        b->border.top + b->border.bottom;
+            double bw = ns_box_border_width(b);
+            double bh = ns_box_border_height(b);
             mp = mask_gradient_pattern(&mask_v->u.gradient, bx, by, bw, bh);
         }
         if (mp) {

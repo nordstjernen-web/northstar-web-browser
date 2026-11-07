@@ -1630,10 +1630,8 @@ inspect_print_box(const ns_box *box, GString *out)
 
     double bx = box->x + box->margin.left;
     double by = box->y + box->margin.top;
-    double bw = box->content_width + box->padding.left + box->padding.right +
-                box->border.left + box->border.right;
-    double bh = box->content_height + box->padding.top + box->padding.bottom +
-                box->border.top + box->border.bottom;
+    double bw = ns_box_border_width(box);
+    double bh = ns_box_border_height(box);
     g_string_append_printf(out, "    content         %g x %g  (at %g,%g)\n",
                            box->content_width, box->content_height,
                            box->x, box->y);

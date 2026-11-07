@@ -135,25 +135,13 @@ box_uses_changed_image(damage_walk *w, const ns_box *b)
     return used;
 }
 
-/* Computes the box's border-box rectangle in layout coordinates. */
-static void
-box_border_rect(const ns_box *b, double *x, double *y, double *w, double *h)
-{
-    *x = b->x + b->margin.left;
-    *y = b->y + b->margin.top;
-    *w = b->border.left + b->padding.left + b->content_width +
-         b->padding.right + b->border.right;
-    *h = b->border.top + b->padding.top + b->content_height +
-         b->padding.bottom + b->border.bottom;
-}
-
 /* Appends the box's inflated, offset border rect; non-finite geometry forces full repaint. */
 static void
 damage_add_box(damage_walk *w, const ns_box *b, double dx, double dy,
                gboolean fixed)
 {
     ns_damage_rect r;
-    box_border_rect(b, &r.x, &r.y, &r.w, &r.h);
+    ns_box_border_rect(b, &r.x, &r.y, &r.w, &r.h);
     if (!isfinite(r.x) || !isfinite(r.y) || !isfinite(r.w) || !isfinite(r.h)) {
         w->full = TRUE;
         return;
@@ -265,7 +253,7 @@ static void
 subtree_extent(const ns_box *b, double dx, double dy, paint_extent *e)
 {
     double x, y, w, h;
-    box_border_rect(b, &x, &y, &w, &h);
+    ns_box_border_rect(b, &x, &y, &w, &h);
     if (isfinite(x) && isfinite(y) && isfinite(w) && isfinite(h)) {
         e->x0 = MIN(e->x0, x + dx);
         e->y0 = MIN(e->y0, y + dy);
@@ -368,7 +356,7 @@ box_local_transform(const ns_box *b, ns_anim *anim, ns_mat4 *m)
     ns_css_style_effective_transform(s, anim_tf, &eff);
     if (eff.n_ops == 0) return FALSE;
     double bx, by, bw, bh;
-    box_border_rect(b, &bx, &by, &bw, &bh);
+    ns_box_border_rect(b, &bx, &by, &bw, &bh);
     double ox = bx + bw / 2.0, oy = by + bh / 2.0, oz = 0;
     const ns_css_value *origin = s->values[NS_CSS_TRANSFORM_ORIGIN];
     if (origin && origin->kind == NS_CSS_V_TRANSFORM &&
@@ -426,7 +414,7 @@ subtree_visual_extent(const ns_box *b, ns_anim *anim, const ns_mat4 *m,
         }
     }
     double x, y, w, h;
-    box_border_rect(b, &x, &y, &w, &h);
+    ns_box_border_rect(b, &x, &y, &w, &h);
     double pad = style_shadow_overflow(b->style);
     if (isfinite(x) && isfinite(y) && isfinite(w) && isfinite(h))
         extent_add_corners(e, &local, x - pad, y - pad, x + w + pad,

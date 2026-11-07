@@ -5415,8 +5415,6 @@ static gboolean ns_inline_rect_for_this_from(JSContext *ctx,
 #define ns_inline_rect_for_this(ctx, this_val, x, y, w, h) \
     ns_inline_rect_for_this_from((ctx), (this_val), (x), (y), (w), (h), \
                                  G_STRFUNC)
-static void ns_box_border_box(const struct ns_box *b,
-                              double *x, double *y, double *w, double *h);
 static void ns_box_visual_border_box(const struct ns_box *b,
                                      double *x, double *y,
                                      double *w, double *h);
@@ -5478,7 +5476,7 @@ ns_element_dimension_getter(JSContext *ctx, JSValueConst this_val, int magic)
         const struct ns_box *b = ns_box_for_this(ctx, this_val);
         if (b) {
             double x, y, w, h;
-            ns_box_border_box(b, &x, &y, &w, &h);
+            ns_box_border_rect(b, &x, &y, &w, &h);
             return JS_NewInt32(ctx, (int)((magic == 8 ? w : h) + 0.5));
         }
         const char *attr = ns_element_get_attr(n, magic == 8 ? "width"
@@ -15152,10 +15150,8 @@ ns_computed_transform_matrix(const ns_style *s, const ns_box *b)
     const ns_css_transform eff = tv->u.transform;
     double bw = 0, bh = 0;
     if (b) {
-        bw = b->content_width + b->padding.left + b->padding.right +
-             b->border.left + b->border.right;
-        bh = b->content_height + b->padding.top + b->padding.bottom +
-             b->border.top + b->border.bottom;
+        bw = ns_box_border_width(b);
+        bh = ns_box_border_height(b);
     }
     ns_mat4 m;
     ns_css_transform_to_mat4(&eff, bw, bh, &m);
@@ -15393,11 +15389,9 @@ ns_computed_inset_px(JSContext *ctx, const ns_node *n, const ns_box *b,
         return g_strdup_printf("%.6gpx", -r + 0.0);
     }
 
-    double outer_w = b->content_width + b->padding.left + b->padding.right +
-                     b->border.left + b->border.right +
+    double outer_w = ns_box_border_width(b) +
                      b->margin.left + b->margin.right;
-    double outer_h = b->content_height + b->padding.top + b->padding.bottom +
-                     b->border.top + b->border.bottom +
+    double outer_h = ns_box_border_height(b) +
                      b->margin.top + b->margin.bottom;
     double outer = vertical ? outer_h : outer_w;
 
@@ -15985,10 +15979,8 @@ ns_computed_lookup(JSContext *ctx, const ns_node *n, const char *name)
         }
         double bw = 0, bh = 0;
         if (lbox) {
-            bw = lbox->content_width + lbox->padding.left + lbox->padding.right +
-                 lbox->border.left + lbox->border.right;
-            bh = lbox->content_height + lbox->padding.top + lbox->padding.bottom +
-                 lbox->border.top + lbox->border.bottom;
+            bw = ns_box_border_width(lbox);
+            bh = ns_box_border_height(lbox);
         }
         double px = ax_pct ? ax / 100.0 * bw : ax;
         double py = ay_pct ? ay / 100.0 * bh : ay;
@@ -25970,7 +25962,7 @@ ns_resize_observer_build_entry(JSContext *ctx, JSValueConst target,
         content_h = box->content_height;
         content_x = box->padding.left;
         content_y = box->padding.top;
-        ns_box_border_box(box, &border_x, &border_y, &border_w, &border_h);
+        ns_box_border_rect(box, &border_x, &border_y, &border_w, &border_h);
     }
     ns_css_media_device device;
     ns_css_get_media_device(&device);
@@ -34278,18 +34270,6 @@ ns_box_find_by_dom(const ns_box *root, const ns_node *target)
     return NULL;
 }
 
-/* Border-box rect of a box in layout coordinates (position plus margins). */
-static void
-ns_box_border_box(const ns_box *b, double *x, double *y, double *w, double *h)
-{
-    *x = b->x + b->margin.left;
-    *y = b->y + b->margin.top;
-    *w = b->content_width  + b->padding.left + b->padding.right
-                           + b->border.left  + b->border.right;
-    *h = b->content_height + b->padding.top  + b->padding.bottom
-                           + b->border.top   + b->border.bottom;
-}
-
 /* Flushes layout (attributed to api) and returns the box for this element, if any. */
 static const ns_box *
 ns_box_for_this_from(JSContext *ctx, JSValueConst this_val, const char *api)
@@ -34370,7 +34350,7 @@ ns_box_accumulate_transform(const ns_box *box, ns_mat4 *out)
             ns_css_style_effective_transform(b->style, NULL, &eff);
             if (eff.n_ops > 0) {
                 double bx, by, bw, bh;
-                ns_box_border_box(b, &bx, &by, &bw, &bh);
+                ns_box_border_rect(b, &bx, &by, &bw, &bh);
                 double ox, oy, oz;
                 ns_box_transform_origin_2d(b, bx, by, bw, bh, &ox, &oy, &oz);
                 ns_mat4 tm;
@@ -34432,7 +34412,7 @@ static void
 ns_box_visual_border_box(const ns_box *box,
                          double *x, double *y, double *w, double *h)
 {
-    ns_box_border_box(box, x, y, w, h);
+    ns_box_border_rect(box, x, y, w, h);
     ns_box_apply_visual_transform(box, x, y, w, h);
 }
 
@@ -34441,7 +34421,7 @@ static void
 ns_box_visual_padding_box(const ns_box *box,
                           double *x, double *y, double *w, double *h)
 {
-    ns_box_border_box(box, x, y, w, h);
+    ns_box_border_rect(box, x, y, w, h);
     *x += box->border.left;
     *y += box->border.top;
     *w -= box->border.left + box->border.right;
@@ -34759,7 +34739,7 @@ ns_element_getBBox(JSContext *ctx, JSValueConst this_val,
     double x = 0, y = 0, w = 0, h = 0;
     if (!ns_node_local_bbox(n, &x, &y, &w, &h, 0)) {
         const ns_box *b = ns_box_for_this(ctx, this_val);
-        if (b) ns_box_border_box(b, &x, &y, &w, &h);
+        if (b) ns_box_border_rect(b, &x, &y, &w, &h);
     }
     return ns_make_dom_rect(ctx, x, y, w, h);
 }
@@ -34945,7 +34925,7 @@ ns_element_getScreenCTM(JSContext *ctx, JSValueConst this_val,
         ns_js_flush_layout(js);
         if (js->layout_root && svg) {
             const ns_box *b = ns_box_find_by_dom(js->layout_root, svg);
-            if (b) ns_box_border_box(b, &sx, &sy, &sw, &sh);
+            if (b) ns_box_border_rect(b, &sx, &sy, &sw, &sh);
         }
     }
     double scaleX = 1, scaleY = 1, minx = 0, miny = 0;
@@ -35011,7 +34991,7 @@ ns_element_get_offsetWidth(JSContext *ctx, JSValueConst this_val)
             return JS_NewInt32(ctx, (int)(w + 0.5));
         return JS_NewInt32(ctx, 0);
     }
-    ns_box_border_box(b, &x, &y, &w, &h);
+    ns_box_border_rect(b, &x, &y, &w, &h);
     return JS_NewInt32(ctx, (int)(w + 0.5));
 }
 
@@ -35026,7 +35006,7 @@ ns_element_get_offsetHeight(JSContext *ctx, JSValueConst this_val)
             return JS_NewInt32(ctx, (int)(h + 0.5));
         return JS_NewInt32(ctx, 0);
     }
-    ns_box_border_box(b, &x, &y, &w, &h);
+    ns_box_border_rect(b, &x, &y, &w, &h);
     return JS_NewInt32(ctx, (int)(h + 0.5));
 }
 
@@ -37512,7 +37492,7 @@ ns_scrollable_overflow_walk(const ns_box *b, double *max_r, double *max_btm,
             strcmp(pv->u.keyword, "fixed") == 0)
             continue;
         double x, y, w, h;
-        ns_box_border_box(c, &x, &y, &w, &h);
+        ns_box_border_rect(c, &x, &y, &w, &h);
         if (w > 0 || h > 0) {
             if (x + w > *max_r) *max_r = x + w;
             if (y + h > *max_btm) *max_btm = y + h;
@@ -37541,7 +37521,7 @@ static void
 ns_scrollable_overflow_size(const ns_box *b, double *out_w, double *out_h)
 {
     double bx, by, bw, bh;
-    ns_box_border_box(b, &bx, &by, &bw, &bh);
+    ns_box_border_rect(b, &bx, &by, &bw, &bh);
     double pad_left = bx + b->border.left;
     double pad_top = by + b->border.top;
     double pad_w = b->content_width + b->padding.left + b->padding.right;
@@ -37562,7 +37542,7 @@ ns_scrollable_overflow_size(const ns_box *b, double *out_w, double *out_h)
                    ns_css_keyword_is(pv, "fixed")))
             continue;
         double x, y, w, h;
-        ns_box_border_box(c, &x, &y, &w, &h);
+        ns_box_border_rect(c, &x, &y, &w, &h);
         if (w <= 0 && h <= 0) continue;
         double mr = MIN(x + w + c->margin.right, MAX(x + w, content_r));
         double mb = MIN(y + h + c->margin.bottom, MAX(y + h, content_btm));

@@ -154,7 +154,6 @@ northstar_deps = [
   cairo,
   pango,
   pangocairo,
-  gmodule,
   libcurl,
   libcrypto,
   libm,
@@ -239,17 +238,6 @@ if host_machine.system() == 'netbsd'
     ['-Wl,--allow-shlib-undefined'],
   )
 endif
-
-# The gmodule-2.0 dependency injects -Wl,--export-dynamic, which dumps every
-# internal engine symbol (~6000: ns_*, lexbor, quickjs) into the executables'
-# .dynsym. Combined with -Wl,-z,now that bloats dynamic-linker symbol
-# resolution at process start. A version script localises
-# the executables' own symbols (it overrides --export-dynamic regardless of
-# link order); the only runtime dlsym we need (RAND_bytes for RNG warmup)
-# resolves through a dependency library, whose exports this leaves untouched.
-northstar_exe_link_args = northstar_link_args + \
-  cc.get_supported_link_arguments(
-    ['-Wl,--version-script=' + meson.current_source_dir() / 'exe-local.map'])
 
 if host_machine.system() == 'windows'
   executable(

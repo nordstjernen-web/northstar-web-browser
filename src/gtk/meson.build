@@ -34,7 +34,7 @@ executable(
   include_directories: include_directories('..', '.'),
   pie: host_machine.system() != 'windows',
   win_subsystem: northstar_win_subsystem,
-  link_args: northstar_exe_link_args + northstar_gtk_platform_link_args,
+  link_args: northstar_link_args + northstar_gtk_platform_link_args,
   install: true,
 )
 

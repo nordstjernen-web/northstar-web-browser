@@ -72,7 +72,7 @@ paint_create_layout(void)
 }
 
 /* Maps a CSS numeric font-weight onto the nearest Pango weight bucket. */
-NsPangoWeight
+static NsPangoWeight
 ns_paint_pango_weight(int weight)
 {
     if (weight <= 100) return NS_PANGO_WEIGHT_THIN;
@@ -96,7 +96,7 @@ ns_paint_pango_font_size(double size_px)
 }
 
 /* Maps a font-stretch rank 0..8 (clamped) to the Pango stretch enum. */
-NsPangoStretch
+static NsPangoStretch
 ns_paint_pango_stretch(int rank)
 {
     static const NsPangoStretch map[] = {
@@ -2160,7 +2160,7 @@ paint_font_variations_from_css(const char *settings)
 }
 
 /* Builds a font-features attribute from kerning, ligature and settings; NULL if empty. */
-NsPangoAttribute *
+static NsPangoAttribute *
 ns_paint_font_features_attr_from_values(int kerning, const char *ligatures,
                                         const char *settings)
 {
@@ -2182,7 +2182,7 @@ ns_paint_font_features_attr_from_values(int kerning, const char *ligatures,
 }
 
 /* Builds a font-desc attribute carrying variation axes; NULL if none parse. */
-NsPangoAttribute *
+static NsPangoAttribute *
 ns_paint_font_variations_attr_from_values(const char *settings)
 {
     char *variations = paint_font_variations_from_css(settings);

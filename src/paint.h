@@ -53,8 +53,6 @@ guint64 ns_paint_font_generation(void);
 
 void ns_paint_apply_inline_font(NsPangoLayout *layout, const ns_style *style);
 int ns_paint_pango_font_size(double size_px);
-NsPangoWeight ns_paint_pango_weight(int weight);
-NsPangoStretch ns_paint_pango_stretch(int rank);
 void ns_paint_apply_text_align(NsPangoLayout *layout, const ns_style *style);
 void ns_paint_start_align_overflowing_lines(NsPangoLayout *layout);
 
@@ -62,10 +60,6 @@ void ns_paint_apply_i18n(NsPangoLayout *layout, NsPangoAttrList *attrs,
                          const ns_box *box);
 void ns_paint_apply_font_features(NsPangoAttrList *attrs, const ns_style *style,
                                   guint start, guint end);
-NsPangoAttribute *ns_paint_font_features_attr_from_values(int kerning,
-                                                        const char *ligatures,
-                                                        const char *settings);
-NsPangoAttribute *ns_paint_font_variations_attr_from_values(const char *settings);
 NsPangoAttribute *ns_paint_inline_font_attr(const ns_inline_attr *r);
 
 NsPangoWrapMode ns_paint_wrap_mode_for(const ns_style *style);

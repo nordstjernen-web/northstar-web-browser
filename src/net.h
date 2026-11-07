@@ -104,8 +104,8 @@ char      **ns_net_navigator_languages(void);
 typedef GBytes *(*ns_net_blob_resolver)(const char *url, char **out_type,
                                         gpointer user_data);
 void ns_net_set_blob_resolver(ns_net_blob_resolver resolver, gpointer user_data);
-GBytes *ns_net_resolve_blob(const char *url, char **out_type);
-/* As ns_net_resolve_blob(), but only for documents of the blob's origin. */
+/* Resolves a blob: URL through the registered resolver, but only for documents of the
+ * blob's origin. */
 GBytes *ns_net_resolve_blob_for(const char *url, const char *top_url,
                                 char **out_type);
 

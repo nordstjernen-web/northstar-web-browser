@@ -7094,7 +7094,7 @@ ns_net_set_blob_resolver(ns_net_blob_resolver resolver, gpointer user_data)
 }
 
 /* Resolves a blob: URL through the registered resolver; NULL if unknown. */
-GBytes *
+static GBytes *
 ns_net_resolve_blob(const char *url, char **out_type)
 {
     if (out_type) *out_type = NULL;

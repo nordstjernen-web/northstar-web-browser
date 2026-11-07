@@ -12,9 +12,8 @@
 
 #include <wels/codec_api.h>
 
+#include "avc.h"
 #include "yuv.h"
-
-static const guint8 NS_H264_START_CODE[4] = { 0, 0, 0, 1 };
 
 struct ns_h264_decoder {
     ISVCDecoder *codec;
@@ -52,52 +51,6 @@ close_codec(ISVCDecoder *codec)
     if (!codec) return;
     (*codec)->Uninitialize(codec);
     WelsDestroyDecoder(codec);
-}
-
-/* Appends avcC SPS/PPS as Annex B NAL units and reads the NAL length size. */
-static gboolean
-append_parameter_sets(GByteArray *out, GBytes *config, int *length_size)
-{
-    gsize len = 0;
-    const guint8 *avcc = g_bytes_get_data(config, &len);
-    if (len < 7 || avcc[0] != 1) return FALSE;
-    *length_size = (avcc[4] & 3) + 1;
-    gsize pos = 5;
-    for (int group = 0; group < 2; group++) {
-        if (pos >= len) return FALSE;
-        guint count = group == 0 ? avcc[pos] & 0x1F : avcc[pos];
-        pos++;
-        for (guint i = 0; i < count; i++) {
-            if (len - pos < 2) return FALSE;
-            gsize size = (gsize)avcc[pos] << 8 | avcc[pos + 1];
-            pos += 2;
-            if (size > len - pos) return FALSE;
-            g_byte_array_append(out, NS_H264_START_CODE, sizeof NS_H264_START_CODE);
-            g_byte_array_append(out, avcc + pos, (guint)size);
-            pos += size;
-        }
-    }
-    return TRUE;
-}
-
-/* Converts a length-prefixed MP4 sample into Annex B start-code NAL units. */
-static gboolean
-append_nal_units(GByteArray *out, GBytes *sample, int length_size)
-{
-    gsize len = 0;
-    const guint8 *data = g_bytes_get_data(sample, &len);
-    gsize pos = 0;
-    while (pos < len) {
-        if (len - pos < (gsize)length_size) return FALSE;
-        gsize size = 0;
-        for (int i = 0; i < length_size; i++) size = size << 8 | data[pos++];
-        if (size > len - pos) return FALSE;
-        if (size == 0) continue;
-        g_byte_array_append(out, NS_H264_START_CODE, sizeof NS_H264_START_CODE);
-        g_byte_array_append(out, data + pos, (guint)size);
-        pos += size;
-    }
-    return TRUE;
 }
 
 /* Converts a decoded 4:2:0 picture to a BGRA texture (BT.601 below 720p). */
@@ -187,9 +140,12 @@ ns_h264_decoder_decode(ns_h264_decoder *decoder, GBytes *sample, GBytes *config,
     gboolean new_config = config && !(decoder->config &&
                                       g_bytes_equal(config, decoder->config));
     if (new_config &&
-        !append_parameter_sets(unit, config, &decoder->length_size))
+        !ns_avc_append_parameter_sets(unit, config, &decoder->length_size))
         return NULL;
-    if (!append_nal_units(unit, sample, decoder->length_size) || unit->len == 0 ||
+    gsize len = 0;
+    const guint8 *data = g_bytes_get_data(sample, &len);
+    if (!ns_avc_append_nal_units(unit, data, len, decoder->length_size) ||
+        unit->len == 0 ||
         unit->len > G_MAXINT)
         return NULL;
     if (new_config) {

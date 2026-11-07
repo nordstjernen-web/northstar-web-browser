@@ -2546,9 +2546,10 @@ ns_tlist_toggle(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *a
     return result ? JS_TRUE : JS_FALSE;
 }
 
-/* localStorage file path keyed by SHA-256 of the origin; NULL in private mode. */
+/* Per-origin INI file under <data dir>/<subdir>, keyed by SHA-256 of the origin;
+ * NULL in private mode. */
 static char *
-ns_storage_path_for_origin(const char *origin)
+ns_origin_store_path(const char *subdir, const char *origin)
 {
     if (!origin || !*origin) return NULL;
     const ns_config *cfg = ns_config_get();
@@ -2556,8 +2557,7 @@ ns_storage_path_for_origin(const char *origin)
     g_autofree char *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256,
                                                           origin, -1);
     g_autofree char *dir = g_build_filename(g_get_user_data_dir(),
-                                            NS_APP_DIR_NAME,
-                                            "localstorage", NULL);
+                                            NS_APP_DIR_NAME, subdir, NULL);
     g_mkdir_with_parents(dir, 0700);
     g_chmod(dir, 0700);
     g_autofree char *file = g_strdup_printf("%s.ini", hash);
@@ -2757,7 +2757,7 @@ ns_storage_load_for(ns_js *js, const char *new_url)
     g_free(js->local_storage_origin);
     g_free(js->local_storage_path);
     js->local_storage_origin = new_origin;
-    js->local_storage_path = ns_storage_path_for_origin(new_origin);
+    js->local_storage_path = ns_origin_store_path("localstorage", new_origin);
     if (!js->local_storage_path) return;
     GKeyFile *kf = g_key_file_new();
     if (g_key_file_load_from_file(kf, js->local_storage_path, G_KEY_FILE_NONE, NULL)) {
@@ -23267,24 +23267,6 @@ ns_sw_saved_free(gpointer data)
     g_free(saved);
 }
 
-/* Per-origin SW registration INI path under the data dir; NULL in private mode. */
-static char *
-ns_sw_registration_path(const char *origin)
-{
-    if (!origin || !*origin) return NULL;
-    const ns_config *cfg = ns_config_get();
-    if (cfg && cfg->private_mode) return NULL;
-    g_autofree char *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256,
-                                                          origin, -1);
-    g_autofree char *dir = g_build_filename(g_get_user_data_dir(),
-                                             NS_APP_DIR_NAME,
-                                             "serviceworkers", NULL);
-    g_mkdir_with_parents(dir, 0700);
-    g_chmod(dir, 0700);
-    g_autofree char *file = g_strdup_printf("%s.ini", hash);
-    return g_build_filename(dir, file, NULL);
-}
-
 /* INI group name for a scope: "registration-" plus the scope's SHA-256; caller frees. */
 static char *
 ns_sw_registration_group(const char *scope)
@@ -23299,7 +23281,7 @@ static void
 ns_sw_persist_registration(ns_worker_host *host)
 {
     if (!host || !host->origin || !host->url || !host->scope) return;
-    g_autofree char *path = ns_sw_registration_path(host->origin);
+    g_autofree char *path = ns_origin_store_path("serviceworkers", host->origin);
     if (!path) return;
     GKeyFile *kf = g_key_file_new();
     g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL);
@@ -23315,7 +23297,7 @@ ns_sw_persist_registration(ns_worker_host *host)
 static gboolean
 ns_sw_remove_persisted(const char *origin, const char *scope)
 {
-    g_autofree char *path = ns_sw_registration_path(origin);
+    g_autofree char *path = ns_origin_store_path("serviceworkers", origin);
     if (!path) return FALSE;
     GKeyFile *kf = g_key_file_new();
     if (!g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL)) {
@@ -23347,7 +23329,7 @@ static GPtrArray *
 ns_sw_load_persisted(const char *origin)
 {
     GPtrArray *saved = g_ptr_array_new_with_free_func(ns_sw_saved_free);
-    g_autofree char *path = ns_sw_registration_path(origin);
+    g_autofree char *path = ns_origin_store_path("serviceworkers", origin);
     if (!path) return saved;
     GKeyFile *kf = g_key_file_new();
     if (!g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL)) {

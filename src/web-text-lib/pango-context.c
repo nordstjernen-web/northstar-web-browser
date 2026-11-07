@@ -761,34 +761,6 @@ ns_pango_context_get_serial (NsPangoContext *context)
 }
 
 /**
- * ns_pango_context_set_round_glyph_positions:
- * @context: a `NsPangoContext`
- * @round_positions: whether to round glyph positions
- *
- * Sets whether font rendering with this context should
- * round glyph positions and widths to integral positions,
- * in device units.
- *
- * This is useful when the renderer can't handle subpixel
- * positioning of glyphs.
- *
- * The default value is to round glyph positions, to remain
- * compatible with previous Pango behavior.
- *
- * Since: 1.44
- */
-void
-ns_pango_context_set_round_glyph_positions (NsPangoContext *context,
-                                         gboolean      round_positions)
-{
-  if (context->round_glyph_positions != round_positions)
-    {
-      context->round_glyph_positions = round_positions;
-      context_changed (context);
-    }
-}
-
-/**
  * ns_pango_context_get_round_glyph_positions:
  * @context: a `NsPangoContext`
  *

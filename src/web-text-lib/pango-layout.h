@@ -164,8 +164,6 @@ NsPangoContext  *ns_pango_layout_get_context    (NsPangoLayout    *layout);
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_attributes (NsPangoLayout    *layout,
 					    NsPangoAttrList  *attrs);
-NS_PANGO_AVAILABLE_IN_ALL
-NsPangoAttrList *ns_pango_layout_get_attributes (NsPangoLayout    *layout);
 
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_text       (NsPangoLayout    *layout,
@@ -189,52 +187,26 @@ int            ns_pango_layout_get_width            (NsPangoLayout              
 NS_PANGO_AVAILABLE_IN_1_20
 void           ns_pango_layout_set_height           (NsPangoLayout                *layout,
 						  int                         height);
-NS_PANGO_AVAILABLE_IN_1_20
-int            ns_pango_layout_get_height           (NsPangoLayout                *layout);
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_wrap             (NsPangoLayout                *layout,
 						  NsPangoWrapMode               wrap);
 NS_PANGO_AVAILABLE_IN_ALL
-NsPangoWrapMode  ns_pango_layout_get_wrap             (NsPangoLayout                *layout);
-NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_indent           (NsPangoLayout                *layout,
 						  int                         indent);
 NS_PANGO_AVAILABLE_IN_ALL
-int            ns_pango_layout_get_indent           (NsPangoLayout                *layout);
-NS_PANGO_AVAILABLE_IN_ALL
-void           ns_pango_layout_set_strut_line_height (NsPangoLayout               *layout,
-                                                   int                         line_height);
-NS_PANGO_AVAILABLE_IN_ALL
-int            ns_pango_layout_get_strut_line_height (NsPangoLayout               *layout);
-NS_PANGO_AVAILABLE_IN_ALL
 int            ns_pango_font_get_legacy_ascent      (NsPangoFont                 *font,
                                                    int                         content_height);
-NS_PANGO_AVAILABLE_IN_ALL
-void           ns_pango_layout_run_get_css_extents  (NsPangoLayoutRun            *run,
-                                                   int                         line_height,
-                                                   gboolean                    normal,
-                                                   int                        *above,
-                                                   int                        *below);
-NS_PANGO_AVAILABLE_IN_ALL
-int            ns_pango_layout_get_spacing          (NsPangoLayout                *layout);
 NS_PANGO_AVAILABLE_IN_1_44
 void           ns_pango_layout_set_line_spacing     (NsPangoLayout                *layout,
                                                   float                       factor);
-NS_PANGO_AVAILABLE_IN_1_44
-float          ns_pango_layout_get_line_spacing     (NsPangoLayout                *layout);
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_justify          (NsPangoLayout                *layout,
                                                   gboolean                    justify);
 NS_PANGO_AVAILABLE_IN_ALL
 gboolean       ns_pango_layout_get_justify          (NsPangoLayout                *layout);
-NS_PANGO_AVAILABLE_IN_1_50
-void           ns_pango_layout_set_justify_last_line (NsPangoLayout                *layout,
-                                                   gboolean                    justify);
 NS_PANGO_AVAILABLE_IN_1_4
 void           ns_pango_layout_set_auto_dir         (NsPangoLayout                *layout,
 						  gboolean                    auto_dir);
-NS_PANGO_AVAILABLE_IN_1_4
-gboolean       ns_pango_layout_get_auto_dir         (NsPangoLayout                *layout);
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_alignment        (NsPangoLayout                *layout,
 						  NsPangoAlignment              alignment);
@@ -244,17 +216,10 @@ NsPangoAlignment ns_pango_layout_get_alignment        (NsPangoLayout            
 NS_PANGO_AVAILABLE_IN_ALL
 void           ns_pango_layout_set_tabs             (NsPangoLayout                *layout,
 						  NsPangoTabArray              *tabs);
-NS_PANGO_AVAILABLE_IN_ALL
-NsPangoTabArray* ns_pango_layout_get_tabs             (NsPangoLayout                *layout);
-
-NS_PANGO_AVAILABLE_IN_ALL
-gboolean       ns_pango_layout_get_single_paragraph_mode (NsPangoLayout                *layout);
 
 NS_PANGO_AVAILABLE_IN_1_6
 void               ns_pango_layout_set_ellipsize (NsPangoLayout        *layout,
 					       NsPangoEllipsizeMode  ellipsize);
-NS_PANGO_AVAILABLE_IN_1_6
-NsPangoEllipsizeMode ns_pango_layout_get_ellipsize (NsPangoLayout        *layout);
 
 NS_PANGO_AVAILABLE_IN_ALL
 void     ns_pango_layout_context_changed (NsPangoLayout    *layout);
@@ -345,8 +310,6 @@ NsPangoLayoutIter *ns_pango_layout_get_iter  (NsPangoLayout     *layout);
 NS_PANGO_AVAILABLE_IN_ALL
 void             ns_pango_layout_iter_free (NsPangoLayoutIter *iter);
 
-NS_PANGO_AVAILABLE_IN_ALL
-int              ns_pango_layout_iter_get_index  (NsPangoLayoutIter *iter);
 NS_PANGO_AVAILABLE_IN_1_16
 NsPangoLayoutLine *ns_pango_layout_iter_get_line_readonly  (NsPangoLayoutIter *iter);
 

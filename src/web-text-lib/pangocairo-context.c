@@ -180,29 +180,6 @@ ns_pango_cairo_update_context (cairo_t      *cr,
 }
 
 /**
- * ns_pango_cairo_context_set_resolution:
- * @context: a `NsPangoContext`, from a pangocairo font map
- * @dpi: the resolution in "dots per inch". (Physical inches aren't actually
- *   involved; the terminology is conventional.) A 0 or negative value
- *   means to use the resolution from the font map.
- *
- * Sets the resolution for the context.
- *
- * This is a scale factor between points specified in a `NsPangoFontDescription`
- * and Cairo units. The default value is 96, meaning that a 10 point font will
- * be 13 units high. (10 * 96. / 72. = 13.3).
- *
- * Since: 1.10
- */
-void
-ns_pango_cairo_context_set_resolution (NsPangoContext *context,
-				    double        dpi)
-{
-  NsPangoCairoContextInfo *info = get_context_info (context, TRUE);
-  info->dpi = dpi;
-}
-
-/**
  * ns_pango_cairo_context_get_resolution:
  * @context: a `NsPangoContext`, from a pangocairo font map
  *

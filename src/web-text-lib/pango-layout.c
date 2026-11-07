@@ -218,7 +218,6 @@ ns_pango_layout_init (NsPangoLayout *layout)
 
   layout->alignment = NS_PANGO_ALIGN_LEFT;
   layout->justify = FALSE;
-  layout->justify_last_line = FALSE;
   layout->auto_dir = TRUE;
   layout->single_paragraph = FALSE;
 
@@ -410,26 +409,6 @@ ns_pango_layout_set_height (NsPangoLayout *layout,
 }
 
 /**
- * ns_pango_layout_get_height:
- * @layout: a `NsPangoLayout`
- *
- * Gets the height of layout used for ellipsization.
- *
- * See [method@Pango.Layout.set_height] for details.
- *
- * Returns: the height, in Pango units if positive,
- *   or number of lines if negative.
- *
- * Since: 1.20
- */
-int
-ns_pango_layout_get_height (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (layout != NULL, 0);
-  return layout->height;
-}
-
-/**
  * ns_pango_layout_set_wrap:
  * @layout: a `NsPangoLayout`
  * @wrap: the wrap mode
@@ -455,25 +434,6 @@ ns_pango_layout_set_wrap (NsPangoLayout   *layout,
       if (layout->width != -1)
         layout_changed (layout);
     }
-}
-
-/**
- * ns_pango_layout_get_wrap:
- * @layout: a `NsPangoLayout`
- *
- * Gets the wrap mode for the layout.
- *
- * Use [method@Pango.Layout.is_wrapped] to query whether
- * any paragraphs were actually wrapped.
- *
- * Returns: active wrap mode.
- */
-NsPangoWrapMode
-ns_pango_layout_get_wrap (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), 0);
-
-  return layout->wrap;
 }
 
 /**
@@ -503,59 +463,6 @@ ns_pango_layout_set_indent (NsPangoLayout *layout,
       layout->indent = indent;
       layout_changed (layout);
     }
-}
-
-/**
- * ns_pango_layout_get_indent:
- * @layout: a `NsPangoLayout`
- *
- * Gets the paragraph indent width in Pango units.
- *
- * A negative value indicates a hanging indentation.
- *
- * Returns: the indent in Pango units
- */
-int
-ns_pango_layout_get_indent (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (layout != NULL, 0);
-  return layout->indent;
-}
-
-void
-ns_pango_layout_set_strut_line_height (NsPangoLayout *layout,
-                                       int            line_height)
-{
-  g_return_if_fail (layout != NULL);
-
-  line_height = MAX (line_height, 0);
-  if (line_height != layout->strut_line_height)
-    {
-      layout->strut_line_height = line_height;
-      layout_changed (layout);
-    }
-}
-
-int
-ns_pango_layout_get_strut_line_height (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (layout != NULL, 0);
-  return layout->strut_line_height;
-}
-
-/**
- * ns_pango_layout_get_spacing:
- * @layout: a `NsPangoLayout`
- *
- * Gets the amount of spacing between the lines of the layout.
- *
- * Returns: the spacing in Pango units
- */
-int
-ns_pango_layout_get_spacing (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (layout != NULL, 0);
-  return layout->spacing;
 }
 
 /**
@@ -593,23 +500,6 @@ ns_pango_layout_set_line_spacing (NsPangoLayout *layout,
       layout->line_spacing = factor;
       layout_changed (layout);
     }
-}
-
-/**
- * ns_pango_layout_get_line_spacing:
- * @layout: a `NsPangoLayout`
- *
- * Gets the line spacing factor of @layout.
- *
- * See [method@Pango.Layout.set_line_spacing].
- *
- * Since: 1.44
- */
-float
-ns_pango_layout_get_line_spacing (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (layout != NULL, 1.0);
-  return layout->line_spacing;
 }
 
 /**
@@ -652,22 +542,6 @@ ns_pango_layout_set_attributes (NsPangoLayout   *layout,
   if (old_attrs)
     ns_pango_attr_list_unref (old_attrs);
   layout->tab_width = -1;
-}
-
-/**
- * ns_pango_layout_get_attributes:
- * @layout: a `NsPangoLayout`
- *
- * Gets the attribute list for the layout, if any.
- *
- * Returns: (transfer none) (nullable): a `NsPangoAttrList`
- */
-NsPangoAttrList*
-ns_pango_layout_get_attributes (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), NULL);
-
-  return layout->attrs;
 }
 
 /**
@@ -740,8 +614,6 @@ ns_pango_layout_get_font_description (NsPangoLayout *layout)
  * positions.
  *
  * The default value is %FALSE.
- *
- * Also see [method@Pango.Layout.set_justify_last_line].
  */
 void
 ns_pango_layout_set_justify (NsPangoLayout *layout,
@@ -753,9 +625,7 @@ ns_pango_layout_set_justify (NsPangoLayout *layout,
     {
       layout->justify = justify;
 
-      if (layout->is_ellipsized ||
-          layout->is_wrapped ||
-          layout->justify_last_line)
+      if (layout->is_ellipsized || layout->is_wrapped)
         layout_changed (layout);
     }
 }
@@ -774,36 +644,6 @@ ns_pango_layout_get_justify (NsPangoLayout *layout)
 {
   g_return_val_if_fail (layout != NULL, FALSE);
   return layout->justify;
-}
-
-/**
- * ns_pango_layout_set_justify_last_line:
- * @layout: a `NsPangoLayout`
- * @justify: whether the last line in the layout should be justified
- *
- * Sets whether the last line should be stretched to fill the
- * entire width of the layout.
- *
- * This only has an effect if [method@Pango.Layout.set_justify] has
- * been called as well.
- *
- * The default value is %FALSE.
- *
- * Since: 1.50
- */
-void
-ns_pango_layout_set_justify_last_line (NsPangoLayout *layout,
-                                    gboolean     justify)
-{
-  g_return_if_fail (layout != NULL);
-
-  if (justify != layout->justify_last_line)
-    {
-      layout->justify_last_line = justify;
-
-      if (layout->justify)
-        layout_changed (layout);
-    }
 }
 
 /**
@@ -844,28 +684,6 @@ ns_pango_layout_set_auto_dir (NsPangoLayout *layout,
       layout->auto_dir = auto_dir;
       layout_changed (layout);
     }
-}
-
-/**
- * ns_pango_layout_get_auto_dir:
- * @layout: a `NsPangoLayout`
- *
- * Gets whether to calculate the base direction for the layout
- * according to its contents.
- *
- * See [method@Pango.Layout.set_auto_dir].
- *
- * Returns: %TRUE if the bidirectional base direction
- *   is computed from the layout's contents, %FALSE otherwise
- *
- * Since: 1.4
- */
-gboolean
-ns_pango_layout_get_auto_dir (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), TRUE);
-
-  return layout->auto_dir;
 }
 
 /**
@@ -949,49 +767,6 @@ ns_pango_layout_set_tabs (NsPangoLayout   *layout,
 }
 
 /**
- * ns_pango_layout_get_tabs:
- * @layout: a `NsPangoLayout`
- *
- * Gets the current `NsPangoTabArray` used by this layout.
- *
- * If no `NsPangoTabArray` has been set, then the default tabs are
- * in use and %NULL is returned. Default tabs are every 8 spaces.
- *
- * The return value should be freed with [method@Pango.TabArray.free].
- *
- * Returns: (transfer full) (nullable): a copy of the tabs for this layout
- */
-NsPangoTabArray*
-ns_pango_layout_get_tabs (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), NULL);
-
-  if (layout->tabs)
-    return ns_pango_tab_array_copy (layout->tabs);
-  else
-    return NULL;
-}
-
-/**
- * ns_pango_layout_get_single_paragraph_mode:
- * @layout: a `NsPangoLayout`
- *
- * Obtains whether @layout is in single paragraph mode.
- *
- * See [method@Pango.Layout.set_single_paragraph_mode].
- *
- * Returns: %TRUE if the layout does not break paragraphs
- *   at paragraph separator characters, %FALSE otherwise
- */
-gboolean
-ns_pango_layout_get_single_paragraph_mode (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), FALSE);
-
-  return layout->single_paragraph;
-}
-
-/**
  * ns_pango_layout_set_ellipsize:
  * @layout: a `NsPangoLayout`
  * @ellipsize: the new ellipsization mode for @layout
@@ -1027,29 +802,6 @@ ns_pango_layout_set_ellipsize (NsPangoLayout        *layout,
       if (layout->is_ellipsized || layout->is_wrapped)
         layout_changed (layout);
     }
-}
-
-/**
- * ns_pango_layout_get_ellipsize:
- * @layout: a `NsPangoLayout`
- *
- * Gets the type of ellipsization being performed for @layout.
- *
- * See [method@Pango.Layout.set_ellipsize].
- *
- * Use [method@Pango.Layout.is_ellipsized] to query whether any
- * paragraphs were actually ellipsized.
- *
- * Returns: the current ellipsization mode for @layout
- *
- * Since: 1.6
- */
-NsPangoEllipsizeMode
-ns_pango_layout_get_ellipsize (NsPangoLayout *layout)
-{
-  g_return_val_if_fail (NS_PANGO_IS_LAYOUT (layout), NS_PANGO_ELLIPSIZE_NONE);
-
-  return layout->ellipsize;
 }
 
 /**
@@ -2208,7 +1960,6 @@ ns_pango_layout_clear_lines (NsPangoLayout *layout)
   layout->unknown_glyphs_count = -1;
   layout->logical_rect_cached = FALSE;
   layout->ink_rect_cached = FALSE;
-  layout->strut_rect_cached = FALSE;
   layout->is_ellipsized = FALSE;
   layout->is_wrapped = FALSE;
 }
@@ -4516,22 +4267,6 @@ ns_pango_run_css_box (NsPangoLayoutRun *run,
     }
 }
 
-void
-ns_pango_layout_run_get_css_extents (NsPangoLayoutRun *run,
-                                     int               line_height,
-                                     gboolean          normal,
-                                     int              *above,
-                                     int              *below)
-{
-  NsPangoRectangle box;
-
-  ns_pango_glyph_string_extents (run->glyphs, run->item->analysis.font, NULL, &box);
-  box.y -= run->y_offset;
-  ns_pango_run_css_box (run, &box, line_height, normal ? 1.0 : 0.0);
-  *above = -box.y;
-  *below = box.y + box.height;
-}
-
 static void
 ns_pango_layout_get_empty_extents_and_height_at_index (NsPangoLayout    *layout,
                                                     int             index,
@@ -4644,76 +4379,6 @@ ns_pango_layout_get_empty_extents_and_height_at_index (NsPangoLayout    *layout,
       logical_rect->x = 0;
       logical_rect->width = 0;
     }
-}
-
-static gboolean
-ns_pango_layout_get_strut (NsPangoLayout    *layout,
-                           NsPangoRectangle *strut)
-{
-  if (!layout || layout->strut_line_height <= 0)
-    return FALSE;
-
-  if (!layout->strut_rect_cached)
-    {
-      NsPangoFontDescription *font_desc;
-      NsPangoFont *font;
-      gboolean free_font_desc = FALSE;
-
-      layout->strut_rect.x = 0;
-      layout->strut_rect.y = 0;
-      layout->strut_rect.width = 0;
-      layout->strut_rect.height = 0;
-
-      font_desc = ns_pango_context_get_font_description (layout->context);
-      if (layout->font_desc)
-        {
-          font_desc = ns_pango_font_description_copy_static (font_desc);
-          ns_pango_font_description_merge (font_desc, layout->font_desc, TRUE);
-          free_font_desc = TRUE;
-        }
-
-      font = ns_pango_context_load_font (layout->context, font_desc);
-      if (font)
-        {
-          NsPangoFontMetrics *metrics =
-            ns_pango_font_get_metrics (font, ns_pango_context_get_language (layout->context));
-
-          if (metrics)
-            {
-              layout->strut_rect.y = - ns_pango_font_metrics_get_ascent (metrics);
-              layout->strut_rect.height = ns_pango_font_metrics_get_ascent (metrics) +
-                                          ns_pango_font_metrics_get_descent (metrics);
-              ns_pango_round_content_area (&layout->strut_rect, 0, font);
-              ns_pango_apply_line_height (&layout->strut_rect, layout->strut_line_height);
-              ns_pango_font_metrics_unref (metrics);
-            }
-          g_object_unref (font);
-        }
-
-      if (free_font_desc)
-        ns_pango_font_description_free (font_desc);
-
-      layout->strut_rect_cached = TRUE;
-    }
-
-  *strut = layout->strut_rect;
-  return strut->height > 0;
-}
-
-static void
-ns_pango_layout_unite_strut (NsPangoLayout    *layout,
-                             NsPangoRectangle *logical_rect)
-{
-  NsPangoRectangle strut;
-  int top, bottom;
-
-  if (!ns_pango_layout_get_strut (layout, &strut))
-    return;
-
-  top = MIN (logical_rect->y, strut.y);
-  bottom = MAX (logical_rect->y + logical_rect->height, strut.y + strut.height);
-  logical_rect->y = top;
-  logical_rect->height = bottom - top;
 }
 
 static void
@@ -5022,9 +4687,6 @@ ns_pango_layout_line_get_extents_and_height (NsPangoLayoutLine *line,
       ns_pango_layout_get_empty_extents_and_height_at_index (line->layout, line->start_index, rect, TRUE, height);
     }
 
-  if (logical_rect)
-    ns_pango_layout_unite_strut (line->layout, logical_rect);
-
   if (caching)
     {
       if (&private->ink_rect != ink_rect)
@@ -5180,53 +4842,6 @@ ns_pango_layout_line_reorder (NsPangoLayoutLine *line)
     }
   else if (all_odd)
       line->runs = g_slist_reverse (logical_runs);
-}
-
-static void
-pad_glyphstring_right (NsPangoGlyphString *glyphs,
-                       ParaBreakState   *state,
-                       int               adjustment)
-{
-  int glyph = glyphs->num_glyphs - 1;
-
-  while (glyph >= 0 && glyphs->glyphs[glyph].geometry.width == 0)
-    glyph--;
-
-  if (glyph < 0)
-    return;
-
-  state->remaining_width -= adjustment;
-  glyphs->glyphs[glyph].geometry.width += adjustment;
-  if (glyphs->glyphs[glyph].geometry.width < 0)
-    {
-      state->remaining_width += glyphs->glyphs[glyph].geometry.width;
-      glyphs->glyphs[glyph].geometry.width = 0;
-    }
-}
-
-static void
-pad_glyphstring_left (NsPangoGlyphString *glyphs,
-                      ParaBreakState   *state,
-                      int               adjustment)
-{
-  int glyph = 0;
-
-  while (glyph < glyphs->num_glyphs && glyphs->glyphs[glyph].geometry.width == 0)
-    glyph++;
-
-  if (glyph == glyphs->num_glyphs)
-    return;
-
-  state->remaining_width -= adjustment;
-  glyphs->glyphs[glyph].geometry.width += adjustment;
-  glyphs->glyphs[glyph].geometry.x_offset += adjustment;
-}
-
-static gboolean
-is_tab_run (NsPangoLayout    *layout,
-            NsPangoLayoutRun *run)
-{
-  return (layout->text[run->item->offset] == '\t');
 }
 
 static void
@@ -5778,7 +5393,7 @@ ns_pango_layout_line_postprocess (NsPangoLayoutLine *line,
   DEBUG ("after reordering", line, state);
 
   /* Distribute extra space between words if justifying and line was wrapped */
-  if (line->layout->justify && (wrapped || ellipsized || line->layout->justify_last_line))
+  if (line->layout->justify && (wrapped || ellipsized))
     {
       /* if we ellipsized, we don't have remaining_width set */
       if (state->remaining_width < 0)
@@ -6145,28 +5760,6 @@ ns_pango_layout_iter_free (NsPangoLayoutIter *iter)
 
   _ns_pango_layout_iter_destroy (iter);
   g_slice_free (NsPangoLayoutIter, iter);
-}
-
-/**
- * ns_pango_layout_iter_get_index:
- * @iter: a `NsPangoLayoutIter`
- *
- * Gets the current byte index.
- *
- * Note that iterating forward by char moves in visual order,
- * not logical order, so indexes may not be sequential. Also,
- * the index may be equal to the length of the text in the
- * layout, if on the %NULL run (see [method@Pango.LayoutIter.get_run]).
- *
- * Returns: current byte index
- */
-int
-ns_pango_layout_iter_get_index (NsPangoLayoutIter *iter)
-{
-  if (ITER_IS_INVALID (iter))
-    return 0;
-
-  return iter->index;
 }
 
 /* an inline-able version for local use */

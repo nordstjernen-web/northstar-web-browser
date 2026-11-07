@@ -1111,46 +1111,6 @@ restore_current_point (NsPangoCairoRenderer *renderer)
 
 
 static void
-_ns_pango_cairo_do_glyph_string (cairo_t          *cr,
-			      NsPangoFont        *font,
-			      NsPangoGlyphString *glyphs,
-			      gboolean          do_path)
-{
-  NsPangoCairoRenderer *crenderer = acquire_renderer ();
-  NsPangoRenderer *renderer = (NsPangoRenderer *) crenderer;
-
-  crenderer->cr = cr;
-  crenderer->do_path = do_path;
-  save_current_point (crenderer);
-
-  if (!do_path)
-    {
-      /* unset all part colors, since when drawing just a glyph string,
-       * prepare_run() isn't called.
-       */
-
-      ns_pango_renderer_activate (renderer);
-
-      ns_pango_renderer_set_color (renderer, NS_PANGO_RENDER_PART_FOREGROUND, NULL);
-      ns_pango_renderer_set_color (renderer, NS_PANGO_RENDER_PART_BACKGROUND, NULL);
-      ns_pango_renderer_set_color (renderer, NS_PANGO_RENDER_PART_UNDERLINE, NULL);
-      ns_pango_renderer_set_color (renderer, NS_PANGO_RENDER_PART_STRIKETHROUGH, NULL);
-      ns_pango_renderer_set_color (renderer, NS_PANGO_RENDER_PART_OVERLINE, NULL);
-    }
-
-  ns_pango_renderer_draw_glyphs (renderer, font, glyphs, 0, 0);
-
-  if (!do_path)
-    {
-      ns_pango_renderer_deactivate (renderer);
-    }
-
-  restore_current_point (crenderer);
-
-  release_renderer (crenderer);
-}
-
-static void
 _ns_pango_cairo_do_layout_line (cairo_t          *cr,
 			     NsPangoLayoutLine  *line,
 			     gboolean          do_path)
@@ -1238,31 +1198,6 @@ ns_pango_cairo_show_layout (cairo_t     *cr,
   g_return_if_fail (NS_PANGO_IS_LAYOUT (layout));
 
   _ns_pango_cairo_do_layout (cr, layout, FALSE, NS_PANGO_RENDER_COMPONENT_ALL);
-}
-
-/**
- * ns_pango_cairo_glyph_string_path:
- * @cr: a Cairo context
- * @font: a `NsPangoFont` from a `NsPangoCairoFontMap`
- * @glyphs: a `NsPangoGlyphString`
- *
- * Adds the glyphs in @glyphs to the current path in the specified
- * cairo context.
- *
- * The origin of the glyphs (the left edge of the baseline)
- * will be at the current point of the cairo context.
- *
- * Since: 1.10
- */
-void
-ns_pango_cairo_glyph_string_path (cairo_t          *cr,
-			       NsPangoFont        *font,
-			       NsPangoGlyphString *glyphs)
-{
-  g_return_if_fail (cr != NULL);
-  g_return_if_fail (glyphs != NULL);
-
-  _ns_pango_cairo_do_glyph_string (cr, font, glyphs, TRUE);
 }
 
 /**

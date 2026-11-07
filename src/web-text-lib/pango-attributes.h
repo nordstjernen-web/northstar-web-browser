@@ -593,28 +593,8 @@ NsPangoAttribute *        ns_pango_attr_overline_color_new           (guint16   
 NS_PANGO_AVAILABLE_IN_1_44
 NsPangoAttribute *        ns_pango_attr_show_new                     (NsPangoShowFlags               flags);
 NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttribute *        ns_pango_attr_line_height_new              (double                       factor);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttribute *        ns_pango_attr_line_height_new_absolute     (int                          height);
-NS_PANGO_AVAILABLE_IN_1_50
 NsPangoAttribute *        ns_pango_attr_text_transform_new           (NsPangoTextTransform transform);
 
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrString       * ns_pango_attribute_as_string               (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrLanguage     * ns_pango_attribute_as_language             (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrInt          * ns_pango_attribute_as_int                  (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrSize         * ns_pango_attribute_as_size                 (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrFloat        * ns_pango_attribute_as_float                (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrColor        * ns_pango_attribute_as_color                (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrFontDesc     * ns_pango_attribute_as_font_desc            (NsPangoAttribute              *attr);
-NS_PANGO_AVAILABLE_IN_1_50
-NsPangoAttrFontFeatures * ns_pango_attribute_as_font_features        (NsPangoAttribute              *attr);
 
 /* Attribute lists */
 

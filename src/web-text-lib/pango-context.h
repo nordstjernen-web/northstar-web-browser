@@ -83,9 +83,6 @@ NS_PANGO_AVAILABLE_IN_1_6
 const NsPangoMatrix *     ns_pango_context_get_matrix                (NsPangoContext                 *context);
 
 NS_PANGO_AVAILABLE_IN_1_44
-void                    ns_pango_context_set_round_glyph_positions (NsPangoContext                 *context,
-                                                                 gboolean                      round_positions);
-NS_PANGO_AVAILABLE_IN_1_44
 gboolean                ns_pango_context_get_round_glyph_positions (NsPangoContext                 *context);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (NsPangoContext, g_object_unref)

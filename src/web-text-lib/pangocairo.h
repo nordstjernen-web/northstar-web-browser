@@ -132,9 +132,6 @@ NS_PANGO_AVAILABLE_IN_1_10
 const cairo_font_options_t *ns_pango_cairo_context_get_font_options (NsPangoContext               *context);
 
 NS_PANGO_AVAILABLE_IN_1_10
-void               ns_pango_cairo_context_set_resolution     (NsPangoContext       *context,
-							   double              dpi);
-NS_PANGO_AVAILABLE_IN_1_10
 double             ns_pango_cairo_context_get_resolution     (NsPangoContext       *context);
 
 NS_PANGO_AVAILABLE_IN_1_18
@@ -161,10 +158,6 @@ void ns_pango_cairo_show_layout       (cairo_t          *cr,
 /*
  * Rendering to a path
  */
-NS_PANGO_AVAILABLE_IN_1_10
-void ns_pango_cairo_glyph_string_path (cairo_t          *cr,
-				    NsPangoFont        *font,
-				    NsPangoGlyphString *glyphs);
 NS_PANGO_AVAILABLE_IN_1_10
 void ns_pango_cairo_layout_path       (cairo_t          *cr,
 				    NsPangoLayout      *layout);

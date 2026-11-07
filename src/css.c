@@ -3341,29 +3341,13 @@ color_parse_range(const char *s, const char *end, ns_color *out, int depth)
     return TRUE;
 }
 
-/* Returns a copy of s with CSS comments removed; caller frees. */
-static char *
-color_strip_comments(const char *s)
-{
-    GString *out = g_string_new(NULL);
-    while (*s) {
-        if (s[0] == '/' && s[1] == '*') {
-            const char *close = strstr(s + 2, "*/");
-            s = close ? close + 2 : s + strlen(s);
-            continue;
-        }
-        g_string_append_c(out, *s++);
-    }
-    return g_string_free(out, FALSE);
-}
-
 /* Parses a NUL-terminated CSS color string, stripping comments first if present. */
 static gboolean
 color_parse_text(const char *s, ns_color *out)
 {
     if (!s) return FALSE;
     if (strstr(s, "/*")) {
-        char *plain = color_strip_comments(s);
+        char *plain = ns_css_strip_comments(s);
         gboolean ok = color_parse_range(plain, plain + strlen(plain), out, 0);
         g_free(plain);
         return ok;

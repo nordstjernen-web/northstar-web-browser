@@ -13685,6 +13685,20 @@ flex_done: ;
                 shift_box_tree(c, 0, shift);
         }
     }
+    /* A drop-down select centers its label vertically whatever its
+     * appearance, as other engines do; list boxes stay top-aligned. */
+    if (align_shift == 0 &&
+        box->dom && box->dom->kind == NS_NODE_ELEMENT && box->dom->name &&
+        strcmp(box->dom->name, "select") == 0 &&
+        !ns_element_get_attr(box->dom, "multiple") &&
+        ns_parse_int(ns_element_get_attr(box->dom, "size"), 0, 0, 1000) <= 1 &&
+        box->content_height > measured + 0.5) {
+        double shift = (box->content_height - measured) * 0.5;
+        for (ns_box *c = box->first_child; c; c = c->next_sibling) {
+            if (!style_is_absolute_or_fixed(c->style))
+                shift_box_tree(c, 0, shift);
+        }
+    }
     if (overflow_scrolls) {
         box->scrolls = TRUE;
         if (measured > box->content_height)

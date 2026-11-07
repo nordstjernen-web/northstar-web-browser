@@ -5827,8 +5827,7 @@ static double
 inline_atomic_outer_height(const ns_box *b)
 {
     if (!b) return 0;
-    return b->content_height + b->padding.top + b->padding.bottom +
-           b->border.top + b->border.bottom + b->margin.top + b->margin.bottom;
+    return ns_box_border_height(b) + b->margin.top + b->margin.bottom;
 }
 
 static gboolean
@@ -6003,8 +6002,7 @@ flex_item_baseline(const ns_box *c, double fallback)
 {
     if (c->parent && ns_css_writing_mode(c->parent->style) &&
         ns_css_writing_mode(c->style)) {
-        double border_h = c->content_height + c->padding.top +
-                          c->padding.bottom + c->border.top + c->border.bottom;
+        double border_h = ns_box_border_height(c);
         return c->margin.top + border_h / 2.0;
     }
     double baseline;
@@ -6336,9 +6334,7 @@ inline_layout(ns_box *box, double content_width, const ns_style *parent_style)
             ns_pango_layout_index_to_line_x(layout, (int)a->byte_off,
                                          FALSE, &line, NULL);
             if (line < 0 || line >= line_count) continue;
-            double outer = atomic->content_height
-                + atomic->padding.top + atomic->padding.bottom
-                + atomic->border.top + atomic->border.bottom
+            double outer = ns_box_border_height(atomic)
                 + atomic->margin.top + atomic->margin.bottom;
             if (outer > line_heights[line]) line_heights[line] = outer;
         }
@@ -9263,9 +9259,7 @@ estimate_natural_width(const ns_box *b, double cap)
                     g_array_index(b->inline_atomics, ns_inline_atomic, i).box;
                 if (!ab) continue;
                 double aw = ab->content_width > 0
-                    ? ab->content_width +
-                      ab->padding.left + ab->padding.right +
-                      ab->border.left  + ab->border.right
+                    ? ns_box_border_width(ab)
                     : estimate_natural_width(ab, cap);
                 w += aw + ab->margin.left + ab->margin.right;
             }
@@ -9899,9 +9893,7 @@ layout_flex_row(ns_box *box, double cw,
         layout_box(c, a + c->margin.left + c->margin.right
                        + c->border.left + c->border.right
                        + c->padding.left + c->padding.right, child_inherited);
-        double item_h = c->content_height +
-                        c->padding.top + c->padding.bottom +
-                        c->border.top + c->border.bottom +
+        double item_h = ns_box_border_height(c) +
                         c->margin.top + c->margin.bottom;
         g_array_append_val(measured_h, item_h);
         if (item_h > max_cross) max_cross = item_h;
@@ -10161,9 +10153,7 @@ layout_flex_row_wrap(ns_box *box, double cw,
             laid_out_definite[gi] = c->definite_height;
             layout_box(c, a + g_array_index(extras_arr, double, gi),
                        child_inherited);
-            double item_h = c->content_height +
-                            c->padding.top + c->padding.bottom +
-                            c->border.top + c->border.bottom +
+            double item_h = ns_box_border_height(c) +
                             c->margin.top + c->margin.bottom;
             if (item_h > line_max_h) line_max_h = item_h;
         }
@@ -10173,9 +10163,7 @@ layout_flex_row_wrap(ns_box *box, double cw,
         for (guint k = 0; k < line_count; k++) {
             ns_box *c = items->pdata[line_start + k];
             if (!flex_align_is_baseline(flex_item_align(c, align))) continue;
-            double item_h_full = c->content_height +
-                                 c->padding.top + c->padding.bottom +
-                                 c->border.top + c->border.bottom +
+            double item_h_full = ns_box_border_height(c) +
                                  c->margin.top + c->margin.bottom;
             double b = flex_item_baseline(c, item_h_full);
             if (b > line_baseline) line_baseline = b;
@@ -10190,9 +10178,7 @@ layout_flex_row_wrap(ns_box *box, double cw,
             guint idx = line_start + k;
             ns_box *c = items->pdata[idx];
             const char *eff_align = flex_item_align(c, align);
-            double item_h_full = c->content_height +
-                                 c->padding.top + c->padding.bottom +
-                                 c->border.top + c->border.bottom +
+            double item_h_full = ns_box_border_height(c) +
                                  c->margin.top + c->margin.bottom;
             double cy = line_y;
             if (strcmp(eff_align, "center") == 0)
@@ -10217,9 +10203,7 @@ layout_flex_row_wrap(ns_box *box, double cw,
                 c->has_flex_main = TRUE;
                 layout_box(c, item_layout_width, child_inherited);
             }
-            double outer = c->content_width
-                + c->padding.left + c->padding.right
-                + c->border.left + c->border.right;
+            double outer = ns_box_border_width(c);
             if (stretches) {
                 double pre_h = c->content_height;
                 double stretched = flex_item_stretched_height(c, line_max_h, cw);
@@ -10235,9 +10219,7 @@ layout_flex_row_wrap(ns_box *box, double cw,
         if (main_reversed) {
             for (guint k = 0; k < line_count; k++) {
                 ns_box *c = items->pdata[line_start + k];
-                double w = c->content_width
-                         + c->padding.left + c->padding.right
-                         + c->border.left + c->border.right
+                double w = ns_box_border_width(c)
                          + c->margin.left + c->margin.right;
                 double nx = inner_x + cw - (c->x - inner_x) - w;
                 if (nx != c->x) shift_box_tree(c, nx - c->x, 0);
@@ -10484,9 +10466,7 @@ flex_column_layout_item(ns_box *c, double line_w, gboolean fit,
 static double
 flex_item_outer_width(const ns_box *c)
 {
-    return c->content_width
-        + c->padding.left + c->padding.right
-        + c->border.left + c->border.right
+    return ns_box_border_width(c)
         + c->margin.left + c->margin.right;
 }
 
@@ -10567,17 +10547,13 @@ layout_flex_column(ns_box *box, double cw,
         gboolean exp = FALSE;
         double b = flex_basis_main_height(c, cw, percentage_basis_h, &exp);
         if (!exp)
-            b = c->content_height +
-                c->padding.top + c->padding.bottom +
-                c->border.top + c->border.bottom;
+            b = ns_box_border_height(c);
         lens[i].basis = b;
         lens[i].min = flex_item_min_main_height(c, cw, percentage_basis_h);
         lens[i].max = flex_item_max_main_height(c, cw, percentage_basis_h);
         lens[i].grow = flex_grow_of(c);
         lens[i].shrink = flex_shrink_of(c);
-        double contrib = c->content_height +
-                         c->padding.top + c->padding.bottom +
-                         c->border.top + c->border.bottom;
+        double contrib = ns_box_border_height(c);
         if (contrib < b && exp) contrib = b;
         g_array_append_val(contribs, contrib);
     }
@@ -12261,9 +12237,7 @@ layout_grid(ns_box *box, double cw,
             (keyword_is(c->style->values[NS_CSS_MARGIN_LEFT], "auto") ||
              keyword_is(c->style->values[NS_CSS_MARGIN_RIGHT], "auto"));
         if ((!j_stretch || i_has_w) && !auto_h_margin) {
-            double used_w = c->content_width +
-                            c->padding.left + c->padding.right +
-                            c->border.left + c->border.right;
+            double used_w = ns_box_border_width(c);
             double free_w = cw_for_item - used_w;
             double dx = 0;
             const ns_css_value *jraw = c->style
@@ -12290,9 +12264,7 @@ layout_grid(ns_box *box, double cw,
             if (at_right && free_w != 0) dx = free_w;
             if (dx != 0) shift_box_tree(c, dx, 0);
         }
-        double item_outer = c->content_height +
-                            c->padding.top + c->padding.bottom +
-                            c->border.top + c->border.bottom +
+        double item_outer = ns_box_border_height(c) +
                             c->margin.top + c->margin.bottom;
         g_array_append_val(item_heights, item_outer);
     }
@@ -12585,9 +12557,7 @@ layout_grid(ns_box *box, double cw,
             ? aself : keyword_or(box->style, NS_CSS_ALIGN_ITEMS, "stretch");
         gboolean a_stretch = !a_eff || strcmp(a_eff, "stretch") == 0 ||
                              strcmp(a_eff, "normal") == 0;
-        double item_outer = c->content_height +
-                            c->padding.top + c->padding.bottom +
-                            c->border.top + c->border.bottom +
+        double item_outer = ns_box_border_height(c) +
                             c->margin.top + c->margin.bottom;
         double free_h = row_h - item_outer;
         double dy_align = 0;
@@ -12811,8 +12781,7 @@ legacy_align_block_child(ns_box *c, double avail_x, double avail_w,
     if (length_is_auto(ml) || length_is_auto(mr) ||
         c->margin.left != 0 || c->margin.right != 0)
         return;
-    double outer = c->content_width + c->padding.left + c->padding.right +
-                   c->border.left + c->border.right;
+    double outer = ns_box_border_width(c);
     if (outer >= avail_w - 0.5) return;
     const char *legacy = legacy_block_align(c, inherited);
     if (!legacy) return;
@@ -12908,13 +12877,9 @@ layout_rendered_legend(ns_box *fieldset, ns_box *legend, double cw,
     legend->x = inner_x;
     legend->y = top_edge;
     layout_box(legend, layout_w, inherited);
-    double outer_w = legend->content_width +
-                     legend->padding.left + legend->padding.right +
-                     legend->border.left + legend->border.right +
+    double outer_w = ns_box_border_width(legend) +
                      legend->margin.left + legend->margin.right;
-    double border_box_h = legend->content_height +
-                          legend->padding.top + legend->padding.bottom +
-                          legend->border.top + legend->border.bottom;
+    double border_box_h = ns_box_border_height(legend);
     double border_top = fieldset->border.top;
     double legend_top = legend->margin.top +
                         MAX((border_top - border_box_h) / 2.0, 0);
@@ -12954,12 +12919,8 @@ ns_box_fieldset_legend_gap(const ns_box *fieldset, double *border_inset,
     if (!legend) return FALSE;
     double top_edge = fieldset->y + fieldset->margin.top;
     double legend_border_top = legend->y + legend->margin.top;
-    double border_box_w = legend->content_width +
-                          legend->padding.left + legend->padding.right +
-                          legend->border.left + legend->border.right;
-    double border_box_h = legend->content_height +
-                          legend->padding.top + legend->padding.bottom +
-                          legend->border.top + legend->border.bottom;
+    double border_box_w = ns_box_border_width(legend);
+    double border_box_h = ns_box_border_height(legend);
     double inset = MAX(legend_border_top - top_edge + border_box_h / 2.0 -
                        fieldset->border.top / 2.0, 0);
     *border_inset = inset;
@@ -13344,9 +13305,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
                          + c->border.left + c->border.right
                          + c->margin.left + c->margin.right,
                        child_inherited);
-            double actual_outer = c->content_width
-                + c->padding.left + c->padding.right
-                + c->border.left + c->border.right
+            double actual_outer = ns_box_border_width(c)
                 + c->margin.left + c->margin.right;
             if (fside == 1) {
                 double aligned_x = inner_x + cw - right_off - actual_outer;
@@ -13392,9 +13351,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
             layout_box(c, cw_avail, child_inherited);
             if (block_child_avoids_floats(c) && cw_avail > 0) {
                 double span_l = 0, span_r = 0;
-                double c_h = c->content_height +
-                             c->padding.top + c->padding.bottom +
-                             c->border.top + c->border.bottom;
+                double c_h = ns_box_border_height(c);
                 floats_offsets_over(floats, cursor_y, cursor_y + c_h,
                                     inner_x, inner_x + cw,
                                     &span_l, &span_r);
@@ -13438,9 +13395,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
                     collapsed_margin(prev_margin_bottom, mt),
                     c->margin.bottom);
             } else {
-                cursor_y += c->content_height +
-                            c->padding.top + c->padding.bottom +
-                            c->border.top + c->border.bottom;
+                cursor_y += ns_box_border_height(c);
                 prev_margin_bottom = c->margin.bottom;
             }
             inline_line_top = -1;
@@ -13471,9 +13426,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
         if ((c->kind == NS_BOX_IMAGE || c->kind == NS_BOX_VIDEO ||
              c->kind == NS_BOX_SVG || c->kind == NS_BOX_TABLE) &&
             c->content_width < cw) {
-            double outer = c->content_width +
-                           c->padding.left + c->padding.right +
-                           c->border.left + c->border.right +
+            double outer = ns_box_border_width(c) +
                            c->margin.left + c->margin.right;
             const char *legacy = legacy_block_align(c, child_inherited);
             gboolean self_center = FALSE, self_right = FALSE;
@@ -13534,9 +13487,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
             total_h = 0;
             for (ns_box *c = host->first_child; c; c = c->next_sibling) {
                 if (c->kind == NS_BOX_BLOCK || c->kind == NS_BOX_TABLE)
-                    total_h += c->content_height +
-                               c->padding.top + c->padding.bottom +
-                               c->border.top + c->border.bottom;
+                    total_h += ns_box_border_height(c);
                 else
                     total_h += c->content_height;
             }
@@ -13548,9 +13499,7 @@ layout_block(ns_box *box, double parent_content_width, const ns_style *inherited
         for (ns_box *c = host->first_child; c; c = c->next_sibling) {
             double c_full_h;
             if (c->kind == NS_BOX_BLOCK || c->kind == NS_BOX_TABLE) {
-                c_full_h = c->content_height +
-                           c->padding.top + c->padding.bottom +
-                           c->border.top + c->border.bottom;
+                c_full_h = ns_box_border_height(c);
             } else {
                 c_full_h = c->content_height;
             }
@@ -14380,13 +14329,9 @@ flex_static_position(ns_box *abox, const ns_box *fc, double *out_x,
                       fc->padding.left;
     double origin_y = fc->y + fc->margin.top + fc->border.top +
                       fc->padding.top;
-    double outer_w = abox->content_width + abox->padding.left +
-                     abox->padding.right + abox->border.left +
-                     abox->border.right + abox->margin.left +
+    double outer_w = ns_box_border_width(abox) + abox->margin.left +
                      abox->margin.right;
-    double outer_h = abox->content_height + abox->padding.top +
-                     abox->padding.bottom + abox->border.top +
-                     abox->border.bottom + abox->margin.top +
+    double outer_h = ns_box_border_height(abox) + abox->margin.top +
                      abox->margin.bottom;
 
     const char *dir = flex_direction_of(fc->style);
@@ -14782,11 +14727,9 @@ grid_static_position(ns_box *abox, const ns_box *cb,
 {
     gboolean rtl = cb->style &&
         ns_css_keyword_is(cb->style->values[NS_CSS_DIRECTION], "rtl");
-    double outer_w = abox->content_width + abox->padding.left + abox->padding.right +
-                     abox->border.left + abox->border.right +
+    double outer_w = ns_box_border_width(abox) +
                      abox->margin.left + abox->margin.right;
-    double outer_h = abox->content_height + abox->padding.top + abox->padding.bottom +
-                     abox->border.top + abox->border.bottom +
+    double outer_h = ns_box_border_height(abox) +
                      abox->margin.top + abox->margin.bottom;
     if (static_x) {
         const char *js = abox->style ? ns_style_keyword(abox->style, NS_CSS_JUSTIFY_SELF) : NULL;
@@ -14838,13 +14781,9 @@ position_absolute_box_in(ns_box *abox, double cb_inner_x, double cb_inner_y,
     double top    = t_auto ? 0 : length_resolve(tv, cb_h, 0);
     double bottom = b_auto ? 0 : length_resolve(bv, cb_h, 0);
 
-    double box_outer_w = abox->content_width
-                       + abox->padding.left + abox->padding.right
-                       + abox->border.left  + abox->border.right
+    double box_outer_w = ns_box_border_width(abox)
                        + abox->margin.left  + abox->margin.right;
-    double box_outer_h = abox->content_height
-                       + abox->padding.top + abox->padding.bottom
-                       + abox->border.top  + abox->border.bottom
+    double box_outer_h = ns_box_border_height(abox)
                        + abox->margin.top  + abox->margin.bottom;
 
     gboolean ml_auto = length_is_auto(s ? s->values[NS_CSS_MARGIN_LEFT]   : NULL);
@@ -14922,10 +14861,8 @@ box_covers_viewport(const ns_box *b)
 {
     double x = b->x + b->margin.left;
     double y = b->y + b->margin.top;
-    double w = b->content_width + b->padding.left + b->padding.right +
-               b->border.left + b->border.right;
-    double h = b->content_height + b->padding.top + b->padding.bottom +
-               b->border.top + b->border.bottom;
+    double w = ns_box_border_width(b);
+    double h = ns_box_border_height(b);
     return x <= 0.5 && y <= 0.5 &&
            x + w >= ns_css_viewport_w() - 0.5 &&
            y + h >= ns_css_viewport_h() - 0.5;
@@ -14966,10 +14903,8 @@ box_hit_untransform_point(const ns_box *b, double *x, double *y)
     if (eff.n_ops == 0) return TRUE;
     double bx = b->x + b->margin.left;
     double by = b->y + b->margin.top;
-    double bw = b->content_width + b->padding.left + b->padding.right +
-                b->border.left + b->border.right;
-    double bh = b->content_height + b->padding.top + b->padding.bottom +
-                b->border.top + b->border.bottom;
+    double bw = ns_box_border_width(b);
+    double bh = ns_box_border_height(b);
     double ox = bx + bw / 2.0;
     double oy = by + bh / 2.0;
     const ns_css_value *origin = s->values[NS_CSS_TRANSFORM_ORIGIN];

@@ -205,6 +205,32 @@ typedef struct ns_box {
     struct ns_box *next_sibling;
 } ns_box;
 
+/* Width of the box's border box: content plus padding plus border. */
+static inline double
+ns_box_border_width(const ns_box *b)
+{
+    return b->content_width + b->padding.left + b->padding.right +
+           b->border.left + b->border.right;
+}
+
+/* Height of the box's border box: content plus padding plus border. */
+static inline double
+ns_box_border_height(const ns_box *b)
+{
+    return b->content_height + b->padding.top + b->padding.bottom +
+           b->border.top + b->border.bottom;
+}
+
+/* Border-box rectangle of a box in layout coordinates (position plus margins). */
+static inline void
+ns_box_border_rect(const ns_box *b, double *x, double *y, double *w, double *h)
+{
+    *x = b->x + b->margin.left;
+    *y = b->y + b->margin.top;
+    *w = ns_box_border_width(b);
+    *h = ns_box_border_height(b);
+}
+
 struct _PangoAttrList;
 struct _PangoLayout;
 void ns_inline_apply_atomic_shapes(struct _PangoAttrList *list, const ns_box *box);

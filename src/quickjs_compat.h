@@ -26,6 +26,12 @@ JSClassID ns_new_class_id(JSClassID *pclass_id);
 bool ns_js_buffer_source_bytes(JSContext *ctx, JSValueConst v,
                                const uint8_t **data, size_t *len,
                                JSValue *hold);
+/* obj[key] as a new string if obj is an object and the value a string, else NULL;
+ * caller frees with g_free. */
+char *ns_js_get_string_prop(JSContext *ctx, JSValueConst obj, const char *key);
+/* obj[key] as an int32, or dflt if obj is not an object or the value is undefined,
+ * null or not convertible. */
+int ns_js_get_int_prop(JSContext *ctx, JSValueConst obj, const char *key, int dflt);
 
 JSValue ns_js_compile_without_source(JSContext *ctx, const char *input, size_t input_len,
                                      const char *filename);

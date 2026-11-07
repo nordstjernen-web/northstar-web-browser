@@ -25,10 +25,11 @@
 #include <time.h>
 
 #include <glib/gstdio.h>
-#include <gmodule.h>
 
 #include <lexbor/unicode/idna.h>
 #include <lexbor/url/url.h>
+
+#include <openssl/rand.h>
 
 #include <libpsl.h>
 #include <sqlite3.h>
@@ -2072,20 +2073,13 @@ ns_net_share_new(gboolean with_cookies)
     return share;
 }
 
-/* Primes OpenSSL's RNG in the background by calling RAND_bytes if available. */
+/* Primes OpenSSL's RNG in the background so the first TLS handshake doesn't seed it. */
 static gpointer
 ns_rng_warmup_thread(gpointer data)
 {
     (void)data;
-    int (*rand_bytes)(unsigned char *, int) = NULL;
-    GModule *self = g_module_open(NULL, G_MODULE_BIND_LAZY);
-    if (self &&
-        g_module_symbol(self, "RAND_bytes", (gpointer *)&rand_bytes) &&
-        rand_bytes) {
-        unsigned char buf[32];
-        rand_bytes(buf, (int)sizeof buf);
-    }
-    if (self) g_module_close(self);
+    unsigned char buf[32];
+    (void)RAND_bytes(buf, (int)sizeof buf);
     return NULL;
 }
 
@@ -2094,7 +2088,6 @@ static GThread *g_rng_warmup_thread;
 static void
 ns_net_warm_rng(void)
 {
-    if (!g_module_supported()) return;
     g_rng_warmup_thread = g_thread_try_new("nd-rng-warmup",
                                            ns_rng_warmup_thread, NULL, NULL);
 }

@@ -161,7 +161,6 @@ elif gtk4.version().version_compare('>=4.22')
 else
   warning('GTK @0@ meets the 4.14 minimum, but Northstar Web Browser prefers >= 4.22 for the newer GSK renderers.'.format(gtk4.version()))
 endif
-gmodule = dependency('gmodule-2.0')
 libcurl = dependency('libcurl', version: '>=8.5')
 if libcurl.version().version_compare('<8.11')
   warning('libcurl @0@ predates stable WebSocket support (curl 8.11): WebSocket will be unavailable at runtime unless this libcurl was built with the ws/wss protocols.'.format(libcurl.version()))

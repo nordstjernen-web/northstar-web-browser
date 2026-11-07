@@ -113,3 +113,52 @@ ns_video_decoder_take_late(ns_video_decoder *decoder, gint64 *timestamp)
     if (!decoder->gst) return NULL;
     return ns_gst_video_decoder_take_late(decoder->gst, timestamp);
 }
+
+gboolean
+ns_video_decoder_native_forced(void)
+{
+    const char *backend = g_getenv("NS_VIDEO_DECODER");
+    return backend && g_ascii_strcasecmp(backend, "native") == 0;
+}
+
+enum { NS_VIDEO_MAX_LATE = 16 };
+
+typedef struct {
+    gint64      timestamp;
+    ns_texture *texture;
+} ns_video_late;
+
+void
+ns_video_late_push(GQueue *late, gint64 timestamp, ns_texture *texture)
+{
+    ns_video_late *entry = g_new(ns_video_late, 1);
+    entry->timestamp = timestamp;
+    entry->texture = texture;
+    g_queue_push_tail(late, entry);
+    while (g_queue_get_length(late) > NS_VIDEO_MAX_LATE) {
+        ns_video_late *old = g_queue_pop_head(late);
+        ns_texture_unref(old->texture);
+        g_free(old);
+    }
+}
+
+ns_texture *
+ns_video_late_take(GQueue *late, gint64 *timestamp)
+{
+    ns_video_late *entry = g_queue_pop_head(late);
+    if (!entry) return NULL;
+    ns_texture *texture = entry->texture;
+    if (timestamp) *timestamp = entry->timestamp;
+    g_free(entry);
+    return texture;
+}
+
+void
+ns_video_late_clear(GQueue *late)
+{
+    ns_video_late *entry;
+    while ((entry = g_queue_pop_head(late)) != NULL) {
+        ns_texture_unref(entry->texture);
+        g_free(entry);
+    }
+}

@@ -24,9 +24,10 @@
 #include <mftransform.h>
 
 #include "avc.h"
+#include "videodec.h"
 #include "yuv.h"
 
-enum { NS_MF_MAX_LATE = 16, NS_MF_MAX_OUTPUTS = 32 };
+enum { NS_MF_MAX_OUTPUTS = 32 };
 
 /* MF_LOW_LATENCY; mfapi.h declares it only for WINVER >= 0x0602. */
 static const GUID NS_MF_LOW_LATENCY = {
@@ -66,11 +67,6 @@ static gboolean g_preinit_done;
 static gboolean g_mf_ok;
 static gboolean g_available[G_N_ELEMENTS(g_codecs)];
 
-typedef struct {
-    gint64      timestamp;
-    ns_texture *texture;
-} ns_mf_late;
-
 struct ns_mf_video_decoder {
     const ns_mf_codec *codec;
     IMFTransform      *mft;
@@ -94,13 +90,6 @@ struct ns_mf_video_decoder {
     GHashTable        *wanted;
     GQueue             late;
 };
-
-static gboolean
-native_forced(void)
-{
-    const char *backend = g_getenv("NS_VIDEO_DECODER");
-    return backend && g_ascii_strcasecmp(backend, "native") == 0;
-}
 
 /* Joins the calling thread to the multithreaded apartment once. */
 static gboolean
@@ -196,7 +185,7 @@ ns_mf_video_preinit(void)
 {
     if (g_preinit_done) return;
     g_preinit_done = TRUE;
-    if (native_forced() || !mf_load()) return;
+    if (ns_video_decoder_native_forced() || !mf_load()) return;
     g_thread_join(g_thread_new("mf-preinit", preinit_thread, NULL));
 }
 
@@ -331,16 +320,6 @@ ns_mf_video_decoder_new(const char *codec)
     return decoder;
 }
 
-static void
-late_clear(ns_mf_video_decoder *self)
-{
-    ns_mf_late *late;
-    while ((late = g_queue_pop_head(&self->late)) != NULL) {
-        ns_texture_unref(late->texture);
-        g_free(late);
-    }
-}
-
 void
 ns_mf_video_decoder_free(ns_mf_video_decoder *decoder)
 {
@@ -351,7 +330,7 @@ ns_mf_video_decoder_free(ns_mf_video_decoder *decoder)
     }
     if (decoder->config) g_bytes_unref(decoder->config);
     if (decoder->unit) g_byte_array_free(decoder->unit, TRUE);
-    late_clear(decoder);
+    ns_video_late_clear(&decoder->late);
     if (decoder->wanted) g_hash_table_unref(decoder->wanted);
     g_free(decoder->chroma);
     g_free(decoder);
@@ -364,7 +343,7 @@ ns_mf_video_decoder_flush(ns_mf_video_decoder *decoder)
     if (!decoder || !decoder->mft) return;
     IMFTransform_ProcessMessage(decoder->mft, MFT_MESSAGE_COMMAND_FLUSH, 0);
     IMFTransform_ProcessMessage(decoder->mft, MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0);
-    late_clear(decoder);
+    ns_video_late_clear(&decoder->late);
     g_hash_table_remove_all(decoder->wanted);
     decoder->need_param_sets = TRUE;
     decoder->broken = FALSE;
@@ -506,21 +485,6 @@ sample_to_texture(ns_mf_video_decoder *self, IMFSample *sample)
     return texture;
 }
 
-/* Keeps a picture that came out for an earlier timestamp until the worker takes it. */
-static void
-push_late(ns_mf_video_decoder *self, gint64 timestamp, ns_texture *texture)
-{
-    ns_mf_late *late = g_new(ns_mf_late, 1);
-    late->timestamp = timestamp;
-    late->texture = texture;
-    g_queue_push_tail(&self->late, late);
-    while (g_queue_get_length(&self->late) > NS_MF_MAX_LATE) {
-        ns_mf_late *old = g_queue_pop_head(&self->late);
-        ns_texture_unref(old->texture);
-        g_free(old);
-    }
-}
-
 /* Pulls every picture the decoder has ready; returns the one for timestamp. */
 static ns_texture *
 collect(ns_mf_video_decoder *self, gint64 timestamp)
@@ -556,7 +520,7 @@ collect(ns_mf_video_decoder *self, gint64 timestamp)
             if (g_hash_table_remove(self->wanted, &stamp)) {
                 ns_texture *texture = sample_to_texture(self, out.pSample);
                 if (stamp == timestamp && !result) result = texture;
-                else if (texture) push_late(self, stamp, texture);
+                else if (texture) ns_video_late_push(&self->late, stamp, texture);
             }
         }
         IMFSample_Release(out.pSample);
@@ -628,13 +592,7 @@ ns_mf_video_decoder_decode(ns_mf_video_decoder *decoder, GBytes *sample,
 ns_texture *
 ns_mf_video_decoder_take_late(ns_mf_video_decoder *decoder, gint64 *timestamp)
 {
-    if (!decoder) return NULL;
-    ns_mf_late *late = g_queue_pop_head(&decoder->late);
-    if (!late) return NULL;
-    ns_texture *texture = late->texture;
-    if (timestamp) *timestamp = late->timestamp;
-    g_free(late);
-    return texture;
+    return decoder ? ns_video_late_take(&decoder->late, timestamp) : NULL;
 }
 
 #else

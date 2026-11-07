@@ -3534,6 +3534,31 @@ ns_ctx_draw_focus_if_needed(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* Serializes a canvas colour as the spec does (#rrggbb, or rgba() when not opaque);
+ * undefined when the value does not parse, so the setter keeps the old colour. */
+static JSValue
+ns_ctx_serialize_color(JSContext *ctx, JSValueConst value)
+{
+    const char *s = JS_ToCString(ctx, value);
+    if (!s) return JS_EXCEPTION;
+    guint8 r, g, b, a;
+    gboolean ok = ns_css_parse_color(s, &r, &g, &b, &a);
+    JS_FreeCString(ctx, s);
+    if (!ok) return JS_UNDEFINED;
+    char out[64];
+    if (a == 255) {
+        g_snprintf(out, sizeof out, "#%02x%02x%02x", r, g, b);
+    } else {
+        /* Two decimals when they round-trip to the same 8-bit alpha, else three. */
+        double alpha = round(a / 255.0 * 100) / 100;
+        if ((int)lround(alpha * 255) != a) alpha = round(a / 255.0 * 1000) / 1000;
+        char abuf[G_ASCII_DTOSTR_BUF_SIZE];
+        g_ascii_formatd(abuf, sizeof abuf, "%g", alpha);
+        g_snprintf(out, sizeof out, "rgba(%d, %d, %d, %s)", r, g, b, abuf);
+    }
+    return JS_NewString(ctx, out);
+}
+
 /* Gets or sets a context attribute in a hidden "\xff"-prefixed backing property. */
 static JSValue
 ns_ctx_attr_slot(JSContext *ctx, JSValueConst this_val, int magic,
@@ -3544,6 +3569,16 @@ ns_ctx_attr_slot(JSContext *ctx, JSValueConst this_val, int magic,
     char key[64];
     g_snprintf(key, sizeof key, "\xff%s", ns_ctx_attr_names[magic]);
     if (!set) return JS_GetPropertyStr(ctx, this_val, key);
+    const char *name = ns_ctx_attr_names[magic];
+    gboolean is_color = strcmp(name, "shadowColor") == 0;
+    gboolean is_style = !is_color && (strcmp(name, "fillStyle") == 0 ||
+                                      strcmp(name, "strokeStyle") == 0);
+    if ((is_color || is_style) && !(is_style && JS_IsObject(*set))) {
+        JSValue color = ns_ctx_serialize_color(ctx, *set);
+        if (JS_IsException(color)) return color;
+        if (!JS_IsUndefined(color)) JS_SetPropertyStr(ctx, this_val, key, color);
+        return JS_UNDEFINED;
+    }
     JS_SetPropertyStr(ctx, this_val, key, JS_DupValue(ctx, *set));
     return JS_UNDEFINED;
 }

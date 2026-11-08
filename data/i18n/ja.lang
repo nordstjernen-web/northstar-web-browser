@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Japanese / 日本語
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=戻る
 Forward=進む
 Reload=再読み込み
+Stop=中止
 Home=ホーム
+Menu=メニュー
 Bookmarks=ブックマーク
 Settings=設定
-Menu=メニュー
 Loading=読み込み中
 Loading…=読み込み中…
+Done=完了
+Go back one page=1 ページ戻る
+Go forward one page=1 ページ進む
+Reload this page=このページを再読み込み
+Stop loading this page=このページの読み込みを中止
+Go to the home page=ホームページに移動
+Address and search bar=アドレス・検索バー
+Page location=ページの場所
+Search or enter a URL=検索語または URL を入力
+Search for=検索
+Server:=サーバー:
+New Window=新しいウィンドウ
+Quit=終了
+Continue=続行
+Recovered the previous session after an unexpected exit=予期しない終了の後、前回のセッションを復元しました
+Failed to load page=ページを読み込めませんでした
+Stopped after too many redirects=リダイレクトが多すぎるため中止しました
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=安全 — 証明書は有効です
+Not secure — the connection is not encrypted=保護されていません — 接続は暗号化されていません
+Not secure — the certificate is not trusted=保護されていません — 証明書は信頼されていません
+Certificate errors are being ignored=証明書エラーを無視しています
+# --- Main menu ---
+Find in Page=ページ内を検索
+Full Screen=全画面表示
+Zoom In=拡大
+Zoom Out=縮小
+Reset Zoom=ズームをリセット
+Print…=印刷…
+Save Page As…=名前を付けてページを保存…
+Save Page as PDF…=ページを PDF として保存…
+Save Page as Image…=ページを画像として保存…
+Page Source=ページのソース
+Downloads=ダウンロード
+History=履歴
+Bookmark This Page=このページをブックマーク
+Visit nordstjernen.org=nordstjernen.org にアクセス
+# --- Context menu, clipboard ---
 Copy=コピー
 Select All=すべて選択
-Done=完了
+Open Link=リンクを開く
+Copy Link Address=リンクのアドレスをコピー
+Copy Page Address=ページのアドレスをコピー
+Copied to clipboard=クリップボードにコピーしました
+Copied link address=リンクのアドレスをコピーしました
+Copied page address=ページのアドレスをコピーしました
+Copied selection=選択範囲をコピーしました
+# --- Find bar ---
+Find in page=ページ内を検索
 No results=結果なし
+Previous match=前の一致
+Next match=次の一致
+Previous match (Shift+Enter)=前の一致 (Shift+Enter)
+Next match (Enter)=次の一致 (Enter)
+Close search=検索を閉じる
+Close (Esc)=閉じる (Esc)
+# --- Bookmarks ---
 Bookmark this page=このページをブックマーク
 Bookmark added=ブックマークを追加しました
+Bookmark removed=ブックマークを削除しました
+Bookmarked — open bookmarks=ブックマーク済み — ブックマークを開く
+Remove bookmark=ブックマークを削除
+Remove this bookmark=このブックマークを削除
 No bookmarks yet=ブックマークはまだありません
+# --- Downloads, saving, printing ---
+Show downloads=ダウンロードを表示
+Nothing downloaded yet=ダウンロードはまだありません
+Open=開く
+Open folder=フォルダーを開く
+Failed=失敗
+Could not save page=ページを保存できませんでした
+Save page as PDF=ページを PDF として保存
+Save page as PNG=ページを PNG として保存
+Print=印刷
+Print this page=このページを印刷
+Nothing to print=印刷するものがありません
+Reset zoom=ズームをリセット
+Reset zoom (Ctrl+0)=ズームをリセット (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s は全画面表示になりました。終了するには Esc を押してください。
 You are now in full screen. Press Esc to exit.=全画面表示になりました。終了するには Esc を押してください。
+This site wants to use your camera and microphone=このサイトがカメラとマイクの使用を求めています
+Allow=許可
+Allow and trust this site=許可してこのサイトを信頼
+Not now=今はしない
+Dismiss=閉じる
+# --- Start page (about:start) ---
+Search=検索
+Search the web=ウェブを検索
+Search (__ND_SEARCH_NAME__):=検索 (__ND_SEARCH_NAME__):
+License=ライセンス
+Privacy=プライバシー
+# --- Settings page (about:settings) ---
+General=一般
+Home page=ホームページ
+Search engine=検索エンジン
+Custom search URL=カスタム検索 URL
+Custom…=カスタム…
+Cookies=Cookie
+Accept all cookies=すべての Cookie を受け入れる
+Block third-party cookies=サードパーティ Cookie をブロック
+Block all cookies=すべての Cookie をブロック
+Send “Do Not Track”=「Do Not Track」を送信する
+Send Global Privacy Control (GPC)=グローバルプライバシーコントロール (GPC) を送信する
+Strip tracking parameters from links=リンクからトラッキングパラメーターを削除する
+Try HTTPS first on every site=すべてのサイトでまず HTTPS を試す
+Block dangerous sites (Google Safe Browsing and a local list)=危険なサイトをブロックする (Google Safe Browsing とローカルリスト)
+Content=コンテンツ
+Load images=画像を読み込む
+Enable JavaScript=JavaScript を有効にする
+Enable local storage=ローカルストレージを有効にする
+Enable cache=キャッシュを有効にする
+Clear all browsing data=閲覧データをすべて消去
+Browsing data cleared=閲覧データを消去しました
+Save=保存
+Saved.=保存しました。
+Changes apply to newly opened pages.=変更は新しく開いたページに適用されます。
+# --- History page (about:history) ---
+Recently visited pages.=最近訪れたページ。
+No history yet.=履歴はまだありません。
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser について
+Version=バージョン
+Start=スタート
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows、Linux、Mac 向けのウェブブラウザーです。C プログラミング言語で書かれ、オープンソースの GPL ライセンスで提供されています。
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser はフリーソフトウェアであり、GNU General Public License バージョン 3 以降の下で配布されています。
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=サードパーティソフトウェアに関する通知

@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Greek / Ελληνικά
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Πίσω
+Forward=Εμπρός
+Reload=Ανανέωση
+Stop=Διακοπή
+Home=Αρχική
+Menu=Μενού
+Bookmarks=Σελιδοδείκτες
+Settings=Ρυθμίσεις
+Loading=Φόρτωση
+Loading…=Φόρτωση…
+Done=Ολοκληρώθηκε
+Go back one page=Μετάβαση μία σελίδα πίσω
+Go forward one page=Μετάβαση μία σελίδα εμπρός
+Reload this page=Ανανέωση αυτής της σελίδας
+Stop loading this page=Διακοπή φόρτωσης αυτής της σελίδας
+Go to the home page=Μετάβαση στην αρχική σελίδα
+Address and search bar=Γραμμή διευθύνσεων και αναζήτησης
+Page location=Τοποθεσία σελίδας
+Search or enter a URL=Αναζήτηση ή εισαγωγή URL
+Search for=Αναζήτηση για
+Server:=Διακομιστής:
+New Window=Νέο παράθυρο
+Quit=Έξοδος
+Continue=Συνέχεια
+Recovered the previous session after an unexpected exit=Η προηγούμενη συνεδρία ανακτήθηκε μετά από απρόσμενο τερματισμό
+Failed to load page=Αποτυχία φόρτωσης σελίδας
+Stopped after too many redirects=Διακόπηκε μετά από πάρα πολλές ανακατευθύνσεις
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Ασφαλής — το πιστοποιητικό είναι έγκυρο
+Not secure — the connection is not encrypted=Μη ασφαλής — η σύνδεση δεν είναι κρυπτογραφημένη
+Not secure — the certificate is not trusted=Μη ασφαλής — το πιστοποιητικό δεν είναι αξιόπιστο
+Certificate errors are being ignored=Τα σφάλματα πιστοποιητικού αγνοούνται
+# --- Main menu ---
+Find in Page=Εύρεση στη σελίδα
+Full Screen=Πλήρης οθόνη
+Zoom In=Μεγέθυνση
+Zoom Out=Σμίκρυνση
+Reset Zoom=Επαναφορά ζουμ
+Print…=Εκτύπωση…
+Save Page As…=Αποθήκευση σελίδας ως…
+Save Page as PDF…=Αποθήκευση σελίδας ως PDF…
+Save Page as Image…=Αποθήκευση σελίδας ως εικόνας…
+Page Source=Πηγαίος κώδικας σελίδας
+Downloads=Λήψεις
+History=Ιστορικό
+Bookmark This Page=Προσθήκη σελίδας στους σελιδοδείκτες
+Visit nordstjernen.org=Επισκεφθείτε το nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Αντιγραφή
+Select All=Επιλογή όλων
+Open Link=Άνοιγμα συνδέσμου
+Copy Link Address=Αντιγραφή διεύθυνσης συνδέσμου
+Copy Page Address=Αντιγραφή διεύθυνσης σελίδας
+Copied to clipboard=Αντιγράφηκε στο πρόχειρο
+Copied link address=Η διεύθυνση συνδέσμου αντιγράφηκε
+Copied page address=Η διεύθυνση σελίδας αντιγράφηκε
+Copied selection=Η επιλογή αντιγράφηκε
+# --- Find bar ---
+Find in page=Εύρεση στη σελίδα
+No results=Κανένα αποτέλεσμα
+Previous match=Προηγούμενο αποτέλεσμα
+Next match=Επόμενο αποτέλεσμα
+Previous match (Shift+Enter)=Προηγούμενο αποτέλεσμα (Shift+Enter)
+Next match (Enter)=Επόμενο αποτέλεσμα (Enter)
+Close search=Κλείσιμο αναζήτησης
+Close (Esc)=Κλείσιμο (Esc)
+# --- Bookmarks ---
+Bookmark this page=Προσθήκη σελίδας στους σελιδοδείκτες
+Bookmark added=Ο σελιδοδείκτης προστέθηκε
+Bookmark removed=Ο σελιδοδείκτης αφαιρέθηκε
+Bookmarked — open bookmarks=Στους σελιδοδείκτες — άνοιγμα σελιδοδεικτών
+Remove bookmark=Αφαίρεση σελιδοδείκτη
+Remove this bookmark=Αφαίρεση αυτού του σελιδοδείκτη
+No bookmarks yet=Δεν υπάρχουν ακόμα σελιδοδείκτες
+# --- Downloads, saving, printing ---
+Show downloads=Εμφάνιση λήψεων
+Nothing downloaded yet=Δεν υπάρχουν ακόμα λήψεις
+Open=Άνοιγμα
+Open folder=Άνοιγμα φακέλου
+Failed=Απέτυχε
+Could not save page=Δεν ήταν δυνατή η αποθήκευση της σελίδας
+Save page as PDF=Αποθήκευση σελίδας ως PDF
+Save page as PNG=Αποθήκευση σελίδας ως PNG
+Print=Εκτύπωση
+Print this page=Εκτύπωση αυτής της σελίδας
+Nothing to print=Δεν υπάρχει τίποτα για εκτύπωση
+Reset zoom=Επαναφορά ζουμ
+Reset zoom (Ctrl+0)=Επαναφορά ζουμ (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=Το %s είναι τώρα σε πλήρη οθόνη. Πατήστε Esc για έξοδο.
 You are now in full screen. Press Esc to exit.=Βρίσκεστε τώρα σε πλήρη οθόνη. Πατήστε Esc για έξοδο.
+This site wants to use your camera and microphone=Αυτός ο ιστότοπος θέλει να χρησιμοποιήσει την κάμερα και το μικρόφωνό σας
+Allow=Αποδοχή
+Allow and trust this site=Αποδοχή και εμπιστοσύνη σε αυτόν τον ιστότοπο
+Not now=Όχι τώρα
+Dismiss=Απόρριψη
+# --- Start page (about:start) ---
+Search=Αναζήτηση
+Search the web=Αναζήτηση στο διαδίκτυο
+Search (__ND_SEARCH_NAME__):=Αναζήτηση (__ND_SEARCH_NAME__):
+License=Άδεια χρήσης
+Privacy=Απόρρητο
+# --- Settings page (about:settings) ---
+General=Γενικά
+Home page=Αρχική σελίδα
+Search engine=Μηχανή αναζήτησης
+Custom search URL=Προσαρμοσμένο URL αναζήτησης
+Custom…=Προσαρμοσμένη…
+Cookies=Cookies
+Accept all cookies=Αποδοχή όλων των cookies
+Block third-party cookies=Φραγή cookies τρίτων
+Block all cookies=Φραγή όλων των cookies
+Send “Do Not Track”=Αποστολή «Do Not Track»
+Send Global Privacy Control (GPC)=Αποστολή Global Privacy Control (GPC)
+Strip tracking parameters from links=Αφαίρεση παραμέτρων παρακολούθησης από συνδέσμους
+Try HTTPS first on every site=Δοκιμή HTTPS πρώτα σε κάθε ιστότοπο
+Block dangerous sites (Google Safe Browsing and a local list)=Φραγή επικίνδυνων ιστοτόπων (Google Safe Browsing και τοπική λίστα)
+Content=Περιεχόμενο
+Load images=Φόρτωση εικόνων
+Enable JavaScript=Ενεργοποίηση JavaScript
+Enable local storage=Ενεργοποίηση τοπικής αποθήκευσης
+Enable cache=Ενεργοποίηση κρυφής μνήμης
+Clear all browsing data=Διαγραφή όλων των δεδομένων περιήγησης
+Browsing data cleared=Τα δεδομένα περιήγησης διαγράφηκαν
+Save=Αποθήκευση
+Saved.=Αποθηκεύτηκε.
+Changes apply to newly opened pages.=Οι αλλαγές ισχύουν για σελίδες που ανοίγουν από εδώ και πέρα.
+# --- History page (about:history) ---
+Recently visited pages.=Πρόσφατα επισκεφθείσες σελίδες.
+No history yet.=Δεν υπάρχει ακόμα ιστορικό.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Σχετικά με το Northstar Web Browser
+Version=Έκδοση
+Start=Έναρξη
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Ένα πρόγραμμα περιήγησης για Windows, Linux και Mac, γραμμένο στη γλώσσα προγραμματισμού C, με άδεια ανοιχτού κώδικα GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Το Northstar Web Browser είναι ελεύθερο λογισμικό, που διανέμεται υπό την GNU General Public License, έκδοση 3 ή νεότερη.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Σημειώσεις λογισμικού τρίτων

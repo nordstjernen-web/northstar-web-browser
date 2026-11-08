@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Arabic / العربية
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=رجوع
+Forward=تقدم
+Reload=إعادة التحميل
+Stop=إيقاف
+Home=الرئيسية
+Menu=القائمة
+Bookmarks=العلامات
+Settings=الإعدادات
+Loading=جارٍ التحميل
+Loading…=جارٍ التحميل…
+Done=تم
+Go back one page=الرجوع صفحة واحدة
+Go forward one page=التقدم صفحة واحدة
+Reload this page=إعادة تحميل هذه الصفحة
+Stop loading this page=إيقاف تحميل هذه الصفحة
+Go to the home page=الانتقال إلى الصفحة الرئيسية
+Address and search bar=شريط العنوان والبحث
+Page location=موقع الصفحة
+Search or enter a URL=ابحث أو أدخل عنوان URL
+Search for=البحث عن
+Server:=الخادم:
+New Window=نافذة جديدة
+Quit=إنهاء
+Continue=متابعة
+Recovered the previous session after an unexpected exit=تمت استعادة الجلسة السابقة بعد خروج غير متوقع
+Failed to load page=تعذّر تحميل الصفحة
+Stopped after too many redirects=توقف بعد عدد كبير جدًا من عمليات إعادة التوجيه
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=آمن — الشهادة صالحة
+Not secure — the connection is not encrypted=غير آمن — الاتصال غير مشفّر
+Not secure — the certificate is not trusted=غير آمن — الشهادة غير موثوق بها
+Certificate errors are being ignored=يتم تجاهل أخطاء الشهادة
+# --- Main menu ---
+Find in Page=البحث في الصفحة
+Full Screen=ملء الشاشة
+Zoom In=تكبير
+Zoom Out=تصغير
+Reset Zoom=إعادة ضبط التكبير
+Print…=طباعة…
+Save Page As…=حفظ الصفحة باسم…
+Save Page as PDF…=حفظ الصفحة بتنسيق PDF…
+Save Page as Image…=حفظ الصفحة كصورة…
+Page Source=مصدر الصفحة
+Downloads=التنزيلات
+History=السجل
+Bookmark This Page=إضافة علامة لهذه الصفحة
+Visit nordstjernen.org=زيارة nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=نسخ
+Select All=تحديد الكل
+Open Link=فتح الرابط
+Copy Link Address=نسخ عنوان الرابط
+Copy Page Address=نسخ عنوان الصفحة
+Copied to clipboard=تم النسخ إلى الحافظة
+Copied link address=تم نسخ عنوان الرابط
+Copied page address=تم نسخ عنوان الصفحة
+Copied selection=تم نسخ التحديد
+# --- Find bar ---
+Find in page=البحث في الصفحة
+No results=لا توجد نتائج
+Previous match=التطابق السابق
+Next match=التطابق التالي
+Previous match (Shift+Enter)=التطابق السابق (Shift+Enter)
+Next match (Enter)=التطابق التالي (Enter)
+Close search=إغلاق البحث
+Close (Esc)=إغلاق (Esc)
+# --- Bookmarks ---
+Bookmark this page=إضافة علامة لهذه الصفحة
+Bookmark added=تمت إضافة العلامة
+Bookmark removed=تمت إزالة العلامة
+Bookmarked — open bookmarks=تمت إضافة علامة — فتح العلامات
+Remove bookmark=إزالة العلامة
+Remove this bookmark=إزالة هذه العلامة
+No bookmarks yet=لا توجد علامات بعد
+# --- Downloads, saving, printing ---
+Show downloads=عرض التنزيلات
+Nothing downloaded yet=لم يتم تنزيل أي شيء بعد
+Open=فتح
+Open folder=فتح المجلد
+Failed=فشل
+Could not save page=تعذّر حفظ الصفحة
+Save page as PDF=حفظ الصفحة بتنسيق PDF
+Save page as PNG=حفظ الصفحة بتنسيق PNG
+Print=طباعة
+Print this page=طباعة هذه الصفحة
+Nothing to print=لا يوجد شيء للطباعة
+Reset zoom=إعادة ضبط التكبير
+Reset zoom (Ctrl+0)=إعادة ضبط التكبير (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=أصبح %s الآن في وضع ملء الشاشة. اضغط على Esc للخروج.
+You are now in full screen. Press Esc to exit.=أنت الآن في وضع ملء الشاشة. اضغط على Esc للخروج.
+This site wants to use your camera and microphone=يريد هذا الموقع استخدام الكاميرا والميكروفون
+Allow=سماح
+Allow and trust this site=السماح والوثوق بهذا الموقع
+Not now=ليس الآن
+Dismiss=تجاهل
+# --- Start page (about:start) ---
+Search=بحث
+Search the web=البحث في الويب
+Search (__ND_SEARCH_NAME__):=بحث (__ND_SEARCH_NAME__):
+License=الترخيص
+Privacy=الخصوصية
+# --- Settings page (about:settings) ---
+General=عام
+Home page=الصفحة الرئيسية
+Search engine=محرك البحث
+Custom search URL=عنوان URL مخصص للبحث
+Custom…=مخصص…
+Cookies=ملفات تعريف الارتباط
+Accept all cookies=قبول كل ملفات تعريف الارتباط
+Block third-party cookies=حظر ملفات تعريف الارتباط التابعة لجهات خارجية
+Block all cookies=حظر كل ملفات تعريف الارتباط
+Send “Do Not Track”=إرسال إشارة «عدم التتبع»
+Send Global Privacy Control (GPC)=إرسال إشارة التحكم العالمي في الخصوصية (GPC)
+Strip tracking parameters from links=إزالة معلمات التتبع من الروابط
+Try HTTPS first on every site=تجربة HTTPS أولًا على كل موقع
+Block dangerous sites (Google Safe Browsing and a local list)=حظر المواقع الخطيرة (Google Safe Browsing وقائمة محلية)
+Content=المحتوى
+Load images=تحميل الصور
+Enable JavaScript=تفعيل JavaScript
+Enable local storage=تفعيل التخزين المحلي
+Enable cache=تفعيل ذاكرة التخزين المؤقت
+Clear all browsing data=محو كل بيانات التصفح
+Browsing data cleared=تم محو بيانات التصفح
+Save=حفظ
+Saved.=تم الحفظ.
+Changes apply to newly opened pages.=تنطبق التغييرات على الصفحات المفتوحة حديثًا.
+# --- History page (about:history) ---
+Recently visited pages.=الصفحات التي تمت زيارتها مؤخرًا.
+No history yet.=لا يوجد سجل بعد.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=حول Northstar Web Browser
+Version=الإصدار
+Start=البداية
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=متصفح ويب لأنظمة Windows وLinux وMac، مكتوب بلغة البرمجة C، ومفتوح المصدر بترخيص GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser برنامج حر، يُوزَّع بموجب GNU General Public License، الإصدار 3 أو أي إصدار لاحق.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=إشعارات برامج الجهات الخارجية

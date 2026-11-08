@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Tamil / தமிழ்
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=பின்செல்
+Forward=முன்செல்
+Reload=மீளேற்று
+Stop=நிறுத்து
+Home=முகப்பு
+Menu=பட்டி
+Bookmarks=புத்தகக்குறிகள்
+Settings=அமைப்புகள்
+Loading=ஏற்றுகிறது
+Loading…=ஏற்றுகிறது…
+Done=முடிந்தது
+Go back one page=ஒரு பக்கம் பின்செல்
+Go forward one page=ஒரு பக்கம் முன்செல்
+Reload this page=இந்தப் பக்கத்தை மீளேற்று
+Stop loading this page=இந்தப் பக்கம் ஏற்றப்படுவதை நிறுத்து
+Go to the home page=முகப்புப் பக்கத்துக்குச் செல்
+Address and search bar=முகவரி மற்றும் தேடல் பட்டை
+Page location=பக்கத்தின் இருப்பிடம்
+Search or enter a URL=தேடவும் அல்லது URL ஐ உள்ளிடவும்
+Search for=இதைத் தேடு
+Server:=சேவையகம்:
+New Window=புதிய சாளரம்
+Quit=வெளியேறு
+Continue=தொடர்க
+Recovered the previous session after an unexpected exit=எதிர்பாராத வெளியேற்றத்திற்குப் பிறகு முந்தைய அமர்வு மீட்டெடுக்கப்பட்டது
+Failed to load page=பக்கத்தை ஏற்ற முடியவில்லை
+Stopped after too many redirects=அதிகமான திசைதிருப்பல்களுக்குப் பிறகு நிறுத்தப்பட்டது
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=பாதுகாப்பானது — சான்றிதழ் செல்லுபடியானது
+Not secure — the connection is not encrypted=பாதுகாப்பற்றது — இணைப்பு மறையாக்கப்படவில்லை
+Not secure — the certificate is not trusted=பாதுகாப்பற்றது — சான்றிதழ் நம்பகமானதல்ல
+Certificate errors are being ignored=சான்றிதழ் பிழைகள் புறக்கணிக்கப்படுகின்றன
+# --- Main menu ---
+Find in Page=பக்கத்தில் கண்டறி
+Full Screen=முழுத்திரை
+Zoom In=பெரிதாக்கு
+Zoom Out=சிறிதாக்கு
+Reset Zoom=பெரிதாக்கலை மீட்டமை
+Print…=அச்சிடு…
+Save Page As…=பக்கத்தை இவ்வாறு சேமி…
+Save Page as PDF…=பக்கத்தை PDF ஆகச் சேமி…
+Save Page as Image…=பக்கத்தைப் படமாகச் சேமி…
+Page Source=பக்க மூலம்
+Downloads=பதிவிறக்கங்கள்
+History=வரலாறு
+Bookmark This Page=இந்தப் பக்கத்தைப் புத்தகக்குறியிடு
+Visit nordstjernen.org=nordstjernen.org ஐப் பார்வையிடு
+# --- Context menu, clipboard ---
+Copy=நகலெடு
+Select All=அனைத்தையும் தேர்ந்தெடு
+Open Link=இணைப்பைத் திற
+Copy Link Address=இணைப்பு முகவரியை நகலெடு
+Copy Page Address=பக்க முகவரியை நகலெடு
+Copied to clipboard=கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது
+Copied link address=இணைப்பு முகவரி நகலெடுக்கப்பட்டது
+Copied page address=பக்க முகவரி நகலெடுக்கப்பட்டது
+Copied selection=தேர்வு நகலெடுக்கப்பட்டது
+# --- Find bar ---
+Find in page=பக்கத்தில் கண்டறி
+No results=முடிவுகள் இல்லை
+Previous match=முந்தைய பொருத்தம்
+Next match=அடுத்த பொருத்தம்
+Previous match (Shift+Enter)=முந்தைய பொருத்தம் (Shift+Enter)
+Next match (Enter)=அடுத்த பொருத்தம் (Enter)
+Close search=தேடலை மூடு
+Close (Esc)=மூடு (Esc)
+# --- Bookmarks ---
+Bookmark this page=இந்தப் பக்கத்தைப் புத்தகக்குறியிடு
+Bookmark added=புத்தகக்குறி சேர்க்கப்பட்டது
+Bookmark removed=புத்தகக்குறி அகற்றப்பட்டது
+Bookmarked — open bookmarks=புத்தகக்குறியிடப்பட்டது — புத்தகக்குறிகளைத் திற
+Remove bookmark=புத்தகக்குறியை அகற்று
+Remove this bookmark=இந்தப் புத்தகக்குறியை அகற்று
+No bookmarks yet=இன்னும் புத்தகக்குறிகள் இல்லை
+# --- Downloads, saving, printing ---
+Show downloads=பதிவிறக்கங்களைக் காட்டு
+Nothing downloaded yet=இன்னும் எதுவும் பதிவிறக்கப்படவில்லை
+Open=திற
+Open folder=கோப்புறையைத் திற
+Failed=தோல்வியடைந்தது
+Could not save page=பக்கத்தைச் சேமிக்க முடியவில்லை
+Save page as PDF=பக்கத்தை PDF ஆகச் சேமி
+Save page as PNG=பக்கத்தை PNG ஆகச் சேமி
+Print=அச்சிடு
+Print this page=இந்தப் பக்கத்தை அச்சிடு
+Nothing to print=அச்சிட எதுவும் இல்லை
+Reset zoom=பெரிதாக்கலை மீட்டமை
+Reset zoom (Ctrl+0)=பெரிதாக்கலை மீட்டமை (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s இப்போது முழுத்திரையில் உள்ளது. வெளியேற Esc ஐ அழுத்தவும்.
+You are now in full screen. Press Esc to exit.=நீங்கள் இப்போது முழுத்திரையில் உள்ளீர்கள். வெளியேற Esc ஐ அழுத்தவும்.
+This site wants to use your camera and microphone=இந்தத் தளம் உங்கள் கேமராவையும் மைக்ரோஃபோனையும் பயன்படுத்த விரும்புகிறது
+Allow=அனுமதி
+Allow and trust this site=அனுமதித்து இந்தத் தளத்தை நம்பு
+Not now=இப்போது வேண்டாம்
+Dismiss=நிராகரி
+# --- Start page (about:start) ---
+Search=தேடு
+Search the web=இணையத்தில் தேடு
+Search (__ND_SEARCH_NAME__):=தேடு (__ND_SEARCH_NAME__):
+License=உரிமம்
+Privacy=தனியுரிமை
+# --- Settings page (about:settings) ---
+General=பொது
+Home page=முகப்புப் பக்கம்
+Search engine=தேடுபொறி
+Custom search URL=தனிப்பயன் தேடல் URL
+Custom…=தனிப்பயன்…
+Cookies=குக்கீகள்
+Accept all cookies=எல்லா குக்கீகளையும் ஏற்கவும்
+Block third-party cookies=மூன்றாம் தரப்பு குக்கீகளைத் தடு
+Block all cookies=எல்லா குக்கீகளையும் தடு
+Send “Do Not Track”=“Do Not Track” ஐ அனுப்பு
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) ஐ அனுப்பு
+Strip tracking parameters from links=இணைப்புகளிலிருந்து கண்காணிப்பு அளவுருக்களை அகற்று
+Try HTTPS first on every site=ஒவ்வொரு தளத்திலும் முதலில் HTTPS ஐ முயற்சி செய்
+Block dangerous sites (Google Safe Browsing and a local list)=ஆபத்தான தளங்களைத் தடு (Google Safe Browsing மற்றும் உள்ளூர் பட்டியல்)
+Content=உள்ளடக்கம்
+Load images=படங்களை ஏற்று
+Enable JavaScript=JavaScript ஐ இயக்கு
+Enable local storage=உள்ளூர் சேமிப்பகத்தை இயக்கு
+Enable cache=தற்காலிகச் சேமிப்பை இயக்கு
+Clear all browsing data=எல்லா உலாவல் தரவையும் அழி
+Browsing data cleared=உலாவல் தரவு அழிக்கப்பட்டது
+Save=சேமி
+Saved.=சேமிக்கப்பட்டது.
+Changes apply to newly opened pages.=மாற்றங்கள் புதிதாகத் திறக்கப்படும் பக்கங்களுக்குப் பொருந்தும்.
+# --- History page (about:history) ---
+Recently visited pages.=சமீபத்தில் பார்வையிட்ட பக்கங்கள்.
+No history yet.=இன்னும் வரலாறு இல்லை.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser பற்றி
+Version=பதிப்பு
+Start=தொடக்கம்
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux மற்றும் Mac க்கான இணைய உலாவி, C நிரலாக்க மொழியில் எழுதப்பட்டது, திறந்த மூல GPL உரிமத்துடன்.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ஒரு கட்டற்ற மென்பொருள், GNU General Public License, பதிப்பு 3 அல்லது அதற்குப் பிந்தையதன் கீழ் விநியோகிக்கப்படுகிறது.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=மூன்றாம் தரப்பு மென்பொருள் அறிவிப்புகள்

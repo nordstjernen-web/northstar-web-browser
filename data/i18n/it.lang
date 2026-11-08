@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Italian / Italiano
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Indietro
 Forward=Avanti
 Reload=Ricarica
+Stop=Interrompi
 Home=Home
+Menu=Menu
 Bookmarks=Segnalibri
 Settings=Impostazioni
-Menu=Menu
 Loading=Caricamento
 Loading…=Caricamento…
+Done=Fatto
+Go back one page=Torna indietro di una pagina
+Go forward one page=Vai avanti di una pagina
+Reload this page=Ricarica questa pagina
+Stop loading this page=Interrompi il caricamento di questa pagina
+Go to the home page=Vai alla pagina iniziale
+Address and search bar=Barra degli indirizzi e di ricerca
+Page location=Indirizzo della pagina
+Search or enter a URL=Cerca o inserisci un URL
+Search for=Cerca
+Server:=Server:
+New Window=Nuova finestra
+Quit=Esci
+Continue=Continua
+Recovered the previous session after an unexpected exit=Sessione precedente ripristinata dopo una chiusura imprevista
+Failed to load page=Impossibile caricare la pagina
+Stopped after too many redirects=Interrotto dopo troppi reindirizzamenti
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Sicura — il certificato è valido
+Not secure — the connection is not encrypted=Non sicura — la connessione non è crittografata
+Not secure — the certificate is not trusted=Non sicura — il certificato non è attendibile
+Certificate errors are being ignored=Gli errori del certificato vengono ignorati
+# --- Main menu ---
+Find in Page=Trova nella pagina
+Full Screen=Schermo intero
+Zoom In=Aumenta zoom
+Zoom Out=Riduci zoom
+Reset Zoom=Reimposta zoom
+Print…=Stampa…
+Save Page As…=Salva pagina con nome…
+Save Page as PDF…=Salva pagina come PDF…
+Save Page as Image…=Salva pagina come immagine…
+Page Source=Sorgente pagina
+Downloads=Download
+History=Cronologia
+Bookmark This Page=Aggiungi questa pagina ai segnalibri
+Visit nordstjernen.org=Visita nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Copia
 Select All=Seleziona tutto
-Done=Fatto
+Open Link=Apri link
+Copy Link Address=Copia indirizzo link
+Copy Page Address=Copia indirizzo pagina
+Copied to clipboard=Copiato negli appunti
+Copied link address=Indirizzo del link copiato
+Copied page address=Indirizzo della pagina copiato
+Copied selection=Selezione copiata
+# --- Find bar ---
+Find in page=Trova nella pagina
 No results=Nessun risultato
+Previous match=Risultato precedente
+Next match=Risultato successivo
+Previous match (Shift+Enter)=Risultato precedente (Shift+Enter)
+Next match (Enter)=Risultato successivo (Enter)
+Close search=Chiudi ricerca
+Close (Esc)=Chiudi (Esc)
+# --- Bookmarks ---
 Bookmark this page=Aggiungi questa pagina ai segnalibri
 Bookmark added=Segnalibro aggiunto
+Bookmark removed=Segnalibro rimosso
+Bookmarked — open bookmarks=Nei segnalibri — apri segnalibri
+Remove bookmark=Rimuovi segnalibro
+Remove this bookmark=Rimuovi questo segnalibro
 No bookmarks yet=Ancora nessun segnalibro
+# --- Downloads, saving, printing ---
+Show downloads=Mostra download
+Nothing downloaded yet=Ancora nessun download
+Open=Apri
+Open folder=Apri cartella
+Failed=Non riuscito
+Could not save page=Impossibile salvare la pagina
+Save page as PDF=Salva pagina come PDF
+Save page as PNG=Salva pagina come PNG
+Print=Stampa
+Print this page=Stampa questa pagina
+Nothing to print=Niente da stampare
+Reset zoom=Reimposta zoom
+Reset zoom (Ctrl+0)=Reimposta zoom (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s è ora a schermo intero. Premi Esc per uscire.
 You are now in full screen. Press Esc to exit.=Ora sei a schermo intero. Premi Esc per uscire.
+This site wants to use your camera and microphone=Questo sito vuole utilizzare la fotocamera e il microfono
+Allow=Consenti
+Allow and trust this site=Consenti e considera attendibile questo sito
+Not now=Non ora
+Dismiss=Ignora
+# --- Start page (about:start) ---
+Search=Cerca
+Search the web=Cerca nel Web
+Search (__ND_SEARCH_NAME__):=Cerca (__ND_SEARCH_NAME__):
+License=Licenza
+Privacy=Privacy
+# --- Settings page (about:settings) ---
+General=Generale
+Home page=Pagina iniziale
+Search engine=Motore di ricerca
+Custom search URL=URL di ricerca personalizzato
+Custom…=Personalizzato…
+Cookies=Cookie
+Accept all cookies=Accetta tutti i cookie
+Block third-party cookies=Blocca i cookie di terze parti
+Block all cookies=Blocca tutti i cookie
+Send “Do Not Track”=Invia “Do Not Track”
+Send Global Privacy Control (GPC)=Invia Global Privacy Control (GPC)
+Strip tracking parameters from links=Rimuovi i parametri di tracciamento dai link
+Try HTTPS first on every site=Prova prima HTTPS su tutti i siti
+Block dangerous sites (Google Safe Browsing and a local list)=Blocca i siti pericolosi (Google Safe Browsing e un elenco locale)
+Content=Contenuti
+Load images=Carica immagini
+Enable JavaScript=Attiva JavaScript
+Enable local storage=Attiva archiviazione locale
+Enable cache=Attiva cache
+Clear all browsing data=Cancella tutti i dati di navigazione
+Browsing data cleared=Dati di navigazione cancellati
+Save=Salva
+Saved.=Salvato.
+Changes apply to newly opened pages.=Le modifiche si applicano alle pagine aperte da ora in poi.
+# --- History page (about:history) ---
+Recently visited pages.=Pagine visitate di recente.
+No history yet.=Ancora nessuna cronologia.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Informazioni su Northstar Web Browser
+Version=Versione
+Start=Inizio
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Un browser web per Windows, Linux e Mac, scritto nel linguaggio di programmazione C, con licenza open source GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser è software libero, distribuito con la GNU General Public License, versione 3 o successiva.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Note sul software di terze parti

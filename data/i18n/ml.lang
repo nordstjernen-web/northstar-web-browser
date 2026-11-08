@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Malayalam / മലയാളം
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=പിന്നോട്ട്
+Forward=മുന്നോട്ട്
+Reload=വീണ്ടും ലോഡ് ചെയ്യുക
+Stop=നിർത്തുക
+Home=ഹോം
+Menu=മെനു
+Bookmarks=ബുക്ക്‌മാർക്കുകൾ
+Settings=ക്രമീകരണങ്ങൾ
+Loading=ലോഡ് ചെയ്യുന്നു
+Loading…=ലോഡ് ചെയ്യുന്നു…
+Done=പൂർത്തിയായി
+Go back one page=ഒരു പേജ് പിന്നോട്ട് പോകുക
+Go forward one page=ഒരു പേജ് മുന്നോട്ട് പോകുക
+Reload this page=ഈ പേജ് വീണ്ടും ലോഡ് ചെയ്യുക
+Stop loading this page=ഈ പേജ് ലോഡ് ചെയ്യുന്നത് നിർത്തുക
+Go to the home page=ഹോം പേജിലേക്ക് പോകുക
+Address and search bar=വിലാസവും തിരയൽ ബാറും
+Page location=പേജിന്റെ സ്ഥാനം
+Search or enter a URL=തിരയുക അല്ലെങ്കിൽ URL നൽകുക
+Search for=ഇതിനായി തിരയുക
+Server:=സെർവർ:
+New Window=പുതിയ ജാലകം
+Quit=പുറത്തുകടക്കുക
+Continue=തുടരുക
+Recovered the previous session after an unexpected exit=അപ്രതീക്ഷിതമായ പുറത്തുകടക്കലിന് ശേഷം മുമ്പത്തെ സെഷൻ വീണ്ടെടുത്തു
+Failed to load page=പേജ് ലോഡ് ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു
+Stopped after too many redirects=വളരെയധികം റീഡയറക്‌ടുകൾക്ക് ശേഷം നിർത്തി
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=സുരക്ഷിതം — സർട്ടിഫിക്കറ്റ് സാധുവാണ്
+Not secure — the connection is not encrypted=സുരക്ഷിതമല്ല — കണക്ഷൻ എൻക്രിപ്റ്റ് ചെയ്തിട്ടില്ല
+Not secure — the certificate is not trusted=സുരക്ഷിതമല്ല — സർട്ടിഫിക്കറ്റ് വിശ്വസനീയമല്ല
+Certificate errors are being ignored=സർട്ടിഫിക്കറ്റ് പിശകുകൾ അവഗണിക്കുന്നു
+# --- Main menu ---
+Find in Page=പേജിൽ കണ്ടെത്തുക
+Full Screen=പൂർണ്ണ സ്ക്രീൻ
+Zoom In=വലുതാക്കുക
+Zoom Out=ചെറുതാക്കുക
+Reset Zoom=സൂം പുനഃസജ്ജമാക്കുക
+Print…=പ്രിന്റ് ചെയ്യുക…
+Save Page As…=പേജ് ഇങ്ങനെ സംരക്ഷിക്കുക…
+Save Page as PDF…=പേജ് PDF ആയി സംരക്ഷിക്കുക…
+Save Page as Image…=പേജ് ചിത്രമായി സംരക്ഷിക്കുക…
+Page Source=പേജ് ഉറവിടം
+Downloads=ഡൗൺലോഡുകൾ
+History=ചരിത്രം
+Bookmark This Page=ഈ പേജ് ബുക്ക്‌മാർക്ക് ചെയ്യുക
+Visit nordstjernen.org=nordstjernen.org സന്ദർശിക്കുക
+# --- Context menu, clipboard ---
+Copy=പകർത്തുക
+Select All=എല്ലാം തിരഞ്ഞെടുക്കുക
+Open Link=ലിങ്ക് തുറക്കുക
+Copy Link Address=ലിങ്ക് വിലാസം പകർത്തുക
+Copy Page Address=പേജ് വിലാസം പകർത്തുക
+Copied to clipboard=ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി
+Copied link address=ലിങ്ക് വിലാസം പകർത്തി
+Copied page address=പേജ് വിലാസം പകർത്തി
+Copied selection=തിരഞ്ഞെടുത്തത് പകർത്തി
+# --- Find bar ---
+Find in page=പേജിൽ കണ്ടെത്തുക
+No results=ഫലങ്ങളൊന്നുമില്ല
+Previous match=മുമ്പത്തെ പൊരുത്തം
+Next match=അടുത്ത പൊരുത്തം
+Previous match (Shift+Enter)=മുമ്പത്തെ പൊരുത്തം (Shift+Enter)
+Next match (Enter)=അടുത്ത പൊരുത്തം (Enter)
+Close search=തിരയൽ അടയ്ക്കുക
+Close (Esc)=അടയ്ക്കുക (Esc)
+# --- Bookmarks ---
+Bookmark this page=ഈ പേജ് ബുക്ക്‌മാർക്ക് ചെയ്യുക
+Bookmark added=ബുക്ക്‌മാർക്ക് ചേർത്തു
+Bookmark removed=ബുക്ക്‌മാർക്ക് നീക്കം ചെയ്തു
+Bookmarked — open bookmarks=ബുക്ക്‌മാർക്ക് ചെയ്തു — ബുക്ക്‌മാർക്കുകൾ തുറക്കുക
+Remove bookmark=ബുക്ക്‌മാർക്ക് നീക്കം ചെയ്യുക
+Remove this bookmark=ഈ ബുക്ക്‌മാർക്ക് നീക്കം ചെയ്യുക
+No bookmarks yet=ഇതുവരെ ബുക്ക്‌മാർക്കുകളൊന്നുമില്ല
+# --- Downloads, saving, printing ---
+Show downloads=ഡൗൺലോഡുകൾ കാണിക്കുക
+Nothing downloaded yet=ഇതുവരെ ഒന്നും ഡൗൺലോഡ് ചെയ്തിട്ടില്ല
+Open=തുറക്കുക
+Open folder=ഫോൾഡർ തുറക്കുക
+Failed=പരാജയപ്പെട്ടു
+Could not save page=പേജ് സംരക്ഷിക്കാനായില്ല
+Save page as PDF=പേജ് PDF ആയി സംരക്ഷിക്കുക
+Save page as PNG=പേജ് PNG ആയി സംരക്ഷിക്കുക
+Print=പ്രിന്റ് ചെയ്യുക
+Print this page=ഈ പേജ് പ്രിന്റ് ചെയ്യുക
+Nothing to print=പ്രിന്റ് ചെയ്യാൻ ഒന്നുമില്ല
+Reset zoom=സൂം പുനഃസജ്ജമാക്കുക
+Reset zoom (Ctrl+0)=സൂം പുനഃസജ്ജമാക്കുക (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s ഇപ്പോൾ പൂർണ്ണ സ്ക്രീനിലാണ്. പുറത്തുകടക്കാൻ Esc അമർത്തുക.
+You are now in full screen. Press Esc to exit.=നിങ്ങൾ ഇപ്പോൾ പൂർണ്ണ സ്ക്രീനിലാണ്. പുറത്തുകടക്കാൻ Esc അമർത്തുക.
+This site wants to use your camera and microphone=ഈ സൈറ്റ് നിങ്ങളുടെ ക്യാമറയും മൈക്രോഫോണും ഉപയോഗിക്കാൻ ആഗ്രഹിക്കുന്നു
+Allow=അനുവദിക്കുക
+Allow and trust this site=അനുവദിക്കുകയും ഈ സൈറ്റിനെ വിശ്വസിക്കുകയും ചെയ്യുക
+Not now=ഇപ്പോൾ വേണ്ട
+Dismiss=ഒഴിവാക്കുക
+# --- Start page (about:start) ---
+Search=തിരയുക
+Search the web=വെബിൽ തിരയുക
+Search (__ND_SEARCH_NAME__):=തിരയുക (__ND_SEARCH_NAME__):
+License=ലൈസൻസ്
+Privacy=സ്വകാര്യത
+# --- Settings page (about:settings) ---
+General=പൊതുവായവ
+Home page=ഹോം പേജ്
+Search engine=സെർച്ച് എഞ്ചിൻ
+Custom search URL=ഇഷ്ടാനുസൃത തിരയൽ URL
+Custom…=ഇഷ്ടാനുസൃതം…
+Cookies=കുക്കികൾ
+Accept all cookies=എല്ലാ കുക്കികളും സ്വീകരിക്കുക
+Block third-party cookies=മൂന്നാം കക്ഷി കുക്കികൾ തടയുക
+Block all cookies=എല്ലാ കുക്കികളും തടയുക
+Send “Do Not Track”=“Do Not Track” അയയ്ക്കുക
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) അയയ്ക്കുക
+Strip tracking parameters from links=ലിങ്കുകളിൽ നിന്ന് ട്രാക്കിംഗ് പാരാമീറ്ററുകൾ നീക്കം ചെയ്യുക
+Try HTTPS first on every site=എല്ലാ സൈറ്റിലും ആദ്യം HTTPS ശ്രമിക്കുക
+Block dangerous sites (Google Safe Browsing and a local list)=അപകടകരമായ സൈറ്റുകൾ തടയുക (Google Safe Browsing-ഉം ഒരു പ്രാദേശിക ലിസ്റ്റും)
+Content=ഉള്ളടക്കം
+Load images=ചിത്രങ്ങൾ ലോഡ് ചെയ്യുക
+Enable JavaScript=JavaScript പ്രവർത്തനക്ഷമമാക്കുക
+Enable local storage=പ്രാദേശിക സംഭരണം പ്രവർത്തനക്ഷമമാക്കുക
+Enable cache=കാഷെ പ്രവർത്തനക്ഷമമാക്കുക
+Clear all browsing data=എല്ലാ ബ്രൗസിംഗ് ഡാറ്റയും മായ്ക്കുക
+Browsing data cleared=ബ്രൗസിംഗ് ഡാറ്റ മായ്ച്ചു
+Save=സംരക്ഷിക്കുക
+Saved.=സംരക്ഷിച്ചു.
+Changes apply to newly opened pages.=മാറ്റങ്ങൾ പുതുതായി തുറക്കുന്ന പേജുകൾക്ക് ബാധകമാണ്.
+# --- History page (about:history) ---
+Recently visited pages.=അടുത്തിടെ സന്ദർശിച്ച പേജുകൾ.
+No history yet.=ഇതുവരെ ചരിത്രമൊന്നുമില്ല.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser-നെക്കുറിച്ച്
+Version=പതിപ്പ്
+Start=ആരംഭം
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux, Mac എന്നിവയ്ക്കായുള്ള ഒരു വെബ് ബ്രൗസർ, C പ്രോഗ്രാമിംഗ് ഭാഷയിൽ എഴുതിയത്, ഓപ്പൺ സോഴ്സ് GPL ലൈസൻസോടെ.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ഒരു സ്വതന്ത്ര സോഫ്റ്റ്‌വെയറാണ്, GNU General Public License, പതിപ്പ് 3 അല്ലെങ്കിൽ പിന്നീടുള്ളതിന് കീഴിൽ വിതരണം ചെയ്യുന്നു.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=മൂന്നാം കക്ഷി സോഫ്റ്റ്‌വെയർ അറിയിപ്പുകൾ

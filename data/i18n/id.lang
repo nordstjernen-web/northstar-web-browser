@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Indonesian / Bahasa Indonesia
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Kembali
+Forward=Maju
+Reload=Muat ulang
+Stop=Berhenti
+Home=Beranda
+Menu=Menu
+Bookmarks=Markah
+Settings=Setelan
+Loading=Memuat
+Loading…=Memuat…
+Done=Selesai
+Go back one page=Kembali satu halaman
+Go forward one page=Maju satu halaman
+Reload this page=Muat ulang halaman ini
+Stop loading this page=Berhenti memuat halaman ini
+Go to the home page=Buka halaman beranda
+Address and search bar=Bilah alamat dan pencarian
+Page location=Lokasi halaman
+Search or enter a URL=Cari atau masukkan URL
+Search for=Cari
+Server:=Server:
+New Window=Jendela baru
+Quit=Keluar
+Continue=Lanjutkan
+Recovered the previous session after an unexpected exit=Sesi sebelumnya dipulihkan setelah keluar secara tak terduga
+Failed to load page=Gagal memuat halaman
+Stopped after too many redirects=Dihentikan setelah terlalu banyak pengalihan
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Aman — sertifikat valid
+Not secure — the connection is not encrypted=Tidak aman — koneksi tidak terenkripsi
+Not secure — the certificate is not trusted=Tidak aman — sertifikat tidak tepercaya
+Certificate errors are being ignored=Kesalahan sertifikat sedang diabaikan
+# --- Main menu ---
+Find in Page=Cari di halaman
+Full Screen=Layar penuh
+Zoom In=Perbesar
+Zoom Out=Perkecil
+Reset Zoom=Setel ulang zoom
+Print…=Cetak…
+Save Page As…=Simpan halaman sebagai…
+Save Page as PDF…=Simpan halaman sebagai PDF…
+Save Page as Image…=Simpan halaman sebagai gambar…
+Page Source=Sumber halaman
+Downloads=Unduhan
+History=Riwayat
+Bookmark This Page=Markahi halaman ini
+Visit nordstjernen.org=Kunjungi nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Salin
+Select All=Pilih semua
+Open Link=Buka tautan
+Copy Link Address=Salin alamat tautan
+Copy Page Address=Salin alamat halaman
+Copied to clipboard=Disalin ke papan klip
+Copied link address=Alamat tautan disalin
+Copied page address=Alamat halaman disalin
+Copied selection=Pilihan disalin
+# --- Find bar ---
+Find in page=Cari di halaman
+No results=Tidak ada hasil
+Previous match=Kecocokan sebelumnya
+Next match=Kecocokan berikutnya
+Previous match (Shift+Enter)=Kecocokan sebelumnya (Shift+Enter)
+Next match (Enter)=Kecocokan berikutnya (Enter)
+Close search=Tutup pencarian
+Close (Esc)=Tutup (Esc)
+# --- Bookmarks ---
+Bookmark this page=Markahi halaman ini
+Bookmark added=Markah ditambahkan
+Bookmark removed=Markah dihapus
+Bookmarked — open bookmarks=Sudah dimarkahi — buka markah
+Remove bookmark=Hapus markah
+Remove this bookmark=Hapus markah ini
+No bookmarks yet=Belum ada markah
+# --- Downloads, saving, printing ---
+Show downloads=Tampilkan unduhan
+Nothing downloaded yet=Belum ada yang diunduh
+Open=Buka
+Open folder=Buka folder
+Failed=Gagal
+Could not save page=Tidak dapat menyimpan halaman
+Save page as PDF=Simpan halaman sebagai PDF
+Save page as PNG=Simpan halaman sebagai PNG
+Print=Cetak
+Print this page=Cetak halaman ini
+Nothing to print=Tidak ada yang dapat dicetak
+Reset zoom=Setel ulang zoom
+Reset zoom (Ctrl+0)=Setel ulang zoom (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s kini dalam layar penuh. Tekan Esc untuk keluar.
 You are now in full screen. Press Esc to exit.=Anda kini dalam layar penuh. Tekan Esc untuk keluar.
+This site wants to use your camera and microphone=Situs ini ingin menggunakan kamera dan mikrofon Anda
+Allow=Izinkan
+Allow and trust this site=Izinkan dan percayai situs ini
+Not now=Jangan sekarang
+Dismiss=Tutup
+# --- Start page (about:start) ---
+Search=Cari
+Search the web=Cari di web
+Search (__ND_SEARCH_NAME__):=Cari (__ND_SEARCH_NAME__):
+License=Lisensi
+Privacy=Privasi
+# --- Settings page (about:settings) ---
+General=Umum
+Home page=Halaman beranda
+Search engine=Mesin pencari
+Custom search URL=URL pencarian khusus
+Custom…=Khusus…
+Cookies=Cookie
+Accept all cookies=Terima semua cookie
+Block third-party cookies=Blokir cookie pihak ketiga
+Block all cookies=Blokir semua cookie
+Send “Do Not Track”=Kirim “Jangan Lacak”
+Send Global Privacy Control (GPC)=Kirim Global Privacy Control (GPC)
+Strip tracking parameters from links=Hapus parameter pelacakan dari tautan
+Try HTTPS first on every site=Coba HTTPS terlebih dahulu di setiap situs
+Block dangerous sites (Google Safe Browsing and a local list)=Blokir situs berbahaya (Google Safe Browsing dan daftar lokal)
+Content=Konten
+Load images=Muat gambar
+Enable JavaScript=Aktifkan JavaScript
+Enable local storage=Aktifkan penyimpanan lokal
+Enable cache=Aktifkan cache
+Clear all browsing data=Hapus semua data penjelajahan
+Browsing data cleared=Data penjelajahan dihapus
+Save=Simpan
+Saved.=Tersimpan.
+Changes apply to newly opened pages.=Perubahan berlaku untuk halaman yang baru dibuka.
+# --- History page (about:history) ---
+Recently visited pages.=Halaman yang baru dikunjungi.
+No history yet.=Belum ada riwayat.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Tentang Northstar Web Browser
+Version=Versi
+Start=Mulai
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Peramban web untuk Windows, Linux, dan Mac, ditulis dalam bahasa pemrograman C, dengan lisensi sumber terbuka GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser adalah perangkat lunak bebas, didistribusikan di bawah GNU General Public License, versi 3 atau yang lebih baru.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Pemberitahuan perangkat lunak pihak ketiga

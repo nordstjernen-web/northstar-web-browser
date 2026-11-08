@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Korean / 한국어
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=뒤로
 Forward=앞으로
 Reload=새로고침
+Stop=중지
 Home=홈
+Menu=메뉴
 Bookmarks=북마크
 Settings=설정
-Menu=메뉴
 Loading=로드 중
 Loading…=로드 중…
+Done=완료
+Go back one page=한 페이지 뒤로
+Go forward one page=한 페이지 앞으로
+Reload this page=이 페이지 새로고침
+Stop loading this page=이 페이지 로드 중지
+Go to the home page=홈페이지로 이동
+Address and search bar=주소 및 검색창
+Page location=페이지 위치
+Search or enter a URL=검색어 또는 URL 입력
+Search for=검색
+Server:=서버:
+New Window=새 창
+Quit=종료
+Continue=계속
+Recovered the previous session after an unexpected exit=예기치 않은 종료 후 이전 세션을 복구했습니다
+Failed to load page=페이지를 로드하지 못했습니다
+Stopped after too many redirects=리디렉션이 너무 많아 중지했습니다
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=안전함 — 인증서가 유효합니다
+Not secure — the connection is not encrypted=주의 요함 — 연결이 암호화되지 않았습니다
+Not secure — the certificate is not trusted=주의 요함 — 인증서를 신뢰할 수 없습니다
+Certificate errors are being ignored=인증서 오류를 무시하고 있습니다
+# --- Main menu ---
+Find in Page=페이지에서 찾기
+Full Screen=전체 화면
+Zoom In=확대
+Zoom Out=축소
+Reset Zoom=확대/축소 초기화
+Print…=인쇄…
+Save Page As…=다른 이름으로 페이지 저장…
+Save Page as PDF…=페이지를 PDF로 저장…
+Save Page as Image…=페이지를 이미지로 저장…
+Page Source=페이지 소스
+Downloads=다운로드
+History=방문 기록
+Bookmark This Page=이 페이지를 북마크에 추가
+Visit nordstjernen.org=nordstjernen.org 방문
+# --- Context menu, clipboard ---
 Copy=복사
 Select All=모두 선택
-Done=완료
+Open Link=링크 열기
+Copy Link Address=링크 주소 복사
+Copy Page Address=페이지 주소 복사
+Copied to clipboard=클립보드에 복사됨
+Copied link address=링크 주소 복사됨
+Copied page address=페이지 주소 복사됨
+Copied selection=선택 영역 복사됨
+# --- Find bar ---
+Find in page=페이지에서 찾기
 No results=결과 없음
+Previous match=이전 항목
+Next match=다음 항목
+Previous match (Shift+Enter)=이전 항목 (Shift+Enter)
+Next match (Enter)=다음 항목 (Enter)
+Close search=찾기 닫기
+Close (Esc)=닫기 (Esc)
+# --- Bookmarks ---
 Bookmark this page=이 페이지를 북마크에 추가
 Bookmark added=북마크 추가됨
+Bookmark removed=북마크 삭제됨
+Bookmarked — open bookmarks=북마크됨 — 북마크 열기
+Remove bookmark=북마크 삭제
+Remove this bookmark=이 북마크 삭제
 No bookmarks yet=북마크가 아직 없습니다
+# --- Downloads, saving, printing ---
+Show downloads=다운로드 표시
+Nothing downloaded yet=아직 다운로드한 항목이 없습니다
+Open=열기
+Open folder=폴더 열기
+Failed=실패
+Could not save page=페이지를 저장할 수 없습니다
+Save page as PDF=페이지를 PDF로 저장
+Save page as PNG=페이지를 PNG로 저장
+Print=인쇄
+Print this page=이 페이지 인쇄
+Nothing to print=인쇄할 내용이 없습니다
+Reset zoom=확대/축소 초기화
+Reset zoom (Ctrl+0)=확대/축소 초기화 (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s이(가) 전체 화면으로 전환되었습니다. 종료하려면 Esc 키를 누르세요.
 You are now in full screen. Press Esc to exit.=전체 화면으로 전환되었습니다. 종료하려면 Esc 키를 누르세요.
+This site wants to use your camera and microphone=이 사이트에서 카메라와 마이크를 사용하려고 합니다
+Allow=허용
+Allow and trust this site=허용하고 이 사이트 신뢰
+Not now=나중에
+Dismiss=닫기
+# --- Start page (about:start) ---
+Search=검색
+Search the web=웹 검색
+Search (__ND_SEARCH_NAME__):=검색 (__ND_SEARCH_NAME__):
+License=라이선스
+Privacy=개인정보 보호
+# --- Settings page (about:settings) ---
+General=일반
+Home page=홈페이지
+Search engine=검색 엔진
+Custom search URL=사용자 지정 검색 URL
+Custom…=사용자 지정…
+Cookies=쿠키
+Accept all cookies=모든 쿠키 허용
+Block third-party cookies=타사 쿠키 차단
+Block all cookies=모든 쿠키 차단
+Send “Do Not Track”=“Do Not Track” 요청 보내기
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) 신호 보내기
+Strip tracking parameters from links=링크에서 추적 매개변수 제거
+Try HTTPS first on every site=모든 사이트에서 HTTPS 먼저 시도
+Block dangerous sites (Google Safe Browsing and a local list)=위험한 사이트 차단 (Google Safe Browsing 및 로컬 목록)
+Content=콘텐츠
+Load images=이미지 로드
+Enable JavaScript=JavaScript 사용
+Enable local storage=로컬 저장소 사용
+Enable cache=캐시 사용
+Clear all browsing data=모든 인터넷 사용 기록 삭제
+Browsing data cleared=인터넷 사용 기록이 삭제되었습니다
+Save=저장
+Saved.=저장되었습니다.
+Changes apply to newly opened pages.=변경 사항은 새로 여는 페이지에 적용됩니다.
+# --- History page (about:history) ---
+Recently visited pages.=최근 방문한 페이지입니다.
+No history yet.=방문 기록이 아직 없습니다.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser 정보
+Version=버전
+Start=시작
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux, Mac용 웹 브라우저로, C 프로그래밍 언어로 작성되었으며 오픈 소스 GPL 라이선스를 따릅니다.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser는 자유 소프트웨어이며 GNU General Public License 버전 3 이상에 따라 배포됩니다.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=타사 소프트웨어 고지

@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Ukrainian / Українська
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Назад
 Forward=Вперед
 Reload=Перезавантажити
+Stop=Зупинити
 Home=Додому
+Menu=Меню
 Bookmarks=Закладки
 Settings=Налаштування
-Menu=Меню
 Loading=Завантаження
 Loading…=Завантаження…
+Done=Готово
+Go back one page=Повернутися на одну сторінку назад
+Go forward one page=Перейти на одну сторінку вперед
+Reload this page=Перезавантажити цю сторінку
+Stop loading this page=Зупинити завантаження цієї сторінки
+Go to the home page=Перейти на домашню сторінку
+Address and search bar=Панель адреси та пошуку
+Page location=Адреса сторінки
+Search or enter a URL=Введіть пошуковий запит або URL
+Search for=Шукати
+Server:=Сервер:
+New Window=Нове вікно
+Quit=Вийти
+Continue=Продовжити
+Recovered the previous session after an unexpected exit=Попередній сеанс відновлено після неочікуваного завершення
+Failed to load page=Не вдалося завантажити сторінку
+Stopped after too many redirects=Зупинено через забагато переспрямувань
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Захищено — сертифікат дійсний
+Not secure — the connection is not encrypted=Не захищено — з'єднання не зашифроване
+Not secure — the certificate is not trusted=Не захищено — сертифікат не є довіреним
+Certificate errors are being ignored=Помилки сертифіката ігноруються
+# --- Main menu ---
+Find in Page=Знайти на сторінці
+Full Screen=Повноекранний режим
+Zoom In=Збільшити
+Zoom Out=Зменшити
+Reset Zoom=Скинути масштаб
+Print…=Друкувати…
+Save Page As…=Зберегти сторінку як…
+Save Page as PDF…=Зберегти сторінку як PDF…
+Save Page as Image…=Зберегти сторінку як зображення…
+Page Source=Програмний код сторінки
+Downloads=Завантаження
+History=Історія
+Bookmark This Page=Додати сторінку до закладок
+Visit nordstjernen.org=Відвідати nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Копіювати
 Select All=Виділити все
-Done=Готово
+Open Link=Відкрити посилання
+Copy Link Address=Копіювати адресу посилання
+Copy Page Address=Копіювати адресу сторінки
+Copied to clipboard=Скопійовано в буфер обміну
+Copied link address=Адресу посилання скопійовано
+Copied page address=Адресу сторінки скопійовано
+Copied selection=Виділене скопійовано
+# --- Find bar ---
+Find in page=Знайти на сторінці
 No results=Немає результатів
+Previous match=Попередній збіг
+Next match=Наступний збіг
+Previous match (Shift+Enter)=Попередній збіг (Shift+Enter)
+Next match (Enter)=Наступний збіг (Enter)
+Close search=Закрити пошук
+Close (Esc)=Закрити (Esc)
+# --- Bookmarks ---
 Bookmark this page=Додати сторінку до закладок
 Bookmark added=Закладку додано
+Bookmark removed=Закладку видалено
+Bookmarked — open bookmarks=У закладках — відкрити закладки
+Remove bookmark=Видалити закладку
+Remove this bookmark=Видалити цю закладку
 No bookmarks yet=Поки немає закладок
+# --- Downloads, saving, printing ---
+Show downloads=Показати завантаження
+Nothing downloaded yet=Ще нічого не завантажено
+Open=Відкрити
+Open folder=Відкрити теку
+Failed=Помилка
+Could not save page=Не вдалося зберегти сторінку
+Save page as PDF=Зберегти сторінку як PDF
+Save page as PNG=Зберегти сторінку як PNG
+Print=Друкувати
+Print this page=Надрукувати цю сторінку
+Nothing to print=Нічого друкувати
+Reset zoom=Скинути масштаб
+Reset zoom (Ctrl+0)=Скинути масштаб (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s тепер у повноекранному режимі. Натисніть Esc, щоб вийти.
 You are now in full screen. Press Esc to exit.=Ви в повноекранному режимі. Натисніть Esc, щоб вийти.
+This site wants to use your camera and microphone=Цей сайт хоче використовувати вашу камеру й мікрофон
+Allow=Дозволити
+Allow and trust this site=Дозволити й довіряти цьому сайту
+Not now=Не зараз
+Dismiss=Закрити
+# --- Start page (about:start) ---
+Search=Шукати
+Search the web=Пошук в інтернеті
+Search (__ND_SEARCH_NAME__):=Пошук (__ND_SEARCH_NAME__):
+License=Ліцензія
+Privacy=Приватність
+# --- Settings page (about:settings) ---
+General=Загальні
+Home page=Домашня сторінка
+Search engine=Пошукова система
+Custom search URL=Власний URL пошуку
+Custom…=Інша…
+Cookies=Куки
+Accept all cookies=Приймати всі куки
+Block third-party cookies=Блокувати сторонні куки
+Block all cookies=Блокувати всі куки
+Send “Do Not Track”=Надсилати «Не відстежувати»
+Send Global Privacy Control (GPC)=Надсилати Global Privacy Control (GPC)
+Strip tracking parameters from links=Видаляти параметри стеження з посилань
+Try HTTPS first on every site=Спершу пробувати HTTPS на кожному сайті
+Block dangerous sites (Google Safe Browsing and a local list)=Блокувати небезпечні сайти (Google Safe Browsing і локальний список)
+Content=Вміст
+Load images=Завантажувати зображення
+Enable JavaScript=Увімкнути JavaScript
+Enable local storage=Увімкнути локальне сховище
+Enable cache=Увімкнути кеш
+Clear all browsing data=Очистити всі дані перегляду
+Browsing data cleared=Дані перегляду очищено
+Save=Зберегти
+Saved.=Збережено.
+Changes apply to newly opened pages.=Зміни застосовуються до щойно відкритих сторінок.
+# --- History page (about:history) ---
+Recently visited pages.=Нещодавно відвідані сторінки.
+No history yet.=Історія поки порожня.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Про Northstar Web Browser
+Version=Версія
+Start=Початок
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Веббраузер для Windows, Linux і Mac, написаний мовою програмування C, з відкритим кодом під ліцензією GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser — вільне програмне забезпечення, що поширюється на умовах GNU General Public License версії 3 або пізнішої.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Повідомлення про стороннє програмне забезпечення

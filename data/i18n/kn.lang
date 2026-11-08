@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Kannada / ಕನ್ನಡ
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=ಹಿಂದೆ
+Forward=ಮುಂದೆ
+Reload=ಮರುಲೋಡ್ ಮಾಡಿ
+Stop=ನಿಲ್ಲಿಸಿ
+Home=ಮುಖಪುಟ
+Menu=ಮೆನು
+Bookmarks=ಬುಕ್‌ಮಾರ್ಕ್‌ಗಳು
+Settings=ಸೆಟ್ಟಿಂಗ್‌ಗಳು
+Loading=ಲೋಡ್ ಆಗುತ್ತಿದೆ
+Loading…=ಲೋಡ್ ಆಗುತ್ತಿದೆ…
+Done=ಮುಗಿದಿದೆ
+Go back one page=ಒಂದು ಪುಟ ಹಿಂದೆ ಹೋಗಿ
+Go forward one page=ಒಂದು ಪುಟ ಮುಂದೆ ಹೋಗಿ
+Reload this page=ಈ ಪುಟವನ್ನು ಮರುಲೋಡ್ ಮಾಡಿ
+Stop loading this page=ಈ ಪುಟದ ಲೋಡಿಂಗ್ ನಿಲ್ಲಿಸಿ
+Go to the home page=ಮುಖಪುಟಕ್ಕೆ ಹೋಗಿ
+Address and search bar=ವಿಳಾಸ ಮತ್ತು ಹುಡುಕಾಟ ಪಟ್ಟಿ
+Page location=ಪುಟದ ಸ್ಥಳ
+Search or enter a URL=ಹುಡುಕಿ ಅಥವಾ URL ನಮೂದಿಸಿ
+Search for=ಇದಕ್ಕಾಗಿ ಹುಡುಕಿ
+Server:=ಸರ್ವರ್:
+New Window=ಹೊಸ ವಿಂಡೋ
+Quit=ನಿರ್ಗಮಿಸಿ
+Continue=ಮುಂದುವರಿಸಿ
+Recovered the previous session after an unexpected exit=ಅನಿರೀಕ್ಷಿತ ನಿರ್ಗಮನದ ನಂತರ ಹಿಂದಿನ ಸೆಷನ್ ಮರುಪಡೆಯಲಾಗಿದೆ
+Failed to load page=ಪುಟವನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ
+Stopped after too many redirects=ಹಲವಾರು ಮರುನಿರ್ದೇಶನಗಳ ನಂತರ ನಿಲ್ಲಿಸಲಾಗಿದೆ
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=ಸುರಕ್ಷಿತ — ಪ್ರಮಾಣಪತ್ರ ಮಾನ್ಯವಾಗಿದೆ
+Not secure — the connection is not encrypted=ಸುರಕ್ಷಿತವಲ್ಲ — ಸಂಪರ್ಕವನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಲಾಗಿಲ್ಲ
+Not secure — the certificate is not trusted=ಸುರಕ್ಷಿತವಲ್ಲ — ಪ್ರಮಾಣಪತ್ರ ವಿಶ್ವಾಸಾರ್ಹವಲ್ಲ
+Certificate errors are being ignored=ಪ್ರಮಾಣಪತ್ರ ದೋಷಗಳನ್ನು ನಿರ್ಲಕ್ಷಿಸಲಾಗುತ್ತಿದೆ
+# --- Main menu ---
+Find in Page=ಪುಟದಲ್ಲಿ ಹುಡುಕಿ
+Full Screen=ಪೂರ್ಣ ಪರದೆ
+Zoom In=ಝೂಮ್ ಇನ್
+Zoom Out=ಝೂಮ್ ಔಟ್
+Reset Zoom=ಝೂಮ್ ಮರುಹೊಂದಿಸಿ
+Print…=ಮುದ್ರಿಸಿ…
+Save Page As…=ಪುಟವನ್ನು ಹೀಗೆ ಉಳಿಸಿ…
+Save Page as PDF…=ಪುಟವನ್ನು PDF ಆಗಿ ಉಳಿಸಿ…
+Save Page as Image…=ಪುಟವನ್ನು ಚಿತ್ರವಾಗಿ ಉಳಿಸಿ…
+Page Source=ಪುಟದ ಮೂಲ
+Downloads=ಡೌನ್‌ಲೋಡ್‌ಗಳು
+History=ಇತಿಹಾಸ
+Bookmark This Page=ಈ ಪುಟವನ್ನು ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಿ
+Visit nordstjernen.org=nordstjernen.org ಗೆ ಭೇಟಿ ನೀಡಿ
+# --- Context menu, clipboard ---
+Copy=ನಕಲಿಸಿ
+Select All=ಎಲ್ಲವನ್ನೂ ಆಯ್ಕೆಮಾಡಿ
+Open Link=ಲಿಂಕ್ ತೆರೆಯಿರಿ
+Copy Link Address=ಲಿಂಕ್ ವಿಳಾಸವನ್ನು ನಕಲಿಸಿ
+Copy Page Address=ಪುಟದ ವಿಳಾಸವನ್ನು ನಕಲಿಸಿ
+Copied to clipboard=ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ
+Copied link address=ಲಿಂಕ್ ವಿಳಾಸವನ್ನು ನಕಲಿಸಲಾಗಿದೆ
+Copied page address=ಪುಟದ ವಿಳಾಸವನ್ನು ನಕಲಿಸಲಾಗಿದೆ
+Copied selection=ಆಯ್ಕೆಯನ್ನು ನಕಲಿಸಲಾಗಿದೆ
+# --- Find bar ---
+Find in page=ಪುಟದಲ್ಲಿ ಹುಡುಕಿ
+No results=ಯಾವುದೇ ಫಲಿತಾಂಶಗಳಿಲ್ಲ
+Previous match=ಹಿಂದಿನ ಹೊಂದಾಣಿಕೆ
+Next match=ಮುಂದಿನ ಹೊಂದಾಣಿಕೆ
+Previous match (Shift+Enter)=ಹಿಂದಿನ ಹೊಂದಾಣಿಕೆ (Shift+Enter)
+Next match (Enter)=ಮುಂದಿನ ಹೊಂದಾಣಿಕೆ (Enter)
+Close search=ಹುಡುಕಾಟ ಮುಚ್ಚಿ
+Close (Esc)=ಮುಚ್ಚಿ (Esc)
+# --- Bookmarks ---
+Bookmark this page=ಈ ಪುಟವನ್ನು ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಿ
+Bookmark added=ಬುಕ್‌ಮಾರ್ಕ್ ಸೇರಿಸಲಾಗಿದೆ
+Bookmark removed=ಬುಕ್‌ಮಾರ್ಕ್ ತೆಗೆದುಹಾಕಲಾಗಿದೆ
+Bookmarked — open bookmarks=ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಲಾಗಿದೆ — ಬುಕ್‌ಮಾರ್ಕ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ
+Remove bookmark=ಬುಕ್‌ಮಾರ್ಕ್ ತೆಗೆದುಹಾಕಿ
+Remove this bookmark=ಈ ಬುಕ್‌ಮಾರ್ಕ್ ತೆಗೆದುಹಾಕಿ
+No bookmarks yet=ಇನ್ನೂ ಯಾವುದೇ ಬುಕ್‌ಮಾರ್ಕ್‌ಗಳಿಲ್ಲ
+# --- Downloads, saving, printing ---
+Show downloads=ಡೌನ್‌ಲೋಡ್‌ಗಳನ್ನು ತೋರಿಸಿ
+Nothing downloaded yet=ಇನ್ನೂ ಏನನ್ನೂ ಡೌನ್‌ಲೋಡ್ ಮಾಡಲಾಗಿಲ್ಲ
+Open=ತೆರೆಯಿರಿ
+Open folder=ಫೋಲ್ಡರ್ ತೆರೆಯಿರಿ
+Failed=ವಿಫಲವಾಗಿದೆ
+Could not save page=ಪುಟವನ್ನು ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ
+Save page as PDF=ಪುಟವನ್ನು PDF ಆಗಿ ಉಳಿಸಿ
+Save page as PNG=ಪುಟವನ್ನು PNG ಆಗಿ ಉಳಿಸಿ
+Print=ಮುದ್ರಿಸಿ
+Print this page=ಈ ಪುಟವನ್ನು ಮುದ್ರಿಸಿ
+Nothing to print=ಮುದ್ರಿಸಲು ಏನೂ ಇಲ್ಲ
+Reset zoom=ಝೂಮ್ ಮರುಹೊಂದಿಸಿ
+Reset zoom (Ctrl+0)=ಝೂಮ್ ಮರುಹೊಂದಿಸಿ (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s ಈಗ ಪೂರ್ಣ ಪರದೆಯಲ್ಲಿದೆ. ನಿರ್ಗಮಿಸಲು Esc ಒತ್ತಿರಿ.
+You are now in full screen. Press Esc to exit.=ನೀವು ಈಗ ಪೂರ್ಣ ಪರದೆಯಲ್ಲಿದ್ದೀರಿ. ನಿರ್ಗಮಿಸಲು Esc ಒತ್ತಿರಿ.
+This site wants to use your camera and microphone=ಈ ಸೈಟ್ ನಿಮ್ಮ ಕ್ಯಾಮರಾ ಮತ್ತು ಮೈಕ್ರೊಫೋನ್ ಬಳಸಲು ಬಯಸುತ್ತದೆ
+Allow=ಅನುಮತಿಸಿ
+Allow and trust this site=ಅನುಮತಿಸಿ ಮತ್ತು ಈ ಸೈಟ್ ಅನ್ನು ನಂಬಿ
+Not now=ಈಗ ಬೇಡ
+Dismiss=ವಜಾಗೊಳಿಸಿ
+# --- Start page (about:start) ---
+Search=ಹುಡುಕಿ
+Search the web=ವೆಬ್‌ನಲ್ಲಿ ಹುಡುಕಿ
+Search (__ND_SEARCH_NAME__):=ಹುಡುಕಿ (__ND_SEARCH_NAME__):
+License=ಪರವಾನಗಿ
+Privacy=ಗೌಪ್ಯತೆ
+# --- Settings page (about:settings) ---
+General=ಸಾಮಾನ್ಯ
+Home page=ಮುಖಪುಟ
+Search engine=ಹುಡುಕಾಟ ಎಂಜಿನ್
+Custom search URL=ಕಸ್ಟಮ್ ಹುಡುಕಾಟ URL
+Custom…=ಕಸ್ಟಮ್…
+Cookies=ಕುಕೀಗಳು
+Accept all cookies=ಎಲ್ಲಾ ಕುಕೀಗಳನ್ನು ಸ್ವೀಕರಿಸಿ
+Block third-party cookies=ಮೂರನೇ ವ್ಯಕ್ತಿಯ ಕುಕೀಗಳನ್ನು ನಿರ್ಬಂಧಿಸಿ
+Block all cookies=ಎಲ್ಲಾ ಕುಕೀಗಳನ್ನು ನಿರ್ಬಂಧಿಸಿ
+Send “Do Not Track”=“Do Not Track” ಕಳುಹಿಸಿ
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) ಕಳುಹಿಸಿ
+Strip tracking parameters from links=ಲಿಂಕ್‌ಗಳಿಂದ ಟ್ರ್ಯಾಕಿಂಗ್ ಪ್ಯಾರಾಮೀಟರ್‌ಗಳನ್ನು ತೆಗೆದುಹಾಕಿ
+Try HTTPS first on every site=ಪ್ರತಿ ಸೈಟ್‌ನಲ್ಲಿ ಮೊದಲು HTTPS ಪ್ರಯತ್ನಿಸಿ
+Block dangerous sites (Google Safe Browsing and a local list)=ಅಪಾಯಕಾರಿ ಸೈಟ್‌ಗಳನ್ನು ನಿರ್ಬಂಧಿಸಿ (Google Safe Browsing ಮತ್ತು ಸ್ಥಳೀಯ ಪಟ್ಟಿ)
+Content=ವಿಷಯ
+Load images=ಚಿತ್ರಗಳನ್ನು ಲೋಡ್ ಮಾಡಿ
+Enable JavaScript=JavaScript ಸಕ್ರಿಯಗೊಳಿಸಿ
+Enable local storage=ಸ್ಥಳೀಯ ಸಂಗ್ರಹಣೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ
+Enable cache=ಕ್ಯಾಷ್ ಸಕ್ರಿಯಗೊಳಿಸಿ
+Clear all browsing data=ಎಲ್ಲಾ ಬ್ರೌಸಿಂಗ್ ಡೇಟಾವನ್ನು ತೆರವುಗೊಳಿಸಿ
+Browsing data cleared=ಬ್ರೌಸಿಂಗ್ ಡೇಟಾವನ್ನು ತೆರವುಗೊಳಿಸಲಾಗಿದೆ
+Save=ಉಳಿಸಿ
+Saved.=ಉಳಿಸಲಾಗಿದೆ.
+Changes apply to newly opened pages.=ಬದಲಾವಣೆಗಳು ಹೊಸದಾಗಿ ತೆರೆದ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸುತ್ತವೆ.
+# --- History page (about:history) ---
+Recently visited pages.=ಇತ್ತೀಚೆಗೆ ಭೇಟಿ ನೀಡಿದ ಪುಟಗಳು.
+No history yet.=ಇನ್ನೂ ಯಾವುದೇ ಇತಿಹಾಸವಿಲ್ಲ.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser ಕುರಿತು
+Version=ಆವೃತ್ತಿ
+Start=ಪ್ರಾರಂಭ
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux ಮತ್ತು Mac ಗಾಗಿ ವೆಬ್ ಬ್ರೌಸರ್, C ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಲಾಗಿದೆ, ಮುಕ್ತ ಮೂಲ GPL ಪರವಾನಗಿಯೊಂದಿಗೆ.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ಉಚಿತ ತಂತ್ರಾಂಶವಾಗಿದ್ದು, GNU General Public License, ಆವೃತ್ತಿ 3 ಅಥವಾ ನಂತರದ ಅಡಿಯಲ್ಲಿ ವಿತರಿಸಲಾಗುತ್ತದೆ.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=ಮೂರನೇ ವ್ಯಕ್ತಿಯ ತಂತ್ರಾಂಶ ಸೂಚನೆಗಳು

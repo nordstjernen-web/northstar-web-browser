@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Sundanese / Basa Sunda
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Mundur
+Forward=Maju
+Reload=Muat deui
+Stop=Eureun
+Home=Imah
+Menu=Menu
+Bookmarks=Markah
+Settings=Setélan
+Loading=Keur ngamuat
+Loading…=Keur ngamuat…
+Done=Réngsé
+Go back one page=Mundur hiji kaca
+Go forward one page=Maju hiji kaca
+Reload this page=Muat deui kaca ieu
+Stop loading this page=Eureunkeun ngamuat kaca ieu
+Go to the home page=Buka kaca imah
+Address and search bar=Bar alamat jeung panéangan
+Page location=Lokasi kaca
+Search or enter a URL=Paluruh atawa asupkeun URL
+Search for=Paluruh
+Server:=Server:
+New Window=Jandéla Anyar
+Quit=Kaluar
+Continue=Teruskeun
+Recovered the previous session after an unexpected exit=Sési saméméhna dipulihkeun sanggeus kaluar teu disangka-sangka
+Failed to load page=Gagal ngamuat kaca
+Stopped after too many redirects=Eureun alatan kaleuleuwihi alihan
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Aman — sértifikatna sah
+Not secure — the connection is not encrypted=Teu aman — sambunganana teu diénkripsi
+Not secure — the certificate is not trusted=Teu aman — sértifikatna teu dipercaya
+Certificate errors are being ignored=Kasalahan sértifikat keur dipaliré
+# --- Main menu ---
+Find in Page=Paluruh dina Kaca
+Full Screen=Layar Pinuh
+Zoom In=Gedéan
+Zoom Out=Leutikan
+Reset Zoom=Reset Zoom
+Print…=Citak…
+Save Page As…=Simpen Kaca Salaku…
+Save Page as PDF…=Simpen Kaca salaku PDF…
+Save Page as Image…=Simpen Kaca salaku Gambar…
+Page Source=Sumber Kaca
+Downloads=Undeuran
+History=Jujutan
+Bookmark This Page=Markah Kaca Ieu
+Visit nordstjernen.org=Anjangan nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Tiron
+Select All=Pilih Sadayana
+Open Link=Buka Tutumbu
+Copy Link Address=Tiron Alamat Tutumbu
+Copy Page Address=Tiron Alamat Kaca
+Copied to clipboard=Geus ditiron ka papan klip
+Copied link address=Alamat tutumbu geus ditiron
+Copied page address=Alamat kaca geus ditiron
+Copied selection=Pilihan geus ditiron
+# --- Find bar ---
+Find in page=Paluruh dina kaca
+No results=Euweuh hasil
+Previous match=Nu cocog saméméhna
+Next match=Nu cocog salajengna
+Previous match (Shift+Enter)=Nu cocog saméméhna (Shift+Enter)
+Next match (Enter)=Nu cocog salajengna (Enter)
+Close search=Tutup panéangan
+Close (Esc)=Tutup (Esc)
+# --- Bookmarks ---
+Bookmark this page=Markah kaca ieu
+Bookmark added=Markah geus ditambahkeun
+Bookmark removed=Markah geus dipupus
+Bookmarked — open bookmarks=Geus dimarkah — buka markah
+Remove bookmark=Pupus markah
+Remove this bookmark=Pupus markah ieu
+No bookmarks yet=Can aya markah
+# --- Downloads, saving, printing ---
+Show downloads=Témbongkeun undeuran
+Nothing downloaded yet=Can aya nu diundeur
+Open=Buka
+Open folder=Buka map
+Failed=Gagal
+Could not save page=Teu bisa nyimpen kaca
+Save page as PDF=Simpen kaca salaku PDF
+Save page as PNG=Simpen kaca salaku PNG
+Print=Citak
+Print this page=Citak kaca ieu
+Nothing to print=Euweuh nu bisa dicitak
+Reset zoom=Reset zoom
+Reset zoom (Ctrl+0)=Reset zoom (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s ayeuna layar pinuh. Pencét Esc pikeun kaluar.
+You are now in full screen. Press Esc to exit.=Anjeun ayeuna dina layar pinuh. Pencét Esc pikeun kaluar.
+This site wants to use your camera and microphone=Loka ieu hayang ngagunakeun kaméra jeung mikropon anjeun
+Allow=Idinan
+Allow and trust this site=Idinan jeung percaya loka ieu
+Not now=Engké waé
+Dismiss=Tutup
+# --- Start page (about:start) ---
+Search=Paluruh
+Search the web=Paluruh dina wéb
+Search (__ND_SEARCH_NAME__):=Paluruh (__ND_SEARCH_NAME__):
+License=Lisénsi
+Privacy=Privasi
+# --- Settings page (about:settings) ---
+General=Umum
+Home page=Kaca imah
+Search engine=Mesin paluruh
+Custom search URL=URL panéangan kustom
+Custom…=Kustom…
+Cookies=Cookie
+Accept all cookies=Tarima sadaya cookie
+Block third-party cookies=Meungpeuk cookie pihak katilu
+Block all cookies=Meungpeuk sadaya cookie
+Send “Do Not Track”=Kirim “Do Not Track”
+Send Global Privacy Control (GPC)=Kirim Global Privacy Control (GPC)
+Strip tracking parameters from links=Pupus paraméter palacak tina tutumbu
+Try HTTPS first on every site=Cobian HTTPS heula dina unggal loka
+Block dangerous sites (Google Safe Browsing and a local list)=Meungpeuk loka bahaya (Google Safe Browsing jeung daptar lokal)
+Content=Eusi
+Load images=Muat gambar
+Enable JavaScript=Aktipkeun JavaScript
+Enable local storage=Aktipkeun panyimpenan lokal
+Enable cache=Aktipkeun cache
+Clear all browsing data=Bersihan sadaya data ngalanglang
+Browsing data cleared=Data ngalanglang geus dibersihan
+Save=Simpen
+Saved.=Geus disimpen.
+Changes apply to newly opened pages.=Parobahan dilarapkeun kana kaca nu anyar dibuka.
+# --- History page (about:history) ---
+Recently visited pages.=Kaca nu anyar dianjangan.
+No history yet.=Can aya jujutan.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Ngeunaan Northstar Web Browser
+Version=Vérsi
+Start=Mimiti
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Panyungsi wéb pikeun Windows, Linux jeung Mac, ditulis dina basa pamrograman C, kalayan lisénsi open source GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser mangrupa software bébas, disebarkeun dina GNU General Public License, vérsi 3 atawa saterusna.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Béwara software pihak katilu

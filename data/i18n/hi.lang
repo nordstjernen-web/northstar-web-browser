@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Hindi / हिन्दी
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=पीछे
+Forward=आगे
+Reload=फिर से लोड करें
+Stop=रोकें
+Home=होम
+Menu=मेनू
+Bookmarks=बुकमार्क
+Settings=सेटिंग
+Loading=लोड हो रहा है
+Loading…=लोड हो रहा है…
+Done=पूर्ण
+Go back one page=एक पेज पीछे जाएँ
+Go forward one page=एक पेज आगे जाएँ
+Reload this page=यह पेज फिर से लोड करें
+Stop loading this page=इस पेज को लोड करना रोकें
+Go to the home page=होम पेज पर जाएँ
+Address and search bar=पता और खोज बार
+Page location=पेज का स्थान
+Search or enter a URL=खोजें या URL डालें
+Search for=खोजें
+Server:=सर्वर:
+New Window=नई विंडो
+Quit=बाहर निकलें
+Continue=जारी रखें
+Recovered the previous session after an unexpected exit=अनपेक्षित रूप से बंद होने के बाद पिछला सत्र पुनर्प्राप्त किया गया
+Failed to load page=पेज लोड नहीं हो सका
+Stopped after too many redirects=बहुत अधिक रीडायरेक्ट के बाद रोका गया
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=सुरक्षित — प्रमाणपत्र मान्य है
+Not secure — the connection is not encrypted=सुरक्षित नहीं — कनेक्शन एन्क्रिप्ट नहीं है
+Not secure — the certificate is not trusted=सुरक्षित नहीं — प्रमाणपत्र विश्वसनीय नहीं है
+Certificate errors are being ignored=प्रमाणपत्र त्रुटियों को अनदेखा किया जा रहा है
+# --- Main menu ---
+Find in Page=पेज में खोजें
+Full Screen=पूर्ण स्क्रीन
+Zoom In=ज़ूम इन करें
+Zoom Out=ज़ूम आउट करें
+Reset Zoom=ज़ूम रीसेट करें
+Print…=प्रिंट करें…
+Save Page As…=पेज को इस रूप में सहेजें…
+Save Page as PDF…=पेज को PDF के रूप में सहेजें…
+Save Page as Image…=पेज को छवि के रूप में सहेजें…
+Page Source=पेज स्रोत
+Downloads=डाउनलोड
+History=इतिहास
+Bookmark This Page=इस पेज को बुकमार्क करें
+Visit nordstjernen.org=nordstjernen.org पर जाएँ
+# --- Context menu, clipboard ---
+Copy=कॉपी करें
+Select All=सभी चुनें
+Open Link=लिंक खोलें
+Copy Link Address=लिंक पता कॉपी करें
+Copy Page Address=पेज का पता कॉपी करें
+Copied to clipboard=क्लिपबोर्ड पर कॉपी किया गया
+Copied link address=लिंक पता कॉपी किया गया
+Copied page address=पेज का पता कॉपी किया गया
+Copied selection=चयन कॉपी किया गया
+# --- Find bar ---
+Find in page=पेज में खोजें
+No results=कोई परिणाम नहीं
+Previous match=पिछला मिलान
+Next match=अगला मिलान
+Previous match (Shift+Enter)=पिछला मिलान (Shift+Enter)
+Next match (Enter)=अगला मिलान (Enter)
+Close search=खोज बंद करें
+Close (Esc)=बंद करें (Esc)
+# --- Bookmarks ---
+Bookmark this page=इस पेज को बुकमार्क करें
+Bookmark added=बुकमार्क जोड़ा गया
+Bookmark removed=बुकमार्क हटाया गया
+Bookmarked — open bookmarks=बुकमार्क किया गया — बुकमार्क खोलें
+Remove bookmark=बुकमार्क हटाएँ
+Remove this bookmark=यह बुकमार्क हटाएँ
+No bookmarks yet=अभी तक कोई बुकमार्क नहीं
+# --- Downloads, saving, printing ---
+Show downloads=डाउनलोड दिखाएँ
+Nothing downloaded yet=अभी तक कुछ भी डाउनलोड नहीं हुआ
+Open=खोलें
+Open folder=फ़ोल्डर खोलें
+Failed=विफल
+Could not save page=पेज सहेजा नहीं जा सका
+Save page as PDF=पेज को PDF के रूप में सहेजें
+Save page as PNG=पेज को PNG के रूप में सहेजें
+Print=प्रिंट करें
+Print this page=यह पेज प्रिंट करें
+Nothing to print=प्रिंट करने के लिए कुछ नहीं है
+Reset zoom=ज़ूम रीसेट करें
+Reset zoom (Ctrl+0)=ज़ूम रीसेट करें (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s अब पूर्ण स्क्रीन में है। बाहर निकलने के लिए Esc दबाएँ।
+You are now in full screen. Press Esc to exit.=अब आप पूर्ण स्क्रीन में हैं। बाहर निकलने के लिए Esc दबाएँ।
+This site wants to use your camera and microphone=यह साइट आपके कैमरे और माइक्रोफ़ोन का उपयोग करना चाहती है
+Allow=अनुमति दें
+Allow and trust this site=अनुमति दें और इस साइट पर भरोसा करें
+Not now=अभी नहीं
+Dismiss=खारिज करें
+# --- Start page (about:start) ---
+Search=खोजें
+Search the web=वेब पर खोजें
+Search (__ND_SEARCH_NAME__):=खोजें (__ND_SEARCH_NAME__):
+License=लाइसेंस
+Privacy=निजता
+# --- Settings page (about:settings) ---
+General=सामान्य
+Home page=होम पेज
+Search engine=सर्च इंजन
+Custom search URL=कस्टम खोज URL
+Custom…=कस्टम…
+Cookies=कुकी
+Accept all cookies=सभी कुकी स्वीकार करें
+Block third-party cookies=तृतीय-पक्ष कुकी ब्लॉक करें
+Block all cookies=सभी कुकी ब्लॉक करें
+Send “Do Not Track”=“ट्रैक न करें” भेजें
+Send Global Privacy Control (GPC)=ग्लोबल प्राइवेसी कंट्रोल (GPC) भेजें
+Strip tracking parameters from links=लिंक से ट्रैकिंग पैरामीटर हटाएँ
+Try HTTPS first on every site=हर साइट पर पहले HTTPS आज़माएँ
+Block dangerous sites (Google Safe Browsing and a local list)=खतरनाक साइटें ब्लॉक करें (Google Safe Browsing और एक स्थानीय सूची)
+Content=सामग्री
+Load images=छवियाँ लोड करें
+Enable JavaScript=JavaScript सक्षम करें
+Enable local storage=स्थानीय संग्रहण सक्षम करें
+Enable cache=कैश सक्षम करें
+Clear all browsing data=सारा ब्राउज़िंग डेटा साफ़ करें
+Browsing data cleared=ब्राउज़िंग डेटा साफ़ किया गया
+Save=सहेजें
+Saved.=सहेजा गया।
+Changes apply to newly opened pages.=बदलाव नए खोले गए पेजों पर लागू होंगे।
+# --- History page (about:history) ---
+Recently visited pages.=हाल ही में देखे गए पेज।
+No history yet.=अभी तक कोई इतिहास नहीं।
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser के बारे में
+Version=संस्करण
+Start=प्रारंभ
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux और Mac के लिए एक वेब ब्राउज़र, जो C प्रोग्रामिंग भाषा में लिखा गया है और ओपन सोर्स GPL लाइसेंस के साथ है।
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser मुक्त सॉफ़्टवेयर है, जो GNU General Public License, संस्करण 3 या बाद के संस्करण के तहत वितरित किया जाता है।
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=तृतीय-पक्ष सॉफ़्टवेयर सूचनाएँ

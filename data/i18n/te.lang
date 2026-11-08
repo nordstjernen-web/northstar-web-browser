@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Telugu / తెలుగు
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=వెనుకకు
+Forward=ముందుకు
+Reload=మళ్లీ లోడ్ చేయి
+Stop=ఆపు
+Home=హోమ్
+Menu=మెనూ
+Bookmarks=బుక్‌మార్క్‌లు
+Settings=సెట్టింగ్‌లు
+Loading=లోడ్ అవుతోంది
+Loading…=లోడ్ అవుతోంది…
+Done=పూర్తయింది
+Go back one page=ఒక పేజీ వెనుకకు వెళ్లు
+Go forward one page=ఒక పేజీ ముందుకు వెళ్లు
+Reload this page=ఈ పేజీని మళ్లీ లోడ్ చేయి
+Stop loading this page=ఈ పేజీ లోడ్ అవ్వడం ఆపు
+Go to the home page=హోమ్ పేజీకి వెళ్లు
+Address and search bar=చిరునామా మరియు శోధన పట్టీ
+Page location=పేజీ స్థానం
+Search or enter a URL=శోధించండి లేదా URLను నమోదు చేయండి
+Search for=దీని కోసం శోధించు
+Server:=సర్వర్:
+New Window=కొత్త విండో
+Quit=నిష్క్రమించు
+Continue=కొనసాగించు
+Recovered the previous session after an unexpected exit=ఊహించని నిష్క్రమణ తర్వాత మునుపటి సెషన్ పునరుద్ధరించబడింది
+Failed to load page=పేజీని లోడ్ చేయడం విఫలమైంది
+Stopped after too many redirects=చాలా ఎక్కువ దారిమళ్లింపుల తర్వాత ఆపివేయబడింది
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=సురక్షితం — సర్టిఫికెట్ చెల్లుబాటులో ఉంది
+Not secure — the connection is not encrypted=సురక్షితం కాదు — కనెక్షన్ ఎన్‌క్రిప్ట్ చేయబడలేదు
+Not secure — the certificate is not trusted=సురక్షితం కాదు — సర్టిఫికెట్ విశ్వసనీయం కాదు
+Certificate errors are being ignored=సర్టిఫికెట్ లోపాలు విస్మరించబడుతున్నాయి
+# --- Main menu ---
+Find in Page=పేజీలో కనుగొను
+Full Screen=పూర్తి స్క్రీన్
+Zoom In=జూమ్ ఇన్
+Zoom Out=జూమ్ అవుట్
+Reset Zoom=జూమ్‌ను రీసెట్ చేయి
+Print…=ప్రింట్ చేయి…
+Save Page As…=పేజీని ఇలా సేవ్ చేయి…
+Save Page as PDF…=పేజీని PDFగా సేవ్ చేయి…
+Save Page as Image…=పేజీని చిత్రంగా సేవ్ చేయి…
+Page Source=పేజీ సోర్స్
+Downloads=డౌన్‌లోడ్‌లు
+History=చరిత్ర
+Bookmark This Page=ఈ పేజీని బుక్‌మార్క్ చేయి
+Visit nordstjernen.org=nordstjernen.orgని సందర్శించండి
+# --- Context menu, clipboard ---
+Copy=కాపీ చేయి
+Select All=అన్నీ ఎంచుకో
+Open Link=లింక్‌ను తెరువు
+Copy Link Address=లింక్ చిరునామాను కాపీ చేయి
+Copy Page Address=పేజీ చిరునామాను కాపీ చేయి
+Copied to clipboard=క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది
+Copied link address=లింక్ చిరునామా కాపీ చేయబడింది
+Copied page address=పేజీ చిరునామా కాపీ చేయబడింది
+Copied selection=ఎంపిక కాపీ చేయబడింది
+# --- Find bar ---
+Find in page=పేజీలో కనుగొను
+No results=ఫలితాలు లేవు
+Previous match=మునుపటి సరిపోలిక
+Next match=తదుపరి సరిపోలిక
+Previous match (Shift+Enter)=మునుపటి సరిపోలిక (Shift+Enter)
+Next match (Enter)=తదుపరి సరిపోలిక (Enter)
+Close search=శోధనను మూసివేయి
+Close (Esc)=మూసివేయి (Esc)
+# --- Bookmarks ---
+Bookmark this page=ఈ పేజీని బుక్‌మార్క్ చేయి
+Bookmark added=బుక్‌మార్క్ జోడించబడింది
+Bookmark removed=బుక్‌మార్క్ తీసివేయబడింది
+Bookmarked — open bookmarks=బుక్‌మార్క్ చేయబడింది — బుక్‌మార్క్‌లను తెరువు
+Remove bookmark=బుక్‌మార్క్‌ను తీసివేయి
+Remove this bookmark=ఈ బుక్‌మార్క్‌ను తీసివేయి
+No bookmarks yet=ఇంకా బుక్‌మార్క్‌లు లేవు
+# --- Downloads, saving, printing ---
+Show downloads=డౌన్‌లోడ్‌లను చూపించు
+Nothing downloaded yet=ఇంకా ఏదీ డౌన్‌లోడ్ చేయబడలేదు
+Open=తెరువు
+Open folder=ఫోల్డర్‌ను తెరువు
+Failed=విఫలమైంది
+Could not save page=పేజీని సేవ్ చేయడం సాధ్యపడలేదు
+Save page as PDF=పేజీని PDFగా సేవ్ చేయి
+Save page as PNG=పేజీని PNGగా సేవ్ చేయి
+Print=ప్రింట్ చేయి
+Print this page=ఈ పేజీని ప్రింట్ చేయి
+Nothing to print=ప్రింట్ చేయడానికి ఏమీ లేదు
+Reset zoom=జూమ్‌ను రీసెట్ చేయి
+Reset zoom (Ctrl+0)=జూమ్‌ను రీసెట్ చేయి (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s ఇప్పుడు పూర్తి స్క్రీన్‌లో ఉంది. నిష్క్రమించడానికి Esc నొక్కండి.
+You are now in full screen. Press Esc to exit.=మీరు ఇప్పుడు పూర్తి స్క్రీన్‌లో ఉన్నారు. నిష్క్రమించడానికి Esc నొక్కండి.
+This site wants to use your camera and microphone=ఈ సైట్ మీ కెమెరా మరియు మైక్రోఫోన్‌ను ఉపయోగించాలనుకుంటోంది
+Allow=అనుమతించు
+Allow and trust this site=అనుమతించి ఈ సైట్‌ను విశ్వసించు
+Not now=ఇప్పుడు కాదు
+Dismiss=విస్మరించు
+# --- Start page (about:start) ---
+Search=శోధించు
+Search the web=వెబ్‌లో శోధించు
+Search (__ND_SEARCH_NAME__):=శోధించు (__ND_SEARCH_NAME__):
+License=లైసెన్స్
+Privacy=గోప్యత
+# --- Settings page (about:settings) ---
+General=సాధారణం
+Home page=హోమ్ పేజీ
+Search engine=శోధన ఇంజిన్
+Custom search URL=అనుకూల శోధన URL
+Custom…=అనుకూలం…
+Cookies=కుకీలు
+Accept all cookies=అన్ని కుకీలను ఆమోదించు
+Block third-party cookies=మూడవ పక్ష కుకీలను బ్లాక్ చేయి
+Block all cookies=అన్ని కుకీలను బ్లాక్ చేయి
+Send “Do Not Track”=“Do Not Track” పంపు
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) పంపు
+Strip tracking parameters from links=లింక్‌ల నుండి ట్రాకింగ్ పారామీటర్‌లను తొలగించు
+Try HTTPS first on every site=ప్రతి సైట్‌లో ముందుగా HTTPSని ప్రయత్నించు
+Block dangerous sites (Google Safe Browsing and a local list)=ప్రమాదకరమైన సైట్‌లను బ్లాక్ చేయి (Google Safe Browsing మరియు స్థానిక జాబితా)
+Content=కంటెంట్
+Load images=చిత్రాలను లోడ్ చేయి
+Enable JavaScript=JavaScriptను ప్రారంభించు
+Enable local storage=స్థానిక నిల్వను ప్రారంభించు
+Enable cache=కాష్‌ను ప్రారంభించు
+Clear all browsing data=మొత్తం బ్రౌజింగ్ డేటాను క్లియర్ చేయి
+Browsing data cleared=బ్రౌజింగ్ డేటా క్లియర్ చేయబడింది
+Save=సేవ్ చేయి
+Saved.=సేవ్ చేయబడింది.
+Changes apply to newly opened pages.=మార్పులు కొత్తగా తెరిచిన పేజీలకు వర్తిస్తాయి.
+# --- History page (about:history) ---
+Recently visited pages.=ఇటీవల సందర్శించిన పేజీలు.
+No history yet.=ఇంకా చరిత్ర లేదు.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser గురించి
+Version=వెర్షన్
+Start=ప్రారంభం
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux మరియు Mac కోసం వెబ్ బ్రౌజర్, C ప్రోగ్రామింగ్ భాషలో వ్రాయబడింది, ఓపెన్ సోర్స్ GPL లైసెన్స్‌తో.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ఉచిత సాఫ్ట్‌వేర్, GNU General Public License, వెర్షన్ 3 లేదా తదుపరి వెర్షన్ క్రింద పంపిణీ చేయబడుతుంది.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=మూడవ పక్ష సాఫ్ట్‌వేర్ నోటీసులు

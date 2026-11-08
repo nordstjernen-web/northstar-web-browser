@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Bengali / বাংলা
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=পিছনে
+Forward=সামনে
+Reload=পুনরায় লোড করুন
+Stop=থামান
+Home=হোম
+Menu=মেনু
+Bookmarks=বুকমার্ক
+Settings=সেটিংস
+Loading=লোড হচ্ছে
+Loading…=লোড হচ্ছে…
+Done=সম্পন্ন
+Go back one page=এক পৃষ্ঠা পিছনে যান
+Go forward one page=এক পৃষ্ঠা সামনে যান
+Reload this page=এই পৃষ্ঠাটি পুনরায় লোড করুন
+Stop loading this page=এই পৃষ্ঠা লোড করা থামান
+Go to the home page=হোম পৃষ্ঠায় যান
+Address and search bar=ঠিকানা ও সার্চ বার
+Page location=পৃষ্ঠার অবস্থান
+Search or enter a URL=সার্চ করুন বা URL লিখুন
+Search for=সার্চ করুন
+Server:=সার্ভার:
+New Window=নতুন উইন্ডো
+Quit=প্রস্থান করুন
+Continue=চালিয়ে যান
+Recovered the previous session after an unexpected exit=অপ্রত্যাশিতভাবে বন্ধ হওয়ার পরে আগের সেশন পুনরুদ্ধার করা হয়েছে
+Failed to load page=পৃষ্ঠা লোড করা যায়নি
+Stopped after too many redirects=অনেক বেশি রিডাইরেক্টের পরে থামানো হয়েছে
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=নিরাপদ — সার্টিফিকেট বৈধ
+Not secure — the connection is not encrypted=নিরাপদ নয় — সংযোগ এনক্রিপ্ট করা নয়
+Not secure — the certificate is not trusted=নিরাপদ নয় — সার্টিফিকেট বিশ্বস্ত নয়
+Certificate errors are being ignored=সার্টিফিকেটের ত্রুটি উপেক্ষা করা হচ্ছে
+# --- Main menu ---
+Find in Page=পৃষ্ঠায় খুঁজুন
+Full Screen=পূর্ণ স্ক্রিন
+Zoom In=জুম বাড়ান
+Zoom Out=জুম কমান
+Reset Zoom=জুম রিসেট করুন
+Print…=প্রিন্ট করুন…
+Save Page As…=পৃষ্ঠা এইভাবে সংরক্ষণ করুন…
+Save Page as PDF…=পৃষ্ঠা PDF হিসেবে সংরক্ষণ করুন…
+Save Page as Image…=পৃষ্ঠা ছবি হিসেবে সংরক্ষণ করুন…
+Page Source=পৃষ্ঠার উৎস
+Downloads=ডাউনলোড
+History=ইতিহাস
+Bookmark This Page=এই পৃষ্ঠা বুকমার্ক করুন
+Visit nordstjernen.org=nordstjernen.org-এ যান
+# --- Context menu, clipboard ---
+Copy=কপি করুন
+Select All=সব নির্বাচন করুন
+Open Link=লিঙ্ক খুলুন
+Copy Link Address=লিঙ্কের ঠিকানা কপি করুন
+Copy Page Address=পৃষ্ঠার ঠিকানা কপি করুন
+Copied to clipboard=ক্লিপবোর্ডে কপি করা হয়েছে
+Copied link address=লিঙ্কের ঠিকানা কপি করা হয়েছে
+Copied page address=পৃষ্ঠার ঠিকানা কপি করা হয়েছে
+Copied selection=নির্বাচিত অংশ কপি করা হয়েছে
+# --- Find bar ---
+Find in page=পৃষ্ঠায় খুঁজুন
+No results=কোনো ফলাফল নেই
+Previous match=আগের মিল
+Next match=পরের মিল
+Previous match (Shift+Enter)=আগের মিল (Shift+Enter)
+Next match (Enter)=পরের মিল (Enter)
+Close search=সার্চ বন্ধ করুন
+Close (Esc)=বন্ধ করুন (Esc)
+# --- Bookmarks ---
+Bookmark this page=এই পৃষ্ঠা বুকমার্ক করুন
+Bookmark added=বুকমার্ক যোগ করা হয়েছে
+Bookmark removed=বুকমার্ক সরানো হয়েছে
+Bookmarked — open bookmarks=বুকমার্ক করা হয়েছে — বুকমার্ক খুলুন
+Remove bookmark=বুকমার্ক সরান
+Remove this bookmark=এই বুকমার্কটি সরান
+No bookmarks yet=এখনও কোনো বুকমার্ক নেই
+# --- Downloads, saving, printing ---
+Show downloads=ডাউনলোড দেখান
+Nothing downloaded yet=এখনও কিছু ডাউনলোড করা হয়নি
+Open=খুলুন
+Open folder=ফোল্ডার খুলুন
+Failed=ব্যর্থ
+Could not save page=পৃষ্ঠা সংরক্ষণ করা যায়নি
+Save page as PDF=পৃষ্ঠা PDF হিসেবে সংরক্ষণ করুন
+Save page as PNG=পৃষ্ঠা PNG হিসেবে সংরক্ষণ করুন
+Print=প্রিন্ট করুন
+Print this page=এই পৃষ্ঠা প্রিন্ট করুন
+Nothing to print=প্রিন্ট করার মতো কিছু নেই
+Reset zoom=জুম রিসেট করুন
+Reset zoom (Ctrl+0)=জুম রিসেট করুন (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s এখন পূর্ণ স্ক্রিনে আছে। বেরিয়ে আসতে Esc টিপুন।
+You are now in full screen. Press Esc to exit.=আপনি এখন পূর্ণ স্ক্রিনে আছেন। বেরিয়ে আসতে Esc টিপুন।
+This site wants to use your camera and microphone=এই সাইটটি আপনার ক্যামেরা ও মাইক্রোফোন ব্যবহার করতে চায়
+Allow=অনুমতি দিন
+Allow and trust this site=অনুমতি দিন এবং এই সাইটকে বিশ্বাস করুন
+Not now=এখন নয়
+Dismiss=খারিজ করুন
+# --- Start page (about:start) ---
+Search=সার্চ করুন
+Search the web=ওয়েবে সার্চ করুন
+Search (__ND_SEARCH_NAME__):=সার্চ (__ND_SEARCH_NAME__):
+License=লাইসেন্স
+Privacy=গোপনীয়তা
+# --- Settings page (about:settings) ---
+General=সাধারণ
+Home page=হোম পৃষ্ঠা
+Search engine=সার্চ ইঞ্জিন
+Custom search URL=কাস্টম সার্চ URL
+Custom…=কাস্টম…
+Cookies=কুকি
+Accept all cookies=সব কুকি গ্রহণ করুন
+Block third-party cookies=তৃতীয় পক্ষের কুকি ব্লক করুন
+Block all cookies=সব কুকি ব্লক করুন
+Send “Do Not Track”=“ট্র্যাক করবেন না” পাঠান
+Send Global Privacy Control (GPC)=গ্লোবাল প্রাইভেসি কন্ট্রোল (GPC) পাঠান
+Strip tracking parameters from links=লিঙ্ক থেকে ট্র্যাকিং প্যারামিটার সরান
+Try HTTPS first on every site=প্রতিটি সাইটে প্রথমে HTTPS চেষ্টা করুন
+Block dangerous sites (Google Safe Browsing and a local list)=বিপজ্জনক সাইট ব্লক করুন (Google Safe Browsing এবং একটি স্থানীয় তালিকা)
+Content=বিষয়বস্তু
+Load images=ছবি লোড করুন
+Enable JavaScript=JavaScript চালু করুন
+Enable local storage=লোকাল স্টোরেজ চালু করুন
+Enable cache=ক্যাশে চালু করুন
+Clear all browsing data=সব ব্রাউজিং ডেটা মুছুন
+Browsing data cleared=ব্রাউজিং ডেটা মোছা হয়েছে
+Save=সংরক্ষণ করুন
+Saved.=সংরক্ষিত হয়েছে।
+Changes apply to newly opened pages.=পরিবর্তনগুলি নতুন খোলা পৃষ্ঠাগুলিতে প্রযোজ্য হবে।
+# --- History page (about:history) ---
+Recently visited pages.=সম্প্রতি দেখা পৃষ্ঠাগুলি।
+No history yet.=এখনও কোনো ইতিহাস নেই।
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser সম্পর্কে
+Version=সংস্করণ
+Start=শুরু
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux ও Mac-এর জন্য একটি ওয়েব ব্রাউজার, C প্রোগ্রামিং ভাষায় লেখা, ওপেন সোর্স GPL লাইসেন্সসহ।
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser একটি মুক্ত সফটওয়্যার, যা GNU General Public License, সংস্করণ 3 বা পরবর্তী সংস্করণের অধীনে বিতরণ করা হয়।
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=তৃতীয় পক্ষের সফটওয়্যার বিজ্ঞপ্তি

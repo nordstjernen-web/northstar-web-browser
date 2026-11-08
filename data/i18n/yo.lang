@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Yoruba / Yorùbá
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Padà sẹ́yìn
+Forward=Síwájú
+Reload=Tún gbé e
+Stop=Dúró
+Home=Ilé
+Menu=Àkójọ
+Bookmarks=Àwọn bukumaaki
+Settings=Ètò
+Loading=Ó ń gbé e
+Loading…=Ó ń gbé e…
+Done=Ó ti parí
+Go back one page=Padà sẹ́yìn ojú-ìwé kan
+Go forward one page=Lọ síwájú ojú-ìwé kan
+Reload this page=Tún ojú-ìwé yìí gbé
+Stop loading this page=Dá gbígbé ojú-ìwé yìí dúró
+Go to the home page=Lọ sí ojú-ìwé ilé
+Address and search bar=Ọ̀pá àdírẹ́sì àti ìwádìí
+Page location=Ibi ojú-ìwé
+Search or enter a URL=Ṣàwárí tàbí tẹ URL sí i
+Search for=Ṣàwárí
+Server:=Olupin:
+New Window=Fèrèsé tuntun
+Quit=Jáde
+Continue=Tẹ̀síwájú
+Recovered the previous session after an unexpected exit=A ti gba ìgbà ìṣáájú padà lẹ́yìn ìjáde àìròtẹ́lẹ̀
+Failed to load page=Kò lè gbé ojú-ìwé náà
+Stopped after too many redirects=Ó dúró lẹ́yìn ìtọ́kasí-padà tó pọ̀ jù
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Ó ní ààbò — ìwé-ẹ̀rí náà wúlò
+Not secure — the connection is not encrypted=Kò ní ààbò — a kò fi ìsopọ̀ náà pamọ́
+Not secure — the certificate is not trusted=Kò ní ààbò — a kò gbẹ́kẹ̀lé ìwé-ẹ̀rí náà
+Certificate errors are being ignored=A ń fojú fo àwọn àṣìṣe ìwé-ẹ̀rí
+# --- Main menu ---
+Find in Page=Wá nínú ojú-ìwé
+Full Screen=Ojú-iboju kíkún
+Zoom In=Sún mọ́
+Zoom Out=Sún jìnnà
+Reset Zoom=Tún ìsún ṣe
+Print…=Tẹ̀ jáde…
+Save Page As…=Fi ojú-ìwé pamọ́ bí…
+Save Page as PDF…=Fi ojú-ìwé pamọ́ bí PDF…
+Save Page as Image…=Fi ojú-ìwé pamọ́ bí àwòrán…
+Page Source=Orísun ojú-ìwé
+Downloads=Àwọn ìgbàsílẹ̀
+History=Ìtàn
+Bookmark This Page=Fi bukumaaki sí ojú-ìwé yìí
+Visit nordstjernen.org=Ṣàbẹ̀wò sí nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Ṣẹ̀dà
+Select All=Yan gbogbo rẹ̀
+Open Link=Ṣí ìjápọ̀
+Copy Link Address=Ṣẹ̀dà àdírẹ́sì ìjápọ̀
+Copy Page Address=Ṣẹ̀dà àdírẹ́sì ojú-ìwé
+Copied to clipboard=A ti ṣẹ̀dà sí pátákó ìdàkọ
+Copied link address=A ti ṣẹ̀dà àdírẹ́sì ìjápọ̀
+Copied page address=A ti ṣẹ̀dà àdírẹ́sì ojú-ìwé
+Copied selection=A ti ṣẹ̀dà ohun tí a yàn
+# --- Find bar ---
+Find in page=Wá nínú ojú-ìwé
+No results=Kò sí èsì
+Previous match=Ìbámu tó ṣáájú
+Next match=Ìbámu tó kàn
+Previous match (Shift+Enter)=Ìbámu tó ṣáájú (Shift+Enter)
+Next match (Enter)=Ìbámu tó kàn (Enter)
+Close search=Pa ìwádìí dé
+Close (Esc)=Pa dé (Esc)
+# --- Bookmarks ---
+Bookmark this page=Fi bukumaaki sí ojú-ìwé yìí
+Bookmark added=A ti fi bukumaaki kún un
+Bookmark removed=A ti yọ bukumaaki kúrò
+Bookmarked — open bookmarks=A ti fi bukumaaki sí i — ṣí àwọn bukumaaki
+Remove bookmark=Yọ bukumaaki kúrò
+Remove this bookmark=Yọ bukumaaki yìí kúrò
+No bookmarks yet=Kò sí bukumaaki síbẹ̀
+# --- Downloads, saving, printing ---
+Show downloads=Fi àwọn ìgbàsílẹ̀ hàn
+Nothing downloaded yet=Kò sí ohun tí a ti gbà sílẹ̀ síbẹ̀
+Open=Ṣí
+Open folder=Ṣí fódà
+Failed=Ó kùnà
+Could not save page=Kò lè fi ojú-ìwé pamọ́
+Save page as PDF=Fi ojú-ìwé pamọ́ bí PDF
+Save page as PNG=Fi ojú-ìwé pamọ́ bí PNG
+Print=Tẹ̀ jáde
+Print this page=Tẹ ojú-ìwé yìí jáde
+Nothing to print=Kò sí ohun láti tẹ̀ jáde
+Reset zoom=Tún ìsún ṣe
+Reset zoom (Ctrl+0)=Tún ìsún ṣe (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s wà ní ojú-iboju kíkún báyìí. Tẹ Esc láti jáde.
+You are now in full screen. Press Esc to exit.=O wà ní ojú-iboju kíkún báyìí. Tẹ Esc láti jáde.
+This site wants to use your camera and microphone=Ojú-òpó yìí fẹ́ lo kámẹ́rà àti gbohùngbohùn rẹ
+Allow=Gbà láàyè
+Allow and trust this site=Gbà láàyè kí o sì gbẹ́kẹ̀lé ojú-òpó yìí
+Not now=Kì í ṣe báyìí
+Dismiss=Yọ kúrò
+# --- Start page (about:start) ---
+Search=Ṣàwárí
+Search the web=Ṣàwárí lórí wẹ́ẹ̀bù
+Search (__ND_SEARCH_NAME__):=Ṣàwárí (__ND_SEARCH_NAME__):
+License=Ìwé-àṣẹ
+Privacy=Àṣírí
+# --- Settings page (about:settings) ---
+General=Gbogbogbò
+Home page=Ojú-ìwé ilé
+Search engine=Ẹ̀rọ ìṣàwárí
+Custom search URL=URL ìṣàwárí àdáni
+Custom…=Àdáni…
+Cookies=Àwọn kúkì
+Accept all cookies=Gba gbogbo kúkì
+Block third-party cookies=Dí àwọn kúkì ẹgbẹ́-kẹta
+Block all cookies=Dí gbogbo kúkì
+Send “Do Not Track”=Fi “Do Not Track” ránṣẹ́
+Send Global Privacy Control (GPC)=Fi Global Privacy Control (GPC) ránṣẹ́
+Strip tracking parameters from links=Yọ àwọn pàràmítà ìtọpinpin kúrò nínú àwọn ìjápọ̀
+Try HTTPS first on every site=Gbìyànjú HTTPS ní àkọ́kọ́ lórí gbogbo ojú-òpó
+Block dangerous sites (Google Safe Browsing and a local list)=Dí àwọn ojú-òpó eléwu (Google Safe Browsing àti àkójọ agbègbè)
+Content=Àkóónú
+Load images=Gbé àwọn àwòrán
+Enable JavaScript=Mú JavaScript ṣiṣẹ́
+Enable local storage=Mú ibi-ìpamọ́ agbègbè ṣiṣẹ́
+Enable cache=Mú kaṣe ṣiṣẹ́
+Clear all browsing data=Pa gbogbo dátà lílọ kiri rẹ́
+Browsing data cleared=A ti pa dátà lílọ kiri rẹ́
+Save=Fi pamọ́
+Saved.=A ti fi pamọ́.
+Changes apply to newly opened pages.=Àwọn àyípadà kan àwọn ojú-ìwé tí a ṣẹ̀ṣẹ̀ ṣí.
+# --- History page (about:history) ---
+Recently visited pages.=Àwọn ojú-ìwé tí a ṣàbẹ̀wò sí láìpẹ́.
+No history yet.=Kò sí ìtàn síbẹ̀.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Nípa Northstar Web Browser
+Version=Ẹ̀yà
+Start=Ìbẹ̀rẹ̀
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Aṣàwákiri wẹ́ẹ̀bù fún Windows, Linux àti Mac, tí a kọ ní èdè ìṣètò C, pẹ̀lú ìwé-àṣẹ orísun-ṣíṣí GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser jẹ́ sọ́fítíwía ọ̀fẹ́, tí a pín kiri lábẹ́ GNU General Public License, ẹ̀yà 3 tàbí èyí tó tẹ̀lé e.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Àwọn àkíyèsí sọ́fítíwía ẹgbẹ́-kẹta

@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Persian / فارسی
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=عقب
+Forward=جلو
+Reload=بارگذاری مجدد
+Stop=توقف
+Home=خانه
+Menu=منو
+Bookmarks=نشانک‌ها
+Settings=تنظیمات
+Loading=در حال بارگذاری
+Loading…=در حال بارگذاری…
+Done=انجام شد
+Go back one page=رفتن به صفحهٔ قبل
+Go forward one page=رفتن به صفحهٔ بعد
+Reload this page=بارگذاری مجدد این صفحه
+Stop loading this page=توقف بارگذاری این صفحه
+Go to the home page=رفتن به صفحهٔ خانه
+Address and search bar=نوار نشانی و جستجو
+Page location=نشانی صفحه
+Search or enter a URL=جستجو کنید یا URL را وارد کنید
+Search for=جستجو برای
+Server:=سرور:
+New Window=پنجرهٔ جدید
+Quit=خروج
+Continue=ادامه
+Recovered the previous session after an unexpected exit=نشست قبلی پس از خروج غیرمنتظره بازیابی شد
+Failed to load page=بارگذاری صفحه ناموفق بود
+Stopped after too many redirects=به‌دلیل تغییر مسیرهای بیش از حد متوقف شد
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=امن — گواهی معتبر است
+Not secure — the connection is not encrypted=ناامن — اتصال رمزگذاری نشده است
+Not secure — the certificate is not trusted=ناامن — گواهی مورد اعتماد نیست
+Certificate errors are being ignored=خطاهای گواهی نادیده گرفته می‌شوند
+# --- Main menu ---
+Find in Page=یافتن در صفحه
+Full Screen=تمام‌صفحه
+Zoom In=بزرگ‌نمایی
+Zoom Out=کوچک‌نمایی
+Reset Zoom=بازنشانی بزرگ‌نمایی
+Print…=چاپ…
+Save Page As…=ذخیرهٔ صفحه با نام…
+Save Page as PDF…=ذخیرهٔ صفحه به‌صورت PDF…
+Save Page as Image…=ذخیرهٔ صفحه به‌صورت تصویر…
+Page Source=منبع صفحه
+Downloads=بارگیری‌ها
+History=تاریخچه
+Bookmark This Page=نشانک‌گذاری این صفحه
+Visit nordstjernen.org=بازدید از nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=کپی
+Select All=انتخاب همه
+Open Link=باز کردن پیوند
+Copy Link Address=کپی نشانی پیوند
+Copy Page Address=کپی نشانی صفحه
+Copied to clipboard=در بریده‌دان کپی شد
+Copied link address=نشانی پیوند کپی شد
+Copied page address=نشانی صفحه کپی شد
+Copied selection=متن انتخاب‌شده کپی شد
+# --- Find bar ---
+Find in page=یافتن در صفحه
+No results=نتیجه‌ای یافت نشد
+Previous match=مورد قبلی
+Next match=مورد بعدی
+Previous match (Shift+Enter)=مورد قبلی (Shift+Enter)
+Next match (Enter)=مورد بعدی (Enter)
+Close search=بستن جستجو
+Close (Esc)=بستن (Esc)
+# --- Bookmarks ---
+Bookmark this page=نشانک‌گذاری این صفحه
+Bookmark added=نشانک افزوده شد
+Bookmark removed=نشانک حذف شد
+Bookmarked — open bookmarks=نشانک‌گذاری شد — باز کردن نشانک‌ها
+Remove bookmark=حذف نشانک
+Remove this bookmark=حذف این نشانک
+No bookmarks yet=هنوز نشانکی وجود ندارد
+# --- Downloads, saving, printing ---
+Show downloads=نمایش بارگیری‌ها
+Nothing downloaded yet=هنوز چیزی بارگیری نشده است
+Open=باز کردن
+Open folder=باز کردن پوشه
+Failed=ناموفق
+Could not save page=ذخیرهٔ صفحه ممکن نشد
+Save page as PDF=ذخیرهٔ صفحه به‌صورت PDF
+Save page as PNG=ذخیرهٔ صفحه به‌صورت PNG
+Print=چاپ
+Print this page=چاپ این صفحه
+Nothing to print=چیزی برای چاپ وجود ندارد
+Reset zoom=بازنشانی بزرگ‌نمایی
+Reset zoom (Ctrl+0)=بازنشانی بزرگ‌نمایی (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s اکنون تمام‌صفحه است. برای خروج Esc را فشار دهید.
+You are now in full screen. Press Esc to exit.=اکنون در حالت تمام‌صفحه هستید. برای خروج Esc را فشار دهید.
+This site wants to use your camera and microphone=این سایت می‌خواهد از دوربین و میکروفون شما استفاده کند
+Allow=اجازه دادن
+Allow and trust this site=اجازه دادن و اعتماد به این سایت
+Not now=اکنون نه
+Dismiss=رد کردن
+# --- Start page (about:start) ---
+Search=جستجو
+Search the web=جستجو در وب
+Search (__ND_SEARCH_NAME__):=جستجو (__ND_SEARCH_NAME__):
+License=مجوز
+Privacy=حریم خصوصی
+# --- Settings page (about:settings) ---
+General=عمومی
+Home page=صفحهٔ خانه
+Search engine=موتور جستجو
+Custom search URL=URL جستجوی سفارشی
+Custom…=سفارشی…
+Cookies=کوکی‌ها
+Accept all cookies=پذیرش همهٔ کوکی‌ها
+Block third-party cookies=مسدود کردن کوکی‌های شخص ثالث
+Block all cookies=مسدود کردن همهٔ کوکی‌ها
+Send “Do Not Track”=ارسال سیگنال «ردیابی نکن»
+Send Global Privacy Control (GPC)=ارسال کنترل جهانی حریم خصوصی (GPC)
+Strip tracking parameters from links=حذف پارامترهای ردیابی از پیوندها
+Try HTTPS first on every site=امتحان HTTPS در ابتدا برای همهٔ سایت‌ها
+Block dangerous sites (Google Safe Browsing and a local list)=مسدود کردن سایت‌های خطرناک (Google Safe Browsing و یک فهرست محلی)
+Content=محتوا
+Load images=بارگذاری تصاویر
+Enable JavaScript=فعال کردن JavaScript
+Enable local storage=فعال کردن ذخیره‌سازی محلی
+Enable cache=فعال کردن حافظهٔ نهان
+Clear all browsing data=پاک کردن همهٔ داده‌های مرور
+Browsing data cleared=داده‌های مرور پاک شد
+Save=ذخیره
+Saved.=ذخیره شد.
+Changes apply to newly opened pages.=تغییرات روی صفحه‌هایی که از این پس باز می‌شوند اعمال می‌شود.
+# --- History page (about:history) ---
+Recently visited pages.=صفحه‌هایی که اخیراً بازدید شده‌اند.
+No history yet.=هنوز تاریخچه‌ای وجود ندارد.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=دربارهٔ Northstar Web Browser
+Version=نسخه
+Start=شروع
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=مرورگر وبی برای Windows، Linux و Mac که با زبان برنامه‌نویسی C نوشته شده و متن‌باز با مجوز GPL است.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser نرم‌افزاری آزاد است که تحت GNU General Public License، نسخهٔ ۳ یا بالاتر، توزیع می‌شود.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=اطلاعیه‌های نرم‌افزارهای شخص ثالث

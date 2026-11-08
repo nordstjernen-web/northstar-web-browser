@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Tagalog / Filipino
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Bumalik
+Forward=Sumulong
+Reload=I-reload
+Stop=Ihinto
+Home=Home
+Menu=Menu
+Bookmarks=Mga Bookmark
+Settings=Mga Setting
+Loading=Naglo-load
+Loading…=Naglo-load…
+Done=Tapos na
+Go back one page=Bumalik ng isang pahina
+Go forward one page=Sumulong ng isang pahina
+Reload this page=I-reload ang pahinang ito
+Stop loading this page=Ihinto ang pag-load ng pahinang ito
+Go to the home page=Pumunta sa home page
+Address and search bar=Address at search bar
+Page location=Lokasyon ng pahina
+Search or enter a URL=Maghanap o maglagay ng URL
+Search for=Hanapin ang
+Server:=Server:
+New Window=Bagong Window
+Quit=Umalis
+Continue=Magpatuloy
+Recovered the previous session after an unexpected exit=Naibalik ang nakaraang session pagkatapos ng hindi inaasahang pagsara
+Failed to load page=Hindi na-load ang pahina
+Stopped after too many redirects=Inihinto dahil sa sobrang daming redirect
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Secure — valid ang certificate
+Not secure — the connection is not encrypted=Hindi secure — hindi naka-encrypt ang koneksyon
+Not secure — the certificate is not trusted=Hindi secure — hindi pinagkakatiwalaan ang certificate
+Certificate errors are being ignored=Binabalewala ang mga error sa certificate
+# --- Main menu ---
+Find in Page=Hanapin sa Pahina
+Full Screen=Full Screen
+Zoom In=Mag-zoom In
+Zoom Out=Mag-zoom Out
+Reset Zoom=I-reset ang Zoom
+Print…=I-print…
+Save Page As…=I-save ang Pahina Bilang…
+Save Page as PDF…=I-save ang Pahina bilang PDF…
+Save Page as Image…=I-save ang Pahina bilang Larawan…
+Page Source=Source ng Pahina
+Downloads=Mga Download
+History=History
+Bookmark This Page=I-bookmark ang Pahinang Ito
+Visit nordstjernen.org=Bisitahin ang nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Kopyahin
+Select All=Piliin Lahat
+Open Link=Buksan ang Link
+Copy Link Address=Kopyahin ang Address ng Link
+Copy Page Address=Kopyahin ang Address ng Pahina
+Copied to clipboard=Nakopya sa clipboard
+Copied link address=Nakopya ang address ng link
+Copied page address=Nakopya ang address ng pahina
+Copied selection=Nakopya ang pinili
+# --- Find bar ---
+Find in page=Hanapin sa pahina
+No results=Walang resulta
+Previous match=Nakaraang tugma
+Next match=Susunod na tugma
+Previous match (Shift+Enter)=Nakaraang tugma (Shift+Enter)
+Next match (Enter)=Susunod na tugma (Enter)
+Close search=Isara ang paghahanap
+Close (Esc)=Isara (Esc)
+# --- Bookmarks ---
+Bookmark this page=I-bookmark ang pahinang ito
+Bookmark added=Naidagdag ang bookmark
+Bookmark removed=Inalis ang bookmark
+Bookmarked — open bookmarks=Naka-bookmark — buksan ang mga bookmark
+Remove bookmark=Alisin ang bookmark
+Remove this bookmark=Alisin ang bookmark na ito
+No bookmarks yet=Wala pang bookmark
+# --- Downloads, saving, printing ---
+Show downloads=Ipakita ang mga download
+Nothing downloaded yet=Wala pang na-download
+Open=Buksan
+Open folder=Buksan ang folder
+Failed=Nabigo
+Could not save page=Hindi ma-save ang pahina
+Save page as PDF=I-save ang pahina bilang PDF
+Save page as PNG=I-save ang pahina bilang PNG
+Print=I-print
+Print this page=I-print ang pahinang ito
+Nothing to print=Walang ipi-print
+Reset zoom=I-reset ang zoom
+Reset zoom (Ctrl+0)=I-reset ang zoom (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=Ang %s ay nasa buong screen na ngayon. Pindutin ang Esc para lumabas.
 You are now in full screen. Press Esc to exit.=Nasa buong screen ka na ngayon. Pindutin ang Esc para lumabas.
+This site wants to use your camera and microphone=Gustong gamitin ng site na ito ang iyong camera at mikropono
+Allow=Payagan
+Allow and trust this site=Payagan at pagkatiwalaan ang site na ito
+Not now=Hindi ngayon
+Dismiss=Isara
+# --- Start page (about:start) ---
+Search=Maghanap
+Search the web=Maghanap sa web
+Search (__ND_SEARCH_NAME__):=Maghanap (__ND_SEARCH_NAME__):
+License=Lisensya
+Privacy=Privacy
+# --- Settings page (about:settings) ---
+General=Pangkalahatan
+Home page=Home page
+Search engine=Search engine
+Custom search URL=Custom na URL ng paghahanap
+Custom…=Custom…
+Cookies=Cookies
+Accept all cookies=Tanggapin ang lahat ng cookie
+Block third-party cookies=I-block ang mga third-party na cookie
+Block all cookies=I-block ang lahat ng cookie
+Send “Do Not Track”=Ipadala ang “Do Not Track”
+Send Global Privacy Control (GPC)=Ipadala ang Global Privacy Control (GPC)
+Strip tracking parameters from links=Alisin ang mga tracking parameter sa mga link
+Try HTTPS first on every site=Subukan muna ang HTTPS sa bawat site
+Block dangerous sites (Google Safe Browsing and a local list)=I-block ang mga mapanganib na site (Google Safe Browsing at isang lokal na listahan)
+Content=Nilalaman
+Load images=I-load ang mga larawan
+Enable JavaScript=I-enable ang JavaScript
+Enable local storage=I-enable ang lokal na storage
+Enable cache=I-enable ang cache
+Clear all browsing data=I-clear ang lahat ng data sa pag-browse
+Browsing data cleared=Na-clear ang data sa pag-browse
+Save=I-save
+Saved.=Na-save.
+Changes apply to newly opened pages.=Ilalapat ang mga pagbabago sa mga bagong bukas na pahina.
+# --- History page (about:history) ---
+Recently visited pages.=Mga kamakailang binisitang pahina.
+No history yet.=Wala pang history.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Tungkol sa Northstar Web Browser
+Version=Bersyon
+Start=Simula
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Isang web browser para sa Windows, Linux at Mac, na isinulat sa C programming language, na may open source na lisensyang GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Ang Northstar Web Browser ay libreng software, na ipinamamahagi sa ilalim ng GNU General Public License, bersyon 3 o mas bago.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Mga abiso tungkol sa third-party na software

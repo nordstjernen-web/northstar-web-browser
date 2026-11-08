@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — French / Français
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Précédent
 Forward=Suivant
 Reload=Recharger
+Stop=Arrêter
 Home=Accueil
+Menu=Menu
 Bookmarks=Marque-pages
 Settings=Paramètres
-Menu=Menu
 Loading=Chargement
 Loading…=Chargement…
+Done=Terminé
+Go back one page=Revenir à la page précédente
+Go forward one page=Aller à la page suivante
+Reload this page=Recharger cette page
+Stop loading this page=Arrêter le chargement de cette page
+Go to the home page=Aller à la page d’accueil
+Address and search bar=Barre d’adresse et de recherche
+Page location=Adresse de la page
+Search or enter a URL=Rechercher ou saisir une URL
+Search for=Rechercher
+Server:=Serveur :
+New Window=Nouvelle fenêtre
+Quit=Quitter
+Continue=Continuer
+Recovered the previous session after an unexpected exit=Session précédente restaurée après une fermeture inattendue
+Failed to load page=Échec du chargement de la page
+Stopped after too many redirects=Arrêté après trop de redirections
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Sécurisé — le certificat est valide
+Not secure — the connection is not encrypted=Non sécurisé — la connexion n’est pas chiffrée
+Not secure — the certificate is not trusted=Non sécurisé — le certificat n’est pas fiable
+Certificate errors are being ignored=Les erreurs de certificat sont ignorées
+# --- Main menu ---
+Find in Page=Rechercher dans la page
+Full Screen=Plein écran
+Zoom In=Zoom avant
+Zoom Out=Zoom arrière
+Reset Zoom=Réinitialiser le zoom
+Print…=Imprimer…
+Save Page As…=Enregistrer la page sous…
+Save Page as PDF…=Enregistrer la page en PDF…
+Save Page as Image…=Enregistrer la page en image…
+Page Source=Code source de la page
+Downloads=Téléchargements
+History=Historique
+Bookmark This Page=Ajouter cette page aux marque-pages
+Visit nordstjernen.org=Visiter nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Copier
 Select All=Tout sélectionner
-Done=Terminé
+Open Link=Ouvrir le lien
+Copy Link Address=Copier l’adresse du lien
+Copy Page Address=Copier l’adresse de la page
+Copied to clipboard=Copié dans le presse-papiers
+Copied link address=Adresse du lien copiée
+Copied page address=Adresse de la page copiée
+Copied selection=Sélection copiée
+# --- Find bar ---
+Find in page=Rechercher dans la page
 No results=Aucun résultat
+Previous match=Occurrence précédente
+Next match=Occurrence suivante
+Previous match (Shift+Enter)=Occurrence précédente (Shift+Enter)
+Next match (Enter)=Occurrence suivante (Enter)
+Close search=Fermer la recherche
+Close (Esc)=Fermer (Esc)
+# --- Bookmarks ---
 Bookmark this page=Ajouter cette page aux marque-pages
 Bookmark added=Marque-page ajouté
+Bookmark removed=Marque-page supprimé
+Bookmarked — open bookmarks=Dans les marque-pages — ouvrir les marque-pages
+Remove bookmark=Supprimer le marque-page
+Remove this bookmark=Supprimer ce marque-page
 No bookmarks yet=Aucun marque-page
+# --- Downloads, saving, printing ---
+Show downloads=Afficher les téléchargements
+Nothing downloaded yet=Aucun téléchargement pour l’instant
+Open=Ouvrir
+Open folder=Ouvrir le dossier
+Failed=Échec
+Could not save page=Impossible d’enregistrer la page
+Save page as PDF=Enregistrer la page en PDF
+Save page as PNG=Enregistrer la page en PNG
+Print=Imprimer
+Print this page=Imprimer cette page
+Nothing to print=Rien à imprimer
+Reset zoom=Réinitialiser le zoom
+Reset zoom (Ctrl+0)=Réinitialiser le zoom (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s est maintenant en plein écran. Appuyez sur Échap pour quitter.
 You are now in full screen. Press Esc to exit.=Vous êtes maintenant en plein écran. Appuyez sur Échap pour quitter.
+This site wants to use your camera and microphone=Ce site souhaite utiliser votre caméra et votre microphone
+Allow=Autoriser
+Allow and trust this site=Autoriser et faire confiance à ce site
+Not now=Plus tard
+Dismiss=Ignorer
+# --- Start page (about:start) ---
+Search=Rechercher
+Search the web=Rechercher sur le Web
+Search (__ND_SEARCH_NAME__):=Rechercher (__ND_SEARCH_NAME__) :
+License=Licence
+Privacy=Vie privée
+# --- Settings page (about:settings) ---
+General=Général
+Home page=Page d’accueil
+Search engine=Moteur de recherche
+Custom search URL=URL de recherche personnalisée
+Custom…=Personnalisé…
+Cookies=Cookies
+Accept all cookies=Accepter tous les cookies
+Block third-party cookies=Bloquer les cookies tiers
+Block all cookies=Bloquer tous les cookies
+Send “Do Not Track”=Envoyer « Ne pas me pister » (Do Not Track)
+Send Global Privacy Control (GPC)=Envoyer Global Privacy Control (GPC)
+Strip tracking parameters from links=Supprimer les paramètres de pistage des liens
+Try HTTPS first on every site=Essayer d’abord HTTPS sur tous les sites
+Block dangerous sites (Google Safe Browsing and a local list)=Bloquer les sites dangereux (Google Safe Browsing et une liste locale)
+Content=Contenu
+Load images=Charger les images
+Enable JavaScript=Activer JavaScript
+Enable local storage=Activer le stockage local
+Enable cache=Activer le cache
+Clear all browsing data=Effacer toutes les données de navigation
+Browsing data cleared=Données de navigation effacées
+Save=Enregistrer
+Saved.=Enregistré.
+Changes apply to newly opened pages.=Les modifications s’appliquent aux pages nouvellement ouvertes.
+# --- History page (about:history) ---
+Recently visited pages.=Pages visitées récemment.
+No history yet.=Aucun historique pour l’instant.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=À propos de Northstar Web Browser
+Version=Version
+Start=Accueil
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Un navigateur web pour Windows, Linux et Mac, écrit en langage C, sous licence libre GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser est un logiciel libre, distribué sous la GNU General Public License, version 3 ou ultérieure.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Mentions des logiciels tiers

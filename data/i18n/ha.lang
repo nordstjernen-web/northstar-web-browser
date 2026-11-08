@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Hausa
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Baya
+Forward=Gaba
+Reload=Sake lodawa
+Stop=Tsaya
+Home=Gida
+Menu=Menu
+Bookmarks=Alamomin shafi
+Settings=Saituna
+Loading=Ana lodawa
+Loading…=Ana lodawa…
+Done=An gama
+Go back one page=Koma shafi ɗaya baya
+Go forward one page=Ci gaba shafi ɗaya
+Reload this page=Sake lodawa wannan shafin
+Stop loading this page=Dakatar da lodawa wannan shafin
+Go to the home page=Je zuwa shafin gida
+Address and search bar=Sandar adireshi da bincike
+Page location=Wurin shafi
+Search or enter a URL=Bincika ko shigar da URL
+Search for=Bincika
+Server:=Sabar:
+New Window=Sabuwar taga
+Quit=Fita
+Continue=Ci gaba
+Recovered the previous session after an unexpected exit=An dawo da zaman da ya gabata bayan fita ba zato ba tsammani
+Failed to load page=An kasa lodawa shafin
+Stopped after too many redirects=An tsaya bayan juyawa da yawa
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Amintacce — takardar shaida tana aiki
+Not secure — the connection is not encrypted=Ba amintacce ba — ba a ɓoye haɗin ba
+Not secure — the certificate is not trusted=Ba amintacce ba — ba a amince da takardar shaida ba
+Certificate errors are being ignored=Ana watsi da kurakuran takardar shaida
+# --- Main menu ---
+Find in Page=Nemo a shafi
+Full Screen=Cikakken allo
+Zoom In=Ƙara girma
+Zoom Out=Rage girma
+Reset Zoom=Sake saita girma
+Print…=Buga…
+Save Page As…=Ajiye shafi kamar…
+Save Page as PDF…=Ajiye shafi a matsayin PDF…
+Save Page as Image…=Ajiye shafi a matsayin hoto…
+Page Source=Tushen shafi
+Downloads=Saukewa
+History=Tarihi
+Bookmark This Page=Yi wa wannan shafin alama
+Visit nordstjernen.org=Ziyarci nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Kwafi
+Select All=Zaɓi duka
+Open Link=Buɗe mahaɗi
+Copy Link Address=Kwafi adireshin mahaɗi
+Copy Page Address=Kwafi adireshin shafi
+Copied to clipboard=An kwafa zuwa allon rubutu
+Copied link address=An kwafi adireshin mahaɗi
+Copied page address=An kwafi adireshin shafi
+Copied selection=An kwafi zaɓi
+# --- Find bar ---
+Find in page=Nemo a shafi
+No results=Babu sakamako
+Previous match=Wanda ya dace na baya
+Next match=Wanda ya dace na gaba
+Previous match (Shift+Enter)=Wanda ya dace na baya (Shift+Enter)
+Next match (Enter)=Wanda ya dace na gaba (Enter)
+Close search=Rufe bincike
+Close (Esc)=Rufe (Esc)
+# --- Bookmarks ---
+Bookmark this page=Yi wa wannan shafin alama
+Bookmark added=An ƙara alamar shafi
+Bookmark removed=An cire alamar shafi
+Bookmarked — open bookmarks=An yi alama — buɗe alamomin shafi
+Remove bookmark=Cire alamar shafi
+Remove this bookmark=Cire wannan alamar shafi
+No bookmarks yet=Babu alamomin shafi tukuna
+# --- Downloads, saving, printing ---
+Show downloads=Nuna saukewa
+Nothing downloaded yet=Ba a sauke komai ba tukuna
+Open=Buɗe
+Open folder=Buɗe babban fayil
+Failed=Ya gaza
+Could not save page=An kasa ajiye shafin
+Save page as PDF=Ajiye shafi a matsayin PDF
+Save page as PNG=Ajiye shafi a matsayin PNG
+Print=Buga
+Print this page=Buga wannan shafin
+Nothing to print=Babu abin bugawa
+Reset zoom=Sake saita girma
+Reset zoom (Ctrl+0)=Sake saita girma (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s yanzu yana cikin cikakken allo. Danna Esc don fita.
+You are now in full screen. Press Esc to exit.=Yanzu kana cikin cikakken allo. Danna Esc don fita.
+This site wants to use your camera and microphone=Wannan shafin yana son amfani da kyamararka da makirufo
+Allow=Bari
+Allow and trust this site=Bari kuma amince da wannan shafin
+Not now=Ba yanzu ba
+Dismiss=Yi watsi
+# --- Start page (about:start) ---
+Search=Bincika
+Search the web=Bincika yanar gizo
+Search (__ND_SEARCH_NAME__):=Bincika (__ND_SEARCH_NAME__):
+License=Lasisi
+Privacy=Sirri
+# --- Settings page (about:settings) ---
+General=Gabaɗaya
+Home page=Shafin gida
+Search engine=Injin bincike
+Custom search URL=URL na bincike na musamman
+Custom…=Na musamman…
+Cookies=Kukis
+Accept all cookies=Karɓi duk kukis
+Block third-party cookies=Toshe kukis na ɓangare na uku
+Block all cookies=Toshe duk kukis
+Send “Do Not Track”=Aika “Do Not Track”
+Send Global Privacy Control (GPC)=Aika Global Privacy Control (GPC)
+Strip tracking parameters from links=Cire sigogin bin diddigi daga mahaɗai
+Try HTTPS first on every site=Gwada HTTPS da farko a kowane shafi
+Block dangerous sites (Google Safe Browsing and a local list)=Toshe shafuka masu haɗari (Google Safe Browsing da jerin gida)
+Content=Abun ciki
+Load images=Loda hotuna
+Enable JavaScript=Kunna JavaScript
+Enable local storage=Kunna ma'ajiyar gida
+Enable cache=Kunna ma'ajiyar wucin gadi
+Clear all browsing data=Share duk bayanan bincike
+Browsing data cleared=An share bayanan bincike
+Save=Ajiye
+Saved.=An ajiye.
+Changes apply to newly opened pages.=Canje-canje suna aiki a sabbin shafukan da aka buɗe.
+# --- History page (about:history) ---
+Recently visited pages.=Shafukan da aka ziyarta kwanan nan.
+No history yet.=Babu tarihi tukuna.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Game da Northstar Web Browser
+Version=Siga
+Start=Farko
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Mai binciken yanar gizo don Windows, Linux da Mac, wanda aka rubuta da yaren shirye-shirye na C, tare da lasisin buɗaɗɗen tushe na GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser manhaja ce ta kyauta, wadda ake rarrabawa ƙarƙashin GNU General Public License, siga ta 3 ko wadda ta biyo baya.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Sanarwar manhajojin ɓangare na uku

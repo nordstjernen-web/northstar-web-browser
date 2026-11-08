@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Hungarian / Magyar
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Vissza
+Forward=Előre
+Reload=Újratöltés
+Stop=Leállítás
+Home=Kezdőlap
+Menu=Menü
+Bookmarks=Könyvjelzők
+Settings=Beállítások
+Loading=Betöltés
+Loading…=Betöltés…
+Done=Kész
+Go back one page=Ugrás egy oldallal vissza
+Go forward one page=Ugrás egy oldallal előre
+Reload this page=Az oldal újratöltése
+Stop loading this page=Az oldal betöltésének leállítása
+Go to the home page=Ugrás a kezdőlapra
+Address and search bar=Cím- és keresősáv
+Page location=Oldal címe
+Search or enter a URL=Keressen, vagy adjon meg egy URL-t
+Search for=Keresés erre:
+Server:=Kiszolgáló:
+New Window=Új ablak
+Quit=Kilépés
+Continue=Folytatás
+Recovered the previous session after an unexpected exit=Az előző munkamenet helyreállítva egy váratlan kilépés után
+Failed to load page=Az oldal betöltése sikertelen
+Stopped after too many redirects=Leállítva túl sok átirányítás miatt
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Biztonságos — a tanúsítvány érvényes
+Not secure — the connection is not encrypted=Nem biztonságos — a kapcsolat nem titkosított
+Not secure — the certificate is not trusted=Nem biztonságos — a tanúsítvány nem megbízható
+Certificate errors are being ignored=A tanúsítványhibák figyelmen kívül hagyva
+# --- Main menu ---
+Find in Page=Keresés az oldalon
+Full Screen=Teljes képernyő
+Zoom In=Nagyítás
+Zoom Out=Kicsinyítés
+Reset Zoom=Nagyítás visszaállítása
+Print…=Nyomtatás…
+Save Page As…=Oldal mentése másként…
+Save Page as PDF…=Oldal mentése PDF-ként…
+Save Page as Image…=Oldal mentése képként…
+Page Source=Oldal forrása
+Downloads=Letöltések
+History=Előzmények
+Bookmark This Page=Oldal hozzáadása a könyvjelzőkhöz
+Visit nordstjernen.org=A nordstjernen.org meglátogatása
+# --- Context menu, clipboard ---
+Copy=Másolás
+Select All=Összes kijelölése
+Open Link=Hivatkozás megnyitása
+Copy Link Address=Hivatkozás címének másolása
+Copy Page Address=Oldal címének másolása
+Copied to clipboard=Vágólapra másolva
+Copied link address=Hivatkozás címe másolva
+Copied page address=Oldal címe másolva
+Copied selection=Kijelölés másolva
+# --- Find bar ---
+Find in page=Keresés az oldalon
+No results=Nincs találat
+Previous match=Előző találat
+Next match=Következő találat
+Previous match (Shift+Enter)=Előző találat (Shift+Enter)
+Next match (Enter)=Következő találat (Enter)
+Close search=Keresés bezárása
+Close (Esc)=Bezárás (Esc)
+# --- Bookmarks ---
+Bookmark this page=Oldal hozzáadása a könyvjelzőkhöz
+Bookmark added=Könyvjelző hozzáadva
+Bookmark removed=Könyvjelző eltávolítva
+Bookmarked — open bookmarks=Könyvjelzők között — könyvjelzők megnyitása
+Remove bookmark=Könyvjelző eltávolítása
+Remove this bookmark=E könyvjelző eltávolítása
+No bookmarks yet=Még nincsenek könyvjelzők
+# --- Downloads, saving, printing ---
+Show downloads=Letöltések megjelenítése
+Nothing downloaded yet=Még nincs letöltés
+Open=Megnyitás
+Open folder=Mappa megnyitása
+Failed=Sikertelen
+Could not save page=Az oldal mentése sikertelen
+Save page as PDF=Oldal mentése PDF-ként
+Save page as PNG=Oldal mentése PNG-ként
+Print=Nyomtatás
+Print this page=Az oldal nyomtatása
+Nothing to print=Nincs mit nyomtatni
+Reset zoom=Nagyítás visszaállítása
+Reset zoom (Ctrl+0)=Nagyítás visszaállítása (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s most teljes képernyős. Kilépéshez nyomja meg az Esc billentyűt.
 You are now in full screen. Press Esc to exit.=Most teljes képernyős módban van. Kilépéshez nyomja meg az Esc billentyűt.
+This site wants to use your camera and microphone=Ez a webhely használni szeretné a kameráját és a mikrofonját
+Allow=Engedélyezés
+Allow and trust this site=Engedélyezés és a webhely megbízhatónak jelölése
+Not now=Most nem
+Dismiss=Elvetés
+# --- Start page (about:start) ---
+Search=Keresés
+Search the web=Keresés a weben
+Search (__ND_SEARCH_NAME__):=Keresés (__ND_SEARCH_NAME__):
+License=Licenc
+Privacy=Adatvédelem
+# --- Settings page (about:settings) ---
+General=Általános
+Home page=Kezdőlap
+Search engine=Keresőszolgáltatás
+Custom search URL=Egyéni keresési URL
+Custom…=Egyéni…
+Cookies=Sütik
+Accept all cookies=Minden süti elfogadása
+Block third-party cookies=Harmadik féltől származó sütik blokkolása
+Block all cookies=Minden süti blokkolása
+Send “Do Not Track”=„Ne kövessenek” jelzés küldése
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) küldése
+Strip tracking parameters from links=Követési paraméterek eltávolítása a hivatkozásokból
+Try HTTPS first on every site=HTTPS kipróbálása először minden webhelyen
+Block dangerous sites (Google Safe Browsing and a local list)=Veszélyes webhelyek blokkolása (Google Safe Browsing és helyi lista)
+Content=Tartalom
+Load images=Képek betöltése
+Enable JavaScript=JavaScript engedélyezése
+Enable local storage=Helyi tároló engedélyezése
+Enable cache=Gyorsítótár engedélyezése
+Clear all browsing data=Minden böngészési adat törlése
+Browsing data cleared=Böngészési adatok törölve
+Save=Mentés
+Saved.=Mentve.
+Changes apply to newly opened pages.=A változások az újonnan megnyitott oldalakra érvényesek.
+# --- History page (about:history) ---
+Recently visited pages.=Nemrég meglátogatott oldalak.
+No history yet.=Még nincsenek előzmények.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=A Northstar Web Browser névjegye
+Version=Verzió
+Start=Kezdés
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Webböngésző Windowsra, Linuxra és Macre, C programozási nyelven írva, nyílt forráskódú GPL licenccel.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=A Northstar Web Browser szabad szoftver, amelyet a GNU General Public License 3-as vagy későbbi verziója alapján terjesztenek.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Harmadik féltől származó szoftverekre vonatkozó közlemények

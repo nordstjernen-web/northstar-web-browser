@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Polish / Polski
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Wstecz
 Forward=Dalej
 Reload=Odśwież
+Stop=Zatrzymaj
 Home=Strona główna
+Menu=Menu
 Bookmarks=Zakładki
 Settings=Ustawienia
-Menu=Menu
 Loading=Ładowanie
 Loading…=Ładowanie…
+Done=Gotowe
+Go back one page=Przejdź do poprzedniej strony
+Go forward one page=Przejdź do następnej strony
+Reload this page=Odśwież tę stronę
+Stop loading this page=Zatrzymaj wczytywanie tej strony
+Go to the home page=Przejdź do strony głównej
+Address and search bar=Pasek adresu i wyszukiwania
+Page location=Adres strony
+Search or enter a URL=Wyszukaj lub wpisz adres URL
+Search for=Szukaj
+Server:=Serwer:
+New Window=Nowe okno
+Quit=Zakończ
+Continue=Kontynuuj
+Recovered the previous session after an unexpected exit=Przywrócono poprzednią sesję po nieoczekiwanym zamknięciu
+Failed to load page=Nie udało się wczytać strony
+Stopped after too many redirects=Zatrzymano po zbyt wielu przekierowaniach
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Bezpieczne — certyfikat jest ważny
+Not secure — the connection is not encrypted=Niezabezpieczone — połączenie nie jest szyfrowane
+Not secure — the certificate is not trusted=Niezabezpieczone — certyfikat nie jest zaufany
+Certificate errors are being ignored=Błędy certyfikatu są ignorowane
+# --- Main menu ---
+Find in Page=Znajdź na stronie
+Full Screen=Pełny ekran
+Zoom In=Powiększ
+Zoom Out=Pomniejsz
+Reset Zoom=Resetuj powiększenie
+Print…=Drukuj…
+Save Page As…=Zapisz stronę jako…
+Save Page as PDF…=Zapisz stronę jako PDF…
+Save Page as Image…=Zapisz stronę jako obraz…
+Page Source=Źródło strony
+Downloads=Pobrane
+History=Historia
+Bookmark This Page=Dodaj tę stronę do zakładek
+Visit nordstjernen.org=Odwiedź nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Kopiuj
 Select All=Zaznacz wszystko
-Done=Gotowe
+Open Link=Otwórz odnośnik
+Copy Link Address=Kopiuj adres odnośnika
+Copy Page Address=Kopiuj adres strony
+Copied to clipboard=Skopiowano do schowka
+Copied link address=Skopiowano adres odnośnika
+Copied page address=Skopiowano adres strony
+Copied selection=Skopiowano zaznaczenie
+# --- Find bar ---
+Find in page=Znajdź na stronie
 No results=Brak wyników
+Previous match=Poprzednie wystąpienie
+Next match=Następne wystąpienie
+Previous match (Shift+Enter)=Poprzednie wystąpienie (Shift+Enter)
+Next match (Enter)=Następne wystąpienie (Enter)
+Close search=Zamknij wyszukiwanie
+Close (Esc)=Zamknij (Esc)
+# --- Bookmarks ---
 Bookmark this page=Dodaj tę stronę do zakładek
 Bookmark added=Dodano zakładkę
+Bookmark removed=Usunięto zakładkę
+Bookmarked — open bookmarks=Dodano do zakładek — otwórz zakładki
+Remove bookmark=Usuń zakładkę
+Remove this bookmark=Usuń tę zakładkę
 No bookmarks yet=Nie ma jeszcze zakładek
+# --- Downloads, saving, printing ---
+Show downloads=Pokaż pobrane
+Nothing downloaded yet=Nic jeszcze nie pobrano
+Open=Otwórz
+Open folder=Otwórz folder
+Failed=Niepowodzenie
+Could not save page=Nie można zapisać strony
+Save page as PDF=Zapisz stronę jako PDF
+Save page as PNG=Zapisz stronę jako PNG
+Print=Drukuj
+Print this page=Drukuj tę stronę
+Nothing to print=Nie ma nic do wydrukowania
+Reset zoom=Resetuj powiększenie
+Reset zoom (Ctrl+0)=Resetuj powiększenie (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s jest teraz w trybie pełnoekranowym. Naciśnij Esc, aby wyjść.
 You are now in full screen. Press Esc to exit.=Jesteś teraz w trybie pełnoekranowym. Naciśnij Esc, aby wyjść.
+This site wants to use your camera and microphone=Ta witryna chce używać kamery i mikrofonu
+Allow=Zezwól
+Allow and trust this site=Zezwól i ufaj tej witrynie
+Not now=Nie teraz
+Dismiss=Odrzuć
+# --- Start page (about:start) ---
+Search=Szukaj
+Search the web=Szukaj w sieci
+Search (__ND_SEARCH_NAME__):=Szukaj (__ND_SEARCH_NAME__):
+License=Licencja
+Privacy=Prywatność
+# --- Settings page (about:settings) ---
+General=Ogólne
+Home page=Strona startowa
+Search engine=Wyszukiwarka
+Custom search URL=Własny adres URL wyszukiwania
+Custom…=Własna…
+Cookies=Ciasteczka
+Accept all cookies=Akceptuj wszystkie ciasteczka
+Block third-party cookies=Blokuj ciasteczka innych firm
+Block all cookies=Blokuj wszystkie ciasteczka
+Send “Do Not Track”=Wysyłaj „Do Not Track”
+Send Global Privacy Control (GPC)=Wysyłaj Global Privacy Control (GPC)
+Strip tracking parameters from links=Usuwaj parametry śledzące z odnośników
+Try HTTPS first on every site=Najpierw próbuj HTTPS na każdej witrynie
+Block dangerous sites (Google Safe Browsing and a local list)=Blokuj niebezpieczne witryny (Google Safe Browsing i lista lokalna)
+Content=Treść
+Load images=Wczytuj obrazy
+Enable JavaScript=Włącz JavaScript
+Enable local storage=Włącz pamięć lokalną
+Enable cache=Włącz pamięć podręczną
+Clear all browsing data=Wyczyść wszystkie dane przeglądania
+Browsing data cleared=Wyczyszczono dane przeglądania
+Save=Zapisz
+Saved.=Zapisano.
+Changes apply to newly opened pages.=Zmiany dotyczą nowo otwieranych stron.
+# --- History page (about:history) ---
+Recently visited pages.=Ostatnio odwiedzane strony.
+No history yet.=Historia jest jeszcze pusta.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=O programie Northstar Web Browser
+Version=Wersja
+Start=Start
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Przeglądarka internetowa dla systemów Windows, Linux i Mac, napisana w języku programowania C, na otwartej licencji GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser jest wolnym oprogramowaniem rozpowszechnianym na warunkach GNU General Public License w wersji 3 lub późniejszej.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Informacje o oprogramowaniu innych firm

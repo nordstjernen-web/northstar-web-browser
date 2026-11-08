@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Thai / ไทย
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=ย้อนกลับ
+Forward=ไปข้างหน้า
+Reload=โหลดใหม่
+Stop=หยุด
+Home=หน้าแรก
+Menu=เมนู
+Bookmarks=ที่คั่นหน้า
+Settings=การตั้งค่า
+Loading=กำลังโหลด
+Loading…=กำลังโหลด…
+Done=เสร็จสิ้น
+Go back one page=ย้อนกลับหนึ่งหน้า
+Go forward one page=ไปข้างหน้าหนึ่งหน้า
+Reload this page=โหลดหน้านี้ใหม่
+Stop loading this page=หยุดโหลดหน้านี้
+Go to the home page=ไปที่หน้าแรก
+Address and search bar=แถบที่อยู่และการค้นหา
+Page location=ตำแหน่งหน้า
+Search or enter a URL=ค้นหาหรือป้อน URL
+Search for=ค้นหา
+Server:=เซิร์ฟเวอร์:
+New Window=หน้าต่างใหม่
+Quit=ออก
+Continue=ดำเนินการต่อ
+Recovered the previous session after an unexpected exit=กู้คืนเซสชันก่อนหน้าหลังจากการปิดโดยไม่คาดคิด
+Failed to load page=โหลดหน้าไม่สำเร็จ
+Stopped after too many redirects=หยุดแล้วเนื่องจากมีการเปลี่ยนเส้นทางมากเกินไป
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=ปลอดภัย — ใบรับรองถูกต้อง
+Not secure — the connection is not encrypted=ไม่ปลอดภัย — การเชื่อมต่อไม่ได้เข้ารหัส
+Not secure — the certificate is not trusted=ไม่ปลอดภัย — ใบรับรองไม่น่าเชื่อถือ
+Certificate errors are being ignored=กำลังละเว้นข้อผิดพลาดของใบรับรอง
+# --- Main menu ---
+Find in Page=ค้นหาในหน้า
+Full Screen=เต็มหน้าจอ
+Zoom In=ขยาย
+Zoom Out=ย่อ
+Reset Zoom=รีเซ็ตการซูม
+Print…=พิมพ์…
+Save Page As…=บันทึกหน้าเป็น…
+Save Page as PDF…=บันทึกหน้าเป็น PDF…
+Save Page as Image…=บันทึกหน้าเป็นภาพ…
+Page Source=ซอร์สของหน้า
+Downloads=การดาวน์โหลด
+History=ประวัติ
+Bookmark This Page=เพิ่มหน้านี้ในที่คั่นหน้า
+Visit nordstjernen.org=เยี่ยมชม nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=คัดลอก
+Select All=เลือกทั้งหมด
+Open Link=เปิดลิงก์
+Copy Link Address=คัดลอกที่อยู่ลิงก์
+Copy Page Address=คัดลอกที่อยู่หน้า
+Copied to clipboard=คัดลอกไปยังคลิปบอร์ดแล้ว
+Copied link address=คัดลอกที่อยู่ลิงก์แล้ว
+Copied page address=คัดลอกที่อยู่หน้าแล้ว
+Copied selection=คัดลอกส่วนที่เลือกแล้ว
+# --- Find bar ---
+Find in page=ค้นหาในหน้า
+No results=ไม่พบผลลัพธ์
+Previous match=รายการที่ตรงกันก่อนหน้า
+Next match=รายการที่ตรงกันถัดไป
+Previous match (Shift+Enter)=รายการที่ตรงกันก่อนหน้า (Shift+Enter)
+Next match (Enter)=รายการที่ตรงกันถัดไป (Enter)
+Close search=ปิดการค้นหา
+Close (Esc)=ปิด (Esc)
+# --- Bookmarks ---
+Bookmark this page=เพิ่มหน้านี้ในที่คั่นหน้า
+Bookmark added=เพิ่มที่คั่นหน้าแล้ว
+Bookmark removed=ลบที่คั่นหน้าแล้ว
+Bookmarked — open bookmarks=คั่นหน้าแล้ว — เปิดที่คั่นหน้า
+Remove bookmark=ลบที่คั่นหน้า
+Remove this bookmark=ลบที่คั่นหน้านี้
+No bookmarks yet=ยังไม่มีที่คั่นหน้า
+# --- Downloads, saving, printing ---
+Show downloads=แสดงการดาวน์โหลด
+Nothing downloaded yet=ยังไม่มีการดาวน์โหลด
+Open=เปิด
+Open folder=เปิดโฟลเดอร์
+Failed=ล้มเหลว
+Could not save page=ไม่สามารถบันทึกหน้าได้
+Save page as PDF=บันทึกหน้าเป็น PDF
+Save page as PNG=บันทึกหน้าเป็น PNG
+Print=พิมพ์
+Print this page=พิมพ์หน้านี้
+Nothing to print=ไม่มีอะไรให้พิมพ์
+Reset zoom=รีเซ็ตการซูม
+Reset zoom (Ctrl+0)=รีเซ็ตการซูม (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s แสดงผลเต็มหน้าจอแล้ว กด Esc เพื่อออก
+You are now in full screen. Press Esc to exit.=คุณอยู่ในโหมดเต็มหน้าจอแล้ว กด Esc เพื่อออก
+This site wants to use your camera and microphone=ไซต์นี้ต้องการใช้กล้องและไมโครโฟนของคุณ
+Allow=อนุญาต
+Allow and trust this site=อนุญาตและเชื่อถือไซต์นี้
+Not now=ไม่ใช่ตอนนี้
+Dismiss=ปิด
+# --- Start page (about:start) ---
+Search=ค้นหา
+Search the web=ค้นหาเว็บ
+Search (__ND_SEARCH_NAME__):=ค้นหา (__ND_SEARCH_NAME__):
+License=สัญญาอนุญาต
+Privacy=ความเป็นส่วนตัว
+# --- Settings page (about:settings) ---
+General=ทั่วไป
+Home page=หน้าแรก
+Search engine=เครื่องมือค้นหา
+Custom search URL=URL การค้นหาที่กำหนดเอง
+Custom…=กำหนดเอง…
+Cookies=คุกกี้
+Accept all cookies=ยอมรับคุกกี้ทั้งหมด
+Block third-party cookies=ปิดกั้นคุกกี้ของบุคคลที่สาม
+Block all cookies=ปิดกั้นคุกกี้ทั้งหมด
+Send “Do Not Track”=ส่งสัญญาณ “Do Not Track”
+Send Global Privacy Control (GPC)=ส่งสัญญาณ Global Privacy Control (GPC)
+Strip tracking parameters from links=ลบพารามิเตอร์การติดตามออกจากลิงก์
+Try HTTPS first on every site=ลองใช้ HTTPS ก่อนในทุกไซต์
+Block dangerous sites (Google Safe Browsing and a local list)=ปิดกั้นไซต์อันตราย (Google Safe Browsing และรายการในเครื่อง)
+Content=เนื้อหา
+Load images=โหลดภาพ
+Enable JavaScript=เปิดใช้งาน JavaScript
+Enable local storage=เปิดใช้งานพื้นที่จัดเก็บในเครื่อง
+Enable cache=เปิดใช้งานแคช
+Clear all browsing data=ล้างข้อมูลการท่องเว็บทั้งหมด
+Browsing data cleared=ล้างข้อมูลการท่องเว็บแล้ว
+Save=บันทึก
+Saved.=บันทึกแล้ว
+Changes apply to newly opened pages.=การเปลี่ยนแปลงจะมีผลกับหน้าที่เปิดใหม่
+# --- History page (about:history) ---
+Recently visited pages.=หน้าที่เยี่ยมชมล่าสุด
+No history yet.=ยังไม่มีประวัติ
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=เกี่ยวกับ Northstar Web Browser
+Version=รุ่น
+Start=หน้าเริ่มต้น
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=เว็บเบราว์เซอร์สำหรับ Windows, Linux และ Mac เขียนด้วยภาษาโปรแกรม C ภายใต้สัญญาอนุญาตโอเพนซอร์ส GPL
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser เป็นซอฟต์แวร์เสรี เผยแพร่ภายใต้ GNU General Public License รุ่น 3 หรือใหม่กว่า
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=ประกาศเกี่ยวกับซอฟต์แวร์ของบุคคลที่สาม

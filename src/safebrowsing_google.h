@@ -1,0 +1,24 @@
+/* Northstar Web Browser — Google Safe Browsing v5 local-list client.
+ * Copyright 2026 Andreas Røsdal
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef NS_SAFEBROWSING_GOOGLE_H
+#define NS_SAFEBROWSING_GOOGLE_H
+
+#include "safebrowsing.h"
+
+G_BEGIN_DECLS
+
+#define NS_SBG_API_VERSION "v5"
+#define NS_SBG_API_MODE    "local-list mode"
+
+gboolean      ns_sbg_available(void);
+void          ns_sbg_start(void);
+ns_sb_verdict ns_sbg_check_url(const char *url);
+gboolean      ns_sbg_have_key(void);
+void          ns_sbg_get_stats(ns_sb_stats *out);
+
+G_END_DECLS
+
+#endif

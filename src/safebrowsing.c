@@ -1,5 +1,5 @@
-/* Northstar Web Browser — local phishing/malware blocklist of SHA-256 host hashes.
- * Checks the host and parent domains, supports session allow-lists, builds the warning page.
+/* Northstar Web Browser — phishing/malware checks: a local blocklist of SHA-256 host hashes
+ * (host and parent domains) and Google Safe Browsing, session allow-lists, and the warning page.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -8,6 +8,8 @@
 #define _GNU_SOURCE
 #endif
 #include "safebrowsing.h"
+#include "safebrowsing_google.h"
+#include "config.h"
 #include "net.h"
 
 #include <string.h>
@@ -19,6 +21,8 @@ static GHashTable *g_allow;
 static gboolean    g_loaded;
 /* Queried from the network and engine threads; guards the three above. */
 static GMutex      g_sb_lock;
+static gint        g_checks;
+static gint        g_local_blocks;
 
 /* Returns the lowercase hex SHA-256 of the lowercased host; caller frees. */
 static char *
@@ -138,7 +142,8 @@ ns_safebrowsing_allow_host(const char *host)
 gboolean
 ns_safebrowsing_blocked(const char *host)
 {
-    if (!host || !*host)
+    const ns_config *cfg = ns_config_get();
+    if (!host || !*host || (cfg && !cfg->safe_browsing))
         return FALSE;
     g_mutex_lock(&g_sb_lock);
     ensure_loaded();
@@ -168,9 +173,109 @@ ns_safebrowsing_blocked(const char *host)
     return hit;
 }
 
+/* True if the user chose to continue to this host earlier in the session. */
+static gboolean
+ns_safebrowsing_host_allowed(const char *host)
+{
+    char *low = g_ascii_strdown(host, -1);
+    for (gsize ln = strlen(low); ln > 0 && low[ln - 1] == '.'; ln--)
+        low[ln - 1] = '\0';
+    g_mutex_lock(&g_sb_lock);
+    ensure_loaded();
+    gboolean allowed = g_hash_table_contains(g_allow, low);
+    g_mutex_unlock(&g_sb_lock);
+    g_free(low);
+    return allowed;
+}
+
+/* Checks a URL against the local list, then Google Safe Browsing. */
+ns_sb_verdict
+ns_safebrowsing_check_url(const char *url)
+{
+    const ns_config *cfg = ns_config_get();
+    if (!url || (cfg && !cfg->safe_browsing))
+        return NS_SB_SAFE;
+    g_autofree char *host = ns_url_host_from(url);
+    if (!host || !*host || ns_safebrowsing_host_allowed(host))
+        return NS_SB_SAFE;
+    g_atomic_int_inc(&g_checks);
+    if (ns_safebrowsing_blocked(host)) {
+        g_atomic_int_inc(&g_local_blocks);
+        return NS_SB_LOCAL_LIST;
+    }
+    return ns_sbg_check_url(url);
+}
+
+/* Fills in the status, list sizes and session counters for about:northstar. */
+void
+ns_safebrowsing_get_stats(ns_sb_stats *out)
+{
+    memset(out, 0, sizeof *out);
+    const ns_config *cfg = ns_config_get();
+    out->enabled = !cfg || cfg->safe_browsing;
+    g_mutex_lock(&g_sb_lock);
+    ensure_loaded();
+    out->local_hosts = g_hash_table_size(g_blocked);
+    g_mutex_unlock(&g_sb_lock);
+    out->checks = (guint)g_atomic_int_get(&g_checks);
+    out->local_blocks = (guint)g_atomic_int_get(&g_local_blocks);
+    ns_sbg_get_stats(out);
+}
+
+static const char *
+interstitial_heading(ns_sb_verdict verdict)
+{
+    switch (verdict) {
+    case NS_SB_MALWARE:
+        return "Dangerous site ahead";
+    case NS_SB_UNWANTED_SOFTWARE:
+        return "Site ahead offers harmful programs";
+    default:
+        return "Deceptive site ahead";
+    }
+}
+
+static const char *
+interstitial_summary(ns_sb_verdict verdict)
+{
+    switch (verdict) {
+    case NS_SB_SOCIAL_ENGINEERING:
+        return "This site is known for phishing. It may pretend to be a site "
+               "you trust to get your passwords, payment details or other "
+               "personal information.";
+    case NS_SB_MALWARE:
+        return "This site is known to spread malware. Visiting it may install "
+               "programs that steal or damage the information on your device.";
+    case NS_SB_UNWANTED_SOFTWARE:
+        return "This site is known to push unwanted software. It may try to "
+               "get you to install programs that change your browser or slow "
+               "down your device.";
+    default:
+        return "Northstar Web Browser blocked this page because the site "
+               "below is on your local list of known phishing or malware hosts. "
+               "Attackers there may try to trick you into revealing passwords or "
+               "payment details, or to install harmful software.";
+    }
+}
+
+static const char *
+interstitial_details(ns_sb_verdict verdict)
+{
+    if (verdict == NS_SB_LOCAL_LIST)
+        return "This check runs entirely on your device against a local list "
+               "\xe2\x80\x94 nothing about the page you visited was sent anywhere.";
+    return "Google Safe Browsing lists this site as unsafe. Northstar checks "
+           "addresses against a list kept on your device and only asks Google "
+           "about a short, anonymous fragment of a hash of the address, never "
+           "the address itself. Advisory provided by Google: <a href=\""
+           "https://developers.google.com/safe-browsing/v4/advisory\">"
+           "About Safe Browsing advisories</a>.";
+}
+
 /* Builds the HTML warning page for a blocked URL; caller frees. */
 char *
-ns_safebrowsing_interstitial(const char *url, const char *host)
+ns_safebrowsing_interstitial(const char *url, const char *host,
+                             ns_sb_verdict verdict)
 {
     char *esc_url = g_markup_escape_text(url && *url ? url : "", -1);
     char *esc_host = g_markup_escape_text(host && *host ? host : "", -1);
@@ -207,23 +312,20 @@ ns_safebrowsing_interstitial(const char *url, const char *host)
         "color:#555;font-size:13px}"
         "</style></head><body><div class=\"card\">"
         "<div class=\"icon\">\xe2\x9a\xa0\xef\xb8\x8f</div>"
-        "<h1>Deceptive site ahead</h1>"
-        "<p class=\"summary\">Northstar Web Browser blocked this page because the site "
-        "below is on your local list of known phishing or malware hosts. "
-        "Attackers there may try to trick you into revealing passwords or "
-        "payment details, or to install harmful software.</p>"
+        "<h1>%s</h1>"
+        "<p class=\"summary\">%s</p>"
         "<p class=\"host\">%s</p>"
         "<div class=\"actions\">"
         "<a class=\"btn primary\" href=\"about:start\">Back to safety</a>"
         "<a class=\"btn danger\" href=\"%s\">Continue anyway "
         "(not recommended)</a>"
         "</div>"
-        "<div class=\"tips\">This check runs entirely on your device against a "
-        "local list — nothing about the page you visited was sent anywhere. "
+        "<div class=\"tips\">%s "
         "The blocked address was <span style=\"font-family:ui-monospace,"
         "monospace;overflow-wrap:anywhere\">%s</span>.</div>"
         "</div></body></html>",
-        esc_host, esc_continue, esc_url);
+        interstitial_heading(verdict), interstitial_summary(verdict),
+        esc_host, esc_continue, interstitial_details(verdict), esc_url);
 
     g_free(esc_url);
     g_free(esc_host);

@@ -368,6 +368,7 @@ Others the browser reads:
 
 | Variable | Effect |
 |----------|--------|
+| `NS_SAFE_BROWSING_API_KEY` | Google Safe Browsing API key. Read at build time into the generated `ns_sb_key.h` (release builds get it from the repository secret); set at run time it overrides the built-in key. Without a key only the local blocklist is used. |
 | `NS_SAFEBROWSING_LIST` | Blocklist file used instead of `~/.config/northstar/safebrowsing.list` and the bundled list. |
 | `NS_EXTENSIONS_DIR` | WebExtensions directory (default `~/.local/share/northstar-extensions`). |
 | `NS_I18N_DIR` | Directory of the `.lang` UI catalogues. |

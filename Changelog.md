@@ -2,6 +2,22 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.22-dev:
+=======
+* Security: Google Safe Browsing. Every navigation and redirect is checked
+  against Google's phishing, malware and unwanted-software lists (Safe
+  Browsing v5, local-list mode) as well as the local blocklist, and a match
+  shows a warning page that names the threat. The hash-prefix lists are kept
+  on the device and verified against Google's SHA-256 checksum; only a
+  4-byte prefix is sent to Google, and only when an address matches one. On
+  by default, switched off with Settings → Privacy → "Block dangerous
+  sites". The API key is read from `NS_SAFE_BROWSING_API_KEY` at build
+  time, which the CI workflows take from a repository secret; a build
+  without a key keeps the local blocklist only. about:northstar gains a
+  Safe Browsing section with the status, each list's size and update times,
+  and the session's check, lookup and block counts. Ported from
+  Nordstjernen Sol.
+
 1.0.21:
 =======
 * Dependencies: quickjs-ng updated to 0.18.0 plus three later upstream

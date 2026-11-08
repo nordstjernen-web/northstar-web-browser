@@ -16,6 +16,7 @@
 #include "html.h"
 #include "image.h"
 #include "safebrowsing.h"
+#include "safebrowsing_google.h"
 #include "security.h"
 
 #include <curl/curl.h>
@@ -3062,6 +3063,103 @@ diag_feature(GString *s, const char *key, gboolean on)
         key, on ? "on" : "off", on ? "Enabled" : "Not built");
 }
 
+/* Formats a count with thousands separators; caller frees. */
+static char *
+diag_count(guint64 n)
+{
+    char digits[32];
+    g_snprintf(digits, sizeof digits, "%" G_GUINT64_FORMAT, n);
+    GString *out = g_string_new(NULL);
+    gsize len = strlen(digits);
+    for (gsize i = 0; i < len; i++) {
+        if (i > 0 && (len - i) % 3 == 0)
+            g_string_append_c(out, ',');
+        g_string_append_c(out, digits[i]);
+    }
+    return g_string_free(out, FALSE);
+}
+
+/* Formats a Unix time relative to now ("5 min ago", "in 2 h"); caller frees. */
+static char *
+diag_relative_time(gint64 when, gint64 now)
+{
+    gint64 delta = when - now;
+    gboolean future = delta > 0;
+    gint64 mag = future ? delta : -delta;
+    char *span;
+    if (mag < 60)
+        span = g_strdup("less than a minute");
+    else if (mag < 7200)
+        span = g_strdup_printf("%d min", (int)(mag / 60));
+    else if (mag < 172800)
+        span = g_strdup_printf("%d h", (int)(mag / 3600));
+    else
+        span = g_strdup_printf("%d days", (int)(mag / 86400));
+    char *out = future ? g_strdup_printf("in %s", span)
+                       : g_strdup_printf("%s ago", span);
+    g_free(span);
+    return out;
+}
+
+/* Appends the Safe Browsing status, list sizes and session counters. */
+static void
+diag_safe_browsing(GString *s)
+{
+    static const char *const list_labels[NS_SB_GOOGLE_LISTS] = {
+        "Phishing list", "Malware list", "Unwanted software list",
+    };
+    ns_sb_stats st;
+    ns_safebrowsing_get_stats(&st);
+    gint64 now = g_get_real_time() / G_USEC_PER_SEC;
+    g_string_append(s, "<h3>Safe Browsing</h3>");
+    gboolean google = st.enabled && st.have_key;
+    diag_kv(s, "Google Safe Browsing",
+            !st.enabled ? "Off in Settings"
+            : !st.have_key ? "No API key in this build (local list only)"
+            : "On");
+    if (google)
+        diag_kv(s, "API", "Google Safe Browsing " NS_SBG_API_VERSION ", "
+                NS_SBG_API_MODE);
+    g_autofree char *hosts = diag_count(st.local_hosts);
+    g_autofree char *local = g_strdup_printf("%s %s", hosts,
+                                             st.local_hosts == 1 ? "host" : "hosts");
+    diag_kv(s, "Local blocklist", st.enabled ? local : "Off");
+    if (google) {
+        for (gsize i = 0; i < NS_SB_GOOGLE_LISTS; i++) {
+            const ns_sb_list_stats *ls = &st.lists[i];
+            g_autofree char *label = g_strdup_printf("%s (%s)", list_labels[i],
+                                                     ls->name);
+            if (!ls->present) {
+                diag_kv(s, label, "Not downloaded yet");
+                continue;
+            }
+            g_autofree char *count = diag_count(ls->prefixes);
+            g_autofree char *updated = diag_relative_time(ls->updated, now);
+            g_autofree char *next = ls->next_update > now
+                ? diag_relative_time(ls->next_update, now) : g_strdup("due now");
+            g_autofree char *value = g_strdup_printf(
+                "%s prefixes, updated %s, next update %s", count, updated, next);
+            diag_kv(s, label, value);
+        }
+    }
+    g_autofree char *checks = diag_count(st.checks);
+    diag_kv(s, "Addresses checked this session", checks);
+    g_autofree char *local_blocks = diag_count(st.local_blocks);
+    diag_kv(s, "Blocked by the local list", local_blocks);
+    if (google) {
+        g_autofree char *matches = diag_count(st.prefix_matches);
+        diag_kv(s, "Hash-prefix matches", matches);
+        g_autofree char *searches = diag_count(st.searches);
+        g_autofree char *failures = diag_count(st.search_failures);
+        g_autofree char *lookups = st.search_failures
+            ? g_strdup_printf("%s (%s failed)", searches, failures)
+            : g_strdup(searches);
+        diag_kv(s, "Prefix lookups sent to Google", lookups);
+        g_autofree char *blocks = diag_count(st.google_blocks);
+        diag_kv(s, "Blocked by Google Safe Browsing", blocks);
+    }
+}
+
 /* Builds the about-page diagnostics block: OS, versions of libraries, build features. */
 static char *
 about_diagnostics_html(void)
@@ -3144,6 +3242,8 @@ about_diagnostics_html(void)
 #else
     diag_feature(s, "Seccomp sandbox", FALSE);
 #endif
+
+    diag_safe_browsing(s);
 
     g_string_append(s, "</div>");
     return g_string_free(s, FALSE);
@@ -4669,6 +4769,8 @@ static const char k_about_settings_html[] =
 "Strip tracking parameters from links</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"https_first\">"
 "Try HTTPS first on every site</label>"
+"<label class=\"toggle\"><input type=\"checkbox\" id=\"safe_browsing\">"
+"Block dangerous sites (Google Safe Browsing and a local list)</label>"
 "</section>\n"
 "<section class=\"card\"><h2>Content</h2>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"images_enabled\">"
@@ -4713,8 +4815,8 @@ static const char k_about_settings_html[] =
 "$('search_engine').value=c.search_engine||'';buildPick(c.search_engine||'');"
 "$('cookie_policy').value=''+(c.cookie_policy||0);"
 "['do_not_track','global_privacy_control','strip_tracking_params',"
-"'https_first','images_enabled','javascript_enabled','local_storage_enabled',"
-"'cache_enabled'].forEach(function(k){$(k).checked=!!c[k];});});}\n"
+"'https_first','safe_browsing','images_enabled','javascript_enabled',"
+"'local_storage_enabled','cache_enabled'].forEach(function(k){$(k).checked=!!c[k];});});}\n"
 "function bv(id){return $(id).checked?'1':'0';}\n"
 "function save(){var se=$('search_pick').value;"
 "if(se!=='custom')$('search_engine').value=se;"
@@ -4724,7 +4826,8 @@ static const char k_about_settings_html[] =
 "cookie_policy:$('cookie_policy').value,do_not_track:bv('do_not_track'),"
 "global_privacy_control:bv('global_privacy_control'),"
 "strip_tracking_params:bv('strip_tracking_params'),"
-"https_first:bv('https_first'),images_enabled:bv('images_enabled'),"
+"https_first:bv('https_first'),safe_browsing:bv('safe_browsing'),"
+"images_enabled:bv('images_enabled'),"
 "javascript_enabled:bv('javascript_enabled'),"
 "local_storage_enabled:bv('local_storage_enabled'),"
 "cache_enabled:bv('cache_enabled')})}).then(function(){"
@@ -4771,6 +4874,7 @@ about_settings_json(void)
         "{\"home_url\":\"%s\",\"search_engine\":\"%s\",\"cookie_policy\":%d,"
         "\"do_not_track\":%s,\"global_privacy_control\":%s,"
         "\"strip_tracking_params\":%s,\"https_first\":%s,"
+        "\"safe_browsing\":%s,"
         "\"images_enabled\":%s,\"javascript_enabled\":%s,"
         "\"local_storage_enabled\":%s,\"cache_enabled\":%s}",
         home, eng, c ? (int)c->cookie_policy : 1,
@@ -4778,6 +4882,7 @@ about_settings_json(void)
         (c && c->global_privacy_control) ? "true" : "false",
         (c && c->strip_tracking_params) ? "true" : "false",
         (c && c->https_first) ? "true" : "false",
+        (c && c->safe_browsing) ? "true" : "false",
         (c && c->images_enabled) ? "true" : "false",
         (c && c->javascript_enabled) ? "true" : "false",
         (c && c->local_storage_enabled) ? "true" : "false",
@@ -4823,6 +4928,8 @@ about_settings_save(const char *form)
         c->cookie_policy = (ns_cookie_policy)atoi(v);
     if ((v = g_hash_table_lookup(q, "do_not_track")))
         c->do_not_track = atoi(v) != 0;
+    if ((v = g_hash_table_lookup(q, "safe_browsing")))
+        c->safe_browsing = atoi(v) != 0;
     if ((v = g_hash_table_lookup(q, "global_privacy_control")))
         c->global_privacy_control = atoi(v) != 0;
     if ((v = g_hash_table_lookup(q, "strip_tracking_params")))
@@ -6519,8 +6626,7 @@ ns_fetch_sync(const char *url, const char *top_url, const char *method,
         /* Stop a navigation before it reaches a Safe Browsing listed host;
          * the caller shows the warning page for the hop in final_url. */
         if (navigation & NS_NAV_TOP_LEVEL) {
-            g_autofree char *next_host = ns_url_host_from(next);
-            if (next_host && ns_safebrowsing_blocked(next_host)) {
+            if (ns_safebrowsing_check_url(next) != NS_SB_SAFE) {
                 g_free(resp->error);
                 resp->error = g_strdup("redirect to a blocked site stopped");
                 g_free(resp->final_url);

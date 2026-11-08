@@ -18,6 +18,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NS_SAFE_BROWSING_API_KEY: ${{ secrets.NS_SAFE_BROWSING_API_KEY }}
+
 concurrency:
   group: musl-${{ github.ref }}
   cancel-in-progress: true

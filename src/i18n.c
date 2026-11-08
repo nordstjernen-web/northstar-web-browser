@@ -11,6 +11,7 @@
 
 static GPtrArray *g_catalogues;   /* GHashTable *, highest priority first */
 static char      *g_language;
+static char      *g_html_lang;
 
 /* Returns dir/<lang>.lang if it is a regular file; caller frees. */
 static char *
@@ -142,4 +143,82 @@ const char *
 ns_i18n_language(void)
 {
     return g_language;
+}
+
+/* BCP 47 tag of the UI language for an HTML lang attribute ("en" when untranslated). */
+const char *
+ns_i18n_html_lang(void)
+{
+    if (!g_language) return "en";
+    if (!g_html_lang) {
+        g_html_lang = g_strdup(g_language);
+        for (char *p = g_html_lang; *p; p++)
+            if (*p == '_') *p = '-';
+    }
+    return g_html_lang;
+}
+
+/* "rtl" when the UI language is written right to left, else "ltr". */
+const char *
+ns_i18n_html_dir(void)
+{
+    static const char *const rtl[] = {
+        "ar", "ckb", "dv", "fa", "he", "ps", "sd", "ug", "ur", "yi",
+    };
+    if (!g_language) return "ltr";
+    gsize n = strcspn(g_language, "_-");
+    for (gsize i = 0; i < G_N_ELEMENTS(rtl); i++)
+        if (strlen(rtl[i]) == n && strncmp(g_language, rtl[i], n) == 0)
+            return "rtl";
+    return "ltr";
+}
+
+/* Appends s as the body of a JavaScript string literal, \u-escaping quotes, backslash,
+ * HTML-significant characters and controls. */
+static void
+append_js_escaped(GString *out, const char *s)
+{
+    for (; *s; s++) {
+        guchar c = (guchar)*s;
+        if (c < 0x20 || c == '\'' || c == '"' || c == '\\' ||
+            c == '<' || c == '>' || c == '&')
+            g_string_append_printf(out, "\\u%04x", c);
+        else
+            g_string_append_c(out, (char)c);
+    }
+}
+
+/* Expands translation markers in a built-in page template; caller frees.
+ * {{Text}} becomes the HTML-escaped translation of Text, {{js:Text}} the same for use
+ * inside a JavaScript string literal, and {{@lang}} / {{@dir}} the UI language's
+ * lang and dir attribute values. */
+char *
+ns_i18n_expand(const char *tmpl)
+{
+    GString *out = g_string_sized_new(strlen(tmpl) + 256);
+    const char *p = tmpl;
+    for (;;) {
+        const char *open = strstr(p, "{{");
+        const char *close = open ? strstr(open + 2, "}}") : NULL;
+        if (!close) {
+            g_string_append(out, p);
+            break;
+        }
+        g_string_append_len(out, p, (gssize)(open - p));
+        char *key = g_strndup(open + 2, (gsize)(close - open - 2));
+        if (strcmp(key, "@lang") == 0) {
+            g_string_append(out, ns_i18n_html_lang());
+        } else if (strcmp(key, "@dir") == 0) {
+            g_string_append(out, ns_i18n_html_dir());
+        } else if (g_str_has_prefix(key, "js:")) {
+            append_js_escaped(out, ns_i18n(key + 3));
+        } else {
+            char *esc = g_markup_escape_text(ns_i18n(key), -1);
+            g_string_append(out, esc);
+            g_free(esc);
+        }
+        g_free(key);
+        p = close + 2;
+    }
+    return g_string_free(out, FALSE);
 }

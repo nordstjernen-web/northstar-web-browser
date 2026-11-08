@@ -13,6 +13,9 @@ G_BEGIN_DECLS
 void        ns_i18n_init(const char *self_exe);
 const char *ns_i18n(const char *text);
 const char *ns_i18n_language(void);
+const char *ns_i18n_html_lang(void);
+const char *ns_i18n_html_dir(void);
+char       *ns_i18n_expand(const char *tmpl);
 
 G_END_DECLS
 

@@ -441,7 +441,7 @@ again and compares the two, warning on any difference;
 
 | File | Role |
 |------|------|
-| `i18n.c` | UI translation: English-source strings looked up in `data/i18n/*.lang` at startup, English as the fallback. No gettext. |
+| `i18n.c` | UI translation: English-source strings looked up in `data/i18n/*.lang`, one catalogue per language in the OS list with fallback down that list, English last. Built-in about: pages mark strings as `{{Text}}` and expand them with `ns_i18n_expand`. No gettext. |
 | `media_types.c` | The one table of media types the compiled decoders play, which `canPlayType`, `navigator.mediaCapabilities` and `MediaSource.isTypeSupported` all answer from. |
 | `trace.c` | The `--trace=FILE` writer. |
 | `proc_limits.h` | Shell and engine limits: maximum frame size, settle time, zoom range, script-driven redirect cap. |

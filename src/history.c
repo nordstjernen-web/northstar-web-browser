@@ -6,6 +6,7 @@
 
 #include "history.h"
 #include "config.h"
+#include "i18n.h"
 #include "sqlite_db.h"
 
 #include <glib/gstdio.h>
@@ -239,12 +240,16 @@ ns_history_search(const char *query, guint limit)
 char *
 ns_history_html_page(void)
 {
-    GString *s = g_string_new(
-        "<!doctype html><html><head><meta charset=\"utf-8\">"
-        "<title>History</title>");
+    char *head = ns_i18n_expand(
+        "<!doctype html><html lang=\"{{@lang}}\" dir=\"{{@dir}}\"><head>"
+        "<meta charset=\"utf-8\"><title>{{History}}</title>");
+    GString *s = g_string_new(head);
+    g_free(head);
     g_string_append(s, k_history_style);
-    g_string_append(s, "</head><body><h1>History</h1>"
-                       "<p class=\"sub\">Recently visited pages.</p>");
+    char *intro = ns_i18n_expand("</head><body><h1>{{History}}</h1>"
+                                 "<p class=\"sub\">{{Recently visited pages.}}</p>");
+    g_string_append(s, intro);
+    g_free(intro);
 
     g_mutex_lock(&g_history_mutex);
     sqlite3_stmt *st = NULL;
@@ -282,7 +287,11 @@ ns_history_html_page(void)
     g_mutex_unlock(&g_history_mutex);
 
     if (have) g_string_append(s, "</ul>");
-    else      g_string_append(s, "<p class=\"empty\">No history yet.</p>");
+    else {
+        char *empty = ns_i18n_expand("<p class=\"empty\">{{No history yet.}}</p>");
+        g_string_append(s, empty);
+        g_free(empty);
+    }
     g_string_append(s, "</body></html>");
     return g_string_free(s, FALSE);
 }

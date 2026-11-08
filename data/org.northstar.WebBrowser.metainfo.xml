@@ -59,6 +59,17 @@
   </branding>
 
   <releases>
+    <release version="1.0.22" date="2026-11-08">
+      <description>
+        <p>Feature release.</p>
+        <ul>
+          <li>Google Safe Browsing checks every navigation against Google's phishing, malware and unwanted-software lists, with the local blocklist as fallback. On by default; only a 4-byte hash prefix is ever sent to Google.</li>
+          <li>The browser interface is translated into 39 languages, falls back through every language in the system language list, and the built-in start, settings, history and about pages follow the interface language.</li>
+          <li>Rendering fixes for gradient backgrounds, ::before and ::after on inline elements, drop-down selects and fr grid rows.</li>
+          <li>Canvas drawImage() draws video frames, and canvas colors are validated.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.21" date="2026-11-06">
       <description>
         <p>Bug fix release.</p>

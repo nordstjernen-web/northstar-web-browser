@@ -2,7 +2,7 @@ Changelog:
 =========
 Significant changes in each release:
 
-1.0.22-dev:
+1.0.22:
 =======
 * Security: Google Safe Browsing. Every navigation and redirect is checked
   against Google's phishing, malware and unwanted-software lists (Safe
@@ -17,6 +17,23 @@ Significant changes in each release:
   Safe Browsing section with the status, each list's size and update times,
   and the session's check, lookup and block counts. Ported from
   Nordstjernen Sol.
+* Translations: the UI loads a catalogue for every language in the OS
+  language list (`LANGUAGE` etc.) and falls back down that list when a
+  string is missing, stopping at English (issue #205). The built-in pages
+  (start, settings, history, about, license) follow the UI language, with
+  `lang` and `dir` set from it, so Arabic, Persian and Urdu render right to
+  left (issue #204). All 39 bundled catalogues now cover the 128 most
+  visible strings; 20 of them were empty before.
+* Rendering: gradient background layers honor `background-size`,
+  `-position` and `-repeat`; `::before`/`::after` content of inline
+  elements is styled; a drop-down select's label is centered vertically;
+  `fr` grid rows in auto-height grids are sized by their flex fraction;
+  gradient color stops interpolate in premultiplied alpha.
+* JavaScript: canvas `drawImage(video)` draws the current video frame;
+  canvas `fillStyle`, `strokeStyle` and `shadowColor` are validated and
+  serialized; `DOMTokenList.prototype.constructor` is set.
+* Memory: `HTMLDocument.prototype` no longer leaks on every page teardown.
+* Build: the gmodule-2.0 dependency is dropped.
 
 1.0.21:
 =======

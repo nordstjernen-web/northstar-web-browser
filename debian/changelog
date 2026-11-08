@@ -1,3 +1,12 @@
+northstar (1.0.22+ds-1) unstable; urgency=medium
+
+  * New upstream release: Google Safe Browsing with the local blocklist
+    as fallback, UI translations in 39 languages with fallback through
+    the system language list, translated built-in pages, and rendering
+    and canvas fixes.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Sun, 08 Nov 2026 19:45:00 +0100
+
 northstar (1.0.21+ds-1) unstable; urgency=medium
 
   * New upstream release: --ignore-certificate-errors for self-signed

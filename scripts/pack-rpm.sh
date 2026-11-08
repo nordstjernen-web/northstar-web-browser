@@ -43,6 +43,13 @@ cp "$ROOT/data/northstar.desktop" "$RPMTOP/SOURCES/"
 cp "$ROOT/README.md" "$RPMTOP/SOURCES/"
 cp "$ROOT/THIRD-PARTY-LICENSES.md" "$RPMTOP/SOURCES/"
 cp "$ROOT/LICENSE" "$RPMTOP/SOURCES/"
+# Data the binary reads from ../share/northstar: license texts for
+# about:license / about:third-party, the local Safe Browsing blocklist and
+# the UI translation catalogues.
+( cd "$ROOT" && \
+  tar -czf "$RPMTOP/SOURCES/northstar-data.tar.gz" \
+      --transform 's,^data/,,' \
+      LICENSE THIRD-PARTY-LICENSES.md data/safebrowsing.list data/i18n )
 
 SPEC="$RPMTOP/SPECS/northstar.spec"
 cat > "$SPEC" <<SPEC_EOF
@@ -61,6 +68,7 @@ Source2:        northstar.desktop
 Source3:        README.md
 Source4:        THIRD-PARTY-LICENSES.md
 Source5:        LICENSE
+Source6:        northstar-data.tar.gz
 
 AutoReqProv:    yes
 
@@ -86,6 +94,7 @@ install -dm755 %{buildroot}%{_bindir}
 install -dm755 %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
 install -dm755 %{buildroot}%{_datadir}/applications
 install -dm755 %{buildroot}%{_docdir}/northstar
+install -dm755 %{buildroot}%{_datadir}/northstar
 
 install -m755 %{SOURCE0} %{buildroot}%{_bindir}/northstar
 tar -xzf %{SOURCE1} -C %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
@@ -96,12 +105,14 @@ install -m644 %{SOURCE2} %{buildroot}%{_datadir}/applications/org.northstar.WebB
 install -m644 %{SOURCE3} %{buildroot}%{_docdir}/northstar/
 install -m644 %{SOURCE4} %{buildroot}%{_docdir}/northstar/
 install -m644 %{SOURCE5} %{buildroot}%{_docdir}/northstar/
+tar -xzf %{SOURCE6} -C %{buildroot}%{_datadir}/northstar
 
 %files
 %{_bindir}/northstar
 %{_datadir}/icons/hicolor/scalable/apps/northstar*
 %{_datadir}/applications/org.northstar.WebBrowser.desktop
 %{_docdir}/northstar/
+%{_datadir}/northstar/
 
 %post
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then

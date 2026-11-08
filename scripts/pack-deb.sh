@@ -47,9 +47,14 @@ done
 # (otherwise the taskbar/dock icon is blank).
 install -m644 "$ROOT/data/northstar.desktop" \
     "$PKGROOT/usr/share/applications/org.northstar.WebBrowser.desktop"
-# about:license reads this at ../share/northstar/LICENSE relative to the
-# binary (/usr/bin -> /usr/share/northstar).
+# Read at ../share/northstar relative to the binary (/usr/bin ->
+# /usr/share/northstar): about:license and about:third-party texts, the
+# local Safe Browsing blocklist and the UI translation catalogues.
 install -m644 "$ROOT/LICENSE" "$PKGROOT/usr/share/northstar/LICENSE"
+install -m644 "$ROOT/THIRD-PARTY-LICENSES.md" "$ROOT/data/safebrowsing.list" \
+    "$PKGROOT/usr/share/northstar/"
+install -dm755 "$PKGROOT/usr/share/northstar/i18n"
+install -m644 "$ROOT"/data/i18n/*.lang "$PKGROOT/usr/share/northstar/i18n/"
 install -m644 "$ROOT/README.md" "$PKGROOT/usr/share/doc/northstar/"
 install -m644 "$ROOT/THIRD-PARTY-LICENSES.md" "$PKGROOT/usr/share/doc/northstar/"
 install -m644 "$ROOT/LICENSE" "$PKGROOT/usr/share/doc/northstar/copyright"

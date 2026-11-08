@@ -102,6 +102,11 @@ install -m644 data/northstar.desktop \\
 install -m644 README.md %{buildroot}%{_docdir}/%{name}/
 install -m644 THIRD-PARTY-LICENSES.md %{buildroot}%{_docdir}/%{name}/
 install -m644 LICENSE %{buildroot}%{_docdir}/%{name}/
+# Read from ../share/northstar relative to the binary.
+install -dm755 %{buildroot}%{_datadir}/%{name}/i18n
+install -m644 LICENSE THIRD-PARTY-LICENSES.md data/safebrowsing.list \\
+    %{buildroot}%{_datadir}/%{name}/
+install -m644 data/i18n/*.lang %{buildroot}%{_datadir}/%{name}/i18n/
 
 %files
 %{_bindir}/northstar
@@ -110,6 +115,7 @@ install -m644 LICENSE %{buildroot}%{_docdir}/%{name}/
 %doc %{_docdir}/%{name}/README.md
 %doc %{_docdir}/%{name}/THIRD-PARTY-LICENSES.md
 %license %{_docdir}/%{name}/LICENSE
+%{_datadir}/%{name}/
 
 %post
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then

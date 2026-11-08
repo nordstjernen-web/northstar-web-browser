@@ -192,10 +192,13 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
         "$APP/share/icons/hicolor" >/dev/null 2>&1 || true
 fi
 
-# Per-application data: license text. The browser reads it relative to
-# the exe at runtime (see src/net.c::about_read_first).
-mkdir -p "$APP/share/northstar"
-cp "$ROOT/LICENSE" "$APP/share/northstar/"
+# Per-application data, read relative to the exe at runtime: license texts
+# (src/net.c::about_read_first), the local Safe Browsing blocklist
+# (src/safebrowsing.c) and the UI translation catalogues (src/i18n.c).
+mkdir -p "$APP/share/northstar/i18n"
+cp "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-LICENSES.md" \
+   "$ROOT/data/safebrowsing.list" "$APP/share/northstar/"
+cp "$ROOT"/data/i18n/*.lang "$APP/share/northstar/i18n/"
 
 # Northstar Web Browser's own GPL text plus the third-party copyright + license notices
 # required by the libraries we ship, both at the root of the bundle.

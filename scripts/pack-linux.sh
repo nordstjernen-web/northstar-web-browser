@@ -63,6 +63,11 @@ cp "$ROOT"/data/icons/hicolor/scalable/apps/northstar*.svg \
    "$ROOT"/data/icons/hicolor/scalable/apps/northstar.gif \
    "$STAGE/data/icons/hicolor/scalable/apps/"
 cp "$ROOT/data/northstar.desktop" "$STAGE/data/"
+# Found next to the binary under data/: the local Safe Browsing blocklist
+# (src/safebrowsing.c) and the UI translation catalogues (src/i18n.c).
+mkdir -p "$STAGE/data/i18n"
+cp "$ROOT/data/safebrowsing.list" "$STAGE/data/"
+cp "$ROOT"/data/i18n/*.lang "$STAGE/data/i18n/"
 
 cp "$ROOT/README.md" "$STAGE/"
 cp "$ROOT/THIRD-PARTY-LICENSES.md" "$STAGE/"

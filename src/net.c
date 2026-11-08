@@ -9,6 +9,7 @@
 #include "trace.h"
 #include "cache.h"
 #include "config.h"
+#include "i18n.h"
 #include "history.h"
 #include "debuglog.h"
 #include "encoding.h"
@@ -3045,11 +3046,13 @@ about_substitute(const char *template_text,
 static void
 diag_kv(GString *s, const char *key, const char *value)
 {
+    char *ek = g_markup_escape_text(ns_i18n(key), -1);
     char *ev = g_markup_escape_text((value && *value) ? value : "\xe2\x80\x94",
                                     -1);
     g_string_append_printf(s,
         "<div class=\"drow\"><span class=\"dk\">%s</span>"
-        "<span class=\"dv\">%s</span></div>", key, ev);
+        "<span class=\"dv\">%s</span></div>", ek, ev);
+    g_free(ek);
     g_free(ev);
 }
 
@@ -3057,10 +3060,23 @@ diag_kv(GString *s, const char *key, const char *value)
 static void
 diag_feature(GString *s, const char *key, gboolean on)
 {
+    char *ek = g_markup_escape_text(ns_i18n(key), -1);
+    char *ev = g_markup_escape_text(ns_i18n(on ? "Enabled" : "Not built"), -1);
     g_string_append_printf(s,
         "<div class=\"drow\"><span class=\"dk\">%s</span>"
         "<span class=\"dv %s\">%s</span></div>",
-        key, on ? "on" : "off", on ? "Enabled" : "Not built");
+        ek, on ? "on" : "off", ev);
+    g_free(ek);
+    g_free(ev);
+}
+
+/* Appends a translated diagnostics section heading. */
+static void
+diag_heading(GString *s, const char *text)
+{
+    char *e = g_markup_escape_text(ns_i18n(text), -1);
+    g_string_append_printf(s, "<h3>%s</h3>", e);
+    g_free(e);
 }
 
 /* Formats a count with thousands separators; caller frees. */
@@ -3111,26 +3127,26 @@ diag_safe_browsing(GString *s)
     ns_sb_stats st;
     ns_safebrowsing_get_stats(&st);
     gint64 now = g_get_real_time() / G_USEC_PER_SEC;
-    g_string_append(s, "<h3>Safe Browsing</h3>");
+    diag_heading(s, "Safe Browsing");
     gboolean google = st.enabled && st.have_key;
     diag_kv(s, "Google Safe Browsing",
-            !st.enabled ? "Off in Settings"
-            : !st.have_key ? "No API key in this build (local list only)"
-            : "On");
+            ns_i18n(!st.enabled ? "Off in Settings"
+                    : !st.have_key ? "No API key in this build (local list only)"
+                    : "On"));
     if (google)
         diag_kv(s, "API", "Google Safe Browsing " NS_SBG_API_VERSION ", "
                 NS_SBG_API_MODE);
     g_autofree char *hosts = diag_count(st.local_hosts);
     g_autofree char *local = g_strdup_printf("%s %s", hosts,
                                              st.local_hosts == 1 ? "host" : "hosts");
-    diag_kv(s, "Local blocklist", st.enabled ? local : "Off");
+    diag_kv(s, "Local blocklist", st.enabled ? local : ns_i18n("Off"));
     if (google) {
         for (gsize i = 0; i < NS_SB_GOOGLE_LISTS; i++) {
             const ns_sb_list_stats *ls = &st.lists[i];
-            g_autofree char *label = g_strdup_printf("%s (%s)", list_labels[i],
+            g_autofree char *label = g_strdup_printf("%s (%s)", ns_i18n(list_labels[i]),
                                                      ls->name);
             if (!ls->present) {
-                diag_kv(s, label, "Not downloaded yet");
+                diag_kv(s, label, ns_i18n("Not downloaded yet"));
                 continue;
             }
             g_autofree char *count = diag_count(ls->prefixes);
@@ -3189,7 +3205,7 @@ about_diagnostics_html(void)
 
     GString *s = g_string_new("<div class=\"diag\">");
 
-    g_string_append(s, "<h3>System</h3>");
+    diag_heading(s, "System");
     char *os = g_get_os_info(G_OS_INFO_KEY_PRETTY_NAME);
     if (!os) os = g_get_os_info(G_OS_INFO_KEY_NAME);
     diag_kv(s, "Operating system", os ? os : platform);
@@ -3200,7 +3216,7 @@ about_diagnostics_html(void)
     diag_kv(s, "Logical CPUs", cores);
     g_free(cores);
 
-    g_string_append(s, "<h3>Version &amp; libraries</h3>");
+    diag_heading(s, "Version & libraries");
     diag_kv(s, "Northstar Web Browser", NS_VERSION " (built " NS_BUILD_DATE ")");
     {
         const ns_config *ua_cfg = ns_config_get();
@@ -3224,7 +3240,7 @@ about_diagnostics_html(void)
     diag_kv(s, "TLS / crypto", OpenSSL_version(OPENSSL_VERSION));
     diag_kv(s, "Networking", curl_version());
 
-    g_string_append(s, "<h3>Features</h3>");
+    diag_heading(s, "Features");
     diag_feature(s, "MPEG-1 video", TRUE);
 #ifdef NS_HAVE_AVIF
     diag_feature(s, "AVIF images", TRUE);
@@ -3256,20 +3272,26 @@ build_about_markdown_page(const char *const *paths, const char *title,
                           const char *missing_file)
 {
     char *text = about_read_first(paths, NULL);
+    g_autofree char *e_title = g_markup_escape_text(ns_i18n(title), -1);
+    g_autofree char *e_back = g_markup_escape_text(ns_i18n(back_label), -1);
     if (!text) {
+        g_autofree char *e_missing = g_markup_escape_text(
+            ns_i18n("This file is missing from the install \xe2\x80\x94 reinstall "
+                    "the package or copy it next to the binary:"), -1);
         return g_strdup_printf(
-            "<!doctype html><meta charset=utf-8>"
+            "<!doctype html><html lang=\"%s\" dir=\"%s\"><meta charset=utf-8>"
             "<title>%s</title>"
-            "<p>%s is missing from the install \xe2\x80\x94 reinstall the "
-            "package or copy <code>%s</code> next to the binary.</p>",
-            title, missing_file, missing_file);
+            "<p>%s <code>%s</code></p>",
+            ns_i18n_html_lang(), ns_i18n_html_dir(), e_title, e_missing,
+            missing_file);
     }
     char *escaped = ns_html_escape_text(text);
     g_free(text);
     char *html = g_strconcat(
-        "<!doctype html><html><head>"
+        "<!doctype html><html lang=\"", ns_i18n_html_lang(), "\" dir=\"",
+        ns_i18n_html_dir(), "\"><head>"
         "<meta charset=\"utf-8\">"
-        "<title>", title, "</title>"
+        "<title>", e_title, "</title>"
         "<style>"
         "body{font-family:system-ui,-apple-system,\"Segoe UI\","
         "Helvetica,Arial,sans-serif;max-width:780px;margin:2em auto;"
@@ -3282,8 +3304,8 @@ build_about_markdown_page(const char *const *paths, const char *title,
         ".nav a{color:#3a63d0}"
         "</style></head><body>"
         "<p class=\"nav\"><a href=\"", back_href, "\">"
-        "&larr; ", back_label, "</a></p>"
-        "<h1>", title, "</h1>"
+        "&larr; ", e_back, "</a></p>"
+        "<h1>", e_title, "</h1>"
         "<pre>", escaped, "</pre>"
         "</body></html>", NULL);
     g_free(escaped);
@@ -4509,11 +4531,11 @@ synthesize_file_response(const char *url, const char *top_url,
 }
 
 static const char k_about_start_template[] =
-    "<!doctype html><html lang=\"en\"><head>"
+    "<!doctype html><html lang=\"{{@lang}}\" dir=\"{{@dir}}\"><head>"
     "<meta charset=\"utf-8\">"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
     "<meta name=\"color-scheme\" content=\"light dark\">"
-    "<title>Home</title>"
+    "<title>{{Home}}</title>"
     "<style>\n"
     "html, body { background:#ffffff; color:#111418;"
     " font-family: system-ui, -apple-system, \"Segoe UI\","
@@ -4572,15 +4594,15 @@ static const char k_about_start_template[] =
     "</header>"
     "<form class=\"search\" id=\"dsearch\">"
     "<input id=\"sq\" name=\"q\" autocomplete=\"off\" autofocus dir=\"auto\""
-    " aria-label=\"Search the web\""
+    " aria-label=\"{{Search the web}}\""
     " size=\"__ND_SEARCH_SIZE__\""
-    " placeholder=\"Search (__ND_SEARCH_NAME__):\">"
-    "<button type=\"submit\">Search</button>"
+    " placeholder=\"{{Search (__ND_SEARCH_NAME__):}}\">"
+    "<button type=\"submit\">{{Search}}</button>"
     "</form>"
     "<p class=\"links\">"
-    "<a href=\"about:history\">History</a>"
-    "<a href=\"about:license\">License</a>"
-    "<a href=\"https://nordstjernen.org/privacy\">Privacy</a>"
+    "<a href=\"about:history\">{{History}}</a>"
+    "<a href=\"about:license\">{{License}}</a>"
+    "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a>"
     "<a href=\"https://nordstjernen.org\">nordstjernen.org</a>"
     "</p>"
     "</main>"
@@ -4597,11 +4619,11 @@ static const char k_about_start_template[] =
     "</script></body></html>";
 
 static const char k_about_northstar_template[] =
-    "<!doctype html><html lang=\"en\"><head>"
+    "<!doctype html><html lang=\"{{@lang}}\" dir=\"{{@dir}}\"><head>"
     "<meta charset=\"utf-8\">"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
     "<meta name=\"color-scheme\" content=\"light dark\">"
-    "<title>About Northstar Web Browser</title>"
+    "<title>{{About Northstar Web Browser}}</title>"
     "<style>\n"
     "html, body { background:#ffffff; color:#111418;"
     " font-family: system-ui, -apple-system, \"Segoe UI\","
@@ -4667,25 +4689,25 @@ static const char k_about_northstar_template[] =
     "<div class=\"head\">"
     "__ND_LOGO_MARK__"
     "<div class=\"title\">Northstar Web Browser</div>"
-    "<div class=\"ver\">Version " NS_VERSION "</div>"
-    "<p class=\"intro\">A web browser for Windows, Linux and Mac, coded in "
-    "the C programming language, with open source GPL license.</p>"
+    "<div class=\"ver\">{{Version}} " NS_VERSION "</div>"
+    "<p class=\"intro\">{{A web browser for Windows, Linux and Mac, coded in "
+    "the C programming language, with open source GPL license.}}</p>"
     "</div>"
     "<section class=\"license\">"
-    "<h2>License</h2>"
-    "<p>Northstar Web Browser is free software, distributed under the <b>GNU General "
-    "Public License, version 3 or later</b>, \xc2\xa9 2026 Andreas "
+    "<h2>{{License}}</h2>"
+    "<p>{{Northstar Web Browser is free software, distributed under the GNU "
+    "General Public License, version 3 or later.}} \xc2\xa9 2026 Andreas "
     "R\xc3\xb8sdal.</p>"
-    "<p class=\"third\">It bundles third-party open-source software under "
+    "<p class=\"third\">{{It bundles third-party open-source software under "
     "the MIT, BSD, Apache\xc2\xa0" "2.0, LGPL, MPL and zlib licenses \xe2"
     "\x80\x94 including lexbor, QuickJS, Wuffs, GTK\xc2\xa0" "4, Cairo, "
     "libcurl, OpenSSL, uchardet, libpsl, SQLite and zlib. Each "
     "component\xe2\x80\x99s copyright notice and full license text is "
-    "reproduced in the notices below.</p>"
+    "reproduced in the notices below.}}</p>"
     "<ul class=\"docs\">"
-    "<li><a href=\"about:license\">GNU General Public License (GPL-3.0)"
+    "<li><a href=\"about:license\">{{GNU General Public License (GPL-3.0)}}"
     " \xe2\x86\x92</a></li>"
-    "<li><a href=\"about:third-party\">Third-party software notices \xe2"
+    "<li><a href=\"about:third-party\">{{Third-party software notices}} \xe2"
     "\x86\x92</a></li>"
     "</ul>"
     "</section>"
@@ -4693,18 +4715,18 @@ static const char k_about_northstar_template[] =
     "<p class=\"copy\">Northstar Web Browser \xc2\xa9 2026 "
     "Andreas R\xc3\xb8sdal</p>"
     "<p class=\"links\">"
-    "<a href=\"about:start\">\xe2\x86\x90 Start</a>"
-    "<a href=\"about:license\">License</a>"
-    "<a href=\"https://nordstjernen.org/privacy\">Privacy</a>"
+    "<a href=\"about:start\">\xe2\x86\x90 {{Start}}</a>"
+    "<a href=\"about:license\">{{License}}</a>"
+    "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a>"
     "<a href=\"https://nordstjernen.org\">nordstjernen.org</a>"
     "</p>"
     "</main></body></html>";
 
 static const char k_about_settings_html[] =
-"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\n"
+"<!doctype html><html lang=\"{{@lang}}\" dir=\"{{@dir}}\"><head><meta charset=\"utf-8\">\n"
 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
 "<meta name=\"color-scheme\" content=\"light dark\">\n"
-"<title>Settings</title>\n"
+"<title>{{Settings}}</title>\n"
 "<style>\n"
 "html,body{margin:0;background:#f4f6f9;color:#16202e;font-family:system-ui,"
 "-apple-system,\"Segoe UI\",Helvetica,Arial,sans-serif;min-height:100%}\n"
@@ -4747,46 +4769,46 @@ static const char k_about_settings_html[] =
 ".ok{color:#4ac97e}\n"
 "}\n"
 "</style></head><body>\n"
-"<header class=\"bar\"><div class=\"brand\">\xe2\x9a\x99 Settings</div></header>\n"
+"<header class=\"bar\"><div class=\"brand\">\xe2\x9a\x99 {{Settings}}</div></header>\n"
 "<main>\n"
-"<section class=\"card\"><h2>General</h2>"
-"<label class=\"field\">Home page<input id=\"home_url\" type=\"text\"></label>"
-"<label class=\"field\">Search engine<select id=\"search_pick\"></select></label>"
-"<label class=\"field\" id=\"custom_wrap\">Custom search URL"
+"<section class=\"card\"><h2>{{General}}</h2>"
+"<label class=\"field\">{{Home page}}<input id=\"home_url\" type=\"text\"></label>"
+"<label class=\"field\">{{Search engine}}<select id=\"search_pick\"></select></label>"
+"<label class=\"field\" id=\"custom_wrap\">{{Custom search URL}}"
 "<input id=\"search_engine\" type=\"text\" "
 "placeholder=\"https://example.com/?q=%s\"></label>"
 "</section>\n"
-"<section class=\"card\"><h2>Privacy</h2>"
-"<label class=\"field\">Cookies<select id=\"cookie_policy\">"
-"<option value=\"0\">Accept all cookies</option>"
-"<option value=\"1\">Block third-party cookies</option>"
-"<option value=\"2\">Block all cookies</option></select></label>"
+"<section class=\"card\"><h2>{{Privacy}}</h2>"
+"<label class=\"field\">{{Cookies}}<select id=\"cookie_policy\">"
+"<option value=\"0\">{{Accept all cookies}}</option>"
+"<option value=\"1\">{{Block third-party cookies}}</option>"
+"<option value=\"2\">{{Block all cookies}}</option></select></label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"do_not_track\">"
-"Send \xe2\x80\x9c" "Do Not Track\xe2\x80\x9d</label>"
+"{{Send \xe2\x80\x9c" "Do Not Track\xe2\x80\x9d}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"global_privacy_control\">"
-"Send Global Privacy Control (GPC)</label>"
+"{{Send Global Privacy Control (GPC)}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"strip_tracking_params\">"
-"Strip tracking parameters from links</label>"
+"{{Strip tracking parameters from links}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"https_first\">"
-"Try HTTPS first on every site</label>"
+"{{Try HTTPS first on every site}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"safe_browsing\">"
-"Block dangerous sites (Google Safe Browsing and a local list)</label>"
+"{{Block dangerous sites (Google Safe Browsing and a local list)}}</label>"
 "</section>\n"
-"<section class=\"card\"><h2>Content</h2>"
+"<section class=\"card\"><h2>{{Content}}</h2>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"images_enabled\">"
-"Load images</label>"
+"{{Load images}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"javascript_enabled\">"
-"Enable JavaScript</label>"
+"{{Enable JavaScript}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"local_storage_enabled\">"
-"Enable local storage</label>"
+"{{Enable local storage}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"cache_enabled\">"
-"Enable cache</label>"
+"{{Enable cache}}</label>"
 "</section>\n"
 "<div class=\"row\">"
-"<button id=\"clear\" class=\"ghost\">Clear all browsing data</button>"
+"<button id=\"clear\" class=\"ghost\">{{Clear all browsing data}}</button>"
 "<span class=\"spacer\"></span><span id=\"status\"></span>"
-"<button id=\"save\">Save</button></div>\n"
-"<p class=\"note\">Changes apply to newly opened pages.</p>\n"
+"<button id=\"save\">{{Save}}</button></div>\n"
+"<p class=\"note\">{{Changes apply to newly opened pages.}}</p>\n"
 "</main>\n"
 "<script>\n"
 "function $(i){return document.getElementById(i);}\n"
@@ -4803,7 +4825,7 @@ static const char k_about_settings_html[] =
 "'option');o.value=e.u;o.textContent=e.n;if(e.u===cur){o.selected=true;"
 "matched=true;}sel.appendChild(o);});"
 "var oc=document.createElement('option');oc.value='custom';"
-"oc.textContent='Custom\\u2026';if(!matched)oc.selected=true;"
+"oc.textContent='{{js:Custom\xe2\x80\xa6}}';if(!matched)oc.selected=true;"
 "sel.appendChild(oc);"
 "$('custom_wrap').hidden=matched;}\n"
 "$('search_pick')&&($('search_pick').onchange=function(){"
@@ -4831,11 +4853,11 @@ static const char k_about_settings_html[] =
 "javascript_enabled:bv('javascript_enabled'),"
 "local_storage_enabled:bv('local_storage_enabled'),"
 "cache_enabled:bv('cache_enabled')})}).then(function(){"
-"$('status').textContent='Saved.';$('status').className='ok';"
+"$('status').textContent='{{js:Saved.}}';$('status').className='ok';"
 "setTimeout(function(){$('status').textContent='';},2500);});}\n"
 "function clearData(){var b=$('clear');b.disabled=true;"
 "fetch('about:settings-clear',{method:'POST'}).then(function(){"
-"b.textContent='Browsing data cleared';});}\n"
+"b.textContent='{{js:Browsing data cleared}}';});}\n"
 "$('save').onclick=save;$('clear').onclick=clearData;\n"
 "load();\n"
 "</script></body></html>";
@@ -5050,7 +5072,8 @@ synthesize_about_response(const char *url, const char *top_url,
                 : (g_str_has_prefix(engine_host, "www.") ? engine_host + 4
                                                          : engine_host);
         }
-        char *with_search = about_substitute(k_about_start_template,
+        g_autofree char *start_page = ns_i18n_expand(k_about_start_template);
+        char *with_search = about_substitute(start_page,
                                              "__ND_SEARCH_URL__",
                                              esc_engine->str);
         char *esc_name = g_markup_escape_text(search_name, -1);
@@ -5085,7 +5108,8 @@ synthesize_about_response(const char *url, const char *top_url,
         g_free(body);
     } else if (g_str_equal(what, "northstar") || g_str_equal(what, "about")) {
         char *logo_markup = about_logo_markup();
-        char *with_logo = about_substitute(k_about_northstar_template,
+        g_autofree char *about_page = ns_i18n_expand(k_about_northstar_template);
+        char *with_logo = about_substitute(about_page,
                                            "__ND_LOGO_MARK__", logo_markup);
         g_free(logo_markup);
         char *diag = about_diagnostics_html();
@@ -5144,8 +5168,9 @@ synthesize_about_response(const char *url, const char *top_url,
         g_free(body);
     } else if (g_str_equal(what, "settings") ||
                g_str_equal(what, "config")) {
-        g_byte_array_append(resp->body, (const guint8 *)k_about_settings_html,
-                            (guint)strlen(k_about_settings_html));
+        g_autofree char *body = ns_i18n_expand(k_about_settings_html);
+        g_byte_array_append(resp->body, (const guint8 *)body,
+                            (guint)strlen(body));
     } else if (g_str_has_prefix(what, "settings-data")) {
         about_emit_json(resp, about_settings_json());
     } else if (g_str_has_prefix(what, "settings-save") ||

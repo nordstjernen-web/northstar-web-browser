@@ -493,13 +493,19 @@ and an extension's web-accessible resources are exempt from
   content scripts get their own shim, whose helpers are bound to that
   extension's id, so one extension's scripts cannot reach another's
   storage.
-- Safe browsing (`src/safebrowsing.c`) checks a top-level navigation's
-  host against a local SHA-256 blocklist (the bundled
+- Safe browsing (`src/safebrowsing.c`) checks each top-level navigation
+  and redirect hop against a local SHA-256 host blocklist (the bundled
   `safebrowsing.list`, plus a user list in the config directory or
-  `NS_SAFEBROWSING_LIST`) and shows an interstitial. The bundled list
-  only holds a few test entries and nothing updates it, so in practice it
-  protects only against hosts a user or distributor lists themselves. The
-  interstitial's continue link is honoured only from the interstitial
+  `NS_SAFEBROWSING_LIST`), then against Google Safe Browsing v5 in
+  local-list mode (`src/safebrowsing_google.c`), and shows an
+  interstitial. A background thread keeps the `se-4b`, `mw-4b` and
+  `uws-4b` hash-prefix lists in the cache directory, verifies each
+  against Google's SHA-256 checksum, and updates them under a
+  cross-process file lock; `hashes:search` is asked for full hashes only
+  on a prefix match, with no cookies. Network failures fail open. The
+  API key comes from `NS_SAFE_BROWSING_API_KEY` at build time through a
+  generated header; without one only the local list applies, and its
+  bundled copy holds only test entries. The interstitial's continue link is honoured only from the interstitial
   itself, and only to continue to the blocked http(s) page.
 - Downloads are marked with their origin — the `com.apple.quarantine`
   attribute on macOS, `user.xdg.origin.url` on Linux, and a

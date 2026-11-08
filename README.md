@@ -70,7 +70,8 @@ desktop browser, based on the
 [Nordstjernen project](https://github.com/nordstjernen-web/nordstjernen-sol-browser).
 It deliberately omits tabs, per-tab renderer processes, WebGL, WebGPU,
 an embedded PDF viewer and AI-style web APIs. It does not send telemetry
-or update pings.
+or update pings; the only service it contacts on its own is Google Safe
+Browsing (see below).
 
 Audio and video still play in-process (MP3, MP2, AAC, Ogg Opus/Vorbis;
 MPEG-1, and AV1, VP9 and H.264 when their decoders are present — on Linux
@@ -118,11 +119,19 @@ through libavif when available, and SVG in the engine).
   network requests. `--ignore-certificate-errors` opens a self-signed
   site, such as a home lab server, after a warning, while every other
   host keeps full certificate checks.
-- **Safe browsing** — before a top-level navigation is fetched, its host
-  is checked against a local SHA-256 blocklist. The check runs entirely
-  on-device. The bundled list carries only test entries; a real list goes
-  in `~/.config/northstar/safebrowsing.list` or is named by
-  `NS_SAFEBROWSING_LIST`.
+- **Safe browsing** — every top-level navigation and redirect is checked
+  against [Google Safe Browsing](https://safebrowsing.google.com/) (v5,
+  local-list mode) and a local SHA-256 host blocklist, and a match shows a
+  warning page naming the threat. Google's phishing, malware and
+  unwanted-software hash-prefix lists are kept on the device and updated
+  in the background; only a 4-byte hash prefix is sent to Google, and only
+  when an address matches one, never the address itself. On by default;
+  turn it off under Settings → Privacy → "Block dangerous sites".
+  about:northstar shows its status and list sizes. Builds without a key
+  (`NS_SAFE_BROWSING_API_KEY` at compile time) use only the local list,
+  `~/.config/northstar/safebrowsing.list` or `NS_SAFEBROWSING_LIST`.
+  Google Safe Browsing is offered for non-commercial use; see Google's
+  [terms](https://developers.google.com/safe-browsing/terms).
 - **Media** — images (PNG/APNG, GIF, BMP, JPEG, WebP, optional AVIF,
   SVG); audio (`<audio>`) decodes and plays in the browser process,
   alongside a Web Audio graph.

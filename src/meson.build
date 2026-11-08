@@ -39,6 +39,17 @@ wpt_hook_h = custom_target(
             'ns_wpt_hook_src'],
 )
 
+# The Google Safe Browsing API key, read from NS_SAFE_BROWSING_API_KEY at
+# build time into a generated header so it never sits in the tree or on a
+# compiler command line. Empty when unset: only the local list is used.
+sb_key_h = custom_target(
+  'ns_sb_key.h',
+  input: '../scripts/gen-safebrowsing-key.py',
+  output: 'ns_sb_key.h',
+  command: [python, '@INPUT@', '@OUTPUT@'],
+  build_always_stale: true,
+)
+
 northstar_engine_sources = files(
   'anim.c',
   'bytecode_cache.c',
@@ -112,6 +123,7 @@ northstar_engine_sources = files(
   'print.c',
   'render.c',
   'safebrowsing.c',
+  'safebrowsing_google.c',
   'security.c',
   'selection.c',
   'spellcheck.c',

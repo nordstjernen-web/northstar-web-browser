@@ -1,5 +1,6 @@
 /* Northstar Web Browser — UI string translation from data/i18n .lang catalogues.
- * Picks the catalogue matching the OS language list and looks up key=value translations.
+ * Loads a catalogue for every language in the OS language list, in priority order, and
+ * falls back down that chain when a higher-priority catalogue lacks a translation.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -8,8 +9,8 @@
 
 #include <string.h>
 
-static GHashTable *g_catalogue;
-static char       *g_language;
+static GPtrArray *g_catalogues;   /* GHashTable *, highest priority first */
+static char      *g_language;
 
 /* Returns dir/<lang>.lang if it is a regular file; caller frees. */
 static char *
@@ -89,36 +90,52 @@ catalogue_load(const char *path)
     return table;
 }
 
-/* Loads the first catalogue matching the OS language list, skipping C/POSIX. */
+/* True for English tags: the UI source strings are English, so the chain ends there. */
+static gboolean
+is_source_language(const char *lang)
+{
+    return strcmp(lang, "en") == 0 || g_str_has_prefix(lang, "en_");
+}
+
+/* Loads a catalogue for each usable entry of the OS language list, skipping C/POSIX and
+ * codeset/modifier variants; stops at English, the source language. */
 void
 ns_i18n_init(const char *self_exe)
 {
-    if (g_catalogue) return;
+    if (g_catalogues) return;
+    g_catalogues = g_ptr_array_new_with_free_func(
+        (GDestroyNotify)g_hash_table_destroy);
+    GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);
     const gchar *const *names = g_get_language_names();
     for (int i = 0; names && names[i]; i++) {
-        if (strcmp(names[i], "C") == 0 || strcmp(names[i], "POSIX") == 0)
+        const char *lang = names[i];
+        if (strcmp(lang, "C") == 0 || strcmp(lang, "POSIX") == 0)
             continue;
-        if (strchr(names[i], '.') || strchr(names[i], '@'))
+        if (strchr(lang, '.') || strchr(lang, '@'))
             continue;
-        char *path = find_catalogue(self_exe, names[i]);
+        if (!g_hash_table_add(seen, (gpointer)lang)) continue;
+        if (is_source_language(lang)) break;
+        char *path = find_catalogue(self_exe, lang);
         if (!path) continue;
         GHashTable *table = catalogue_load(path);
         g_free(path);
-        if (table) {
-            g_catalogue = table;
-            g_language = g_strdup(names[i]);
-            return;
-        }
+        if (!table) continue;
+        g_ptr_array_add(g_catalogues, table);
+        if (!g_language) g_language = g_strdup(lang);
     }
+    g_hash_table_destroy(seen);
 }
 
-/* Returns the translation for a UI string, or the string itself. */
+/* Returns the translation from the highest-priority catalogue that has one, or the string itself. */
 const char *
 ns_i18n(const char *text)
 {
-    if (!text || !g_catalogue) return text;
-    const char *hit = g_hash_table_lookup(g_catalogue, text);
-    return hit ? hit : text;
+    if (!text || !g_catalogues) return text;
+    for (guint i = 0; i < g_catalogues->len; i++) {
+        const char *hit = g_hash_table_lookup(g_ptr_array_index(g_catalogues, i), text);
+        if (hit) return hit;
+    }
+    return text;
 }
 
 const char *

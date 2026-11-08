@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Javanese / Basa Jawa
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Bali
+Forward=Maju
+Reload=Muat ulang
+Stop=Mandheg
+Home=Omah
+Menu=Menu
+Bookmarks=Tetenger
+Settings=Setelan
+Loading=Lagi ngemot
+Loading…=Lagi ngemot…
+Done=Rampung
+Go back one page=Bali siji kaca
+Go forward one page=Maju siji kaca
+Reload this page=Muat ulang kaca iki
+Stop loading this page=Mandhegake ngemot kaca iki
+Go to the home page=Menyang kaca omah
+Address and search bar=Bilah alamat lan panelusuran
+Page location=Lokasi kaca
+Search or enter a URL=Golek utawa lebokake URL
+Search for=Golek
+Server:=Server:
+New Window=Jendhela Anyar
+Quit=Metu
+Continue=Terusake
+Recovered the previous session after an unexpected exit=Sesi sadurunge wis dibalekake sawise metu ora dinyana
+Failed to load page=Gagal ngemot kaca
+Stopped after too many redirects=Mandheg amarga kakehan pangalihan
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Aman — sertifikat sah
+Not secure — the connection is not encrypted=Ora aman — sambungan ora dienkripsi
+Not secure — the certificate is not trusted=Ora aman — sertifikat ora dipercaya
+Certificate errors are being ignored=Kasalahan sertifikat lagi diabaikan
+# --- Main menu ---
+Find in Page=Golek ing Kaca
+Full Screen=Layar Kebak
+Zoom In=Gedhekake
+Zoom Out=Cilikake
+Reset Zoom=Reset Zoom
+Print…=Cithak…
+Save Page As…=Simpen Kaca Minangka…
+Save Page as PDF…=Simpen Kaca minangka PDF…
+Save Page as Image…=Simpen Kaca minangka Gambar…
+Page Source=Sumber Kaca
+Downloads=Undhuhan
+History=Riwayat
+Bookmark This Page=Tetengeri Kaca Iki
+Visit nordstjernen.org=Tekani nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Salin
+Select All=Pilih Kabeh
+Open Link=Bukak Pranala
+Copy Link Address=Salin Alamat Pranala
+Copy Page Address=Salin Alamat Kaca
+Copied to clipboard=Wis disalin menyang papan klip
+Copied link address=Alamat pranala wis disalin
+Copied page address=Alamat kaca wis disalin
+Copied selection=Pilihan wis disalin
+# --- Find bar ---
+Find in page=Golek ing kaca
+No results=Ora ana asil
+Previous match=Sing cocog sadurunge
+Next match=Sing cocog sabanjure
+Previous match (Shift+Enter)=Sing cocog sadurunge (Shift+Enter)
+Next match (Enter)=Sing cocog sabanjure (Enter)
+Close search=Tutup panelusuran
+Close (Esc)=Tutup (Esc)
+# --- Bookmarks ---
+Bookmark this page=Tetengeri kaca iki
+Bookmark added=Tetenger wis ditambahake
+Bookmark removed=Tetenger wis dibusak
+Bookmarked — open bookmarks=Wis ditetengeri — bukak tetenger
+Remove bookmark=Busak tetenger
+Remove this bookmark=Busak tetenger iki
+No bookmarks yet=Durung ana tetenger
+# --- Downloads, saving, printing ---
+Show downloads=Tuduhake undhuhan
+Nothing downloaded yet=Durung ana sing diundhuh
+Open=Bukak
+Open folder=Bukak folder
+Failed=Gagal
+Could not save page=Ora bisa nyimpen kaca
+Save page as PDF=Simpen kaca minangka PDF
+Save page as PNG=Simpen kaca minangka PNG
+Print=Cithak
+Print this page=Cithak kaca iki
+Nothing to print=Ora ana sing bisa dicithak
+Reset zoom=Reset zoom
+Reset zoom (Ctrl+0)=Reset zoom (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s saiki layar kebak. Penet Esc kanggo metu.
+You are now in full screen. Press Esc to exit.=Sampeyan saiki ana ing layar kebak. Penet Esc kanggo metu.
+This site wants to use your camera and microphone=Situs iki arep nggunakake kamera lan mikropon sampeyan
+Allow=Idini
+Allow and trust this site=Idini lan percaya situs iki
+Not now=Ora saiki
+Dismiss=Tutup
+# --- Start page (about:start) ---
+Search=Golek
+Search the web=Golek ing web
+Search (__ND_SEARCH_NAME__):=Golek (__ND_SEARCH_NAME__):
+License=Lisensi
+Privacy=Privasi
+# --- Settings page (about:settings) ---
+General=Umum
+Home page=Kaca omah
+Search engine=Mesin panelusur
+Custom search URL=URL panelusuran kustom
+Custom…=Kustom…
+Cookies=Cookie
+Accept all cookies=Tampa kabeh cookie
+Block third-party cookies=Blokir cookie pihak katelu
+Block all cookies=Blokir kabeh cookie
+Send “Do Not Track”=Kirim “Do Not Track”
+Send Global Privacy Control (GPC)=Kirim Global Privacy Control (GPC)
+Strip tracking parameters from links=Busak paramèter pelacakan saka pranala
+Try HTTPS first on every site=Jajal HTTPS dhisik ing saben situs
+Block dangerous sites (Google Safe Browsing and a local list)=Blokir situs mbebayani (Google Safe Browsing lan dhaptar lokal)
+Content=Isi
+Load images=Emot gambar
+Enable JavaScript=Aktifake JavaScript
+Enable local storage=Aktifake panyimpenan lokal
+Enable cache=Aktifake cache
+Clear all browsing data=Resiki kabeh data njlajah
+Browsing data cleared=Data njlajah wis diresiki
+Save=Simpen
+Saved.=Wis disimpen.
+Changes apply to newly opened pages.=Owah-owahan ditrapake ing kaca sing mentas dibukak.
+# --- History page (about:history) ---
+Recently visited pages.=Kaca sing bubar ditekani.
+No history yet.=Durung ana riwayat.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Babagan Northstar Web Browser
+Version=Versi
+Start=Wiwitan
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Panjlajah web kanggo Windows, Linux lan Mac, ditulis nganggo basa pamrograman C, kanthi lisensi open source GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser iku piranti lunak bebas, disebarake miturut GNU General Public License, versi 3 utawa sabanjure.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Wara-wara piranti lunak pihak katelu

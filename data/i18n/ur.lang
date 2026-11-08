@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Urdu / اردو
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=پیچھے
+Forward=آگے
+Reload=دوبارہ لوڈ کریں
+Stop=روکیں
+Home=ہوم
+Menu=مینو
+Bookmarks=بُک مارکس
+Settings=ترتیبات
+Loading=لوڈ ہو رہا ہے
+Loading…=لوڈ ہو رہا ہے…
+Done=مکمل
+Go back one page=ایک صفحہ پیچھے جائیں
+Go forward one page=ایک صفحہ آگے جائیں
+Reload this page=یہ صفحہ دوبارہ لوڈ کریں
+Stop loading this page=اس صفحے کو لوڈ کرنا روکیں
+Go to the home page=ہوم صفحے پر جائیں
+Address and search bar=پتہ اور تلاش بار
+Page location=صفحے کا مقام
+Search or enter a URL=تلاش کریں یا URL درج کریں
+Search for=تلاش کریں
+Server:=سرور:
+New Window=نئی ونڈو
+Quit=باہر نکلیں
+Continue=جاری رکھیں
+Recovered the previous session after an unexpected exit=غیر متوقع طور پر بند ہونے کے بعد پچھلا سیشن بحال کر دیا گیا
+Failed to load page=صفحہ لوڈ کرنے میں ناکام
+Stopped after too many redirects=بہت زیادہ ری ڈائریکٹس کے بعد روک دیا گیا
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=محفوظ — سرٹیفکیٹ درست ہے
+Not secure — the connection is not encrypted=غیر محفوظ — کنکشن مرموز نہیں ہے
+Not secure — the certificate is not trusted=غیر محفوظ — سرٹیفکیٹ قابل اعتماد نہیں ہے
+Certificate errors are being ignored=سرٹیفکیٹ کی خرابیوں کو نظر انداز کیا جا رہا ہے
+# --- Main menu ---
+Find in Page=صفحہ میں تلاش کریں
+Full Screen=پوری اسکرین
+Zoom In=زوم ان
+Zoom Out=زوم آؤٹ
+Reset Zoom=زوم ری سیٹ کریں
+Print…=پرنٹ کریں…
+Save Page As…=صفحہ بطور محفوظ کریں…
+Save Page as PDF…=صفحہ بطور PDF محفوظ کریں…
+Save Page as Image…=صفحہ بطور تصویر محفوظ کریں…
+Page Source=صفحے کا ماخذ
+Downloads=ڈاؤن لوڈز
+History=سرگزشت
+Bookmark This Page=اس صفحے کو بُک مارک کریں
+Visit nordstjernen.org=nordstjernen.org ملاحظہ کریں
+# --- Context menu, clipboard ---
+Copy=کاپی کریں
+Select All=سبھی کو منتخب کریں
+Open Link=لنک کھولیں
+Copy Link Address=لنک کا پتہ کاپی کریں
+Copy Page Address=صفحے کا پتہ کاپی کریں
+Copied to clipboard=کلپ بورڈ پر کاپی ہو گیا
+Copied link address=لنک کا پتہ کاپی ہو گیا
+Copied page address=صفحے کا پتہ کاپی ہو گیا
+Copied selection=منتخب کردہ متن کاپی ہو گیا
+# --- Find bar ---
+Find in page=صفحہ میں تلاش کریں
+No results=کوئی نتیجہ نہیں
+Previous match=پچھلا مماثل
+Next match=اگلا مماثل
+Previous match (Shift+Enter)=پچھلا مماثل (Shift+Enter)
+Next match (Enter)=اگلا مماثل (Enter)
+Close search=تلاش بند کریں
+Close (Esc)=بند کریں (Esc)
+# --- Bookmarks ---
+Bookmark this page=اس صفحے کو بُک مارک کریں
+Bookmark added=بُک مارک شامل ہو گیا
+Bookmark removed=بُک مارک ہٹا دیا گیا
+Bookmarked — open bookmarks=بُک مارک ہو گیا — بُک مارکس کھولیں
+Remove bookmark=بُک مارک ہٹائیں
+Remove this bookmark=یہ بُک مارک ہٹائیں
+No bookmarks yet=ابھی تک کوئی بُک مارک نہیں
+# --- Downloads, saving, printing ---
+Show downloads=ڈاؤن لوڈز دکھائیں
+Nothing downloaded yet=ابھی تک کچھ ڈاؤن لوڈ نہیں ہوا
+Open=کھولیں
+Open folder=فولڈر کھولیں
+Failed=ناکام
+Could not save page=صفحہ محفوظ نہیں ہو سکا
+Save page as PDF=صفحہ بطور PDF محفوظ کریں
+Save page as PNG=صفحہ بطور PNG محفوظ کریں
+Print=پرنٹ کریں
+Print this page=یہ صفحہ پرنٹ کریں
+Nothing to print=پرنٹ کرنے کے لیے کچھ نہیں
+Reset zoom=زوم ری سیٹ کریں
+Reset zoom (Ctrl+0)=زوم ری سیٹ کریں (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s اب پوری اسکرین پر ہے۔ باہر نکلنے کے لیے Esc دبائیں۔
+You are now in full screen. Press Esc to exit.=آپ اب پوری اسکرین میں ہیں۔ باہر نکلنے کے لیے Esc دبائیں۔
+This site wants to use your camera and microphone=یہ سائٹ آپ کا کیمرا اور مائیکروفون استعمال کرنا چاہتی ہے
+Allow=اجازت دیں
+Allow and trust this site=اجازت دیں اور اس سائٹ پر بھروسہ کریں
+Not now=ابھی نہیں
+Dismiss=برخاست کریں
+# --- Start page (about:start) ---
+Search=تلاش کریں
+Search the web=ویب پر تلاش کریں
+Search (__ND_SEARCH_NAME__):=تلاش (__ND_SEARCH_NAME__):
+License=لائسنس
+Privacy=رازداری
+# --- Settings page (about:settings) ---
+General=عمومی
+Home page=ہوم صفحہ
+Search engine=تلاش انجن
+Custom search URL=حسب ضرورت تلاش URL
+Custom…=حسب ضرورت…
+Cookies=کوکیز
+Accept all cookies=سبھی کوکیز قبول کریں
+Block third-party cookies=فریق ثالث کی کوکیز مسدود کریں
+Block all cookies=سبھی کوکیز مسدود کریں
+Send “Do Not Track”=“ٹریک نہ کریں” بھیجیں
+Send Global Privacy Control (GPC)=گلوبل پرائیویسی کنٹرول (GPC) بھیجیں
+Strip tracking parameters from links=لنکس سے ٹریکنگ پیرامیٹرز ہٹائیں
+Try HTTPS first on every site=ہر سائٹ پر پہلے HTTPS آزمائیں
+Block dangerous sites (Google Safe Browsing and a local list)=خطرناک سائٹس مسدود کریں (Google Safe Browsing اور ایک مقامی فہرست)
+Content=مواد
+Load images=تصاویر لوڈ کریں
+Enable JavaScript=JavaScript فعال کریں
+Enable local storage=مقامی اسٹوریج فعال کریں
+Enable cache=کیشے فعال کریں
+Clear all browsing data=براؤزنگ کا سارا ڈیٹا صاف کریں
+Browsing data cleared=براؤزنگ ڈیٹا صاف ہو گیا
+Save=محفوظ کریں
+Saved.=محفوظ ہو گیا۔
+Changes apply to newly opened pages.=تبدیلیاں نئے کھولے گئے صفحات پر لاگو ہوں گی۔
+# --- History page (about:history) ---
+Recently visited pages.=حال ہی میں ملاحظہ کیے گئے صفحات۔
+No history yet.=ابھی تک کوئی سرگزشت نہیں۔
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser کے بارے میں
+Version=ورژن
+Start=آغاز
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows، Linux اور Mac کے لیے ایک ویب براؤزر، جو C پروگرامنگ زبان میں لکھا گیا ہے، اوپن سورس GPL لائسنس کے ساتھ۔
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser آزاد سافٹ ویئر ہے، جو GNU General Public License، ورژن 3 یا اس کے بعد کے ورژن کے تحت تقسیم کیا جاتا ہے۔
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=فریق ثالث سافٹ ویئر کے نوٹسز

@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Vietnamese / Tiếng Việt
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Quay lại
+Forward=Tiến
+Reload=Tải lại
+Stop=Dừng
+Home=Trang chủ
+Menu=Menu
+Bookmarks=Dấu trang
+Settings=Cài đặt
+Loading=Đang tải
+Loading…=Đang tải…
+Done=Xong
+Go back one page=Quay lại một trang
+Go forward one page=Tiến tới một trang
+Reload this page=Tải lại trang này
+Stop loading this page=Dừng tải trang này
+Go to the home page=Đi đến trang chủ
+Address and search bar=Thanh địa chỉ và tìm kiếm
+Page location=Địa chỉ trang
+Search or enter a URL=Tìm kiếm hoặc nhập URL
+Search for=Tìm kiếm
+Server:=Máy chủ:
+New Window=Cửa sổ mới
+Quit=Thoát
+Continue=Tiếp tục
+Recovered the previous session after an unexpected exit=Đã khôi phục phiên trước sau khi thoát bất ngờ
+Failed to load page=Không thể tải trang
+Stopped after too many redirects=Đã dừng do có quá nhiều lần chuyển hướng
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Bảo mật — chứng chỉ hợp lệ
+Not secure — the connection is not encrypted=Không bảo mật — kết nối không được mã hóa
+Not secure — the certificate is not trusted=Không bảo mật — chứng chỉ không đáng tin cậy
+Certificate errors are being ignored=Đang bỏ qua lỗi chứng chỉ
+# --- Main menu ---
+Find in Page=Tìm trong trang
+Full Screen=Toàn màn hình
+Zoom In=Phóng to
+Zoom Out=Thu nhỏ
+Reset Zoom=Đặt lại thu phóng
+Print…=In…
+Save Page As…=Lưu trang thành…
+Save Page as PDF…=Lưu trang dưới dạng PDF…
+Save Page as Image…=Lưu trang dưới dạng hình ảnh…
+Page Source=Mã nguồn trang
+Downloads=Tệp đã tải xuống
+History=Lịch sử
+Bookmark This Page=Đánh dấu trang này
+Visit nordstjernen.org=Truy cập nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Sao chép
+Select All=Chọn tất cả
+Open Link=Mở liên kết
+Copy Link Address=Sao chép địa chỉ liên kết
+Copy Page Address=Sao chép địa chỉ trang
+Copied to clipboard=Đã sao chép vào bộ nhớ tạm
+Copied link address=Đã sao chép địa chỉ liên kết
+Copied page address=Đã sao chép địa chỉ trang
+Copied selection=Đã sao chép vùng chọn
+# --- Find bar ---
+Find in page=Tìm trong trang
+No results=Không có kết quả
+Previous match=Kết quả trước
+Next match=Kết quả tiếp theo
+Previous match (Shift+Enter)=Kết quả trước (Shift+Enter)
+Next match (Enter)=Kết quả tiếp theo (Enter)
+Close search=Đóng tìm kiếm
+Close (Esc)=Đóng (Esc)
+# --- Bookmarks ---
+Bookmark this page=Đánh dấu trang này
+Bookmark added=Đã thêm dấu trang
+Bookmark removed=Đã xóa dấu trang
+Bookmarked — open bookmarks=Đã đánh dấu — mở dấu trang
+Remove bookmark=Xóa dấu trang
+Remove this bookmark=Xóa dấu trang này
+No bookmarks yet=Chưa có dấu trang nào
+# --- Downloads, saving, printing ---
+Show downloads=Hiển thị tệp đã tải xuống
+Nothing downloaded yet=Chưa tải xuống tệp nào
+Open=Mở
+Open folder=Mở thư mục
+Failed=Không thành công
+Could not save page=Không thể lưu trang
+Save page as PDF=Lưu trang dưới dạng PDF
+Save page as PNG=Lưu trang dưới dạng PNG
+Print=In
+Print this page=In trang này
+Nothing to print=Không có gì để in
+Reset zoom=Đặt lại thu phóng
+Reset zoom (Ctrl+0)=Đặt lại thu phóng (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s hiện đang ở chế độ toàn màn hình. Nhấn Esc để thoát.
 You are now in full screen. Press Esc to exit.=Bạn đang ở chế độ toàn màn hình. Nhấn Esc để thoát.
+This site wants to use your camera and microphone=Trang web này muốn sử dụng máy ảnh và micrô của bạn
+Allow=Cho phép
+Allow and trust this site=Cho phép và tin cậy trang web này
+Not now=Để sau
+Dismiss=Bỏ qua
+# --- Start page (about:start) ---
+Search=Tìm kiếm
+Search the web=Tìm kiếm trên web
+Search (__ND_SEARCH_NAME__):=Tìm kiếm (__ND_SEARCH_NAME__):
+License=Giấy phép
+Privacy=Quyền riêng tư
+# --- Settings page (about:settings) ---
+General=Chung
+Home page=Trang chủ
+Search engine=Công cụ tìm kiếm
+Custom search URL=URL tìm kiếm tùy chỉnh
+Custom…=Tùy chỉnh…
+Cookies=Cookie
+Accept all cookies=Chấp nhận mọi cookie
+Block third-party cookies=Chặn cookie của bên thứ ba
+Block all cookies=Chặn mọi cookie
+Send “Do Not Track”=Gửi “Không theo dõi”
+Send Global Privacy Control (GPC)=Gửi Global Privacy Control (GPC)
+Strip tracking parameters from links=Xóa tham số theo dõi khỏi liên kết
+Try HTTPS first on every site=Thử HTTPS trước trên mọi trang web
+Block dangerous sites (Google Safe Browsing and a local list)=Chặn trang web nguy hiểm (Google Safe Browsing và danh sách cục bộ)
+Content=Nội dung
+Load images=Tải hình ảnh
+Enable JavaScript=Bật JavaScript
+Enable local storage=Bật bộ nhớ cục bộ
+Enable cache=Bật bộ nhớ đệm
+Clear all browsing data=Xóa mọi dữ liệu duyệt web
+Browsing data cleared=Đã xóa dữ liệu duyệt web
+Save=Lưu
+Saved.=Đã lưu.
+Changes apply to newly opened pages.=Thay đổi được áp dụng cho các trang mở mới.
+# --- History page (about:history) ---
+Recently visited pages.=Các trang đã truy cập gần đây.
+No history yet.=Chưa có lịch sử.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Giới thiệu về Northstar Web Browser
+Version=Phiên bản
+Start=Bắt đầu
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Trình duyệt web cho Windows, Linux và Mac, được viết bằng ngôn ngữ lập trình C, mã nguồn mở theo giấy phép GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser là phần mềm tự do, được phân phối theo GNU General Public License, phiên bản 3 trở lên.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Thông báo về phần mềm bên thứ ba

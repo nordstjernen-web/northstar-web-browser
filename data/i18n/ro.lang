@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Romanian / Română
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=Înapoi
+Forward=Înainte
+Reload=Reîncarcă
+Stop=Oprește
+Home=Pagina principală
+Menu=Meniu
+Bookmarks=Marcaje
+Settings=Setări
+Loading=Se încarcă
+Loading…=Se încarcă…
+Done=Gata
+Go back one page=Înapoi cu o pagină
+Go forward one page=Înainte cu o pagină
+Reload this page=Reîncarcă această pagină
+Stop loading this page=Oprește încărcarea acestei pagini
+Go to the home page=Mergi la pagina principală
+Address and search bar=Bară de adrese și căutare
+Page location=Adresa paginii
+Search or enter a URL=Caută sau introdu un URL
+Search for=Caută
+Server:=Server:
+New Window=Fereastră nouă
+Quit=Ieșire
+Continue=Continuă
+Recovered the previous session after an unexpected exit=Sesiunea anterioară a fost restaurată după o închidere neașteptată
+Failed to load page=Pagina nu a putut fi încărcată
+Stopped after too many redirects=Oprit după prea multe redirecționări
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Securizat — certificatul este valid
+Not secure — the connection is not encrypted=Nesecurizat — conexiunea nu este criptată
+Not secure — the certificate is not trusted=Nesecurizat — certificatul nu este de încredere
+Certificate errors are being ignored=Erorile de certificat sunt ignorate
+# --- Main menu ---
+Find in Page=Caută în pagină
+Full Screen=Ecran complet
+Zoom In=Mărește
+Zoom Out=Micșorează
+Reset Zoom=Resetează zoomul
+Print…=Imprimă…
+Save Page As…=Salvează pagina ca…
+Save Page as PDF…=Salvează pagina ca PDF…
+Save Page as Image…=Salvează pagina ca imagine…
+Page Source=Sursa paginii
+Downloads=Descărcări
+History=Istoric
+Bookmark This Page=Marchează această pagină
+Visit nordstjernen.org=Vizitează nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Copiază
+Select All=Selectează tot
+Open Link=Deschide linkul
+Copy Link Address=Copiază adresa linkului
+Copy Page Address=Copiază adresa paginii
+Copied to clipboard=Copiat în clipboard
+Copied link address=Adresa linkului a fost copiată
+Copied page address=Adresa paginii a fost copiată
+Copied selection=Selecția a fost copiată
+# --- Find bar ---
+Find in page=Caută în pagină
+No results=Niciun rezultat
+Previous match=Potrivirea anterioară
+Next match=Potrivirea următoare
+Previous match (Shift+Enter)=Potrivirea anterioară (Shift+Enter)
+Next match (Enter)=Potrivirea următoare (Enter)
+Close search=Închide căutarea
+Close (Esc)=Închide (Esc)
+# --- Bookmarks ---
+Bookmark this page=Marchează această pagină
+Bookmark added=Marcaj adăugat
+Bookmark removed=Marcaj eliminat
+Bookmarked — open bookmarks=Marcată — deschide marcajele
+Remove bookmark=Elimină marcajul
+Remove this bookmark=Elimină acest marcaj
+No bookmarks yet=Încă nu există marcaje
+# --- Downloads, saving, printing ---
+Show downloads=Afișează descărcările
+Nothing downloaded yet=Nicio descărcare încă
+Open=Deschide
+Open folder=Deschide dosarul
+Failed=Eșuat
+Could not save page=Pagina nu a putut fi salvată
+Save page as PDF=Salvează pagina ca PDF
+Save page as PNG=Salvează pagina ca PNG
+Print=Imprimă
+Print this page=Imprimă această pagină
+Nothing to print=Nimic de imprimat
+Reset zoom=Resetează zoomul
+Reset zoom (Ctrl+0)=Resetează zoomul (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s este acum pe tot ecranul. Apăsați Esc pentru a ieși.
 You are now in full screen. Press Esc to exit.=Sunteți acum pe tot ecranul. Apăsați Esc pentru a ieși.
+This site wants to use your camera and microphone=Acest site dorește să folosească camera și microfonul
+Allow=Permite
+Allow and trust this site=Permite și consideră de încredere acest site
+Not now=Nu acum
+Dismiss=Închide
+# --- Start page (about:start) ---
+Search=Caută
+Search the web=Caută pe web
+Search (__ND_SEARCH_NAME__):=Caută (__ND_SEARCH_NAME__):
+License=Licență
+Privacy=Confidențialitate
+# --- Settings page (about:settings) ---
+General=General
+Home page=Pagina principală
+Search engine=Motor de căutare
+Custom search URL=URL de căutare personalizat
+Custom…=Personalizat…
+Cookies=Cookie-uri
+Accept all cookies=Acceptă toate cookie-urile
+Block third-party cookies=Blochează cookie-urile terțe
+Block all cookies=Blochează toate cookie-urile
+Send “Do Not Track”=Trimite „Do Not Track”
+Send Global Privacy Control (GPC)=Trimite Global Privacy Control (GPC)
+Strip tracking parameters from links=Elimină parametrii de urmărire din linkuri
+Try HTTPS first on every site=Încearcă mai întâi HTTPS pe fiecare site
+Block dangerous sites (Google Safe Browsing and a local list)=Blochează site-urile periculoase (Google Safe Browsing și o listă locală)
+Content=Conținut
+Load images=Încarcă imaginile
+Enable JavaScript=Activează JavaScript
+Enable local storage=Activează stocarea locală
+Enable cache=Activează memoria cache
+Clear all browsing data=Șterge toate datele de navigare
+Browsing data cleared=Datele de navigare au fost șterse
+Save=Salvează
+Saved.=Salvat.
+Changes apply to newly opened pages.=Modificările se aplică paginilor deschise de acum înainte.
+# --- History page (about:history) ---
+Recently visited pages.=Pagini vizitate recent.
+No history yet.=Încă nu există istoric.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Despre Northstar Web Browser
+Version=Versiune
+Start=Start
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Un browser web pentru Windows, Linux și Mac, scris în limbajul de programare C, cu licență open source GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser este software liber, distribuit sub GNU General Public License, versiunea 3 sau ulterioară.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Notificări privind software-ul terților

@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Russian / Русский
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Назад
 Forward=Вперёд
 Reload=Перезагрузить
+Stop=Остановить
 Home=Домой
+Menu=Меню
 Bookmarks=Закладки
 Settings=Настройки
-Menu=Меню
 Loading=Загрузка
 Loading…=Загрузка…
+Done=Готово
+Go back one page=Вернуться на одну страницу назад
+Go forward one page=Перейти на одну страницу вперёд
+Reload this page=Перезагрузить эту страницу
+Stop loading this page=Остановить загрузку этой страницы
+Go to the home page=Перейти на домашнюю страницу
+Address and search bar=Адресная строка и строка поиска
+Page location=Адрес страницы
+Search or enter a URL=Введите поисковый запрос или URL
+Search for=Искать
+Server:=Сервер:
+New Window=Новое окно
+Quit=Выйти
+Continue=Продолжить
+Recovered the previous session after an unexpected exit=Предыдущая сессия восстановлена после неожиданного завершения
+Failed to load page=Не удалось загрузить страницу
+Stopped after too many redirects=Остановлено после слишком большого числа перенаправлений
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Защищено — сертификат действителен
+Not secure — the connection is not encrypted=Не защищено — соединение не зашифровано
+Not secure — the certificate is not trusted=Не защищено — сертификат не является доверенным
+Certificate errors are being ignored=Ошибки сертификата игнорируются
+# --- Main menu ---
+Find in Page=Найти на странице
+Full Screen=Полный экран
+Zoom In=Увеличить
+Zoom Out=Уменьшить
+Reset Zoom=Сбросить масштаб
+Print…=Печать…
+Save Page As…=Сохранить страницу как…
+Save Page as PDF…=Сохранить страницу как PDF…
+Save Page as Image…=Сохранить страницу как изображение…
+Page Source=Исходный код страницы
+Downloads=Загрузки
+History=Журнал
+Bookmark This Page=Добавить страницу в закладки
+Visit nordstjernen.org=Посетить nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Копировать
 Select All=Выделить всё
-Done=Готово
+Open Link=Открыть ссылку
+Copy Link Address=Копировать адрес ссылки
+Copy Page Address=Копировать адрес страницы
+Copied to clipboard=Скопировано в буфер обмена
+Copied link address=Адрес ссылки скопирован
+Copied page address=Адрес страницы скопирован
+Copied selection=Выделенный текст скопирован
+# --- Find bar ---
+Find in page=Найти на странице
 No results=Нет результатов
+Previous match=Предыдущее совпадение
+Next match=Следующее совпадение
+Previous match (Shift+Enter)=Предыдущее совпадение (Shift+Enter)
+Next match (Enter)=Следующее совпадение (Enter)
+Close search=Закрыть поиск
+Close (Esc)=Закрыть (Esc)
+# --- Bookmarks ---
 Bookmark this page=Добавить страницу в закладки
 Bookmark added=Закладка добавлена
+Bookmark removed=Закладка удалена
+Bookmarked — open bookmarks=В закладках — открыть закладки
+Remove bookmark=Удалить закладку
+Remove this bookmark=Удалить эту закладку
 No bookmarks yet=Закладок пока нет
+# --- Downloads, saving, printing ---
+Show downloads=Показать загрузки
+Nothing downloaded yet=Загрузок пока нет
+Open=Открыть
+Open folder=Открыть папку
+Failed=Ошибка
+Could not save page=Не удалось сохранить страницу
+Save page as PDF=Сохранить страницу как PDF
+Save page as PNG=Сохранить страницу как PNG
+Print=Печать
+Print this page=Распечатать эту страницу
+Nothing to print=Нечего печатать
+Reset zoom=Сбросить масштаб
+Reset zoom (Ctrl+0)=Сбросить масштаб (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s теперь в полноэкранном режиме. Нажмите Esc для выхода.
 You are now in full screen. Press Esc to exit.=Вы в полноэкранном режиме. Нажмите Esc для выхода.
+This site wants to use your camera and microphone=Этот сайт запрашивает доступ к камере и микрофону
+Allow=Разрешить
+Allow and trust this site=Разрешить и доверять этому сайту
+Not now=Не сейчас
+Dismiss=Закрыть
+# --- Start page (about:start) ---
+Search=Найти
+Search the web=Поиск в интернете
+Search (__ND_SEARCH_NAME__):=Поиск (__ND_SEARCH_NAME__):
+License=Лицензия
+Privacy=Приватность
+# --- Settings page (about:settings) ---
+General=Основные
+Home page=Домашняя страница
+Search engine=Поисковая система
+Custom search URL=Свой URL поиска
+Custom…=Другая…
+Cookies=Куки
+Accept all cookies=Принимать все куки
+Block third-party cookies=Блокировать сторонние куки
+Block all cookies=Блокировать все куки
+Send “Do Not Track”=Отправлять «Не отслеживать»
+Send Global Privacy Control (GPC)=Отправлять Global Privacy Control (GPC)
+Strip tracking parameters from links=Удалять параметры отслеживания из ссылок
+Try HTTPS first on every site=Сначала пробовать HTTPS на каждом сайте
+Block dangerous sites (Google Safe Browsing and a local list)=Блокировать опасные сайты (Google Safe Browsing и локальный список)
+Content=Содержимое
+Load images=Загружать изображения
+Enable JavaScript=Включить JavaScript
+Enable local storage=Включить локальное хранилище
+Enable cache=Включить кэш
+Clear all browsing data=Удалить все данные браузера
+Browsing data cleared=Данные браузера удалены
+Save=Сохранить
+Saved.=Сохранено.
+Changes apply to newly opened pages.=Изменения применяются к вновь открытым страницам.
+# --- History page (about:history) ---
+Recently visited pages.=Недавно посещённые страницы.
+No history yet.=Журнал пока пуст.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=О Northstar Web Browser
+Version=Версия
+Start=Начало
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Веб-браузер для Windows, Linux и Mac, написанный на языке программирования C, с открытым исходным кодом под лицензией GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser — свободное программное обеспечение, распространяемое на условиях GNU General Public License версии 3 или более поздней.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Уведомления о стороннем программном обеспечении

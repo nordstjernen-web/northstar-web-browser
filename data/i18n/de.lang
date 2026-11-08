@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — German / Deutsch
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Zurück
 Forward=Vorwärts
 Reload=Neu laden
+Stop=Stopp
 Home=Startseite
+Menu=Menü
 Bookmarks=Lesezeichen
 Settings=Einstellungen
-Menu=Menü
 Loading=Lädt
 Loading…=Lädt…
+Done=Fertig
+Go back one page=Eine Seite zurück
+Go forward one page=Eine Seite vor
+Reload this page=Diese Seite neu laden
+Stop loading this page=Laden dieser Seite stoppen
+Go to the home page=Zur Startseite
+Address and search bar=Adress- und Suchleiste
+Page location=Seitenadresse
+Search or enter a URL=Suchen oder URL eingeben
+Search for=Suchen nach
+Server:=Server:
+New Window=Neues Fenster
+Quit=Beenden
+Continue=Fortfahren
+Recovered the previous session after an unexpected exit=Vorherige Sitzung nach unerwartetem Beenden wiederhergestellt
+Failed to load page=Seite konnte nicht geladen werden
+Stopped after too many redirects=Nach zu vielen Weiterleitungen abgebrochen
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Sicher — das Zertifikat ist gültig
+Not secure — the connection is not encrypted=Nicht sicher — die Verbindung ist nicht verschlüsselt
+Not secure — the certificate is not trusted=Nicht sicher — dem Zertifikat wird nicht vertraut
+Certificate errors are being ignored=Zertifikatfehler werden ignoriert
+# --- Main menu ---
+Find in Page=In Seite suchen
+Full Screen=Vollbild
+Zoom In=Vergrößern
+Zoom Out=Verkleinern
+Reset Zoom=Zoom zurücksetzen
+Print…=Drucken…
+Save Page As…=Seite speichern unter…
+Save Page as PDF…=Seite als PDF speichern…
+Save Page as Image…=Seite als Bild speichern…
+Page Source=Seitenquelltext
+Downloads=Downloads
+History=Verlauf
+Bookmark This Page=Lesezeichen für diese Seite hinzufügen
+Visit nordstjernen.org=nordstjernen.org besuchen
+# --- Context menu, clipboard ---
 Copy=Kopieren
 Select All=Alles auswählen
-Done=Fertig
+Open Link=Link öffnen
+Copy Link Address=Link-Adresse kopieren
+Copy Page Address=Seitenadresse kopieren
+Copied to clipboard=In die Zwischenablage kopiert
+Copied link address=Link-Adresse kopiert
+Copied page address=Seitenadresse kopiert
+Copied selection=Auswahl kopiert
+# --- Find bar ---
+Find in page=In Seite suchen
 No results=Keine Treffer
+Previous match=Vorheriger Treffer
+Next match=Nächster Treffer
+Previous match (Shift+Enter)=Vorheriger Treffer (Shift+Enter)
+Next match (Enter)=Nächster Treffer (Enter)
+Close search=Suche schließen
+Close (Esc)=Schließen (Esc)
+# --- Bookmarks ---
 Bookmark this page=Diese Seite als Lesezeichen speichern
 Bookmark added=Lesezeichen hinzugefügt
+Bookmark removed=Lesezeichen entfernt
+Bookmarked — open bookmarks=Als Lesezeichen gespeichert — Lesezeichen öffnen
+Remove bookmark=Lesezeichen entfernen
+Remove this bookmark=Dieses Lesezeichen entfernen
 No bookmarks yet=Noch keine Lesezeichen
+# --- Downloads, saving, printing ---
+Show downloads=Downloads anzeigen
+Nothing downloaded yet=Noch nichts heruntergeladen
+Open=Öffnen
+Open folder=Ordner öffnen
+Failed=Fehlgeschlagen
+Could not save page=Seite konnte nicht gespeichert werden
+Save page as PDF=Seite als PDF speichern
+Save page as PNG=Seite als PNG speichern
+Print=Drucken
+Print this page=Diese Seite drucken
+Nothing to print=Nichts zu drucken
+Reset zoom=Zoom zurücksetzen
+Reset zoom (Ctrl+0)=Zoom zurücksetzen (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s ist jetzt im Vollbildmodus. Esc drücken zum Beenden.
 You are now in full screen. Press Esc to exit.=Sie befinden sich jetzt im Vollbildmodus. Esc drücken zum Beenden.
+This site wants to use your camera and microphone=Diese Website möchte Ihre Kamera und Ihr Mikrofon verwenden
+Allow=Erlauben
+Allow and trust this site=Erlauben und dieser Website vertrauen
+Not now=Nicht jetzt
+Dismiss=Schließen
+# --- Start page (about:start) ---
+Search=Suchen
+Search the web=Im Web suchen
+Search (__ND_SEARCH_NAME__):=Suche (__ND_SEARCH_NAME__):
+License=Lizenz
+Privacy=Datenschutz
+# --- Settings page (about:settings) ---
+General=Allgemein
+Home page=Startseite
+Search engine=Suchmaschine
+Custom search URL=Benutzerdefinierte Such-URL
+Custom…=Benutzerdefiniert…
+Cookies=Cookies
+Accept all cookies=Alle Cookies akzeptieren
+Block third-party cookies=Cookies von Drittanbietern blockieren
+Block all cookies=Alle Cookies blockieren
+Send “Do Not Track”=„Do Not Track“ senden
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) senden
+Strip tracking parameters from links=Tracking-Parameter aus Links entfernen
+Try HTTPS first on every site=Auf jeder Website zuerst HTTPS versuchen
+Block dangerous sites (Google Safe Browsing and a local list)=Gefährliche Websites blockieren (Google Safe Browsing und eine lokale Liste)
+Content=Inhalte
+Load images=Bilder laden
+Enable JavaScript=JavaScript aktivieren
+Enable local storage=Lokalen Speicher aktivieren
+Enable cache=Cache aktivieren
+Clear all browsing data=Alle Browserdaten löschen
+Browsing data cleared=Browserdaten gelöscht
+Save=Speichern
+Saved.=Gespeichert.
+Changes apply to newly opened pages.=Änderungen gelten für neu geöffnete Seiten.
+# --- History page (about:history) ---
+Recently visited pages.=Kürzlich besuchte Seiten.
+No history yet.=Noch kein Verlauf.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Über Northstar Web Browser
+Version=Version
+Start=Start
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Ein Webbrowser für Windows, Linux und Mac, programmiert in der Programmiersprache C, unter der Open-Source-Lizenz GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ist freie Software und wird unter der GNU General Public License, Version 3 oder höher, verbreitet.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Hinweise zu Software von Drittanbietern

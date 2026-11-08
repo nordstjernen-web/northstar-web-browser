@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Amharic / አማርኛ
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=ተመለስ
+Forward=ወደፊት
+Reload=እንደገና ጫን
+Stop=አቁም
+Home=መነሻ
+Menu=ምናሌ
+Bookmarks=ዕልባቶች
+Settings=ቅንብሮች
+Loading=በመጫን ላይ
+Loading…=በመጫን ላይ…
+Done=ተጠናቋል
+Go back one page=አንድ ገጽ ወደኋላ ተመለስ
+Go forward one page=አንድ ገጽ ወደፊት ሂድ
+Reload this page=ይህን ገጽ እንደገና ጫን
+Stop loading this page=ይህን ገጽ መጫን አቁም
+Go to the home page=ወደ መነሻ ገጽ ሂድ
+Address and search bar=የአድራሻ እና የፍለጋ አሞሌ
+Page location=የገጽ አካባቢ
+Search or enter a URL=ይፈልጉ ወይም URL ያስገቡ
+Search for=ይህን ፈልግ
+Server:=አገልጋይ:
+New Window=አዲስ መስኮት
+Quit=ውጣ
+Continue=ቀጥል
+Recovered the previous session after an unexpected exit=ካልተጠበቀ መውጣት በኋላ ያለፈው ክፍለ ጊዜ ተመልሷል
+Failed to load page=ገጹን መጫን አልተሳካም
+Stopped after too many redirects=ከብዙ አቅጣጫ ማዞሪያዎች በኋላ ቆሟል
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=ደህንነቱ የተጠበቀ — የምስክር ወረቀቱ ትክክለኛ ነው
+Not secure — the connection is not encrypted=ደህንነቱ ያልተጠበቀ — ግንኙነቱ አልተመሰጠረም
+Not secure — the certificate is not trusted=ደህንነቱ ያልተጠበቀ — የምስክር ወረቀቱ የታመነ አይደለም
+Certificate errors are being ignored=የምስክር ወረቀት ስህተቶች ችላ እየተባሉ ነው
+# --- Main menu ---
+Find in Page=በገጽ ውስጥ ፈልግ
+Full Screen=ሙሉ ማያ ገጽ
+Zoom In=አጉላ
+Zoom Out=አሳንስ
+Reset Zoom=ማጉላትን ዳግም አስጀምር
+Print…=አትም…
+Save Page As…=ገጹን አስቀምጥ እንደ…
+Save Page as PDF…=ገጹን እንደ PDF አስቀምጥ…
+Save Page as Image…=ገጹን እንደ ምስል አስቀምጥ…
+Page Source=የገጽ ምንጭ
+Downloads=ውርዶች
+History=ታሪክ
+Bookmark This Page=ይህን ገጽ ዕልባት አድርግ
+Visit nordstjernen.org=nordstjernen.orgን ይጎብኙ
+# --- Context menu, clipboard ---
+Copy=ቅዳ
+Select All=ሁሉንም ምረጥ
+Open Link=አገናኙን ክፈት
+Copy Link Address=የአገናኝ አድራሻውን ቅዳ
+Copy Page Address=የገጽ አድራሻውን ቅዳ
+Copied to clipboard=ወደ ቅንጥብ ሰሌዳ ተቀድቷል
+Copied link address=የአገናኝ አድራሻው ተቀድቷል
+Copied page address=የገጽ አድራሻው ተቀድቷል
+Copied selection=ምርጫው ተቀድቷል
+# --- Find bar ---
+Find in page=በገጽ ውስጥ ፈልግ
+No results=ምንም ውጤቶች የሉም
+Previous match=ቀዳሚ ተዛማጅ
+Next match=ቀጣይ ተዛማጅ
+Previous match (Shift+Enter)=ቀዳሚ ተዛማጅ (Shift+Enter)
+Next match (Enter)=ቀጣይ ተዛማጅ (Enter)
+Close search=ፍለጋን ዝጋ
+Close (Esc)=ዝጋ (Esc)
+# --- Bookmarks ---
+Bookmark this page=ይህን ገጽ ዕልባት አድርግ
+Bookmark added=ዕልባት ታክሏል
+Bookmark removed=ዕልባት ተወግዷል
+Bookmarked — open bookmarks=ዕልባት ተደርጓል — ዕልባቶችን ክፈት
+Remove bookmark=ዕልባትን አስወግድ
+Remove this bookmark=ይህን ዕልባት አስወግድ
+No bookmarks yet=እስካሁን ምንም ዕልባቶች የሉም
+# --- Downloads, saving, printing ---
+Show downloads=ውርዶችን አሳይ
+Nothing downloaded yet=እስካሁን ምንም አልወረደም
+Open=ክፈት
+Open folder=አቃፊን ክፈት
+Failed=አልተሳካም
+Could not save page=ገጹን ማስቀመጥ አልተቻለም
+Save page as PDF=ገጹን እንደ PDF አስቀምጥ
+Save page as PNG=ገጹን እንደ PNG አስቀምጥ
+Print=አትም
+Print this page=ይህን ገጽ አትም
+Nothing to print=የሚታተም ምንም የለም
+Reset zoom=ማጉላትን ዳግም አስጀምር
+Reset zoom (Ctrl+0)=ማጉላትን ዳግም አስጀምር (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s አሁን ሙሉ ማያ ገጽ ላይ ነው። ለመውጣት Esc ይጫኑ።
+You are now in full screen. Press Esc to exit.=አሁን ሙሉ ማያ ገጽ ላይ ነዎት። ለመውጣት Esc ይጫኑ።
+This site wants to use your camera and microphone=ይህ ጣቢያ ካሜራዎን እና ማይክሮፎንዎን መጠቀም ይፈልጋል
+Allow=ፍቀድ
+Allow and trust this site=ፍቀድ እና ይህን ጣቢያ እመን
+Not now=አሁን አይደለም
+Dismiss=አሰናብት
+# --- Start page (about:start) ---
+Search=ፈልግ
+Search the web=ድሩን ፈልግ
+Search (__ND_SEARCH_NAME__):=ፈልግ (__ND_SEARCH_NAME__):
+License=ፈቃድ
+Privacy=ግላዊነት
+# --- Settings page (about:settings) ---
+General=አጠቃላይ
+Home page=መነሻ ገጽ
+Search engine=የፍለጋ ፕሮግራም
+Custom search URL=ብጁ የፍለጋ URL
+Custom…=ብጁ…
+Cookies=ኩኪዎች
+Accept all cookies=ሁሉንም ኩኪዎች ተቀበል
+Block third-party cookies=የሶስተኛ ወገን ኩኪዎችን አግድ
+Block all cookies=ሁሉንም ኩኪዎች አግድ
+Send “Do Not Track”=“Do Not Track” ላክ
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) ላክ
+Strip tracking parameters from links=የመከታተያ ልኬቶችን ከአገናኞች አስወግድ
+Try HTTPS first on every site=በእያንዳንዱ ጣቢያ መጀመሪያ HTTPSን ሞክር
+Block dangerous sites (Google Safe Browsing and a local list)=አደገኛ ጣቢያዎችን አግድ (Google Safe Browsing እና የአካባቢ ዝርዝር)
+Content=ይዘት
+Load images=ምስሎችን ጫን
+Enable JavaScript=JavaScriptን አንቃ
+Enable local storage=አካባቢያዊ ማከማቻን አንቃ
+Enable cache=መሸጎጫን አንቃ
+Clear all browsing data=ሁሉንም የአሰሳ ውሂብ አጽዳ
+Browsing data cleared=የአሰሳ ውሂብ ተጠርጓል
+Save=አስቀምጥ
+Saved.=ተቀምጧል።
+Changes apply to newly opened pages.=ለውጦቹ አዲስ በሚከፈቱ ገጾች ላይ ተግባራዊ ይሆናሉ።
+# --- History page (about:history) ---
+Recently visited pages.=በቅርብ ጊዜ የተጎበኙ ገጾች።
+No history yet.=እስካሁን ምንም ታሪክ የለም።
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=ስለ Northstar Web Browser
+Version=ስሪት
+Start=መጀመሪያ
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=ለWindows፣ Linux እና Mac የተሰራ የድር አሳሽ፣ በC የፕሮግራም ቋንቋ የተጻፈ፣ በክፍት ምንጭ GPL ፈቃድ።
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ነፃ ሶፍትዌር ነው፣ በGNU General Public License፣ ስሪት 3 ወይም ከዚያ በኋላ ስር የሚሰራጭ።
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=የሶስተኛ ወገን ሶፍትዌር ማስታወቂያዎች

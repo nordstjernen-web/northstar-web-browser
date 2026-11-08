@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Marathi / मराठी
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=मागे
+Forward=पुढे
+Reload=रीलोड करा
+Stop=थांबवा
+Home=होम
+Menu=मेनू
+Bookmarks=बुकमार्क
+Settings=सेटिंग्ज
+Loading=लोड होत आहे
+Loading…=लोड होत आहे…
+Done=पूर्ण
+Go back one page=एक पृष्ठ मागे जा
+Go forward one page=एक पृष्ठ पुढे जा
+Reload this page=हे पृष्ठ रीलोड करा
+Stop loading this page=हे पृष्ठ लोड करणे थांबवा
+Go to the home page=होम पृष्ठावर जा
+Address and search bar=पत्ता आणि शोध बार
+Page location=पृष्ठाचे स्थान
+Search or enter a URL=शोधा किंवा URL प्रविष्ट करा
+Search for=शोधा
+Server:=सर्व्हर:
+New Window=नवीन विंडो
+Quit=बाहेर पडा
+Continue=सुरू ठेवा
+Recovered the previous session after an unexpected exit=अनपेक्षितपणे बंद झाल्यानंतर मागील सत्र पुनर्प्राप्त केले
+Failed to load page=पृष्ठ लोड करण्यात अयशस्वी
+Stopped after too many redirects=खूप जास्त रीडायरेक्टनंतर थांबवले
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=सुरक्षित — प्रमाणपत्र वैध आहे
+Not secure — the connection is not encrypted=सुरक्षित नाही — कनेक्शन एन्क्रिप्ट केलेले नाही
+Not secure — the certificate is not trusted=सुरक्षित नाही — प्रमाणपत्र विश्वसनीय नाही
+Certificate errors are being ignored=प्रमाणपत्र त्रुटींकडे दुर्लक्ष केले जात आहे
+# --- Main menu ---
+Find in Page=पृष्ठात शोधा
+Full Screen=पूर्ण स्क्रीन
+Zoom In=झूम इन करा
+Zoom Out=झूम आउट करा
+Reset Zoom=झूम रीसेट करा
+Print…=प्रिंट करा…
+Save Page As…=पृष्ठ असे जतन करा…
+Save Page as PDF…=पृष्ठ PDF म्हणून जतन करा…
+Save Page as Image…=पृष्ठ प्रतिमा म्हणून जतन करा…
+Page Source=पृष्ठ स्रोत
+Downloads=डाउनलोड
+History=इतिहास
+Bookmark This Page=हे पृष्ठ बुकमार्क करा
+Visit nordstjernen.org=nordstjernen.org ला भेट द्या
+# --- Context menu, clipboard ---
+Copy=कॉपी करा
+Select All=सर्व निवडा
+Open Link=लिंक उघडा
+Copy Link Address=लिंक पत्ता कॉपी करा
+Copy Page Address=पृष्ठाचा पत्ता कॉपी करा
+Copied to clipboard=क्लिपबोर्डवर कॉपी केले
+Copied link address=लिंक पत्ता कॉपी केला
+Copied page address=पृष्ठाचा पत्ता कॉपी केला
+Copied selection=निवड कॉपी केली
+# --- Find bar ---
+Find in page=पृष्ठात शोधा
+No results=कोणतेही परिणाम नाहीत
+Previous match=मागील जुळणी
+Next match=पुढील जुळणी
+Previous match (Shift+Enter)=मागील जुळणी (Shift+Enter)
+Next match (Enter)=पुढील जुळणी (Enter)
+Close search=शोध बंद करा
+Close (Esc)=बंद करा (Esc)
+# --- Bookmarks ---
+Bookmark this page=हे पृष्ठ बुकमार्क करा
+Bookmark added=बुकमार्क जोडला
+Bookmark removed=बुकमार्क काढला
+Bookmarked — open bookmarks=बुकमार्क केले — बुकमार्क उघडा
+Remove bookmark=बुकमार्क काढा
+Remove this bookmark=हा बुकमार्क काढा
+No bookmarks yet=अद्याप कोणतेही बुकमार्क नाहीत
+# --- Downloads, saving, printing ---
+Show downloads=डाउनलोड दाखवा
+Nothing downloaded yet=अद्याप काहीही डाउनलोड केलेले नाही
+Open=उघडा
+Open folder=फोल्डर उघडा
+Failed=अयशस्वी
+Could not save page=पृष्ठ जतन करता आले नाही
+Save page as PDF=पृष्ठ PDF म्हणून जतन करा
+Save page as PNG=पृष्ठ PNG म्हणून जतन करा
+Print=प्रिंट करा
+Print this page=हे पृष्ठ प्रिंट करा
+Nothing to print=प्रिंट करण्यासाठी काहीही नाही
+Reset zoom=झूम रीसेट करा
+Reset zoom (Ctrl+0)=झूम रीसेट करा (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s आता पूर्ण स्क्रीनमध्ये आहे. बाहेर पडण्यासाठी Esc दाबा.
+You are now in full screen. Press Esc to exit.=तुम्ही आता पूर्ण स्क्रीनमध्ये आहात. बाहेर पडण्यासाठी Esc दाबा.
+This site wants to use your camera and microphone=ही साइट तुमचा कॅमेरा आणि मायक्रोफोन वापरू इच्छिते
+Allow=अनुमती द्या
+Allow and trust this site=अनुमती द्या आणि या साइटवर विश्वास ठेवा
+Not now=आता नाही
+Dismiss=डिसमिस करा
+# --- Start page (about:start) ---
+Search=शोधा
+Search the web=वेबवर शोधा
+Search (__ND_SEARCH_NAME__):=शोधा (__ND_SEARCH_NAME__):
+License=परवाना
+Privacy=गोपनीयता
+# --- Settings page (about:settings) ---
+General=सामान्य
+Home page=होम पृष्ठ
+Search engine=शोध इंजिन
+Custom search URL=सानुकूल शोध URL
+Custom…=सानुकूल…
+Cookies=कुकीज
+Accept all cookies=सर्व कुकीज स्वीकारा
+Block third-party cookies=तृतीय-पक्ष कुकीज ब्लॉक करा
+Block all cookies=सर्व कुकीज ब्लॉक करा
+Send “Do Not Track”=“ट्रॅक करू नका” पाठवा
+Send Global Privacy Control (GPC)=ग्लोबल प्रायव्हसी कंट्रोल (GPC) पाठवा
+Strip tracking parameters from links=लिंकमधून ट्रॅकिंग पॅरामीटर काढा
+Try HTTPS first on every site=प्रत्येक साइटवर आधी HTTPS वापरून पहा
+Block dangerous sites (Google Safe Browsing and a local list)=धोकादायक साइट ब्लॉक करा (Google Safe Browsing आणि एक स्थानिक सूची)
+Content=सामग्री
+Load images=प्रतिमा लोड करा
+Enable JavaScript=JavaScript सुरू करा
+Enable local storage=स्थानिक संचयन सुरू करा
+Enable cache=कॅशे सुरू करा
+Clear all browsing data=सर्व ब्राउझिंग डेटा साफ करा
+Browsing data cleared=ब्राउझिंग डेटा साफ केला
+Save=जतन करा
+Saved.=जतन केले.
+Changes apply to newly opened pages.=बदल नव्याने उघडलेल्या पृष्ठांना लागू होतात.
+# --- History page (about:history) ---
+Recently visited pages.=अलीकडे भेट दिलेली पृष्ठे.
+No history yet.=अद्याप इतिहास नाही.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser बद्दल
+Version=आवृत्ती
+Start=सुरुवात
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux आणि Mac साठी एक वेब ब्राउझर, C प्रोग्रामिंग भाषेत लिहिलेला, ओपन सोर्स GPL परवान्यासह.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser हे मुक्त सॉफ्टवेअर आहे, जे GNU General Public License, आवृत्ती 3 किंवा नंतरच्या आवृत्तीअंतर्गत वितरित केले जाते.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=तृतीय-पक्ष सॉफ्टवेअर सूचना

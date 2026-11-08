@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Dutch / Nederlands
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Terug
 Forward=Vooruit
 Reload=Herladen
+Stop=Stoppen
 Home=Startpagina
+Menu=Menu
 Bookmarks=Bladwijzers
 Settings=Instellingen
-Menu=Menu
 Loading=Laden
 Loading…=Laden…
+Done=Klaar
+Go back one page=Een pagina terug
+Go forward one page=Een pagina vooruit
+Reload this page=Deze pagina herladen
+Stop loading this page=Laden van deze pagina stoppen
+Go to the home page=Naar de startpagina
+Address and search bar=Adres- en zoekbalk
+Page location=Paginalocatie
+Search or enter a URL=Zoek of voer een URL in
+Search for=Zoeken naar
+Server:=Server:
+New Window=Nieuw venster
+Quit=Afsluiten
+Continue=Doorgaan
+Recovered the previous session after an unexpected exit=Vorige sessie hersteld na een onverwachte afsluiting
+Failed to load page=Pagina laden mislukt
+Stopped after too many redirects=Gestopt na te veel omleidingen
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Beveiligd — het certificaat is geldig
+Not secure — the connection is not encrypted=Niet beveiligd — de verbinding is niet versleuteld
+Not secure — the certificate is not trusted=Niet beveiligd — het certificaat wordt niet vertrouwd
+Certificate errors are being ignored=Certificaatfouten worden genegeerd
+# --- Main menu ---
+Find in Page=Zoeken op pagina
+Full Screen=Volledig scherm
+Zoom In=Inzoomen
+Zoom Out=Uitzoomen
+Reset Zoom=Zoom herstellen
+Print…=Afdrukken…
+Save Page As…=Pagina opslaan als…
+Save Page as PDF…=Pagina opslaan als PDF…
+Save Page as Image…=Pagina opslaan als afbeelding…
+Page Source=Paginabron
+Downloads=Downloads
+History=Geschiedenis
+Bookmark This Page=Bladwijzer voor deze pagina maken
+Visit nordstjernen.org=nordstjernen.org bezoeken
+# --- Context menu, clipboard ---
 Copy=Kopiëren
 Select All=Alles selecteren
-Done=Klaar
+Open Link=Link openen
+Copy Link Address=Linkadres kopiëren
+Copy Page Address=Paginaadres kopiëren
+Copied to clipboard=Gekopieerd naar klembord
+Copied link address=Linkadres gekopieerd
+Copied page address=Paginaadres gekopieerd
+Copied selection=Selectie gekopieerd
+# --- Find bar ---
+Find in page=Zoeken op pagina
 No results=Geen resultaten
+Previous match=Vorige overeenkomst
+Next match=Volgende overeenkomst
+Previous match (Shift+Enter)=Vorige overeenkomst (Shift+Enter)
+Next match (Enter)=Volgende overeenkomst (Enter)
+Close search=Zoeken sluiten
+Close (Esc)=Sluiten (Esc)
+# --- Bookmarks ---
 Bookmark this page=Deze pagina als bladwijzer toevoegen
 Bookmark added=Bladwijzer toegevoegd
+Bookmark removed=Bladwijzer verwijderd
+Bookmarked — open bookmarks=Bladwijzer gemaakt — bladwijzers openen
+Remove bookmark=Bladwijzer verwijderen
+Remove this bookmark=Deze bladwijzer verwijderen
 No bookmarks yet=Nog geen bladwijzers
+# --- Downloads, saving, printing ---
+Show downloads=Downloads tonen
+Nothing downloaded yet=Nog niets gedownload
+Open=Openen
+Open folder=Map openen
+Failed=Mislukt
+Could not save page=Kan pagina niet opslaan
+Save page as PDF=Pagina opslaan als PDF
+Save page as PNG=Pagina opslaan als PNG
+Print=Afdrukken
+Print this page=Deze pagina afdrukken
+Nothing to print=Niets om af te drukken
+Reset zoom=Zoom herstellen
+Reset zoom (Ctrl+0)=Zoom herstellen (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s staat nu op volledig scherm. Druk op Esc om af te sluiten.
 You are now in full screen. Press Esc to exit.=U bent nu in volledig scherm. Druk op Esc om af te sluiten.
+This site wants to use your camera and microphone=Deze website wil uw camera en microfoon gebruiken
+Allow=Toestaan
+Allow and trust this site=Toestaan en deze website vertrouwen
+Not now=Niet nu
+Dismiss=Negeren
+# --- Start page (about:start) ---
+Search=Zoeken
+Search the web=Zoeken op het web
+Search (__ND_SEARCH_NAME__):=Zoeken (__ND_SEARCH_NAME__):
+License=Licentie
+Privacy=Privacy
+# --- Settings page (about:settings) ---
+General=Algemeen
+Home page=Startpagina
+Search engine=Zoekmachine
+Custom search URL=Aangepaste zoek-URL
+Custom…=Aangepast…
+Cookies=Cookies
+Accept all cookies=Alle cookies accepteren
+Block third-party cookies=Cookies van derden blokkeren
+Block all cookies=Alle cookies blokkeren
+Send “Do Not Track”=‘Do Not Track’ verzenden
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) verzenden
+Strip tracking parameters from links=Trackingparameters uit links verwijderen
+Try HTTPS first on every site=Op elke website eerst HTTPS proberen
+Block dangerous sites (Google Safe Browsing and a local list)=Gevaarlijke websites blokkeren (Google Safe Browsing en een lokale lijst)
+Content=Inhoud
+Load images=Afbeeldingen laden
+Enable JavaScript=JavaScript inschakelen
+Enable local storage=Lokale opslag inschakelen
+Enable cache=Cache inschakelen
+Clear all browsing data=Alle browsegegevens wissen
+Browsing data cleared=Browsegegevens gewist
+Save=Opslaan
+Saved.=Opgeslagen.
+Changes apply to newly opened pages.=Wijzigingen gelden voor nieuw geopende pagina’s.
+# --- History page (about:history) ---
+Recently visited pages.=Recent bezochte pagina’s.
+No history yet.=Nog geen geschiedenis.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Over Northstar Web Browser
+Version=Versie
+Start=Start
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Een webbrowser voor Windows, Linux en Mac, geschreven in de programmeertaal C, met de opensourcelicentie GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser is vrije software, verspreid onder de GNU General Public License, versie 3 of later.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Kennisgevingen voor software van derden

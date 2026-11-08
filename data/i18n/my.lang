@@ -1,2 +1,142 @@
 # Northstar Web Browser UI translations — Burmese / မြန်မာ
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
+Back=နောက်သို့
+Forward=ရှေ့သို့
+Reload=ပြန်ဖွင့်ရန်
+Stop=ရပ်ရန်
+Home=ပင်မ
+Menu=မီနူး
+Bookmarks=စာမှတ်များ
+Settings=ဆက်တင်များ
+Loading=ဖွင့်နေသည်
+Loading…=ဖွင့်နေသည်…
+Done=ပြီးပါပြီ
+Go back one page=စာမျက်နှာတစ်ခု နောက်သို့ပြန်သွားရန်
+Go forward one page=စာမျက်နှာတစ်ခု ရှေ့သို့သွားရန်
+Reload this page=ဤစာမျက်နှာကို ပြန်ဖွင့်ရန်
+Stop loading this page=ဤစာမျက်နှာ ဖွင့်ခြင်းကို ရပ်ရန်
+Go to the home page=ပင်မစာမျက်နှာသို့ သွားရန်
+Address and search bar=လိပ်စာနှင့် ရှာဖွေရေးဘား
+Page location=စာမျက်နှာ တည်နေရာ
+Search or enter a URL=ရှာဖွေပါ သို့မဟုတ် URL ထည့်ပါ
+Search for=ရှာဖွေရန်
+Server:=ဆာဗာ:
+New Window=ဝင်းဒိုးအသစ်
+Quit=ထွက်ရန်
+Continue=ဆက်လုပ်ရန်
+Recovered the previous session after an unexpected exit=မမျှော်လင့်ဘဲ ပိတ်သွားပြီးနောက် ယခင် ဆက်ရှင်ကို ပြန်ယူထားပါသည်
+Failed to load page=စာမျက်နှာကို ဖွင့်၍မရပါ
+Stopped after too many redirects=လမ်းကြောင်းလွှဲမှု များလွန်းသဖြင့် ရပ်လိုက်ပါသည်
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=လုံခြုံသည် — လက်မှတ် မှန်ကန်သည်
+Not secure — the connection is not encrypted=မလုံခြုံပါ — ချိတ်ဆက်မှုကို ကုဒ်ဝှက်မထားပါ
+Not secure — the certificate is not trusted=မလုံခြုံပါ — လက်မှတ်ကို ယုံကြည်၍မရပါ
+Certificate errors are being ignored=လက်မှတ် အမှားများကို လျစ်လျူရှုထားသည်
+# --- Main menu ---
+Find in Page=စာမျက်နှာတွင် ရှာရန်
+Full Screen=မျက်နှာပြင်အပြည့်
+Zoom In=ချဲ့ရန်
+Zoom Out=ချုံ့ရန်
+Reset Zoom=ချဲ့ချုံ့မှု ပြန်လည်သတ်မှတ်ရန်
+Print…=ပုံနှိပ်ရန်…
+Save Page As…=စာမျက်နှာကို အမည်ပေး၍ သိမ်းရန်…
+Save Page as PDF…=စာမျက်နှာကို PDF အဖြစ် သိမ်းရန်…
+Save Page as Image…=စာမျက်နှာကို ပုံအဖြစ် သိမ်းရန်…
+Page Source=စာမျက်နှာ ရင်းမြစ်
+Downloads=ဒေါင်းလုဒ်များ
+History=မှတ်တမ်း
+Bookmark This Page=ဤစာမျက်နှာကို စာမှတ်ထားရန်
+Visit nordstjernen.org=nordstjernen.org သို့ သွားရောက်ရန်
+# --- Context menu, clipboard ---
+Copy=ကူးယူရန်
+Select All=အားလုံးရွေးရန်
+Open Link=လင့်ခ်ကို ဖွင့်ရန်
+Copy Link Address=လင့်ခ်လိပ်စာကို ကူးယူရန်
+Copy Page Address=စာမျက်နှာလိပ်စာကို ကူးယူရန်
+Copied to clipboard=ကလစ်ဘုတ်သို့ ကူးယူပြီးပါပြီ
+Copied link address=လင့်ခ်လိပ်စာကို ကူးယူပြီးပါပြီ
+Copied page address=စာမျက်နှာလိပ်စာကို ကူးယူပြီးပါပြီ
+Copied selection=ရွေးထားသည်ကို ကူးယူပြီးပါပြီ
+# --- Find bar ---
+Find in page=စာမျက်နှာတွင် ရှာရန်
+No results=ရလဒ် မရှိပါ
+Previous match=ယခင် တွေ့ရှိချက်
+Next match=နောက် တွေ့ရှိချက်
+Previous match (Shift+Enter)=ယခင် တွေ့ရှိချက် (Shift+Enter)
+Next match (Enter)=နောက် တွေ့ရှိချက် (Enter)
+Close search=ရှာဖွေမှုကို ပိတ်ရန်
+Close (Esc)=ပိတ်ရန် (Esc)
+# --- Bookmarks ---
+Bookmark this page=ဤစာမျက်နှာကို စာမှတ်ထားရန်
+Bookmark added=စာမှတ် ထည့်ပြီးပါပြီ
+Bookmark removed=စာမှတ် ဖယ်ရှားပြီးပါပြီ
+Bookmarked — open bookmarks=စာမှတ်ထားပြီး — စာမှတ်များကို ဖွင့်ရန်
+Remove bookmark=စာမှတ် ဖယ်ရှားရန်
+Remove this bookmark=ဤစာမှတ်ကို ဖယ်ရှားရန်
+No bookmarks yet=စာမှတ် မရှိသေးပါ
+# --- Downloads, saving, printing ---
+Show downloads=ဒေါင်းလုဒ်များ ပြရန်
+Nothing downloaded yet=ဒေါင်းလုဒ် မလုပ်ရသေးပါ
+Open=ဖွင့်ရန်
+Open folder=ဖိုင်တွဲကို ဖွင့်ရန်
+Failed=မအောင်မြင်ပါ
+Could not save page=စာမျက်နှာကို သိမ်း၍မရပါ
+Save page as PDF=စာမျက်နှာကို PDF အဖြစ် သိမ်းရန်
+Save page as PNG=စာမျက်နှာကို PNG အဖြစ် သိမ်းရန်
+Print=ပုံနှိပ်ရန်
+Print this page=ဤစာမျက်နှာကို ပုံနှိပ်ရန်
+Nothing to print=ပုံနှိပ်စရာ မရှိပါ
+Reset zoom=ချဲ့ချုံ့မှု ပြန်လည်သတ်မှတ်ရန်
+Reset zoom (Ctrl+0)=ချဲ့ချုံ့မှု ပြန်လည်သတ်မှတ်ရန် (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s သည် ယခု မျက်နှာပြင်အပြည့် ဖြစ်နေပါပြီ။ ထွက်ရန် Esc ကို နှိပ်ပါ။
+You are now in full screen. Press Esc to exit.=ယခု မျက်နှာပြင်အပြည့် ဖြစ်နေပါပြီ။ ထွက်ရန် Esc ကို နှိပ်ပါ။
+This site wants to use your camera and microphone=ဤဆိုက်က သင့်ကင်မရာနှင့် မိုက်ခရိုဖုန်းကို အသုံးပြုလိုသည်
+Allow=ခွင့်ပြုရန်
+Allow and trust this site=ခွင့်ပြုပြီး ဤဆိုက်ကို ယုံကြည်ရန်
+Not now=ယခု မဟုတ်ပါ
+Dismiss=ပယ်ရန်
+# --- Start page (about:start) ---
+Search=ရှာဖွေရန်
+Search the web=ဝဘ်တွင် ရှာဖွေရန်
+Search (__ND_SEARCH_NAME__):=ရှာဖွေရန် (__ND_SEARCH_NAME__):
+License=လိုင်စင်
+Privacy=ကိုယ်ရေးအချက်အလက်
+# --- Settings page (about:settings) ---
+General=အထွေထွေ
+Home page=ပင်မစာမျက်နှာ
+Search engine=ရှာဖွေရေးအင်ဂျင်
+Custom search URL=စိတ်ကြိုက် ရှာဖွေရေး URL
+Custom…=စိတ်ကြိုက်…
+Cookies=ကွတ်ကီးများ
+Accept all cookies=ကွတ်ကီးအားလုံးကို လက်ခံရန်
+Block third-party cookies=ပြင်ပ ကွတ်ကီးများကို ပိတ်ဆို့ရန်
+Block all cookies=ကွတ်ကီးအားလုံးကို ပိတ်ဆို့ရန်
+Send “Do Not Track”=“Do Not Track” ပို့ရန်
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) ပို့ရန်
+Strip tracking parameters from links=လင့်ခ်များမှ ခြေရာခံ ပါရာမီတာများကို ဖယ်ရှားရန်
+Try HTTPS first on every site=ဆိုက်တိုင်းတွင် HTTPS ကို ဦးစွာ စမ်းကြည့်ရန်
+Block dangerous sites (Google Safe Browsing and a local list)=အန္တရာယ်ရှိသော ဆိုက်များကို ပိတ်ဆို့ရန် (Google Safe Browsing နှင့် စက်တွင်းစာရင်း)
+Content=အကြောင်းအရာ
+Load images=ပုံများကို ဖွင့်ရန်
+Enable JavaScript=JavaScript ကို ဖွင့်ရန်
+Enable local storage=စက်တွင်း သိုလှောင်မှုကို ဖွင့်ရန်
+Enable cache=ကက်ရှ်ကို ဖွင့်ရန်
+Clear all browsing data=ကြည့်ရှုမှု ဒေတာအားလုံးကို ရှင်းရန်
+Browsing data cleared=ကြည့်ရှုမှု ဒေတာကို ရှင်းပြီးပါပြီ
+Save=သိမ်းရန်
+Saved.=သိမ်းပြီးပါပြီ။
+Changes apply to newly opened pages.=ပြောင်းလဲမှုများသည် အသစ်ဖွင့်သော စာမျက်နှာများတွင် သက်ရောက်ပါမည်။
+# --- History page (about:history) ---
+Recently visited pages.=မကြာသေးမီက ကြည့်ခဲ့သော စာမျက်နှာများ။
+No history yet.=မှတ်တမ်း မရှိသေးပါ။
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser အကြောင်း
+Version=ဗားရှင်း
+Start=စတင်ရာ
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows၊ Linux နှင့် Mac အတွက် ဝဘ်ဘရောက်ဇာ ဖြစ်ပြီး C ပရိုဂရမ်မင်းဘာသာစကားဖြင့် ရေးသားထားကာ open source GPL လိုင်စင်ဖြင့် ထုတ်ဝေထားသည်။
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser သည် လွတ်လပ်သော ဆော့ဖ်ဝဲ ဖြစ်ပြီး GNU General Public License ဗားရှင်း 3 သို့မဟုတ် နောက်ပိုင်းဗားရှင်းအောက်တွင် ဖြန့်ဝေထားသည်။
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=ပြင်ပ ဆော့ဖ်ဝဲ အသိပေးချက်များ

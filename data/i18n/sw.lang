@@ -1,4 +1,142 @@
 # Northstar Web Browser UI translations — Swahili / Kiswahili
 # Format: one English-source=translation pair per line; '#' starts a comment.
-%s is now full screen. Press Esc to exit.=%s sasa iko kwenye skrini nzima. Bonyeza Esc kutoka.
-You are now in full screen. Press Esc to exit.=Sasa uko kwenye skrini nzima. Bonyeza Esc kutoka.
+# --- Toolbar, address bar, window ---
+Back=Rudi
+Forward=Mbele
+Reload=Pakia upya
+Stop=Simamisha
+Home=Mwanzo
+Menu=Menyu
+Bookmarks=Alamisho
+Settings=Mipangilio
+Loading=Inapakia
+Loading…=Inapakia…
+Done=Imekamilika
+Go back one page=Rudi ukurasa mmoja nyuma
+Go forward one page=Nenda ukurasa mmoja mbele
+Reload this page=Pakia upya ukurasa huu
+Stop loading this page=Acha kupakia ukurasa huu
+Go to the home page=Nenda kwenye ukurasa wa mwanzo
+Address and search bar=Upau wa anwani na utafutaji
+Page location=Mahali pa ukurasa
+Search or enter a URL=Tafuta au weka URL
+Search for=Tafuta
+Server:=Seva:
+New Window=Dirisha Jipya
+Quit=Ondoka
+Continue=Endelea
+Recovered the previous session after an unexpected exit=Kipindi kilichopita kimerejeshwa baada ya kufungwa bila kutarajiwa
+Failed to load page=Imeshindwa kupakia ukurasa
+Stopped after too many redirects=Imesimama baada ya kuelekezwa upya mara nyingi mno
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Salama — cheti ni halali
+Not secure — the connection is not encrypted=Si salama — muunganisho haujasimbwa
+Not secure — the certificate is not trusted=Si salama — cheti hakiaminiki
+Certificate errors are being ignored=Hitilafu za cheti zinapuuzwa
+# --- Main menu ---
+Find in Page=Tafuta Kwenye Ukurasa
+Full Screen=Skrini Nzima
+Zoom In=Kuza
+Zoom Out=Fifiza
+Reset Zoom=Weka Upya Ukuzaji
+Print…=Chapisha…
+Save Page As…=Hifadhi Ukurasa Kama…
+Save Page as PDF…=Hifadhi Ukurasa kama PDF…
+Save Page as Image…=Hifadhi Ukurasa kama Picha…
+Page Source=Chanzo cha Ukurasa
+Downloads=Vipakuliwa
+History=Historia
+Bookmark This Page=Alamisha Ukurasa Huu
+Visit nordstjernen.org=Tembelea nordstjernen.org
+# --- Context menu, clipboard ---
+Copy=Nakili
+Select All=Chagua Zote
+Open Link=Fungua Kiungo
+Copy Link Address=Nakili Anwani ya Kiungo
+Copy Page Address=Nakili Anwani ya Ukurasa
+Copied to clipboard=Imenakiliwa kwenye ubao wa kunakili
+Copied link address=Anwani ya kiungo imenakiliwa
+Copied page address=Anwani ya ukurasa imenakiliwa
+Copied selection=Uteuzi umenakiliwa
+# --- Find bar ---
+Find in page=Tafuta kwenye ukurasa
+No results=Hakuna matokeo
+Previous match=Inayolingana iliyotangulia
+Next match=Inayolingana inayofuata
+Previous match (Shift+Enter)=Inayolingana iliyotangulia (Shift+Enter)
+Next match (Enter)=Inayolingana inayofuata (Enter)
+Close search=Funga utafutaji
+Close (Esc)=Funga (Esc)
+# --- Bookmarks ---
+Bookmark this page=Alamisha ukurasa huu
+Bookmark added=Alamisho limeongezwa
+Bookmark removed=Alamisho limeondolewa
+Bookmarked — open bookmarks=Imealamishwa — fungua alamisho
+Remove bookmark=Ondoa alamisho
+Remove this bookmark=Ondoa alamisho hili
+No bookmarks yet=Bado hakuna alamisho
+# --- Downloads, saving, printing ---
+Show downloads=Onyesha vipakuliwa
+Nothing downloaded yet=Bado hakuna kilichopakuliwa
+Open=Fungua
+Open folder=Fungua folda
+Failed=Imeshindwa
+Could not save page=Imeshindwa kuhifadhi ukurasa
+Save page as PDF=Hifadhi ukurasa kama PDF
+Save page as PNG=Hifadhi ukurasa kama PNG
+Print=Chapisha
+Print this page=Chapisha ukurasa huu
+Nothing to print=Hakuna cha kuchapisha
+Reset zoom=Weka upya ukuzaji
+Reset zoom (Ctrl+0)=Weka upya ukuzaji (Ctrl+0)
+# --- Full screen, permissions ---
+%s is now full screen. Press Esc to exit.=%s sasa iko kwenye skrini nzima. Bonyeza Esc ili kutoka.
+You are now in full screen. Press Esc to exit.=Sasa uko kwenye skrini nzima. Bonyeza Esc ili kutoka.
+This site wants to use your camera and microphone=Tovuti hii inataka kutumia kamera na maikrofoni yako
+Allow=Ruhusu
+Allow and trust this site=Ruhusu na uamini tovuti hii
+Not now=Si sasa
+Dismiss=Ondoa
+# --- Start page (about:start) ---
+Search=Tafuta
+Search the web=Tafuta kwenye wavuti
+Search (__ND_SEARCH_NAME__):=Tafuta (__ND_SEARCH_NAME__):
+License=Leseni
+Privacy=Faragha
+# --- Settings page (about:settings) ---
+General=Jumla
+Home page=Ukurasa wa mwanzo
+Search engine=Injini ya utafutaji
+Custom search URL=URL maalum ya utafutaji
+Custom…=Maalum…
+Cookies=Vidakuzi
+Accept all cookies=Kubali vidakuzi vyote
+Block third-party cookies=Zuia vidakuzi vya wahusika wengine
+Block all cookies=Zuia vidakuzi vyote
+Send “Do Not Track”=Tuma “Do Not Track”
+Send Global Privacy Control (GPC)=Tuma Global Privacy Control (GPC)
+Strip tracking parameters from links=Ondoa vigezo vya ufuatiliaji kwenye viungo
+Try HTTPS first on every site=Jaribu HTTPS kwanza kwenye kila tovuti
+Block dangerous sites (Google Safe Browsing and a local list)=Zuia tovuti hatari (Google Safe Browsing na orodha ya ndani)
+Content=Maudhui
+Load images=Pakia picha
+Enable JavaScript=Washa JavaScript
+Enable local storage=Washa hifadhi ya ndani
+Enable cache=Washa akiba
+Clear all browsing data=Futa data yote ya kuvinjari
+Browsing data cleared=Data ya kuvinjari imefutwa
+Save=Hifadhi
+Saved.=Imehifadhiwa.
+Changes apply to newly opened pages.=Mabadiliko yatatumika kwenye kurasa mpya zinazofunguliwa.
+# --- History page (about:history) ---
+Recently visited pages.=Kurasa zilizotembelewa hivi karibuni.
+No history yet.=Bado hakuna historia.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Kuhusu Northstar Web Browser
+Version=Toleo
+Start=Mwanzo
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Kivinjari cha wavuti cha Windows, Linux na Mac, kilichoandikwa kwa lugha ya programu C, chenye leseni huria ya GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser ni programu huru, inayosambazwa chini ya GNU General Public License, toleo la 3 au la baadaye.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Ilani za programu za wahusika wengine

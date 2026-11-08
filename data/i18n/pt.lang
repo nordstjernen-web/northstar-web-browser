@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Portuguese / Português
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Voltar
 Forward=Avançar
 Reload=Recarregar
+Stop=Parar
 Home=Início
+Menu=Menu
 Bookmarks=Favoritos
 Settings=Configurações
-Menu=Menu
 Loading=Carregando
 Loading…=Carregando…
+Done=Concluído
+Go back one page=Voltar uma página
+Go forward one page=Avançar uma página
+Reload this page=Recarregar esta página
+Stop loading this page=Parar de carregar esta página
+Go to the home page=Ir para a página inicial
+Address and search bar=Barra de endereço e pesquisa
+Page location=Endereço da página
+Search or enter a URL=Pesquise ou digite uma URL
+Search for=Pesquisar
+Server:=Servidor:
+New Window=Nova janela
+Quit=Sair
+Continue=Continuar
+Recovered the previous session after an unexpected exit=A sessão anterior foi recuperada após um encerramento inesperado
+Failed to load page=Falha ao carregar a página
+Stopped after too many redirects=Interrompido após redirecionamentos demais
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Seguro — o certificado é válido
+Not secure — the connection is not encrypted=Não seguro — a conexão não é criptografada
+Not secure — the certificate is not trusted=Não seguro — o certificado não é confiável
+Certificate errors are being ignored=Erros de certificado estão sendo ignorados
+# --- Main menu ---
+Find in Page=Localizar na página
+Full Screen=Tela cheia
+Zoom In=Aumentar zoom
+Zoom Out=Diminuir zoom
+Reset Zoom=Redefinir zoom
+Print…=Imprimir…
+Save Page As…=Salvar página como…
+Save Page as PDF…=Salvar página como PDF…
+Save Page as Image…=Salvar página como imagem…
+Page Source=Código-fonte da página
+Downloads=Downloads
+History=Histórico
+Bookmark This Page=Adicionar esta página aos favoritos
+Visit nordstjernen.org=Visitar nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=Copiar
 Select All=Selecionar tudo
-Done=Concluído
+Open Link=Abrir link
+Copy Link Address=Copiar endereço do link
+Copy Page Address=Copiar endereço da página
+Copied to clipboard=Copiado para a área de transferência
+Copied link address=Endereço do link copiado
+Copied page address=Endereço da página copiado
+Copied selection=Seleção copiada
+# --- Find bar ---
+Find in page=Localizar na página
 No results=Sem resultados
+Previous match=Ocorrência anterior
+Next match=Próxima ocorrência
+Previous match (Shift+Enter)=Ocorrência anterior (Shift+Enter)
+Next match (Enter)=Próxima ocorrência (Enter)
+Close search=Fechar pesquisa
+Close (Esc)=Fechar (Esc)
+# --- Bookmarks ---
 Bookmark this page=Adicionar esta página aos favoritos
 Bookmark added=Favorito adicionado
+Bookmark removed=Favorito removido
+Bookmarked — open bookmarks=Nos favoritos — abrir favoritos
+Remove bookmark=Remover favorito
+Remove this bookmark=Remover este favorito
 No bookmarks yet=Nenhum favorito ainda
+# --- Downloads, saving, printing ---
+Show downloads=Mostrar downloads
+Nothing downloaded yet=Nenhum download ainda
+Open=Abrir
+Open folder=Abrir pasta
+Failed=Falhou
+Could not save page=Não foi possível salvar a página
+Save page as PDF=Salvar página como PDF
+Save page as PNG=Salvar página como PNG
+Print=Imprimir
+Print this page=Imprimir esta página
+Nothing to print=Nada para imprimir
+Reset zoom=Redefinir zoom
+Reset zoom (Ctrl+0)=Redefinir zoom (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s está agora em tela cheia. Pressione Esc para sair.
 You are now in full screen. Press Esc to exit.=Você está agora em tela cheia. Pressione Esc para sair.
+This site wants to use your camera and microphone=Este site quer usar sua câmera e seu microfone
+Allow=Permitir
+Allow and trust this site=Permitir e confiar neste site
+Not now=Agora não
+Dismiss=Dispensar
+# --- Start page (about:start) ---
+Search=Pesquisar
+Search the web=Pesquisar na web
+Search (__ND_SEARCH_NAME__):=Pesquisar (__ND_SEARCH_NAME__):
+License=Licença
+Privacy=Privacidade
+# --- Settings page (about:settings) ---
+General=Geral
+Home page=Página inicial
+Search engine=Mecanismo de pesquisa
+Custom search URL=URL de pesquisa personalizada
+Custom…=Personalizado…
+Cookies=Cookies
+Accept all cookies=Aceitar todos os cookies
+Block third-party cookies=Bloquear cookies de terceiros
+Block all cookies=Bloquear todos os cookies
+Send “Do Not Track”=Enviar “Não rastrear” (Do Not Track)
+Send Global Privacy Control (GPC)=Enviar Global Privacy Control (GPC)
+Strip tracking parameters from links=Remover parâmetros de rastreamento dos links
+Try HTTPS first on every site=Tentar HTTPS primeiro em todos os sites
+Block dangerous sites (Google Safe Browsing and a local list)=Bloquear sites perigosos (Google Safe Browsing e uma lista local)
+Content=Conteúdo
+Load images=Carregar imagens
+Enable JavaScript=Ativar JavaScript
+Enable local storage=Ativar armazenamento local
+Enable cache=Ativar cache
+Clear all browsing data=Limpar todos os dados de navegação
+Browsing data cleared=Dados de navegação limpos
+Save=Salvar
+Saved.=Salvo.
+Changes apply to newly opened pages.=As alterações se aplicam às páginas abertas a partir de agora.
+# --- History page (about:history) ---
+Recently visited pages.=Páginas visitadas recentemente.
+No history yet.=Nenhum histórico ainda.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Sobre o Northstar Web Browser
+Version=Versão
+Start=Início
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Um navegador web para Windows, Linux e Mac, programado na linguagem C, com licença de código aberto GPL.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=O Northstar Web Browser é software livre, distribuído sob a GNU General Public License, versão 3 ou posterior.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Avisos de software de terceiros

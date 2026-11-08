@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Chinese / 中文
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=后退
 Forward=前进
 Reload=重新加载
+Stop=停止
 Home=主页
+Menu=菜单
 Bookmarks=书签
 Settings=设置
-Menu=菜单
 Loading=正在加载
 Loading…=正在加载…
+Done=完成
+Go back one page=后退一页
+Go forward one page=前进一页
+Reload this page=重新加载此页
+Stop loading this page=停止加载此页
+Go to the home page=转到主页
+Address and search bar=地址和搜索栏
+Page location=页面地址
+Search or enter a URL=搜索或输入网址
+Search for=搜索
+Server:=服务器：
+New Window=新建窗口
+Quit=退出
+Continue=继续
+Recovered the previous session after an unexpected exit=已在意外退出后恢复上次的会话
+Failed to load page=页面加载失败
+Stopped after too many redirects=重定向次数过多，已停止
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=安全 — 证书有效
+Not secure — the connection is not encrypted=不安全 — 连接未加密
+Not secure — the certificate is not trusted=不安全 — 证书不受信任
+Certificate errors are being ignored=正在忽略证书错误
+# --- Main menu ---
+Find in Page=在页面中查找
+Full Screen=全屏
+Zoom In=放大
+Zoom Out=缩小
+Reset Zoom=重置缩放
+Print…=打印…
+Save Page As…=页面另存为…
+Save Page as PDF…=将页面另存为 PDF…
+Save Page as Image…=将页面另存为图片…
+Page Source=页面源代码
+Downloads=下载
+History=历史记录
+Bookmark This Page=将此页加入书签
+Visit nordstjernen.org=访问 nordstjernen.org
+# --- Context menu, clipboard ---
 Copy=复制
 Select All=全选
-Done=完成
+Open Link=打开链接
+Copy Link Address=复制链接地址
+Copy Page Address=复制页面地址
+Copied to clipboard=已复制到剪贴板
+Copied link address=已复制链接地址
+Copied page address=已复制页面地址
+Copied selection=已复制所选内容
+# --- Find bar ---
+Find in page=在页面中查找
 No results=无结果
+Previous match=上一个匹配项
+Next match=下一个匹配项
+Previous match (Shift+Enter)=上一个匹配项 (Shift+Enter)
+Next match (Enter)=下一个匹配项 (Enter)
+Close search=关闭查找
+Close (Esc)=关闭 (Esc)
+# --- Bookmarks ---
 Bookmark this page=将此页加入书签
 Bookmark added=已添加书签
+Bookmark removed=已删除书签
+Bookmarked — open bookmarks=已加入书签 — 打开书签
+Remove bookmark=删除书签
+Remove this bookmark=删除此书签
 No bookmarks yet=暂无书签
+# --- Downloads, saving, printing ---
+Show downloads=显示下载
+Nothing downloaded yet=暂无下载内容
+Open=打开
+Open folder=打开文件夹
+Failed=失败
+Could not save page=无法保存页面
+Save page as PDF=将页面另存为 PDF
+Save page as PNG=将页面另存为 PNG
+Print=打印
+Print this page=打印此页
+Nothing to print=没有可打印的内容
+Reset zoom=重置缩放
+Reset zoom (Ctrl+0)=重置缩放 (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s 已进入全屏模式。按 Esc 退出。
 You are now in full screen. Press Esc to exit.=已进入全屏模式。按 Esc 退出。
+This site wants to use your camera and microphone=此网站想要使用您的摄像头和麦克风
+Allow=允许
+Allow and trust this site=允许并信任此网站
+Not now=暂不
+Dismiss=关闭
+# --- Start page (about:start) ---
+Search=搜索
+Search the web=搜索网络
+Search (__ND_SEARCH_NAME__):=搜索 (__ND_SEARCH_NAME__)：
+License=许可证
+Privacy=隐私
+# --- Settings page (about:settings) ---
+General=常规
+Home page=主页
+Search engine=搜索引擎
+Custom search URL=自定义搜索网址
+Custom…=自定义…
+Cookies=Cookie
+Accept all cookies=接受所有 Cookie
+Block third-party cookies=阻止第三方 Cookie
+Block all cookies=阻止所有 Cookie
+Send “Do Not Track”=发送“请勿跟踪”信号
+Send Global Privacy Control (GPC)=发送全球隐私控制 (GPC) 信号
+Strip tracking parameters from links=从链接中移除跟踪参数
+Try HTTPS first on every site=在所有网站上优先尝试 HTTPS
+Block dangerous sites (Google Safe Browsing and a local list)=阻止危险网站（Google Safe Browsing 和本地列表）
+Content=内容
+Load images=加载图片
+Enable JavaScript=启用 JavaScript
+Enable local storage=启用本地存储
+Enable cache=启用缓存
+Clear all browsing data=清除所有浏览数据
+Browsing data cleared=已清除浏览数据
+Save=保存
+Saved.=已保存。
+Changes apply to newly opened pages.=更改将应用于新打开的页面。
+# --- History page (about:history) ---
+Recently visited pages.=最近访问的页面。
+No history yet.=暂无历史记录。
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=关于 Northstar Web Browser
+Version=版本
+Start=起始页
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=一款适用于 Windows、Linux 和 Mac 的网页浏览器，使用 C 编程语言编写，采用开源 GPL 许可证。
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser 是自由软件，依据 GNU General Public License 第 3 版或更高版本发布。
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=第三方软件声明

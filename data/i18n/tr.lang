@@ -1,20 +1,142 @@
 # Northstar Web Browser UI translations — Turkish / Türkçe
 # Format: one English-source=translation pair per line; '#' starts a comment.
+# --- Toolbar, address bar, window ---
 Back=Geri
 Forward=İleri
 Reload=Yenile
+Stop=Durdur
 Home=Ana sayfa
+Menu=Menü
 Bookmarks=Yer imleri
 Settings=Ayarlar
-Menu=Menü
 Loading=Yükleniyor
 Loading…=Yükleniyor…
+Done=Bitti
+Go back one page=Bir sayfa geri git
+Go forward one page=Bir sayfa ileri git
+Reload this page=Bu sayfayı yenile
+Stop loading this page=Bu sayfanın yüklenmesini durdur
+Go to the home page=Ana sayfaya git
+Address and search bar=Adres ve arama çubuğu
+Page location=Sayfa konumu
+Search or enter a URL=Arama yapın veya URL girin
+Search for=Ara:
+Server:=Sunucu:
+New Window=Yeni pencere
+Quit=Çık
+Continue=Devam et
+Recovered the previous session after an unexpected exit=Beklenmedik bir kapanmanın ardından önceki oturum geri yüklendi
+Failed to load page=Sayfa yüklenemedi
+Stopped after too many redirects=Çok fazla yönlendirme nedeniyle durduruldu
+# --- Security indicator in the address bar ---
+Secure — the certificate is valid=Güvenli — sertifika geçerli
+Not secure — the connection is not encrypted=Güvenli değil — bağlantı şifrelenmemiş
+Not secure — the certificate is not trusted=Güvenli değil — sertifikaya güvenilmiyor
+Certificate errors are being ignored=Sertifika hataları yok sayılıyor
+# --- Main menu ---
+Find in Page=Sayfada bul
+Full Screen=Tam ekran
+Zoom In=Yakınlaştır
+Zoom Out=Uzaklaştır
+Reset Zoom=Yakınlaştırmayı sıfırla
+Print…=Yazdır…
+Save Page As…=Sayfayı farklı kaydet…
+Save Page as PDF…=Sayfayı PDF olarak kaydet…
+Save Page as Image…=Sayfayı resim olarak kaydet…
+Page Source=Sayfa kaynağı
+Downloads=İndirilenler
+History=Geçmiş
+Bookmark This Page=Bu sayfayı yer imlerine ekle
+Visit nordstjernen.org=nordstjernen.org adresini ziyaret et
+# --- Context menu, clipboard ---
 Copy=Kopyala
 Select All=Tümünü seç
-Done=Bitti
+Open Link=Bağlantıyı aç
+Copy Link Address=Bağlantı adresini kopyala
+Copy Page Address=Sayfa adresini kopyala
+Copied to clipboard=Panoya kopyalandı
+Copied link address=Bağlantı adresi kopyalandı
+Copied page address=Sayfa adresi kopyalandı
+Copied selection=Seçim kopyalandı
+# --- Find bar ---
+Find in page=Sayfada bul
 No results=Sonuç yok
+Previous match=Önceki eşleşme
+Next match=Sonraki eşleşme
+Previous match (Shift+Enter)=Önceki eşleşme (Shift+Enter)
+Next match (Enter)=Sonraki eşleşme (Enter)
+Close search=Aramayı kapat
+Close (Esc)=Kapat (Esc)
+# --- Bookmarks ---
 Bookmark this page=Bu sayfayı yer imlerine ekle
 Bookmark added=Yer imi eklendi
+Bookmark removed=Yer imi kaldırıldı
+Bookmarked — open bookmarks=Yer imlerinde — yer imlerini aç
+Remove bookmark=Yer imini kaldır
+Remove this bookmark=Bu yer imini kaldır
 No bookmarks yet=Henüz yer imi yok
+# --- Downloads, saving, printing ---
+Show downloads=İndirilenleri göster
+Nothing downloaded yet=Henüz bir şey indirilmedi
+Open=Aç
+Open folder=Klasörü aç
+Failed=Başarısız
+Could not save page=Sayfa kaydedilemedi
+Save page as PDF=Sayfayı PDF olarak kaydet
+Save page as PNG=Sayfayı PNG olarak kaydet
+Print=Yazdır
+Print this page=Bu sayfayı yazdır
+Nothing to print=Yazdırılacak bir şey yok
+Reset zoom=Yakınlaştırmayı sıfırla
+Reset zoom (Ctrl+0)=Yakınlaştırmayı sıfırla (Ctrl+0)
+# --- Full screen, permissions ---
 %s is now full screen. Press Esc to exit.=%s artık tam ekran. Çıkmak için Esc tuşuna basın.
 You are now in full screen. Press Esc to exit.=Artık tam ekrandasınız. Çıkmak için Esc tuşuna basın.
+This site wants to use your camera and microphone=Bu site kameranızı ve mikrofonunuzu kullanmak istiyor
+Allow=İzin ver
+Allow and trust this site=İzin ver ve bu siteye güven
+Not now=Şimdi değil
+Dismiss=Kapat
+# --- Start page (about:start) ---
+Search=Ara
+Search the web=Web'de ara
+Search (__ND_SEARCH_NAME__):=Ara (__ND_SEARCH_NAME__):
+License=Lisans
+Privacy=Gizlilik
+# --- Settings page (about:settings) ---
+General=Genel
+Home page=Ana sayfa
+Search engine=Arama motoru
+Custom search URL=Özel arama URL'si
+Custom…=Özel…
+Cookies=Çerezler
+Accept all cookies=Tüm çerezleri kabul et
+Block third-party cookies=Üçüncü taraf çerezleri engelle
+Block all cookies=Tüm çerezleri engelle
+Send “Do Not Track”=“Beni izleme” sinyali gönder
+Send Global Privacy Control (GPC)=Global Privacy Control (GPC) gönder
+Strip tracking parameters from links=Bağlantılardaki izleme parametrelerini kaldır
+Try HTTPS first on every site=Her sitede önce HTTPS'yi dene
+Block dangerous sites (Google Safe Browsing and a local list)=Tehlikeli siteleri engelle (Google Safe Browsing ve yerel liste)
+Content=İçerik
+Load images=Resimleri yükle
+Enable JavaScript=JavaScript'i etkinleştir
+Enable local storage=Yerel depolamayı etkinleştir
+Enable cache=Önbelleği etkinleştir
+Clear all browsing data=Tüm tarama verilerini temizle
+Browsing data cleared=Tarama verileri temizlendi
+Save=Kaydet
+Saved.=Kaydedildi.
+Changes apply to newly opened pages.=Değişiklikler yeni açılan sayfalara uygulanır.
+# --- History page (about:history) ---
+Recently visited pages.=Son ziyaret edilen sayfalar.
+No history yet.=Henüz geçmiş yok.
+# --- About page (about:northstar) and license pages ---
+About Northstar Web Browser=Northstar Web Browser hakkında
+Version=Sürüm
+Start=Başlangıç
+A web browser for Windows, Linux and Mac, coded in the C programming language, with open source GPL license.=Windows, Linux ve Mac için C programlama dilinde yazılmış, açık kaynaklı GPL lisanslı bir web tarayıcısı.
+Northstar Web Browser is free software, distributed under the GNU General Public License, version 3 or later.=Northstar Web Browser, GNU General Public License sürüm 3 veya sonrası altında dağıtılan özgür bir yazılımdır.
+GNU General Public License (GPL-3.0)=GNU General Public License (GPL-3.0)
+GNU General Public License=GNU General Public License
+Third-party software notices=Üçüncü taraf yazılım bildirimleri

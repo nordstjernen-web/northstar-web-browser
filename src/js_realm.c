@@ -12,11 +12,23 @@
 #include <glib.h>
 
 static JSClassID ns_shadowrealm_class_id;
+static JSClassID ns_shadowrealm_handle_class_id;
 
+/* Shared by the ShadowRealm object and the handles its child-side wrappers
+ * hold; freed when the last of them goes. */
 typedef struct {
-    JSContext *child;
+    int        refcount;
+    JSContext *child;   /* NULL once the ShadowRealm object is finalized */
     JSContext *parent;
+    JSValue    self;    /* the ShadowRealm object, not owned; valid while child */
 } ns_shadowrealm;
+
+static void
+ns_shadowrealm_unref(ns_shadowrealm *r)
+{
+    if (r && --r->refcount == 0)
+        g_free(r);
+}
 
 static void
 ns_shadowrealm_finalizer(JSRuntime *rt, JSValue val)
@@ -24,16 +36,38 @@ ns_shadowrealm_finalizer(JSRuntime *rt, JSValue val)
     (void)rt;
     ns_shadowrealm *r = JS_GetOpaque(val, ns_shadowrealm_class_id);
     if (!r) return;
-    if (r->child) JS_FreeContext(r->child);
-    g_free(r);
+    JSContext *child = r->child;
+    r->child = NULL;
+    r->self = JS_UNDEFINED;
+    if (child) JS_FreeContext(child);
+    ns_shadowrealm_unref(r);
+}
+
+static void
+ns_shadowrealm_handle_finalizer(JSRuntime *rt, JSValue val)
+{
+    (void)rt;
+    ns_shadowrealm_unref(JS_GetOpaque(val, ns_shadowrealm_handle_class_id));
 }
 
 static JSClassDef ns_shadowrealm_class = {
     "ShadowRealm", .finalizer = ns_shadowrealm_finalizer,
 };
 
-static JSValue realm_wrap_value(JSContext *dst, JSValueConst realm_obj,
-                                JSValue v);
+static JSClassDef ns_shadowrealm_handle_class = {
+    "ShadowRealmHandle", .finalizer = ns_shadowrealm_handle_finalizer,
+};
+
+/* The realm behind a wrapper's data slot: the ShadowRealm object itself
+ * (parent-side wrappers) or a weak handle (child-side wrappers). */
+static ns_shadowrealm *
+realm_from_data(JSValueConst v)
+{
+    ns_shadowrealm *r = JS_GetOpaque(v, ns_shadowrealm_class_id);
+    return r ? r : JS_GetOpaque(v, ns_shadowrealm_handle_class_id);
+}
+
+static JSValue realm_wrap_value(JSContext *dst, ns_shadowrealm *r, JSValue v);
 
 /* A wrapped function lives in one realm (the one it was created in) and
  * forwards to a callable in the other.  Callable arguments are wrapped for
@@ -45,8 +79,7 @@ realm_wrapped_call(JSContext *ctx, JSValueConst this_val, int argc,
 {
     (void)this_val; (void)magic;
     JSValueConst target = data[0];
-    JSValueConst realm_obj = data[1];
-    ns_shadowrealm *r = JS_GetOpaque(realm_obj, ns_shadowrealm_class_id);
+    ns_shadowrealm *r = realm_from_data(data[1]);
     if (!r || !r->child || !r->parent)
         return JS_ThrowTypeError(ctx, "ShadowRealm is no longer available");
     JSContext *tctx = ctx == r->child ? r->parent : r->child;
@@ -58,7 +91,7 @@ realm_wrapped_call(JSContext *ctx, JSValueConst this_val, int argc,
     }
     JSValue *args = argc > 0 ? g_new0(JSValue, argc) : NULL;
     for (int i = 0; i < argc; i++) {
-        args[i] = realm_wrap_value(tctx, realm_obj, JS_DupValue(ctx, argv[i]));
+        args[i] = realm_wrap_value(tctx, r, JS_DupValue(ctx, argv[i]));
         if (JS_IsException(args[i])) {
             JSValue exc = JS_GetException(tctx);
             JS_FreeValue(tctx, exc);
@@ -81,18 +114,41 @@ realm_wrapped_call(JSContext *ctx, JSValueConst this_val, int argc,
         JS_FreeValue(tctx, exc);
         return te;
     }
-    return realm_wrap_value(ctx, realm_obj, res);
+    return realm_wrap_value(ctx, r, res);
 }
 
-/* Wraps a value crossing into dst: primitives pass, callables get wrappers, objects throw. */
+/* Wraps a value crossing into dst: primitives pass, callables get wrappers, objects throw.
+ * A wrapper in the parent keeps the ShadowRealm object (and so the child
+ * context) alive.  A wrapper in the child must not: the object owns the
+ * child context through its opaque pointer, which the GC cannot see, so a
+ * child global holding such a wrapper (globalThis.k = f) would keep the
+ * object, and with it the whole child realm, alive forever.  Child-side
+ * wrappers hold a weak handle instead and throw once the realm is gone. */
 static JSValue
-realm_wrap_value(JSContext *dst, JSValueConst realm_obj, JSValue v)
+realm_wrap_value(JSContext *dst, ns_shadowrealm *r, JSValue v)
 {
     if (!JS_IsObject(v))
         return v;
     if (JS_IsFunction(dst, v)) {
-        JSValueConst data[2] = { v, realm_obj };
+        if (!r->child) {
+            JS_FreeValue(dst, v);
+            return JS_ThrowTypeError(dst, "ShadowRealm is no longer available");
+        }
+        JSValue owner;
+        if (dst == r->child) {
+            owner = JS_NewObjectClass(dst, ns_shadowrealm_handle_class_id);
+            if (JS_IsException(owner)) {
+                JS_FreeValue(dst, v);
+                return owner;
+            }
+            r->refcount++;
+            JS_SetOpaque(owner, r);
+        } else {
+            owner = JS_DupValue(dst, r->self);
+        }
+        JSValueConst data[2] = { v, owner };
         JSValue fn = JS_NewCFunctionData(dst, realm_wrapped_call, 0, 0, 2, data);
+        JS_FreeValue(dst, owner);
         JS_FreeValue(dst, v);
         return fn;
     }
@@ -116,8 +172,10 @@ ns_shadowrealm_ctor(JSContext *ctx, JSValueConst new_target,
     JS_FreeValue(ctx, proto);
     if (JS_IsException(obj)) { JS_FreeContext(child); return obj; }
     ns_shadowrealm *r = g_new0(ns_shadowrealm, 1);
+    r->refcount = 1;
     r->child = child;
     r->parent = ctx;
+    r->self = obj;
     JS_SetOpaque(obj, r);
     return obj;
 }
@@ -150,7 +208,7 @@ ns_shadowrealm_evaluate(JSContext *ctx, JSValueConst this_val,
         JS_FreeValue(r->child, exc);
         return te;
     }
-    return realm_wrap_value(ctx, this_val, res);
+    return realm_wrap_value(ctx, r, res);
 }
 
 /* ShadowRealm.prototype.importValue stub returning a rejected promise. */
@@ -194,6 +252,10 @@ ns_js_realm_install(JSContext *ctx, JSValueConst global)
         ns_new_class_id(&ns_shadowrealm_class_id);
         if (!JS_IsRegisteredClass(rt, ns_shadowrealm_class_id))
             JS_NewClass(rt, ns_shadowrealm_class_id, &ns_shadowrealm_class);
+        ns_new_class_id(&ns_shadowrealm_handle_class_id);
+        if (!JS_IsRegisteredClass(rt, ns_shadowrealm_handle_class_id))
+            JS_NewClass(rt, ns_shadowrealm_handle_class_id,
+                        &ns_shadowrealm_handle_class);
         JSValue ctor = JS_NewCFunction2(ctx, ns_shadowrealm_ctor, "ShadowRealm",
                                         0, JS_CFUNC_constructor, 0);
         JSValue proto = JS_NewObject(ctx);

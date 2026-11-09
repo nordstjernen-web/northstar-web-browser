@@ -786,6 +786,7 @@ typedef struct ns_raf_entry {
     JSValue  cb;
     gboolean video_frame;
     ns_node *frame;
+    gboolean done;      /* in a firing batch: already run or cancelled */
 } ns_raf_entry;
 
 /* Returns the iframe node owning a realm context, falling back to the current rAF frame. */
@@ -27183,6 +27184,19 @@ ns_window_cancelAnimationFrame(JSContext *ctx, JSValueConst this_val,
     int32_t id = 0;
     JS_ToInt32(ctx, &id, argv[0]);
     ns_js *js = js_from_ctx(ctx);
+    /* A callback of the batch now running may cancel a later one of the
+     * same batch (HTML: the callback's "cancelled" flag is checked before
+     * each one is invoked). */
+    for (guint i = 0; js->raf_firing && i < js->raf_firing->len; i++) {
+        ns_raf_entry *e = &g_array_index(js->raf_firing, ns_raf_entry, i);
+        if (e->id != id) continue;
+        if (e->done || !ns_js_may_cancel_for_frame(js, ctx, e->frame))
+            return JS_UNDEFINED;
+        JS_FreeValue(e->ctx ? e->ctx : ctx, e->cb);
+        e->cb = JS_UNDEFINED;
+        e->done = TRUE;
+        return JS_UNDEFINED;
+    }
     if (!js->raf_pending) return JS_UNDEFINED;
     for (guint i = 0; i < js->raf_pending->len; i++) {
         ns_raf_entry *e = &g_array_index(js->raf_pending, ns_raf_entry, i);
@@ -29666,12 +29680,16 @@ ns_js_run_animation_frame_body(ns_js *js)
     gint64 now_us = ns_js_animation_frame_time(js);
     GArray *fired = js->raf_pending;
     js->raf_pending = g_array_new(FALSE, FALSE, sizeof(ns_raf_entry));
+    GArray *previous_firing = js->raf_firing;
+    js->raf_firing = fired;
     double ts_ms = ns_perf_relative_ms(now_us, js->time_origin_us);
     ns_budget_guard bg = {0};
     ns_js_budget_push(js, &bg);
     js->callback_depth++;
     for (guint i = 0; i < fired->len; i++) {
         ns_raf_entry *e = &g_array_index(fired, ns_raf_entry, i);
+        if (e->done) continue;   /* cancelled by an earlier callback */
+        e->done = TRUE;
         gboolean frame_connected = !e->frame ||
             ns_node_root(e->frame) == ns_node_root(js->current_doc);
         JSContext *current_realm = e->frame
@@ -29742,6 +29760,7 @@ ns_js_run_animation_frame_body(ns_js *js)
         js->ctx = previous_ctx;
     }
     js->callback_depth--;
+    js->raf_firing = previous_firing;
     g_array_free(fired, TRUE);
     ns_drain_mutations(js);
     ns_js_budget_pop(js, &bg);

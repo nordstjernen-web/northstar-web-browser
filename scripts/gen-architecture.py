@@ -81,7 +81,7 @@ text(W / 2, 62, "Hand-written HTML/CSS/JS engine in C · GTK 4 shell · libcurl 
 group(20, 84, 360, 92, "Watchdog supervisor — GUI launches only", "g-ext", dashed=True)
 module(36, 118, 328, 48, "watchdog.c", "no network, sandbox or UI · restarts on crash or hang", "a-ext")
 group(820, 84, 360, 92, "Headless / tooling — same binary", "g-ext", dashed=True)
-module(836, 118, 328, 48, "headless.c · webdriver.c", "--dump= · --eval= · --act= · --wpt · --webdriver", "a-ext")
+module(836, 118, 328, 48, "headless.c", "--dump= · --eval= · --act= · --wpt · --inspect=", "a-ext")
 text(600, 112, "one executable: northstar", "ptitle", "middle")
 text(600, 132, "GUI, supervisor and headless modes", "lbl", "middle")
 text(600, 148, "are chosen by command-line flags", "lbl", "middle")

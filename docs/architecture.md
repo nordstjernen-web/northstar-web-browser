@@ -35,12 +35,6 @@ space.
 
  headless / tooling  (--headless, --dump=, --eval=, --act=, --wpt, …)
     the same binary, never supervised, no GTK window       (headless.c)
-
- WebDriver server  (--webdriver[=PORT])
-    the same binary, headless, never supervised            (webdriver.c)
-    ├─ main thread: page sessions, engine context, frames
-    ├─ accept thread on 127.0.0.1
-    └─ one thread per client connection
 ```
 
 - **Entry point** (`appmain.c`) — handles `--version`, refuses to run
@@ -148,19 +142,6 @@ same host the GUI uses. PNG, PDF and print dumps, `--wpt` and
 out, run the page's scripts and relayout without a page session.
 `NS_HEADLESS_LEGACY` sends every run down the second path.
 
-### WebDriver server
-
-`webdriver.c` serves the W3C WebDriver protocol (`--webdriver`; see
-[webdriver.md](webdriver.md)). A connection thread parses each HTTP
-request and queues it for the main thread, which owns the engine: every
-window is a `page_session.c` session, and between requests the main
-thread runs the engine context and renders each window once a frame, as
-the GUI's engine thread does. DOM work goes to the WebDriver atoms
-(`data/js/webdriver.js`, embedded at build time), which
-`ns_js_webdriver_call` (`js.c`) installs per page and keeps in C rather
-than on a global; clicks and keys go through the session's real input
-path. `json.c` parses and writes the request and reply bodies.
-
 ## Page-load pipeline
 
 Each navigation flows through these stages. `engine.c` holds the
@@ -222,7 +203,6 @@ run of table-internal siblings.
 | WebExtension manifests, content scripts, resources, storage and messaging | `ext.c`, `js.c` |
 | Forms: validation, serialization, submission | `forms.c` |
 | Pure-JS polyfills, embedded at build time | `data/js/polyfills.js` |
-| WebDriver atoms: element registry, locators, script execution, value serialization | `data/js/webdriver.js`, `js.c` (`ns_js_webdriver_call`) |
 
 Each top-level document gets its own QuickJS runtime, created when the
 document is loaded and freed when the page is left — or kept suspended in

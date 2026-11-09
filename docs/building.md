@@ -297,9 +297,8 @@ is the manual page.
 
 The browser can render without a display, which is how the fixtures are
 exercised and how behaviour can be scripted. Any of `--headless`,
-`--dump=`, `--eval=`, `--act=`, `--inspect=`, `--inspect-at=`, `--wpt` or
-`--webdriver` selects it; headless runs are never supervised by the
-watchdog.
+`--dump=`, `--eval=`, `--act=`, `--inspect=`, `--inspect-at=` or `--wpt`
+selects it; headless runs are never supervised by the watchdog.
 
 ```sh
 # Dump a page to PNG
@@ -324,7 +323,6 @@ watchdog.
 | `--inspect=SELECTOR`, `--inspect-at=X,Y` | Report the layout boxes matching a selector, or at a point. |
 | `--wpt`, `--wpt-timeout-ms=N` | Run a testharness.js page and report every subtest; see [compliance.md](compliance.md). |
 | `--debug[=info,warn,error,render,net,js]` | Stream engine events to stderr; `net` adds fetch, layout and shaping-cache totals at exit. |
-| `--webdriver[=PORT]` | Serve the W3C WebDriver protocol on 127.0.0.1 (port 4444 by default, 0 for a free one) instead of loading one page; see [webdriver.md](webdriver.md). |
 
 Two traps in `--act`. Actions are split on `;`, so inline JS in an `eval`
 action is cut at its first statement separator — put anything longer

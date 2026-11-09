@@ -126,9 +126,6 @@ jobs:
       - name: Headless baseline smoke (./scripts/dev.sh smoke)
         run: ./scripts/dev.sh smoke
 
-      - name: WebDriver end-to-end test (scripts/webdriver-test.py)
-        run: python3 scripts/webdriver-test.py builddir/src/gtk/northstar
-
       - name: Upload build log
         if: always() && hashFiles('build.log') != ''
         continue-on-error: true

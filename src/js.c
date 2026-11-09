@@ -23801,7 +23801,6 @@ ns_worker_js_new(ns_worker_host *host)
     js->time_origin_real_ms = floor((double)g_get_real_time() / 100.0) / 10.0;
     js->history_state = JS_NULL;
     js->iframe_doc = JS_UNDEFINED;
-    js->wd_atoms = JS_UNDEFINED;
     js->pristine_promise = JS_UNDEFINED;
     js->main_context = host->context;
     js->worker_host = host;
@@ -51351,7 +51350,6 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
     js->history_state = JS_NULL;
     js->navigation = JS_UNDEFINED;
     js->iframe_doc = JS_UNDEFINED;
-    js->wd_atoms = JS_UNDEFINED;
     js->history_length = 1;
     js->timers = g_hash_table_new_full(g_direct_hash, g_direct_equal,
                                        NULL, ns_timer_free);
@@ -56880,8 +56878,6 @@ ns_js_free(ns_js *js)
     }
     if (js->ctx) JS_FreeValue(js->ctx, js->history_state);
     if (js->ctx) JS_FreeValue(js->ctx, js->navigation);
-    if (js->ctx) JS_FreeValue(js->ctx, js->wd_atoms);
-    js->wd_atoms = JS_UNDEFINED;
     if (js->history_entries) {
         for (guint i = 0; i < js->history_entries->len; i++)
             ns_history_entry_pop_free(js,
@@ -61547,181 +61543,6 @@ ns_js_eval_source(ns_js *js, const char *src, const char *origin)
         if (s) JS_FreeCString(js->ctx, s);
     }
     JS_FreeValue(js->ctx, v);
-    ns_drain_microtasks(js);
-    return out;
-}
-
-/* WebDriver bridge.  The natives below are handed to the WebDriver atoms'
- * factory function and are kept only in its closure, and the atoms object
- * it returns is held here in C (js->wd_atoms), never on a global: page
- * script can reach neither, since they read frame documents and run code in
- * frame realms past the cross-origin checks, as a WebDriver client may. */
-
-/* The iframe element a WebDriver native was called with, or NULL. */
-static ns_node *
-ns_wd_frame_arg(int argc, JSValueConst *argv)
-{
-    if (argc < 1) return NULL;
-    ns_node *n = ns_unwrap_element_mut(argv[0]);
-    return n && ns_node_is_element_named(n, "iframe") ? n : NULL;
-}
-
-/* frameDocument(iframe): the frame's content document, cross-origin or not. */
-static JSValue
-ns_wd_frame_document(JSContext *ctx, JSValueConst this_val, int argc,
-                     JSValueConst *argv)
-{
-    (void)this_val;
-    ns_node *n = ns_wd_frame_arg(argc, argv);
-    if (!n || !ns_iframe_ensure_content_root(n)) return JS_NULL;
-    return ns_iframe_content_document(ctx, argv[0], n);
-}
-
-/* frameWindow(iframe): the frame's own window object, without the proxy. */
-static JSValue
-ns_wd_frame_window(JSContext *ctx, JSValueConst this_val, int argc,
-                   JSValueConst *argv)
-{
-    (void)this_val;
-    ns_node *n = ns_wd_frame_arg(argc, argv);
-    if (!n || !ns_iframe_ensure_content_root(n)) return JS_NULL;
-    return ns_iframe_realm_window(ctx, argv[0], n);
-}
-
-/* frameCall(iframe, source, arg): compiles source, a function expression,
- * in the frame's realm and calls it with arg, with the engine's current
- * document switched to the frame's the way event dispatch switches it.
- * Returns undefined when the frame has no realm of its own (no scripts). */
-static JSValue
-ns_wd_frame_call(JSContext *ctx, JSValueConst this_val, int argc,
-                 JSValueConst *argv)
-{
-    (void)this_val;
-    ns_js *js = js_from_ctx(ctx);
-    ns_node *n = ns_wd_frame_arg(argc, argv);
-    if (!js || !n || argc < 2 || !js->frame_contexts) return JS_UNDEFINED;
-    JSContext *fctx = g_hash_table_lookup(js->frame_contexts, n);
-    if (!fctx) return JS_UNDEFINED;
-    size_t len = 0;
-    const char *src = JS_ToCStringLen(ctx, &len, argv[1]);
-    if (!src) return JS_EXCEPTION;
-    JSContext *saved_ctx = js->ctx;
-    ns_node *saved_doc = js->current_doc;
-    ns_node *saved_frame = js->raf_frame_ctx;
-    char *saved_url = js->current_url;
-    ns_node *fdoc = ns_iframe_document_node(n);
-    const char *frame_url = ns_element_get_attr(n, "data-nd-frame-url");
-    js->ctx = fctx;
-    if (fdoc) js->current_doc = fdoc;
-    js->raf_frame_ctx = n;
-    js->current_url = g_strdup(frame_url ? frame_url : "");
-    JSValue fn = JS_Eval(fctx, src, len, "webdriver", JS_EVAL_TYPE_GLOBAL);
-    JS_FreeCString(ctx, src);
-    JSValue r;
-    if (JS_IsException(fn)) {
-        r = JS_EXCEPTION;
-    } else {
-        JSValueConst arg = argc >= 3 ? argv[2] : JS_UNDEFINED;
-        r = JS_Call(fctx, fn, JS_UNDEFINED, 1, &arg);
-    }
-    JS_FreeValue(fctx, fn);
-    g_free(js->current_url);
-    js->current_url = saved_url;
-    js->raf_frame_ctx = saved_frame;
-    js->current_doc = saved_doc;
-    js->ctx = saved_ctx;
-    return r;
-}
-
-/* compile(source): evaluates source in the page's main realm and returns
- * the value, for WebDriver scripts.  Compiled from C, it is not subject to
- * the page's CSP 'unsafe-eval' check, as WebDriver requires. */
-static JSValue
-ns_wd_compile(JSContext *ctx, JSValueConst this_val, int argc,
-              JSValueConst *argv)
-{
-    (void)this_val;
-    if (argc < 1) return JS_UNDEFINED;
-    size_t len = 0;
-    const char *src = JS_ToCStringLen(ctx, &len, argv[0]);
-    if (!src) return JS_EXCEPTION;
-    JSValue v = JS_Eval(ctx, src, len, "webdriver-script", JS_EVAL_TYPE_GLOBAL);
-    JS_FreeCString(ctx, src);
-    return v;
-}
-
-/* Text of a pending exception as "error: ..."; caller frees. */
-static char *
-ns_wd_exception_text(JSContext *ctx)
-{
-    JSValue ex = JS_GetException(ctx);
-    const char *msg = JS_ToCString(ctx, ex);
-    char *out = g_strdup_printf("error: %s", msg ? msg : "(no message)");
-    if (msg) JS_FreeCString(ctx, msg);
-    JS_FreeValue(ctx, ex);
-    return out;
-}
-
-/* Runs a WebDriver command in the page: installs the atoms on first use
- * (atoms_src evaluates to a factory taking the bridge natives), then
- * evaluates call_src, a function expression, and calls it with the atoms
- * object.  Returns the result as a string, or "error: ..."; caller frees. */
-char *
-ns_js_webdriver_call(ns_js *js, const char *atoms_src, const char *call_src)
-{
-    if (!js || !atoms_src || !call_src) return NULL;
-    if (js->halted || js->in_pump) return NULL;
-    JSContext *ctx = js->ctx;
-    char *out = NULL;
-    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
-    if (!JS_IsObject(js->wd_atoms)) {
-        JSValue factory = JS_Eval(ctx, atoms_src, strlen(atoms_src),
-                                  "webdriver-atoms", JS_EVAL_TYPE_GLOBAL);
-        if (JS_IsException(factory)) {
-            out = ns_wd_exception_text(ctx);
-            goto done;
-        }
-        JSValue natives = JS_NewObject(ctx);
-        ns_bind_fn(ctx, natives, "frameDocument", ns_wd_frame_document, 1);
-        ns_bind_fn(ctx, natives, "frameWindow", ns_wd_frame_window, 1);
-        ns_bind_fn(ctx, natives, "frameCall", ns_wd_frame_call, 3);
-        ns_bind_fn(ctx, natives, "compile", ns_wd_compile, 1);
-        JSValue atoms = JS_Call(ctx, factory, JS_UNDEFINED, 1,
-                                (JSValueConst *)&natives);
-        JS_FreeValue(ctx, natives);
-        JS_FreeValue(ctx, factory);
-        if (JS_IsException(atoms)) {
-            out = ns_wd_exception_text(ctx);
-            goto done;
-        }
-        if (!JS_IsObject(atoms)) {
-            JS_FreeValue(ctx, atoms);
-            out = g_strdup("error: WebDriver atoms did not install");
-            goto done;
-        }
-        js->wd_atoms = atoms;
-    }
-    {
-        JSValue fn = JS_Eval(ctx, call_src, strlen(call_src), "webdriver",
-                             JS_EVAL_TYPE_GLOBAL);
-        if (JS_IsException(fn)) {
-            out = ns_wd_exception_text(ctx);
-            goto done;
-        }
-        JSValue r = JS_Call(ctx, fn, JS_UNDEFINED, 1,
-                            (JSValueConst *)&js->wd_atoms);
-        JS_FreeValue(ctx, fn);
-        if (JS_IsException(r)) {
-            out = ns_wd_exception_text(ctx);
-        } else {
-            const char *s = JS_ToCString(ctx, r);
-            out = g_strdup(s ? s : "undefined");
-            if (s) JS_FreeCString(ctx, s);
-        }
-        JS_FreeValue(ctx, r);
-    }
-done:
-    js->eval_deadline_us = 0;
     ns_drain_microtasks(js);
     return out;
 }

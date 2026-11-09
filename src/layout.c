@@ -16266,18 +16266,31 @@ hit_enter_painted(const ns_box *b, double *x, double *y)
              (*y < b->paint_top - 1.0 || *y > b->paint_bottom + 1.0));
 }
 
-/* True for positioned boxes with z-index >= 0, hit-tested after in-flow content. */
+/* True for boxes z-index applies to (positioned boxes, and flex or grid
+ * items with an integer z-index, as painting orders them) with z-index >= 0:
+ * they are hit-tested after in-flow content.  A static flex item with
+ * z-index:1 must win over a later absolutely positioned overlay with
+ * z-index:auto -- Google's sign-in email field sits under such an
+ * outline overlay. */
 static gboolean
 box_defers_hit_layer(const ns_box *b, int *out_z)
 {
     if (!b || !b->style) return FALSE;
-    const ns_css_value *p = b->style->values[NS_CSS_POSITION];
-    if (!p || p->kind != NS_CSS_V_KEYWORD || !p->u.keyword) return FALSE;
-    const char *kw = p->u.keyword;
-    if (strcmp(kw, "relative") && strcmp(kw, "absolute") &&
-        strcmp(kw, "fixed") && strcmp(kw, "sticky")) return FALSE;
     const ns_css_value *v = b->style->values[NS_CSS_Z_INDEX];
-    int z = (v && v->kind == NS_CSS_V_LENGTH) ? (int)v->u.length.v : 0;
+    gboolean has_z = v && v->kind == NS_CSS_V_LENGTH;
+    const ns_css_value *p = b->style->values[NS_CSS_POSITION];
+    const char *kw = p && p->kind == NS_CSS_V_KEYWORD ? p->u.keyword : NULL;
+    gboolean positioned = kw && (!strcmp(kw, "relative") ||
+        !strcmp(kw, "absolute") || !strcmp(kw, "fixed") ||
+        !strcmp(kw, "sticky"));
+    if (!positioned) {
+        const ns_style *ps = b->parent ? b->parent->style : NULL;
+        if (!has_z || !ps) return FALSE;
+        ns_display d = ns_css_display_of(ps);
+        if (!ns_display_is_flex_container(d) && !ns_display_is_grid_container(d))
+            return FALSE;
+    }
+    int z = has_z ? (int)v->u.length.v : 0;
     if (z < 0) return FALSE;
     if (out_z) *out_z = z;
     return TRUE;

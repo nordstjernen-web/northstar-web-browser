@@ -31,6 +31,23 @@ Significant changes in each release:
   `border-image` no longer allocates gigabytes per repaint (1.7 GB to
   0.2 GB for a 20000 px box); an absurd `aspect-ratio` such as
   `1e-300/1e10` is ignored instead of making the box infinitely tall.
+* Google sign-in (accounts.google.com): the email field took no clicks or
+  typing. A static flex or grid item with a `z-index` is now hit-tested
+  above a later absolutely positioned overlay, as it is painted (the field
+  sits under such an outline overlay).
+* `Iterator.zip`, `Iterator.zipKeyed` and `Array.fromAsync` threw
+  "invalid version (29 expected=30)" on any access, even
+  `Object.getOwnPropertyDescriptor`: their precompiled bytecode predated the
+  bytecode version our quickjs-ng patches use. They are regenerated
+  (`quickjs-ng-builtin-bytecode.patch`).
+* Interface shapes closer to WebIDL and other browsers: `window` inherits
+  Window > WindowProperties > EventTarget (`window instanceof EventTarget`),
+  its event handler attributes are its own properties and
+  `Window.prototype` holds only its constructor; `window.dispatchEvent`
+  gives the window as the event's target. The attributes and operations of
+  `navigator`, `screen`, `location`, `history`, `performance`,
+  `crypto.subtle` and the other one-per-page objects throw "Illegal
+  invocation" (or reject) when called on another object.
 * A ShadowRealm whose code kept a function passed in from the page
   (`globalThis.k = f`) was never freed, together with its whole realm;
   3000 such realms took 246 MB instead of 66 MB.

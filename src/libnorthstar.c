@@ -2026,12 +2026,25 @@ ns_browser_render_image(ns_browser *browser, const char *path)
 GPtrArray *
 ns_browser_print_pages(ns_browser *browser, ns_print_setup *out_setup)
 {
+    return ns_browser_print_pages_setup(browser, NULL, out_setup);
+}
+
+/* As ns_browser_print_pages, but on the caller's sheet when in_setup is
+ * given (a WebDriver Print), which then takes precedence over @page. */
+GPtrArray *
+ns_browser_print_pages_setup(ns_browser *browser,
+                             const ns_print_setup *in_setup,
+                             ns_print_setup *out_setup)
+{
     if (!browser || !browser->doc || !out_setup) return NULL;
 
     browser_wait_images(browser);
 
     ns_print_setup setup;
-    ns_print_setup_default(&setup);
+    if (in_setup)
+        setup = *in_setup;
+    else
+        ns_print_setup_default(&setup);
 
     int saved_vw = browser->vw;
     double saved_vh = browser->vh;
@@ -2042,7 +2055,7 @@ ns_browser_print_pages(ns_browser *browser, ns_print_setup *out_setup)
     browser->vh = setup.height - setup.margin_top - setup.margin_bottom;
     browser_relayout(browser);
 
-    const ns_css_page_rule *rule = ns_render_page_rule();
+    const ns_css_page_rule *rule = in_setup ? NULL : ns_render_page_rule();
     if (rule) {
         ns_print_setup_apply_page_rule(&setup, rule);
         int w = (int)(setup.width - setup.margin_left - setup.margin_right);
@@ -3062,6 +3075,35 @@ ns_browser_eval(ns_browser *browser, const char *src)
     if (!browser || !browser->js || !src) return NULL;
     browser_damp_reset(browser);
     char *res = ns_js_eval_source(browser->js, src, "devtools-console");
+    if (ns_js_run_animation_frame(browser->js)) browser->dirty = TRUE;
+    browser_absorb_js_mutation(browser);
+    if (browser->dirty) {
+        browser_relayout(browser);
+        browser->dirty = FALSE;
+    }
+    return res;
+}
+
+/* Puts the caret, collapsed, after the focused control's value. */
+void
+ns_browser_caret_to_end(ns_browser *browser)
+{
+    if (!browser || !browser->js) return;
+    const ns_node *f = ns_js_focused_node(browser->js);
+    const char *val = f ? ns_node_editable_value(f) : NULL;
+    browser->caret_byte = val ? strlen(val) : 0;
+    browser->sel_anchor_byte = browser->caret_byte;
+}
+
+/* Runs a WebDriver atoms call in the page, then settles layout like eval. */
+char *
+ns_browser_webdriver_call(ns_browser *browser, const char *atoms_src,
+                          const char *call_src)
+{
+    if (!browser || !browser->js || !atoms_src || !call_src) return NULL;
+    browser_damp_reset(browser);
+    char *res = ns_js_webdriver_call(browser->js, atoms_src, call_src);
+    browser_absorb_js_mutation(browser);
     if (ns_js_run_animation_frame(browser->js)) browser->dirty = TRUE;
     browser_absorb_js_mutation(browser);
     if (browser->dirty) {

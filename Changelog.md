@@ -2,6 +2,21 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.23:
+=======
+* WebDriver: `--webdriver[=PORT]` runs a W3C WebDriver server on the
+  loopback interface, so Selenium, WebdriverIO and other WebDriver clients
+  can drive the browser headless (`browserName: "northstar"`). Sessions
+  and capabilities, navigation and history, windows, frames and window
+  rects, element lookup by every locator strategy (implicit waits and
+  shadow roots included), element state, click, clear and send keys
+  through the engine's real input path, sync and async scripts with
+  promise results, cookies, the actions API (keys, pointer, wheel),
+  screenshots of the page or an element, and print to PDF. Requests with
+  a foreign `Host`, an `Origin` header or a form-style body are refused.
+  See docs/webdriver.md; `scripts/webdriver-test.py` tests it end to end
+  and runs in the Linux CI.
+
 1.0.22:
 =======
 * Security: Google Safe Browsing. Every navigation and redirect is checked

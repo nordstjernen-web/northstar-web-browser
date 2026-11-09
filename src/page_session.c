@@ -1141,6 +1141,37 @@ ns_page_session_eval(ns_page_session *s, const char *src)
     return ns_browser_eval(s->cur, src ? src : "");
 }
 
+/* Runs a WebDriver atoms call (see ns_js_webdriver_call); caller frees. */
+char *
+ns_page_session_webdriver(ns_page_session *s, const char *atoms_src,
+                          const char *call_src)
+{
+    if (!s || !s->cur)
+        return NULL;
+    /* The frame is not invalidated: the page's own damage tracking covers
+     * what a command changes, and an invalid frame would skip the next
+     * tick, which a client polling a script result relies on. */
+    return ns_browser_webdriver_call(s->cur, atoms_src, call_src);
+}
+
+/* Current page URL, or NULL with no page; caller frees. */
+char *
+ns_page_session_url(ns_page_session *s)
+{
+    if (!s || !s->cur)
+        return NULL;
+    return empty_to_null(ns_browser_url(s->cur));
+}
+
+/* Current page title, or NULL with no page; caller frees. */
+char *
+ns_page_session_title(ns_page_session *s)
+{
+    if (!s || !s->cur)
+        return NULL;
+    return ns_browser_title(s->cur);
+}
+
 /* Returns a text dump by kind: network, dom, layout, text or performance; caller frees. */
 char *
 ns_page_session_dump(ns_page_session *s, const char *kind)
@@ -1186,4 +1217,22 @@ ns_page_session_print(ns_page_session *s, ns_print_setup *out_setup)
         return NULL;
     s->frame_valid = 0;
     return ns_browser_print_pages(s->cur, out_setup);
+}
+
+/* Paginates for a caller-chosen sheet (WebDriver Print); see ns_browser_print_pages_setup. */
+GPtrArray *
+ns_page_session_print_setup(ns_page_session *s, const ns_print_setup *in_setup,
+                            ns_print_setup *out_setup)
+{
+    if (!s || !s->cur || !out_setup)
+        return NULL;
+    s->frame_valid = 0;
+    return ns_browser_print_pages_setup(s->cur, in_setup, out_setup);
+}
+
+void
+ns_page_session_caret_to_end(ns_page_session *s)
+{
+    if (s && s->cur)
+        ns_browser_caret_to_end(s->cur);
 }

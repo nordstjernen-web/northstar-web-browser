@@ -15,6 +15,9 @@ libcurl, carrying no upstream browser engine.
   meson/ninja build, meson options, the command line and headless mode,
   configuration and environment variables, and the smoke and render-test
   fixtures.
+- **[webdriver.md](webdriver.md)** — the built-in W3C WebDriver server
+  (`--webdriver`): connecting Selenium and other clients, capabilities,
+  the supported commands, limitations and its security checks.
 - **[vscode.md](vscode.md)** — building, running and debugging in Visual
   Studio Code with the workspace in `.vscode/`, on Linux, macOS and
   Windows.

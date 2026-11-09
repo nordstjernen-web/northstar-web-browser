@@ -197,6 +197,11 @@ through libavif when available, and SVG in the engine).
 - **Headless mode** — text, DOM, layout, PNG and PDF dumps, scripted
   input and web-platform-tests runs from the command line; see
   [docs/building.md](docs/building.md#headless-mode-scripting--testing).
+- **WebDriver** — `--webdriver[=PORT]` serves the W3C WebDriver protocol
+  on the loopback interface, so Selenium, WebdriverIO and other clients
+  can drive headless pages: navigation, element lookup and interaction,
+  scripts, cookies, actions, screenshots and print to PDF; see
+  [docs/webdriver.md](docs/webdriver.md).
 
 ## Install with npm
 

@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.23:
 =======
+* Performance: page stylesheets keep each rule's declarations as text and
+  parse them when one of the rule's selectors first matches. Sites ship
+  CSS for their whole app and few rules match (GitHub's repository page:
+  3.4 MB in 29 sheets), but every declaration was parsed and URL-resolved
+  up front. On a saved copy of that page the first full style and layout
+  pass dropped from 2.3 s to 1.4 s (best of 7). Built-in, inline and
+  scripted (CSSOM) styles, and blocks with unbalanced brackets, are still
+  parsed eagerly. Layout and rendering are unchanged: identical layout
+  dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
+  Sol #666.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

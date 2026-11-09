@@ -129,6 +129,7 @@ audio is parsed:
 |----------|:--------:|:-----------:|:---------------------:|
 | **Interactive GUI** (the normal browser) | ✅ | ✅ | ✅ |
 | Headless / `--dump` / `--eval` / WPT tooling | ✅ | ✅ | ✅ |
+| WebDriver server (`--webdriver`) | ✅ | ✅ | ✅ |
 | Watchdog supervisor (GUI launches only) | — | — | — |
 
 Both layers **fail open**: on a kernel without Landlock, or when the
@@ -692,6 +693,39 @@ The `document.cookie` setter:
 - Refuses a name that collides with an `HttpOnly` cookie for the
   document host in the site's jar, so script cannot add a second value
   beside a server session cookie.
+
+### WebDriver server
+
+`--webdriver` turns the browser into a remote-controlled one, which is
+its purpose, so its defence is about *who* can connect. The server
+(`src/webdriver.c`) binds the loopback interface only (127.0.0.1, and ::1
+where there is IPv6), never a public address, and it refuses three kinds
+of request a web page in another browser on the same machine could
+otherwise make:
+
+- a `Host` header other than `localhost`, `127.0.0.1` or `[::1]`, which
+  defeats DNS rebinding;
+- any request with an `Origin` header, which browsers attach to
+  cross-origin `fetch` and form posts;
+- a `POST` typed `application/x-www-form-urlencoded`,
+  `multipart/form-data` or `text/plain`, the bodies a page can send
+  without a CORS preflight.
+
+There is no authentication beyond that: any local process that can reach
+the port can drive the browser, read its cookies (HttpOnly ones included)
+and run script in any page or frame. Run it only where the local users
+are trusted, and do not forward the port. A WebDriver run is a tooling run
+and keeps the headless sandbox (Landlock, seccomp, no executable memory);
+it is never supervised by the watchdog.
+
+The atoms that carry out commands inside the page (`data/js/webdriver.js`)
+are installed by `ns_js_webdriver_call` and handed their privileged
+natives — read a frame's document or window past the cross-origin checks,
+run code in a frame's realm, compile a script without the page's
+`'unsafe-eval'` check — as factory arguments. The natives live only in the
+atoms' closure and the atoms object is held by C (`js->wd_atoms`), not on
+any global, so page script can reach neither; they are not installed at
+all outside a WebDriver run.
 
 ## Known gaps
 

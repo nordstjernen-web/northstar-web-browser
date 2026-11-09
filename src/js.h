@@ -111,6 +111,8 @@ GPtrArray *ns_js_take_layout_targets(ns_js *js);
 const char *ns_js_layout_mutated_by(ns_js *js);
 
 char  *ns_js_eval_source(ns_js *js, const char *src, const char *origin);
+char  *ns_js_webdriver_call(ns_js *js, const char *atoms_src,
+                            const char *call_src);
 
 gboolean ns_js_dispatch_event(ns_js *js, const ns_node *target, const char *type,
                               gboolean *default_prevented);

@@ -35,6 +35,9 @@ int ns_browser_render_image(ns_browser *browser, const char *path);
 
 GPtrArray *ns_browser_print_pages(ns_browser *browser,
                                   ns_print_setup *out_setup);
+GPtrArray *ns_browser_print_pages_setup(ns_browser *browser,
+                                        const ns_print_setup *in_setup,
+                                        ns_print_setup *out_setup);
 int ns_browser_page_size(ns_browser *browser, int *out_width, int *out_height);
 
 int ns_browser_snap_document(ns_browser *browser, double viewport_w,
@@ -74,6 +77,9 @@ int ns_browser_find(ns_browser *browser, const char *query,
                     int *out_total, int *out_current, int *out_y);
 char *ns_browser_console_drain(ns_browser *browser);
 char *ns_browser_eval(ns_browser *browser, const char *src);
+void ns_browser_caret_to_end(ns_browser *browser);
+char *ns_browser_webdriver_call(ns_browser *browser, const char *atoms_src,
+                                const char *call_src);
 char *ns_browser_media_at(ns_browser *browser, int x, int y,
                           int *out_is_video, int *out_stream);
 char *ns_browser_take_pending_nav(ns_browser *browser);

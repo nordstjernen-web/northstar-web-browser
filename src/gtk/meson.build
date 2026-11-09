@@ -28,7 +28,8 @@ executable(
     northstar_gtk_sources + northstar_audio_sources +
     northstar_gtk_platform_sources +
     northstar_icon_resources +
-    northstar_win_resources + [polyfills_h, wpt_hook_h, sb_key_h],
+    northstar_win_resources + [polyfills_h, wpt_hook_h, webdriver_js_h,
+                               sb_key_h],
   dependencies: northstar_gtk_deps + northstar_audio_deps,
   link_with: northstar_audio_libs,
   include_directories: include_directories('..', '.'),

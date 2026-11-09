@@ -1898,6 +1898,150 @@ ns_net_cookie_store_from_js(const char *url, const char *cookie)
     g_free(path_attr);
 }
 
+void
+ns_net_cookie_free(ns_net_cookie *cookie)
+{
+    if (!cookie) return;
+    g_free(cookie->name);
+    g_free(cookie->value);
+    g_free(cookie->domain);
+    g_free(cookie->path);
+    g_free(cookie);
+}
+
+/* The cookies of url's site partition that would be sent to url, HttpOnly
+ * ones included, unexpired, in jar order: the WebDriver "associated
+ * cookies" of a document at url.  Array of ns_net_cookie; caller frees. */
+GPtrArray *
+ns_net_cookies_list(const char *url)
+{
+    GPtrArray *out =
+        g_ptr_array_new_with_free_func((GDestroyNotify)ns_net_cookie_free);
+    if (!url || !*url) return out;
+    g_autofree char *site = ns_url_site_from(url);
+    g_autoptr(ns_url_parts) parts = ns_url_parts_new(url);
+    if (!site || !*site || !parts || !parts->hostname || !*parts->hostname)
+        return out;
+    const char *path = (parts->pathname && *parts->pathname)
+                       ? parts->pathname : "/";
+    gboolean is_https = parts->protocol &&
+                        g_ascii_strcasecmp(parts->protocol, "https:") == 0;
+    struct curl_slist *list = cookie_partition_list(cookie_partition_get(site));
+    gint64 now = g_get_real_time() / G_USEC_PER_SEC;
+    for (struct curl_slist *l = list; l; l = l->next) {
+        const char *line = l->data;
+        gboolean http_only = FALSE;
+        if (line && g_str_has_prefix(line, "#HttpOnly_")) {
+            line += 10;
+            http_only = TRUE;
+        }
+        if (!line || line[0] == '#') continue;
+        char **f = g_strsplit(line, "\t", 7);
+        if (g_strv_length(f) >= 7 && *f[5] &&
+            cookie_line_matches(f, parts->hostname, path, is_https, now)) {
+            ns_net_cookie *c = g_new0(ns_net_cookie, 1);
+            gboolean tail = g_ascii_strcasecmp(f[1], "TRUE") == 0;
+            c->domain = tail && f[0][0] != '.' ? g_strconcat(".", f[0], NULL)
+                                               : g_strdup(f[0]);
+            c->path = g_strdup(f[2]);
+            c->secure = g_ascii_strcasecmp(f[3], "TRUE") == 0;
+            c->expiry = g_ascii_strtoll(f[4], NULL, 10);
+            c->name = g_strdup(f[5]);
+            c->value = g_strdup(f[6]);
+            c->http_only = http_only;
+            g_ptr_array_add(out, c);
+        }
+        g_strfreev(f);
+    }
+    curl_slist_free_all(list);
+    return out;
+}
+
+/* Stores a cookie for the document at url, as WebDriver's Add Cookie does:
+ * a domain must domain-match url's host and not be a public suffix, and
+ * neither a name nor a value may hold control characters or a ';'.  On
+ * failure returns FALSE and the WebDriver error code in out_error. */
+gboolean
+ns_net_cookie_add(const char *url, const ns_net_cookie *cookie,
+                  const char **out_error)
+{
+    if (out_error) *out_error = "unable to set cookie";
+    if (!url || !cookie || !cookie->name) return FALSE;
+    g_autoptr(ns_url_parts) parts = ns_url_parts_new(url);
+    g_autofree char *site = ns_url_site_from(url);
+    if (!parts || !parts->hostname || !*parts->hostname || !site || !*site ||
+        !parts->protocol ||
+        (g_ascii_strcasecmp(parts->protocol, "http:") != 0 &&
+         g_ascii_strcasecmp(parts->protocol, "https:") != 0)) {
+        if (out_error) *out_error = "invalid cookie domain";
+        return FALSE;
+    }
+    const char *value = cookie->value ? cookie->value : "";
+    for (const char *c = cookie->name; *c; c++)
+        if ((unsigned char)*c < 0x20 || *c == ';' || *c == '=' || *c == '\t')
+            return FALSE;
+    for (const char *c = value; *c; c++)
+        if ((unsigned char)*c < 0x20 || *c == ';' || *c == '\t') return FALSE;
+    if (!*cookie->name) return FALSE;
+    const char *host = parts->hostname;
+    g_autofree char *file_domain = NULL;
+    const char *tail = "FALSE";
+    if (cookie->domain && *cookie->domain) {
+        const char *d = cookie->domain[0] == '.' ? cookie->domain + 1
+                                                 : cookie->domain;
+        g_autofree char *d_lower = g_ascii_strdown(d, -1);
+        const psl_ctx_t *psl = psl_builtin();
+        if (!*d || !cookie_domain_matches(d, host) ||
+            (psl && psl_is_public_suffix(psl, d_lower) &&
+             g_ascii_strcasecmp(d, host) != 0)) {
+            if (out_error) *out_error = "invalid cookie domain";
+            return FALSE;
+        }
+        file_domain = g_strconcat(".", d_lower, NULL);
+        tail = "TRUE";
+    } else {
+        file_domain = g_ascii_strdown(host, -1);
+    }
+    const char *path = cookie->path && cookie->path[0] == '/' ? cookie->path
+                                                              : "/";
+    for (const char *c = path; *c; c++)
+        if ((unsigned char)*c < 0x20 || *c == ';' || *c == '\t') return FALSE;
+    char *line = g_strdup_printf(
+        "%s%s\t%s\t%s\t%s\t%" G_GINT64_FORMAT "\t%s\t%s",
+        cookie->http_only ? "#HttpOnly_" : "", file_domain, tail, path,
+        cookie->secure ? "TRUE" : "FALSE",
+        cookie->expiry > 0 ? cookie->expiry : (gint64)0, cookie->name, value);
+    cookie_partition_add(cookie_partition_get(site), line);
+    g_free(line);
+    if (out_error) *out_error = NULL;
+    return TRUE;
+}
+
+/* Deletes the cookies named name (every cookie when name is NULL) among
+ * those url's document would be sent, by overwriting each with an expired
+ * copy, which makes curl drop it. */
+void
+ns_net_cookie_delete(const char *url, const char *name)
+{
+    g_autofree char *site = url ? ns_url_site_from(url) : NULL;
+    if (!site || !*site) return;
+    GPtrArray *cookies = ns_net_cookies_list(url);
+    ns_cookie_partition *part = cookie_partition_get(site);
+    for (guint i = 0; i < cookies->len; i++) {
+        ns_net_cookie *c = g_ptr_array_index(cookies, i);
+        if (name && strcmp(name, c->name) != 0) continue;
+        gboolean tail = c->domain[0] == '.';
+        char *line = g_strdup_printf(
+            "%s%s\t%s\t%s\t%s\t1\t%s\t%s",
+            c->http_only ? "#HttpOnly_" : "", c->domain,
+            tail ? "TRUE" : "FALSE", c->path, c->secure ? "TRUE" : "FALSE",
+            c->name, c->value);
+        cookie_partition_add(part, line);
+        g_free(line);
+    }
+    g_ptr_array_free(cookies, TRUE);
+}
+
 /* Path of curl's Alt-Svc cache, or NULL in private mode. */
 static const char *
 ns_net_altsvc_path(void)

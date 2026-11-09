@@ -101,10 +101,18 @@ char *ns_page_session_media_at(ns_page_session *s, int x, int y,
 void  ns_page_session_resolve_camera(ns_page_session *s, const char *origin,
                                      int allow);
 char *ns_page_session_eval(ns_page_session *s, const char *src);
+char *ns_page_session_webdriver(ns_page_session *s, const char *atoms_src,
+                                const char *call_src);
+char *ns_page_session_url(ns_page_session *s);
+char *ns_page_session_title(ns_page_session *s);
 char *ns_page_session_dump(ns_page_session *s, const char *kind);
 char *ns_page_session_console(ns_page_session *s);
 int   ns_page_session_export(ns_page_session *s, const char *path);
 GPtrArray *ns_page_session_print(ns_page_session *s,
                                  ns_print_setup *out_setup);
+GPtrArray *ns_page_session_print_setup(ns_page_session *s,
+                                       const ns_print_setup *in_setup,
+                                       ns_print_setup *out_setup);
+void  ns_page_session_caret_to_end(ns_page_session *s);
 
 #endif

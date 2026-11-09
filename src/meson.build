@@ -39,6 +39,14 @@ wpt_hook_h = custom_target(
             'ns_wpt_hook_src'],
 )
 
+webdriver_js_h = custom_target(
+  'webdriver_js.h',
+  input: ['../scripts/embed-text.py', '../data/js/webdriver.js'],
+  output: 'webdriver_js.h',
+  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
+            'ns_webdriver_atoms_src'],
+)
+
 # The Google Safe Browsing API key, read from NS_SAFE_BROWSING_API_KEY at
 # build time into a generated header so it never sits in the tree or on a
 # compiler command line. Empty when unset: only the local list is used.
@@ -139,11 +147,13 @@ northstar_engine_sources = files(
 )
 
 # GTK-free helpers used by the desktop executable but not the engine UI:
-# the headless render driver and the crash watchdog. Kept in src/ as common
+# the headless render driver, the WebDriver server and the crash watchdog. Kept in src/ as common
 # code; the GTK frontend itself lives in src/gtk/.
 northstar_app_sources = files(
   'headless.c',
+  'json.c',
   'watchdog.c',
+  'webdriver.c',
 )
 
 if have_avif

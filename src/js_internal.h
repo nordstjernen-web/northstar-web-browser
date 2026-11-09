@@ -124,6 +124,7 @@ struct ns_js {
     int           n_immediate_timers;
     gboolean      running_due_timers;
     GArray       *raf_pending;
+    GArray       *raf_firing;   /* batch being run, for cancelAnimationFrame */
     int           next_raf_id;
     ns_node      *raf_frame_ctx;
     JSValue       pristine_promise;

@@ -31,6 +31,11 @@ Significant changes in each release:
   `border-image` no longer allocates gigabytes per repaint (1.7 GB to
   0.2 GB for a 20000 px box); an absurd `aspect-ratio` such as
   `1e-300/1e10` is ignored instead of making the box infinitely tall.
+* A ShadowRealm whose code kept a function passed in from the page
+  (`globalThis.k = f`) was never freed, together with its whole realm;
+  3000 such realms took 246 MB instead of 66 MB.
+* `cancelAnimationFrame` called from one animation-frame callback now
+  cancels another callback of the same frame that has not run yet.
 * `Text.splitText()` with an offset above 2^31 throws `IndexSizeError` on
   Windows instead of splitting at 0.
 * Dependencies: quickjs-ng moves to master `147d01c`, which fixes Date

@@ -100,7 +100,6 @@ struct ns_js {
     ns_js_window_action_cb window_action_cb;
     gpointer      window_action_user_data;
     JSValue       history_state;
-    JSValue       wd_atoms;
     int           history_length;
     GPtrArray    *history_entries;
     int           history_pos;

@@ -43,8 +43,8 @@
 <text class="gtitle" x="836" y="110" text-anchor="start">Headless / tooling — same binary</text>
 <rect class="mod" x="836" y="118" width="328" height="48" rx="8"/>
 <rect class="bar a-ext" x="836" y="118" width="5" height="48" rx="2"/>
-<text class="file" x="850" y="138" text-anchor="start">headless.c · webdriver.c</text>
-<text class="desc" x="850" y="155" text-anchor="start">--dump= · --eval= · --act= · --wpt · --webdriver</text>
+<text class="file" x="850" y="138" text-anchor="start">headless.c</text>
+<text class="desc" x="850" y="155" text-anchor="start">--dump= · --eval= · --act= · --wpt · --inspect=</text>
 <text class="ptitle" x="600" y="112" text-anchor="middle">one executable: northstar</text>
 <text class="lbl" x="600" y="132" text-anchor="middle">GUI, supervisor and headless modes</text>
 <text class="lbl" x="600" y="148" text-anchor="middle">are chosen by command-line flags</text>

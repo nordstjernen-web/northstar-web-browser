@@ -214,25 +214,6 @@ char *ns_net_cookies_for_websocket(const char *url,
 gboolean ns_net_cookie_jar_version(const char *url, guint64 *version);
 void  ns_net_cookie_store_from_js(const char *url, const char *cookie);
 
-/* One cookie as WebDriver sees it.  domain carries a leading '.' for a
- * domain cookie and is the bare host for a host-only one; expiry is in
- * seconds since the epoch, 0 for a session cookie. */
-typedef struct ns_net_cookie {
-    char    *name;
-    char    *value;
-    char    *domain;
-    char    *path;
-    gboolean secure;
-    gboolean http_only;
-    gint64   expiry;
-} ns_net_cookie;
-
-void       ns_net_cookie_free(ns_net_cookie *cookie);
-GPtrArray *ns_net_cookies_list(const char *url);
-gboolean   ns_net_cookie_add(const char *url, const ns_net_cookie *cookie,
-                             const char **out_error);
-void       ns_net_cookie_delete(const char *url, const char *name);
-
 void  ns_rmrf(const char *path);
 void  ns_net_set_proxy_override(const char *proxy_url);
 void  ns_net_set_allow_file_urls(gboolean allow);

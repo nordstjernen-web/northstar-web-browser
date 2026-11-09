@@ -53,7 +53,6 @@
 #include "trace.h"
 #include "version.h"
 #include "watchdog.h"
-#include "webdriver.h"
 
 static char *g_self_exe;
 
@@ -383,9 +382,7 @@ ns_proc_mode_wanted(int argc, char **argv)
             g_str_has_prefix(a, "--eval=") ||
             g_str_has_prefix(a, "--inspect=") ||
             g_str_has_prefix(a, "--inspect-at=") ||
-            g_str_has_prefix(a, "--act=") ||
-            g_strcmp0(a, "--webdriver") == 0 ||
-            g_str_has_prefix(a, "--webdriver="))
+            g_str_has_prefix(a, "--act="))
             return FALSE;
     }
     return TRUE;
@@ -422,10 +419,9 @@ ns_preopen_screenshot_outputs(int argc, char **argv)
     }
 }
 
-/* Starts the subsystems a headless or WebDriver run needs (the GUI's
- * ns_browser_init() path is skipped in tool mode). */
-static void
-ns_tool_init(gboolean log_fetches)
+/* Initializes subsystems for a headless run, executes it and prints perf stats with --debug. */
+static int
+ns_run_headless(ns_headless_opts *hopts)
 {
     ns_security_set_tool_mode(TRUE);
     /* Headless runs skip ns_browser_init(), which applies this for the GUI. */
@@ -433,42 +429,13 @@ ns_tool_init(gboolean log_fetches)
         ns_security_harden_allocator();
     ns_net_init();
     ns_net_set_allow_file_urls(TRUE);
-    if (log_fetches)
+    if (hopts->debug_levels & (1u << NS_DLOG_NET))
         ns_net_set_log_fetches(TRUE);
     ns_cache_init();
     ns_bytecode_cache_init();
     ns_history_init();
     ns_font_init();
     ns_spell_init();
-}
-
-static void
-ns_tool_shutdown(void)
-{
-    ns_bytecode_cache_shutdown();
-    ns_history_shutdown();
-    ns_cache_shutdown();
-    ns_net_shutdown();
-    ns_config_shutdown();
-}
-
-/* Runs the WebDriver server (--webdriver) until it is stopped. */
-static int
-ns_run_webdriver(const ns_webdriver_opts *wopts)
-{
-    ns_tool_init(FALSE);
-    ns_audio_set_silent(TRUE);
-    int rc = ns_webdriver_run(wopts);
-    ns_audio_shutdown();
-    ns_tool_shutdown();
-    return rc;
-}
-
-/* Initializes subsystems for a headless run, executes it and prints perf stats with --debug. */
-static int
-ns_run_headless(ns_headless_opts *hopts)
-{
-    ns_tool_init((hopts->debug_levels & (1u << NS_DLOG_NET)) != 0);
     char *file_url = NULL;
     if (hopts->url && !strstr(hopts->url, "://") &&
         !g_str_has_prefix(hopts->url, "about:") &&
@@ -512,7 +479,11 @@ ns_run_headless(ns_headless_opts *hopts)
                    it_hits, it_misses, it_skips, it_entries);
     }
     g_free(file_url);
-    ns_tool_shutdown();
+    ns_bytecode_cache_shutdown();
+    ns_history_shutdown();
+    ns_cache_shutdown();
+    ns_net_shutdown();
+    ns_config_shutdown();
     return rc;
 }
 
@@ -627,9 +598,6 @@ main(int argc, char **argv)
         .time_ms = 1000,
     };
     gboolean dump_set = FALSE;
-    gboolean webdriver = FALSE;
-    gboolean viewport_set = FALSE;
-    int webdriver_port = NS_WEBDRIVER_DEFAULT_PORT;
     for (int i = 1; i < argc; i++) {
         if (g_str_has_prefix(argv[i], "--proxy=")) {
             const char *pxy = argv[i] + 8;
@@ -692,7 +660,6 @@ main(int argc, char **argv)
             }
             hopts.viewport_width = (int)w;
             if (h > 0) hopts.viewport_height = (int)h;
-            viewport_set = TRUE;
         } else if (g_str_has_prefix(argv[i], "--viewport-height=")) {
             char *end = NULL;
             gint64 n = g_ascii_strtoll(argv[i] + 18, &end, 10);
@@ -708,20 +675,6 @@ main(int argc, char **argv)
             gint64 n = g_ascii_strtoll(argv[i] + 10, &end, 10);
             if (end != argv[i] + 10 && *end == '\0' && n >= 0 && n < 600000)
                 hopts.time_ms = (int)n;
-        } else if (g_strcmp0(argv[i], "--webdriver") == 0) {
-            webdriver = TRUE;
-        } else if (g_str_has_prefix(argv[i], "--webdriver=")) {
-            const char *ps = argv[i] + 12;
-            char *end = NULL;
-            gint64 n = g_ascii_strtoll(ps, &end, 10);
-            if (end == ps || *end != '\0' || n < 0 || n > 65535) {
-                fprintf(stderr,
-                        "northstar: --webdriver wants a port 0-65535, "
-                        "got '%s'\n", ps);
-                return 2;
-            }
-            webdriver = TRUE;
-            webdriver_port = (int)n;
         } else if (g_strcmp0(argv[i], "--wpt") == 0) {
             hopts.wpt = TRUE;
         } else if (g_str_has_prefix(argv[i], "--wpt-timeout-ms=")) {
@@ -769,25 +722,6 @@ main(int argc, char **argv)
                                      recover, private_window);
         ns_trace_close();
         return gui_rc;
-    }
-
-    if (webdriver) {
-        ns_webdriver_opts wopts = {
-            .port = webdriver_port,
-            .viewport_width = viewport_set ? hopts.viewport_width : 0,
-            .viewport_height = viewport_set ? hopts.viewport_height : 0,
-            .settle_ms = hopts.settle_ms,
-            .log = hopts.debug_levels != 0,
-        };
-        if (viewport_set && wopts.viewport_height <= 0)
-            wopts.viewport_height = (int)((double)wopts.viewport_width * 0.75);
-        int wd_rc = ns_run_webdriver(&wopts);
-        ns_trace_close();
-        if (!ns_net_idle()) {
-            fflush(NULL);
-            _exit(wd_rc);
-        }
-        return wd_rc;
     }
 
     ns_apply_gsk_renderer(gsk_renderer_override ? gsk_renderer_override

@@ -1747,30 +1747,82 @@ ns_ctx_restore(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     return JS_UNDEFINED;
 }
 
+/* Scale that stands in for a zero one: small enough that nothing drawn
+ * through it reaches a pixel, but invertible, as cairo requires. */
+#define NS_CANVAS_DEGENERATE_SCALE 1e-9
+
+/* Sets cr's matrix to m.  Cairo puts a context into a permanent error state
+ * (every later draw a no-op) when given a non-invertible matrix, whereas a
+ * canvas transform such as scale(0, 0) is legal and only makes draws
+ * invisible until the transform is reset, so a singular matrix is nudged
+ * to a tiny invertible one. */
+static void
+ns_canvas_set_matrix(cairo_t *cr, cairo_matrix_t *m)
+{
+    double det = m->xx * m->yy - m->xy * m->yx;
+    if (!isfinite(det) || det == 0) {
+        m->xx += NS_CANVAS_DEGENERATE_SCALE;
+        m->yy += NS_CANVAS_DEGENERATE_SCALE;
+        det = m->xx * m->yy - m->xy * m->yx;
+        if (!isfinite(det) || det == 0)
+            cairo_matrix_init(m, NS_CANVAS_DEGENERATE_SCALE, 0, 0,
+                              NS_CANVAS_DEGENERATE_SCALE, m->x0, m->y0);
+    }
+    cairo_set_matrix(cr, m);
+}
+
+/* Multiplies cr's matrix by m (m applied first), keeping it invertible. */
+static void
+ns_canvas_apply_matrix(cairo_t *cr, const cairo_matrix_t *m)
+{
+    cairo_matrix_t cur, out;
+    cairo_get_matrix(cr, &cur);
+    cairo_matrix_multiply(&out, m, &cur);
+    ns_canvas_set_matrix(cr, &out);
+}
+
+/* Reads n numeric arguments into v; FALSE if any is NaN or infinite, for
+ * which the canvas methods are specified to do nothing. */
+static gboolean
+ns_canvas_finite_args(JSContext *ctx, int n, JSValueConst *argv, double *v)
+{
+    for (int i = 0; i < n; i++) {
+        v[i] = ns_arg_d(ctx, argv[i]);
+        if (!isfinite(v[i])) return FALSE;
+    }
+    return TRUE;
+}
+
 static JSValue
 ns_ctx_translate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    if (argc < 2) return JS_UNDEFINED;
+    double v[2];
+    if (argc < 2 || !ns_canvas_finite_args(ctx, 2, argv, v)) return JS_UNDEFINED;
     ns_canvas_state *st = ns_ctx_state(ctx, this_val);
-    if (st) cairo_translate(st->cr, ns_arg_d(ctx, argv[0]), ns_arg_d(ctx, argv[1]));
+    if (st) cairo_translate(st->cr, v[0], v[1]);
     return JS_UNDEFINED;
 }
 
 static JSValue
 ns_ctx_scale(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    if (argc < 2) return JS_UNDEFINED;
+    double v[2];
+    if (argc < 2 || !ns_canvas_finite_args(ctx, 2, argv, v)) return JS_UNDEFINED;
     ns_canvas_state *st = ns_ctx_state(ctx, this_val);
-    if (st) cairo_scale(st->cr, ns_arg_d(ctx, argv[0]), ns_arg_d(ctx, argv[1]));
+    if (!st) return JS_UNDEFINED;
+    cairo_matrix_t m;
+    cairo_matrix_init_scale(&m, v[0], v[1]);
+    ns_canvas_apply_matrix(st->cr, &m);
     return JS_UNDEFINED;
 }
 
 static JSValue
 ns_ctx_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    if (argc < 1) return JS_UNDEFINED;
+    double v[1];
+    if (argc < 1 || !ns_canvas_finite_args(ctx, 1, argv, v)) return JS_UNDEFINED;
     ns_canvas_state *st = ns_ctx_state(ctx, this_val);
-    if (st) cairo_rotate(st->cr, ns_arg_d(ctx, argv[0]));
+    if (st) cairo_rotate(st->cr, v[0]);
     return JS_UNDEFINED;
 }
 
@@ -2074,13 +2126,10 @@ ns_ctx_ellipse(JSContext *ctx, JSValueConst this_val,
     if (argc < 7) return JS_UNDEFINED;
     ns_canvas_state *st = ns_ctx_state(ctx, this_val);
     if (!st) return JS_UNDEFINED;
-    double x  = ns_arg_d(ctx, argv[0]);
-    double y  = ns_arg_d(ctx, argv[1]);
-    double rx = ns_arg_d(ctx, argv[2]);
-    double ry = ns_arg_d(ctx, argv[3]);
-    double rot = ns_arg_d(ctx, argv[4]);
-    double a0 = ns_arg_d(ctx, argv[5]);
-    double a1 = ns_arg_d(ctx, argv[6]);
+    double v[7];
+    if (!ns_canvas_finite_args(ctx, 7, argv, v)) return JS_UNDEFINED;
+    double x = v[0], y = v[1], rx = v[2], ry = v[3], rot = v[4];
+    double a0 = v[5], a1 = v[6];
     if (rx < 0 || ry < 0)
         return ns_canvas_throw_dom(ctx, "IndexSizeError",
                                    "ellipse radius must not be negative");
@@ -2088,7 +2137,9 @@ ns_ctx_ellipse(JSContext *ctx, JSValueConst this_val,
     cairo_save(st->cr);
     cairo_translate(st->cr, x, y);
     cairo_rotate(st->cr, rot);
-    cairo_scale(st->cr, rx, ry);
+    /* A zero radius is legal; cairo rejects a zero scale. */
+    cairo_scale(st->cr, rx > 0 ? rx : NS_CANVAS_DEGENERATE_SCALE,
+                ry > 0 ? ry : NS_CANVAS_DEGENERATE_SCALE);
     if (ccw) cairo_arc_negative(st->cr, 0, 0, 1.0, a0, a1);
     else     cairo_arc(st->cr, 0, 0, 1.0, a0, a1);
     cairo_restore(st->cr);
@@ -2139,15 +2190,16 @@ ns_ctx_setTransform(JSContext *ctx, JSValueConst this_val,
     }
     if (argc == 1) {
         if (!ns_matrix_from_obj(ctx, argv[0], &m)) return JS_UNDEFINED;
-        cairo_set_matrix(st->cr, &m);
+        if (!isfinite(m.xx) || !isfinite(m.yx) || !isfinite(m.xy) ||
+            !isfinite(m.yy) || !isfinite(m.x0) || !isfinite(m.y0))
+            return JS_UNDEFINED;
+        ns_canvas_set_matrix(st->cr, &m);
         return JS_UNDEFINED;
     }
-    if (argc < 6) return JS_UNDEFINED;
-    cairo_matrix_init(&m,
-        ns_arg_d(ctx, argv[0]), ns_arg_d(ctx, argv[1]),
-        ns_arg_d(ctx, argv[2]), ns_arg_d(ctx, argv[3]),
-        ns_arg_d(ctx, argv[4]), ns_arg_d(ctx, argv[5]));
-    cairo_set_matrix(st->cr, &m);
+    double v[6];
+    if (argc < 6 || !ns_canvas_finite_args(ctx, 6, argv, v)) return JS_UNDEFINED;
+    cairo_matrix_init(&m, v[0], v[1], v[2], v[3], v[4], v[5]);
+    ns_canvas_set_matrix(st->cr, &m);
     return JS_UNDEFINED;
 }
 
@@ -2156,15 +2208,13 @@ static JSValue
 ns_ctx_transform(JSContext *ctx, JSValueConst this_val,
                  int argc, JSValueConst *argv)
 {
-    if (argc < 6) return JS_UNDEFINED;
+    double v[6];
+    if (argc < 6 || !ns_canvas_finite_args(ctx, 6, argv, v)) return JS_UNDEFINED;
     ns_canvas_state *st = ns_ctx_state(ctx, this_val);
     if (!st) return JS_UNDEFINED;
     cairo_matrix_t m;
-    cairo_matrix_init(&m,
-        ns_arg_d(ctx, argv[0]), ns_arg_d(ctx, argv[1]),
-        ns_arg_d(ctx, argv[2]), ns_arg_d(ctx, argv[3]),
-        ns_arg_d(ctx, argv[4]), ns_arg_d(ctx, argv[5]));
-    cairo_transform(st->cr, &m);
+    cairo_matrix_init(&m, v[0], v[1], v[2], v[3], v[4], v[5]);
+    ns_canvas_apply_matrix(st->cr, &m);
     return JS_UNDEFINED;
 }
 
@@ -2397,7 +2447,14 @@ ns_ctx_drawImage(JSContext *ctx, JSValueConst this_val,
         dy = ns_arg_d(ctx, argv[2]);
         dw = sw_total; dh = sh_total;
     }
-    if (sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) {
+    /* A negative width or height names the rectangle by its other corner. */
+    if (sw < 0) { sx += sw; sw = -sw; }
+    if (sh < 0) { sy += sh; sh = -sh; }
+    if (dw < 0) { dx += dw; dw = -dw; }
+    if (dh < 0) { dy += dh; dh = -dh; }
+    if (!isfinite(sx) || !isfinite(sy) || !isfinite(sw) || !isfinite(sh) ||
+        !isfinite(dx) || !isfinite(dy) || !isfinite(dw) || !isfinite(dh) ||
+        sw == 0 || sh == 0 || dw == 0 || dh == 0) {
         cairo_surface_destroy(src);
         return JS_UNDEFINED;
     }
@@ -3191,19 +3248,19 @@ ns_path2d_ellipse(JSContext *ctx, JSValueConst this_val,
     cairo_t *cr = NULL;
     JSValue err = ns_path2d_get_cr(ctx, this_val, &cr);
     if (JS_IsException(err)) return err;
-    if (argc < 7) return JS_UNDEFINED;
-    double x  = ns_arg_d(ctx, argv[0]);
-    double y  = ns_arg_d(ctx, argv[1]);
-    double rx = ns_arg_d(ctx, argv[2]);
-    double ry = ns_arg_d(ctx, argv[3]);
-    double rot = ns_arg_d(ctx, argv[4]);
-    double a0 = ns_arg_d(ctx, argv[5]);
-    double a1 = ns_arg_d(ctx, argv[6]);
+    double v[7];
+    if (argc < 7 || !ns_canvas_finite_args(ctx, 7, argv, v)) return JS_UNDEFINED;
+    double x = v[0], y = v[1], rx = v[2], ry = v[3], rot = v[4];
+    double a0 = v[5], a1 = v[6];
+    if (rx < 0 || ry < 0)
+        return ns_canvas_throw_dom(ctx, "IndexSizeError",
+                                   "ellipse radius must not be negative");
     gboolean ccw = argc >= 8 && JS_ToBool(ctx, argv[7]);
     cairo_save(cr);
     cairo_translate(cr, x, y);
     cairo_rotate(cr, rot);
-    cairo_scale(cr, rx, ry);
+    cairo_scale(cr, rx > 0 ? rx : NS_CANVAS_DEGENERATE_SCALE,
+                ry > 0 ? ry : NS_CANVAS_DEGENERATE_SCALE);
     if (ccw) cairo_arc_negative(cr, 0, 0, 1.0, a0, a1);
     else     cairo_arc(cr, 0, 0, 1.0, a0, a1);
     cairo_restore(cr);

@@ -83,16 +83,19 @@ ns_es_dispatch_run(gpointer data)
     return G_SOURCE_REMOVE;
 }
 
-/* Queues a callback to the engine thread; dropped once detached or 256 are pending. */
+/* Queues a callback to the engine thread; dropped only once detached.
+ * Called on the worker thread, which waits while 256 are pending so a busy
+ * page slows the stream down instead of losing events (or the final error
+ * that closes the EventSource). */
 static void
 ns_es_post(ns_es *es, void (*invoke)(ns_es *, gpointer), gpointer payload,
            void (*payload_free)(gpointer))
 {
+    while (!g_atomic_int_get(&es->detached) &&
+           !g_atomic_int_get(&es->exit_requested) &&
+           g_atomic_int_get(&es->pending) >= NS_ES_MAX_PENDING)
+        g_usleep(2000);
     if (g_atomic_int_get(&es->detached)) {
-        if (payload && payload_free) payload_free(payload);
-        return;
-    }
-    if (g_atomic_int_get(&es->pending) >= NS_ES_MAX_PENDING) {
         if (payload && payload_free) payload_free(payload);
         return;
     }

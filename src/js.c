@@ -1732,6 +1732,26 @@ ns_js_setInterval_wrap(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
     return ns_js_setTimeout(ctx, this_val, argc, argv, 1);
 }
 
+/* Whether script calling through ctx may cancel a timer or animation
+ * frame that was scheduled for frame owner (NULL: the page itself).  Ids
+ * come from one counter shared by the page and its frames, so a script in
+ * a frame realm may only cancel that frame's own; otherwise a
+ * cross-origin frame could clear every timer of the page by counting up.
+ * Frames call the page's timer functions, so the frame is found from the
+ * calling realm, not from ctx. */
+static gboolean
+ns_js_may_cancel_for_frame(ns_js *js, JSContext *ctx, const ns_node *owner)
+{
+    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    if (!caller || !js->frame_contexts) return TRUE;
+    GHashTableIter it;
+    gpointer iframe, fctx;
+    g_hash_table_iter_init(&it, js->frame_contexts);
+    while (g_hash_table_iter_next(&it, &iframe, &fctx))
+        if (fctx == caller) return iframe == owner;
+    return TRUE;
+}
+
 /* clearTimeout/clearInterval: cancels and removes the timer by id. */
 static JSValue
 ns_js_clearTimer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1741,6 +1761,8 @@ ns_js_clearTimer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *
     int32_t id = 0;
     JS_ToInt32(ctx, &id, argv[0]);
     ns_timer *t = g_hash_table_lookup(js_from_ctx(ctx)->timers, GINT_TO_POINTER(id));
+    if (t && !ns_js_may_cancel_for_frame(js_from_ctx(ctx), ctx, t->frame))
+        t = NULL;
     if (t) {
         ns_js_source_remove(js_from_ctx(ctx), t->glib_source);
         t->glib_source = 0;
@@ -6800,7 +6822,7 @@ ns_element_split_text(JSContext *ctx, JSValueConst this_val,
     uint32_t off = 0;
     if (!ns_cdata_uint_arg(ctx, argv[0], &off)) return JS_EXCEPTION;
     glong total = ns_utf16_length(n->text);
-    if ((glong)off > total)
+    if ((guint64)off > (guint64)total)
         return ns_throw_dom_exception(ctx, "IndexSizeError", 1,
             "offset is greater than length");
     const char *split = ns_utf16_offset_to_ptr(n->text, (glong)off);
@@ -12958,7 +12980,10 @@ ns_js_caller_document_url(ns_js *js, JSContext *ctx)
 {
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
     if (ns_js_caller_unknown(js, caller)) return g_strdup("about:blank");
-    if (caller && caller != js->ctx && js->frame_contexts) {
+    /* Not "caller != js->ctx": js->ctx is the frame's own realm while its
+     * timers, events and rAF callbacks run.  The main realm is never in
+     * frame_contexts, so the lookup alone tells the two apart. */
+    if (caller && js->frame_contexts) {
         GHashTableIter it;
         gpointer iframe, fctx;
         g_hash_table_iter_init(&it, js->frame_contexts);
@@ -24480,7 +24505,9 @@ ns_sw_prepare_document(ns_js *js)
 static const ns_csp *
 ns_js_realm_csp(ns_js *js, JSContext *ctx)
 {
-    if (ctx != js->ctx && js->frame_contexts) {
+    /* Looked up even when ctx == js->ctx, which is a frame's realm while
+     * that frame's callbacks run. */
+    if (ctx && js->frame_contexts) {
         GHashTableIter it;
         gpointer iframe, fctx;
         g_hash_table_iter_init(&it, js->frame_contexts);
@@ -27160,6 +27187,8 @@ ns_window_cancelAnimationFrame(JSContext *ctx, JSValueConst this_val,
     for (guint i = 0; i < js->raf_pending->len; i++) {
         ns_raf_entry *e = &g_array_index(js->raf_pending, ns_raf_entry, i);
         if (e->id == id) {
+            if (!ns_js_may_cancel_for_frame(js, ctx, e->frame))
+                return JS_UNDEFINED;
             JS_FreeValue(e->ctx ? e->ctx : ctx, e->cb);
             g_array_remove_index(js->raf_pending, i);
             return JS_UNDEFINED;
@@ -53965,8 +53994,13 @@ ns_realmdoc_cookie_get(JSContext *ctx, JSValueConst this_val,
                        JSValueConst *data)
 {
     (void)this_val; (void)argc; (void)argv; (void)magic;
+    ns_js *js = js_from_ctx(ctx);
     g_autofree char *url = ns_realmdoc_url(ctx, data[0]);
-    g_autofree char *cookies = url ? ns_net_cookies_for_js(url) : NULL;
+    /* The partition is the top-level document's site.  document_origin,
+     * unlike current_url, is not swapped to the frame's URL while the
+     * frame's own timers and events run. */
+    g_autofree char *cookies = url && js && js->document_origin
+        ? ns_net_cookies_for_js(url, js->document_origin) : NULL;
     return JS_NewString(ctx, cookies ? cookies : "");
 }
 
@@ -53980,8 +54014,9 @@ ns_realmdoc_cookie_set(JSContext *ctx, JSValueConst this_val,
     if (argc < 1) return JS_UNDEFINED;
     g_autofree char *url = ns_realmdoc_url(ctx, data[0]);
     const char *value = JS_ToCString(ctx, argv[0]);
-    if (url && value && strlen(value) <= 4096)
-        ns_net_cookie_store_from_js(url, value);
+    ns_js *js = js_from_ctx(ctx);
+    if (url && value && js && js->document_origin && strlen(value) <= 4096)
+        ns_net_cookie_store_from_js(url, js->document_origin, value);
     if (value) JS_FreeCString(ctx, value);
     return JS_UNDEFINED;
 }
@@ -54935,7 +54970,7 @@ ns_document_refresh_cookie(ns_js *js)
         !ns_net_cookie_jar_version(js->current_url, &version) ||
         version == js->cookie_version)
         return;
-    char *visible = ns_net_cookies_for_js(js->current_url);
+    char *visible = ns_net_cookies_for_js(js->current_url, js->current_url);
     g_free(js->cookie_value);
     js->cookie_value = visible ? visible : g_strdup("");
     js->cookie_version = version;
@@ -55108,9 +55143,9 @@ ns_document_set_cookie(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     g_free(js->cookie_value);
     js->cookie_value = jar;
     if (js->current_url && *js->current_url) {
-        ns_net_cookie_store_from_js(js->current_url, s);
+        ns_net_cookie_store_from_js(js->current_url, js->current_url, s);
         ns_net_cookie_jar_version(js->current_url, &js->cookie_version);
-        char *visible = ns_net_cookies_for_js(js->current_url);
+        char *visible = ns_net_cookies_for_js(js->current_url, js->current_url);
         g_free(js->cookie_value);
         js->cookie_value = visible ? visible : g_strdup("");
     }
@@ -55915,7 +55950,9 @@ static const ns_node *
 ns_js_caller_iframe(ns_js *js, JSContext *ctx)
 {
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
-    if (!js || !caller || caller == js->ctx || !js->frame_contexts)
+    /* js->ctx is the frame's own realm while its callbacks run, so only
+     * the main realm means "the page itself". */
+    if (!js || !caller || caller == js->main_realm_ctx || !js->frame_contexts)
         return NULL;
     GHashTableIter it;
     gpointer iframe, fctx;
@@ -56345,7 +56382,7 @@ ns_js_seed_cookies_from_jar(ns_js *js)
 {
     if (!js || !js->current_url || !*js->current_url) return;
     ns_net_cookie_jar_version(js->current_url, &js->cookie_version);
-    char *jar = ns_net_cookies_for_js(js->current_url);
+    char *jar = ns_net_cookies_for_js(js->current_url, js->current_url);
     if (!jar) return;
     if (!*jar) { g_free(jar); return; }
 

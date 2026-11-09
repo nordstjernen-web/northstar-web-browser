@@ -2,6 +2,43 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.23:
+=======
+* Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
+  the page itself while its own timers, events and animation frames ran,
+  so from a `setTimeout` it could make same-origin XHR requests with the
+  frame's real origin, navigate the top-level page without
+  `allow-top-navigation`, and run under the page's CSP instead of its
+  own. Frame realms are now told apart from the page in every case.
+* Security: `clearTimeout`, `clearInterval`, `cancelIdleCallback` and
+  `cancelAnimationFrame` in a frame no longer cancel the page's (or other
+  frames') timers; the ids are shared, so a cross-origin frame could stop
+  every timer on the page by counting up.
+* Privacy: `document.cookie` follows cookie partitioning and the cookie
+  setting. A cross-site frame used to read and write its own first-party
+  cookies (the ones it set when visited directly), and pages could still
+  use `document.cookie` with cookies switched off.
+* WebSocket and EventSource no longer drop messages when more than 256
+  arrive while the page is busy; the connection is slowed down instead,
+  and an EventSource's closing error is always delivered.
+* Canvas: `scale(0, 0)`, a singular `setTransform`/`transform`, a
+  zero-radius `ellipse` or a NaN argument no longer leaves the canvas
+  blank until it is resized; non-finite arguments are ignored as
+  specified. `drawImage` accepts negative source and destination sizes.
+* Rendering: repeating gradients whose first stop is not at 0 repeat from
+  the first stop to the last (`repeating-linear-gradient(red 50px, blue
+  100px)` was a zigzag twice as wide); a huge box with a gradient
+  `border-image` no longer allocates gigabytes per repaint (1.7 GB to
+  0.2 GB for a 20000 px box); an absurd `aspect-ratio` such as
+  `1e-300/1e10` is ignored instead of making the box infinitely tall.
+* `Text.splitText()` with an offset above 2^31 throws `IndexSizeError` on
+  Windows instead of splitting at 0.
+* Dependencies: quickjs-ng moves to master `147d01c`, which fixes Date
+  setters given a non-finite argument and speeds up `String.prototype.indexOf`/`includes`. All
+  nine local patches apply unchanged. lexbor, WAMR, Wuffs and pl_mpeg are
+  still at their upstream heads; Bellard QuickJS has no release after
+  2026-06-04.
+
 1.0.22:
 =======
 * Security: Google Safe Browsing. Every navigation and redirect is checked

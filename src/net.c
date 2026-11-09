@@ -1697,13 +1697,33 @@ ns_net_cookie_string(const char *url, const char *site, gboolean with_httponly)
     return g_string_free(out, FALSE);
 }
 
-/* Builds the document.cookie string for a URL from its site's partition; caller frees. */
+/* Cookie partition site for document.cookie of a document at url embedded
+ * in a page whose top-level document is top_url, or NULL when the cookie
+ * policy gives that document no cookies.  It follows the subresource rules
+ * of ns_fetch_sync_hop(): the jar is the top-level site's, so a cross-site
+ * frame never reaches its own first-party jar, and under the first-party
+ * policy a cross-site frame gets no cookies at all.  Caller frees. */
+static char *
+js_cookie_site(const char *url, const char *top_url)
+{
+    const char *top = top_url && *top_url ? top_url : url;
+    const ns_config *cfg = ns_config_get();
+    ns_cookie_policy policy = cfg ? cfg->cookie_policy : NS_COOKIE_FIRST_PARTY;
+    if (policy == NS_COOKIE_NEVER ||
+        (policy == NS_COOKIE_FIRST_PARTY && !ns_url_is_same_site(url, top)))
+        return NULL;
+    char *site = ns_url_site_from(top);
+    if (site && !*site) { g_free(site); site = NULL; }
+    return site;
+}
+
+/* Builds the document.cookie string for a document at url under top_url; caller frees. */
 char *
-ns_net_cookies_for_js(const char *url)
+ns_net_cookies_for_js(const char *url, const char *top_url)
 {
     if (!url || !*url) return NULL;
-    g_autofree char *site = ns_url_site_from(url);
-    return ns_net_cookie_string(url, site, FALSE);
+    g_autofree char *site = js_cookie_site(url, top_url);
+    return site ? ns_net_cookie_string(url, site, FALSE) : NULL;
 }
 
 /* Cookie header value for a WebSocket handshake to url (ws: or wss:) made
@@ -1756,11 +1776,14 @@ cookie_partition_has_httponly(ns_cookie_partition *p, const char *host,
 
 /* Parses a document.cookie assignment and stores it per RFC 6265 and prefix rules. */
 void
-ns_net_cookie_store_from_js(const char *url, const char *cookie)
+ns_net_cookie_store_from_js(const char *url, const char *top_url,
+                            const char *cookie)
 {
     if (!url || !*url || !cookie) return;
     if (!g_str_has_prefix(url, "http://") && !g_str_has_prefix(url, "https://"))
         return;
+    g_autofree char *partition_site = js_cookie_site(url, top_url);
+    if (!partition_site) return;
     for (const char *c = cookie; *c; c++)
         if ((unsigned char)*c < 0x20) return;
     g_autoptr(ns_url_parts) parts = ns_url_parts_new(url);
@@ -1877,12 +1900,7 @@ ns_net_cookie_store_from_js(const char *url, const char *cookie)
         path = default_path;
     }
 
-    g_autofree char *site = ns_url_site_from(url);
-    if (!site || !*site) {
-        g_free(file_domain); g_free(domain_attr); g_free(path_attr);
-        return;
-    }
-    ns_cookie_partition *part = cookie_partition_get(site);
+    ns_cookie_partition *part = cookie_partition_get(partition_site);
     g_autofree char *name_dup = g_strndup(name, name_len);
     if (!cookie_partition_has_httponly(part, host, name_dup)) {
         g_autofree char *vdup = g_strndup(value, value_len);

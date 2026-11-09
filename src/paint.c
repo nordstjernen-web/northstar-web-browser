@@ -724,6 +724,28 @@ conic_color_at(const ns_css_gradient *gr, double frac,
     *b = (s0->b * a0 * (1 - t) + s1->b * a1 * t) / (255.0 * am);
 }
 
+/* The window [*start, *start + *period] of the gradient line that one
+ * repetition of a repeating gradient spans: from its first stop to its
+ * last, not from 0 (CSS Images 3, repeating gradients).  frac is shifted so
+ * the stops are relative to *start.  A start before 0 is moved forward by
+ * whole periods (the same pattern), since a radial pattern cannot start at
+ * a negative radius.  Non-repeating gradients span [0, 1]. */
+static void
+paint_gradient_repeat_window(const ns_css_gradient *gr, double *frac,
+                             double *start, double *period)
+{
+    *start = 0;
+    *period = 1.0;
+    if (!gr->repeating || gr->n_stops <= 0) return;
+    double first = frac[0], last = frac[gr->n_stops - 1];
+    if (!(last - first > 0)) return;
+    *start = first;
+    *period = last - first;
+    if (*start < 0)
+        *start += ceil(-*start / *period) * *period;
+    for (int i = 0; i < gr->n_stops; i++) frac[i] -= first;
+}
+
 /* Adds gr's color stops to a cairo pattern so that the result matches
  * premultiplied-alpha interpolation (CSS Images 4). Cairo interpolates
  * stops unpremultiplied, which turns "transparent -> white" grey halfway.
@@ -847,11 +869,11 @@ paint_bg_gradient_core(cairo_t *cr, const ns_css_gradient *gr,
         double frac[NS_CSS_GRADIENT_STOPS_MAX];
         for (int i = 0; i < gr->n_stops; i++)
             frac[i] = gr->stops[i].pos + gr->stops[i].pos_px / line_len;
-        double period = (gr->repeating && gr->n_stops > 0)
-            ? frac[gr->n_stops - 1] : 1.0;
-        if (period <= 0) period = 1.0;
+        double start, period;
+        paint_gradient_repeat_window(gr, frac, &start, &period);
         if (gr->radial) {
-            pat = cairo_pattern_create_radial(0, 0, 0, 0, 0, period);
+            pat = cairo_pattern_create_radial(0, 0, start, 0, 0,
+                                              start + period);
             cairo_matrix_t m;
             cairo_matrix_init_scale(&m, 1.0 / r_outer, 1.0 / r_outer_y);
             cairo_matrix_translate(&m, -cx, -cy);
@@ -860,8 +882,9 @@ paint_bg_gradient_core(cairo_t *cr, const ns_css_gradient *gr,
             double x0 = cx - dxh, y0 = cy - dyh;
             double x1 = cx + dxh, y1 = cy + dyh;
             pat = cairo_pattern_create_linear(
-                x0, y0,
-                x0 + (x1 - x0) * period, y0 + (y1 - y0) * period);
+                x0 + (x1 - x0) * start, y0 + (y1 - y0) * start,
+                x0 + (x1 - x0) * (start + period),
+                y0 + (y1 - y0) * (start + period));
         }
         paint_gradient_add_stops(pat, gr, frac, period);
         if (gr->repeating)
@@ -1322,7 +1345,15 @@ paint_border_image(cairo_t *cr, const ns_box *b,
     } else {
         iw = ceil(aw);
         ih = ceil(ah);
-        surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)iw, (int)ih);
+        /* The gradient is rendered at most 4096 px a side, like the other
+         * scratch surfaces: a huge box (or border-image-outset) would
+         * otherwise allocate gigabytes on every repaint.  The device scale
+         * keeps the surface's logical size iw x ih for the slicing below. */
+        double k = MIN(1.0, 4096.0 / MAX(iw, ih));
+        surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                          MAX(1, (int)ceil(iw * k)),
+                                          MAX(1, (int)ceil(ih * k)));
+        cairo_surface_set_device_scale(surf, k, k);
         cairo_t *gc = cairo_create(surf);
         corner_radii none;
         memset(&none, 0, sizeof none);
@@ -5995,19 +6026,21 @@ mask_gradient_pattern(const ns_css_gradient *gr,
     double frac[NS_CSS_GRADIENT_STOPS_MAX];
     for (int i = 0; i < gr->n_stops; i++)
         frac[i] = gr->stops[i].pos + gr->stops[i].pos_px / line_len;
-    double period = (gr->repeating && gr->n_stops > 0) ? frac[gr->n_stops - 1] : 1.0;
-    if (period <= 0) period = 1.0;
+    double start, period;
+    paint_gradient_repeat_window(gr, frac, &start, &period);
     cairo_pattern_t *pat;
     if (gr->radial) {
-        pat = cairo_pattern_create_radial(0, 0, 0, 0, 0, period);
+        pat = cairo_pattern_create_radial(0, 0, start, 0, 0, start + period);
         cairo_matrix_t m;
         cairo_matrix_init_scale(&m, 1.0 / r_outer, 1.0 / r_outer_y);
         cairo_matrix_translate(&m, -cx, -cy);
         cairo_pattern_set_matrix(pat, &m);
     } else {
         double x0 = cx - dxh, y0 = cy - dyh;
-        pat = cairo_pattern_create_linear(x0, y0,
-            x0 + 2.0 * dxh * period, y0 + 2.0 * dyh * period);
+        pat = cairo_pattern_create_linear(
+            x0 + 2.0 * dxh * start, y0 + 2.0 * dyh * start,
+            x0 + 2.0 * dxh * (start + period),
+            y0 + 2.0 * dyh * (start + period));
     }
     paint_gradient_add_stops(pat, gr, frac, period);
     if (gr->repeating) cairo_pattern_set_extend(pat, CAIRO_EXTEND_REPEAT);

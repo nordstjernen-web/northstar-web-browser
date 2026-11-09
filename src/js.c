@@ -29042,8 +29042,14 @@ ns_invoke_window_listeners_full(ns_js *js, const ns_node *target,
     const ns_node *event_doc = ns_event_document_for_target(js, target);
     const ns_node *visible_target = ns_event_retarget_node(
         target, js->current_doc);
-    JS_SetPropertyStr(js->ctx, event, "target",
-                      ns_make_element(js->ctx, visible_target));
+    /* window.dispatchEvent() targets the window itself, which it has
+     * already stored; the document node only stands in for it here. */
+    JSValue window_target = JS_GetPropertyStr(js->ctx, event,
+                                              "__nd_window_target");
+    if (!JS_ToBool(js->ctx, window_target))
+        JS_SetPropertyStr(js->ctx, event, "target",
+                          ns_make_element(js->ctx, visible_target));
+    JS_FreeValue(js->ctx, window_target);
     JSValue original_related_value = JS_GetPropertyStr(
         js->ctx, event, "__nd_related_target");
     if (!JS_IsUndefined(original_related_value)) {
@@ -50753,7 +50759,41 @@ ns_install_web_api_shapes(JSContext *ctx)
         "  }catch(e){return null;}"
         "  return C;"
         " }"
-        " function normalize(name,obj,tag,evented){"
+        /* WebIDL: an operation or attribute called on anything but an
+         * object of its interface throws "Illegal invocation" (a promise-
+         * returning operation rejects instead).  These interfaces have one
+         * instance per realm, so the receiver check is "this === obj".
+         * Google's sign-in rejects browsers whose getters answer for {}
+         * ("This browser or app may not be secure"). */
+        " var IIV='Illegal invocation';"
+        " var PROMISE_OPS={share:1,getBattery:1,requestMIDIAccess:1,"
+        "  requestMediaKeySystemAccess:1,getInstalledRelatedApps:1,"
+        "  setAppBadge:1,clearAppBadge:1,query:1,whenDefined:1};"
+        " function guardFn(f,k,obj,rejects){"
+        "  var w=rejects?{[k](){if(this!==obj)return Promise.reject(new TypeError(IIV));"
+        "    return f.apply(this,arguments);}}[k]"
+        "   :{[k](){if(this!==obj)throw new TypeError(IIV);"
+        "    return f.apply(this,arguments);}}[k];"
+        "  try{Object.defineProperty(w,'length',{value:f.length,configurable:true});}catch(e){}"
+        "  return w;"
+        " }"
+        " function guardGet(g,k,obj){"
+        "  return Object.getOwnPropertyDescriptor({get [k](){"
+        "   if(this!==obj)throw new TypeError(IIV);return g.call(this);}},k).get;"
+        " }"
+        " function guardSet(st,k,obj){"
+        "  return Object.getOwnPropertyDescriptor({set [k](v){"
+        "   if(this!==obj)throw new TypeError(IIV);st.call(this,v);}},k).set;"
+        " }"
+        " function guarded(d,k,obj,allRejects){"
+        "  if(d.get||d.set)return{configurable:d.configurable,enumerable:d.enumerable,"
+        "   get:d.get?guardGet(d.get,k,obj):undefined,"
+        "   set:d.set?guardSet(d.set,k,obj):undefined};"
+        "  return{configurable:d.configurable,enumerable:d.enumerable,"
+        "   writable:d.writable,"
+        "   value:guardFn(d.value,k,obj,allRejects||PROMISE_OPS[k]===1)};"
+        " }"
+        " function normalize(name,obj,tag,evented,allRejects){"
         "  if(!obj||typeof obj!=='object')return;"
         "  var C=ensure(name);"
         "  if(typeof C!=='function'||!C.prototype)return;"
@@ -50765,10 +50805,11 @@ ns_install_web_api_shapes(JSContext *ctx)
         "   var d=Object.getOwnPropertyDescriptor(obj,k);if(!d||!d.configurable)return;"
         "   if(Object.prototype.hasOwnProperty.call(P,k)){try{delete obj[k];}catch(e){}return;}"
         "   if(d.get||d.set||typeof d.value==='function'){"
-        "    try{Object.defineProperty(P,k,d);delete obj[k];}catch(e){}return;"
+        "    try{Object.defineProperty(P,k,guarded(d,k,obj,allRejects));delete obj[k];}catch(e){}return;"
         "   }"
         "   (function(value,writable,enumerable){"
-        "    var holder={get [k](){return value;},set [k](v){value=v;}};"
+        "    var holder={get [k](){if(this!==obj)throw new TypeError(IIV);return value;},"
+        "     set [k](v){if(this!==obj)throw new TypeError(IIV);value=v;}};"
         "    var hd=Object.getOwnPropertyDescriptor(holder,k);"
         "    try{Object.defineProperty(P,k,{configurable:true,enumerable:enumerable,"
         "     get:hd.get,set:writable?hd.set:undefined});delete obj[k];}catch(e){}"
@@ -50797,7 +50838,7 @@ ns_install_web_api_shapes(JSContext *ctx)
         " });"
         " normalize('Screen',globalThis.screen,'Screen',true);"
         " normalize('Crypto',globalThis.crypto,'Crypto',false);"
-        " normalize('SubtleCrypto',globalThis.crypto&&globalThis.crypto.subtle,'SubtleCrypto',false);"
+        " normalize('SubtleCrypto',globalThis.crypto&&globalThis.crypto.subtle,'SubtleCrypto',false,true);"
         " normalize('Permissions',nav&&nav.permissions,'Permissions',false);"
         " normalize('NetworkInformation',nav&&nav.connection,'NetworkInformation',true);"
         " normalize('Location',globalThis.location,'Location',false);"
@@ -52413,7 +52454,13 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
             JSValue base = JS_GetPrototype(ctx, win_proto);
             JSValue wnamed = JS_NewObjectClass(ctx, ns_window_named_class_id);
             if (!JS_IsException(wnamed)) {
-                JS_SetPrototype(ctx, wnamed, base);
+                /* Window > WindowProperties > EventTarget, as in WebIDL:
+                 * window instanceof EventTarget, and EventTarget's methods
+                 * are what a window's addEventListener resolves to. */
+                JSValue et_proto = ns_proto_of(ctx, g2, "EventTarget");
+                JS_SetPrototype(ctx, wnamed,
+                                JS_IsObject(et_proto) ? et_proto : base);
+                JS_FreeValue(ctx, et_proto);
                 JS_SetPrototype(ctx, win_proto, wnamed);
                 JS_FreeValue(ctx, wnamed);
             }
@@ -52421,6 +52468,44 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
         }
         JS_FreeValue(ctx, win_proto);
         JS_FreeValue(ctx, g2);
+    }
+
+    {
+        /* Window is a [Global] interface: its members (the event handler
+         * attributes included) are the window's own properties and
+         * Window.prototype holds nothing but its constructor, while
+         * addEventListener and friends come from EventTarget.prototype.
+         * The window keeps its engine implementation of those three, which
+         * EventTarget's methods call when this is the window (or missing,
+         * as for a bare addEventListener(...) call). */
+        static const char window_shape_src[] =
+            "(function(){"
+            " var win=globalThis,W=typeof Window==='function'&&Window.prototype;"
+            " var ET=typeof EventTarget==='function'&&EventTarget.prototype;"
+            " if(!W||!ET||Object.getPrototypeOf(win)!==W)return;"
+            " var has=Object.prototype.hasOwnProperty;"
+            " ['addEventListener','removeEventListener','dispatchEvent'].forEach(function(k){"
+            "  var own=has.call(win,k)?win[k]:W[k],base=ET[k];"
+            "  if(typeof own!=='function'||typeof base!=='function'||own===base)return;"
+            "  var f={[k](){var t=this==null?win:this;"
+            "   return (t===win?own:base).apply(t,arguments);}}[k];"
+            "  try{Object.defineProperty(f,'length',{value:base.length,configurable:true});"
+            "   Object.defineProperty(ET,k,{value:f,writable:true,enumerable:true,configurable:true});"
+            "   delete win[k];delete W[k];}catch(e){}"
+            " });"
+            " Object.getOwnPropertyNames(W).forEach(function(k){"
+            "  if(k==='constructor')return;"
+            "  var d=Object.getOwnPropertyDescriptor(W,k);if(!d||!d.configurable)return;"
+            "  try{if(!has.call(win,k))Object.defineProperty(win,k,d);delete W[k];}catch(e){}"
+            " });"
+            " try{Object.defineProperty(Object.getPrototypeOf(W),Symbol.toStringTag,"
+            "  {value:'WindowProperties',configurable:true});}catch(e){}"
+            "})()";
+        JSValue ws = ns_js_eval_without_source(ctx, window_shape_src,
+                                               strlen(window_shape_src),
+                                               "<window-shape>");
+        if (JS_IsException(ws)) JS_FreeValue(ctx, JS_GetException(ctx));
+        JS_FreeValue(ctx, ws);
     }
 
     {
@@ -54450,6 +54535,8 @@ ns_window_dispatchEvent(JSContext *ctx, JSValueConst this_val,
     JSValue event_window = JS_IsObject(this_val)
         ? JS_DupValue(ctx, this_val) : JS_GetGlobalObject(ctx);
     JS_SetPropertyStr(ctx, ev, "target", event_window);
+    JS_DefinePropertyValueStr(ctx, ev, "__nd_window_target", JS_TRUE,
+                              JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
     JSValue dp = JS_GetPropertyStr(ctx, ev, "defaultPrevented");
     if (JS_IsUndefined(dp))
         JS_SetPropertyStr(ctx, ev, "defaultPrevented", JS_FALSE);
@@ -56831,8 +56918,10 @@ ns_js_install_document(ns_js *js, ns_node *doc, const char *base_url,
     ns_install_hasinstance(ctx, global);
     ns_install_tostringtag(ctx, global);
     {
+        /* Not Window.prototype: Window is a [Global] interface, so the
+         * window's handlers are its own (installed on global below). */
         static const char *const on_targets[] = {
-            "HTMLElement", "SVGElement", "Document", "Window",
+            "HTMLElement", "SVGElement", "Document",
         };
         for (gsize i = 0; i < G_N_ELEMENTS(on_targets); i++) {
             JSValue p = ns_proto_of(ctx, global, on_targets[i]);

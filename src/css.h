@@ -980,6 +980,9 @@ typedef struct ns_css_rule {
     GHashTable *vars;
     GHashTable *var_important;
     GArray     *pending;
+    /* Author rules: the "{...}" declaration block, unparsed until a
+     * selector first matches (NULL once parsed, or for eager sheets). */
+    char       *lazy_decls;
     char       *layer_name;
     char       *container_condition;
     ns_css_container_query *container_query;
@@ -1054,6 +1057,7 @@ typedef struct ns_css_stylesheet {
     gboolean   has_container_rules;
     gboolean   has_hover_rules;
     gboolean   has_active_rules;
+    gboolean   lazy_decls;   /* rules defer their declarations */
     gboolean   cached;
     guint      pseudo_mask;
     guint64    serial;

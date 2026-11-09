@@ -58,7 +58,7 @@ gaps.
 runs on the main thread and the page engine on one dedicated thread with
 its own main loop, so a slow page never freezes the window; the shell posts
 requests to that thread and gets rendered frames back, all inside the
-same process. The engine is a compact body of C — about 217,000 lines of
+same process. The engine is a compact body of C — about 219,000 lines of
 original C, excluding the vendored web-text-lib, WAMR, Wuffs and audio
 decoders — small enough for one person to read and audit end-to-end. See
 [docs/architecture.md](docs/architecture.md) for how it fits together.
@@ -128,8 +128,10 @@ through libavif when available, and SVG in the engine).
   when an address matches one, never the address itself. On by default;
   turn it off under Settings → Privacy → "Block dangerous sites".
   about:northstar shows its status and list sizes. Builds without a key
-  (`NS_SAFE_BROWSING_API_KEY` at compile time) use only the local list,
-  `~/.config/northstar/safebrowsing.list` or `NS_SAFEBROWSING_LIST`.
+  (`NS_SAFE_BROWSING_API_KEY` at compile time) use only the local lists:
+  the bundled `safebrowsing.list`, plus
+  `~/.config/northstar/safebrowsing.list` or the file named by
+  `NS_SAFEBROWSING_LIST`.
   Google Safe Browsing is offered for non-commercial use; see Google's
   [terms](https://developers.google.com/safe-browsing/terms).
 - **Media** — images (PNG/APNG, GIF, BMP, JPEG, WebP, optional AVIF,
@@ -191,9 +193,9 @@ through libavif when available, and SVG in the engine).
   `--no-watchdog` turns it off.
 - **UI** — bookmarks, history, downloads, find-in-page, zoom, full
   screen, printing, save page (`Ctrl+S`), save as PDF or image, page
-  source, developer tools with a JS console, settings, private browsing (`--private`), and a UI
-  available in 40 languages that follows the operating-system
-  language.
+  source, developer tools with a JS console, settings, private
+  browsing (`--private`), and a UI available in 40 languages that
+  follows the operating-system language.
 - **Headless mode** — text, DOM, layout, PNG and PDF dumps, scripted
   input and web-platform-tests runs from the command line; see
   [docs/building.md](docs/building.md#headless-mode-scripting--testing).
@@ -275,7 +277,7 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 | Component | Role |
 |-----------|------|
 | [lexbor](https://github.com/lexbor/lexbor) master commit `145872a` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
-| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `e22ce4d`) | JavaScript engine — no JIT |
+| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `147d01c`) | JavaScript engine — no JIT |
 | [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
 
 lexbor (3.0 or newer) and quickjs-ng take a system copy instead when the

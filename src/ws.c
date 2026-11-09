@@ -120,19 +120,22 @@ ns_ws_dispatch_run(gpointer data)
     return G_SOURCE_REMOVE;
 }
 
-/* Queues a callback to the engine thread; droppable posts are discarded when backlogged. */
+/* Queues a callback to the engine thread.  Called on the worker thread:
+ * a throttled post (a message) waits while the backlog is full, so a busy
+ * page slows the socket down (TCP backpressure) instead of losing
+ * messages, which WebSocket delivers reliably and in order. */
 static void
 ns_ws_post(ns_ws *ws,
            void (*invoke)(ns_ws *, gpointer),
            gpointer payload,
            void   (*payload_free)(gpointer),
-           gboolean droppable)
+           gboolean throttled)
 {
+    while (throttled && !g_atomic_int_get(&ws->detached) &&
+           !g_atomic_int_get(&ws->exit_requested) &&
+           g_atomic_int_get(&ws->pending) >= NS_WS_MAX_PENDING)
+        g_usleep(2000);
     if (g_atomic_int_get(&ws->detached)) {
-        if (payload && payload_free) payload_free(payload);
-        return;
-    }
-    if (droppable && g_atomic_int_get(&ws->pending) >= NS_WS_MAX_PENDING) {
         if (payload && payload_free) payload_free(payload);
         return;
     }
@@ -221,7 +224,7 @@ ns_ws_dispatch_open(ns_ws *ws)
     ns_ws_post(ws, ns_ws_invoke_open, NULL, NULL, FALSE);
 }
 
-/* Copies a received message and posts it; may be dropped under backlog. */
+/* Copies a received message and posts it, waiting while the backlog is full. */
 static void
 ns_ws_dispatch_message(ns_ws *ws, gboolean is_text,
                        const guint8 *data, gsize len)

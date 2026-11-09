@@ -120,7 +120,11 @@ aspect_ratio_number(const ns_css_value *v, gboolean *with_auto)
         v->u.size.h_unit != NS_CSS_UNIT_NUMBER)
         return -1;
     if (with_auto) *with_auto = v->u.size.w_auto;
-    return v->u.size.w > 0 && v->u.size.h > 0 ? v->u.size.w / v->u.size.h : -1;
+    if (!(v->u.size.w > 0 && v->u.size.h > 0)) return -1;
+    /* An absurd ratio such as 1e-300/1e10 would make a box infinitely
+     * tall (or wide) and push everything after it off the page. */
+    double r = v->u.size.w / v->u.size.h;
+    return isfinite(r) && r > 1e-9 && r < 1e9 ? r : -1;
 }
 
 /* True when the value has a percentage component (length, calc, or math-function argument). */

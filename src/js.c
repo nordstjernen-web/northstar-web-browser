@@ -4288,6 +4288,57 @@ ns_frame_window(JSContext *ctx, const ns_node *frame)
     return win;
 }
 
+static JSValue ns_iframe_realm_window(JSContext *ctx, JSValueConst this_val,
+                                      ns_node *n);
+static JSValue ns_iframe_cross_origin_window(JSContext *ctx, JSValue target);
+static char *ns_frame_recorded_origin(const ns_node *frame);
+static ns_node *ns_iframe_ensure_content_root(ns_node *iframe);
+
+/* The window of one of the page's frames as the calling script may see
+ * it.  ns_frame_window() answers for the frame's embedder, which is right
+ * only when the embedder asks.  These lookups are also reached by other
+ * frames (parent[0], parent.name, and the page's helper copied onto their
+ * globals): a frame that is not of the target's origin gets the
+ * restricted cross-origin view, and a call with no script on the stack
+ * gets nothing. */
+static JSValue
+ns_frame_window_for_caller(JSContext *ctx, const ns_node *frame)
+{
+    ns_js *js = js_from_ctx(ctx);
+    if (!frame || !js) return ns_frame_window(ctx, frame);
+    JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
+    JSContext *caller = ns_js_calling_realm(js, ctx);
+    if (ns_js_caller_unknown(js, caller)) return JS_UNDEFINED;
+    if (!caller || caller == main_ctx) return ns_frame_window(ctx, frame);
+    g_autofree char *co = ns_js_realm_origin(js, caller);
+    g_autofree char *fo = ns_frame_recorded_origin(frame);
+    if (co && fo && strcmp(fo, "null") != 0 && ns_origin_equal(co, fo))
+        return ns_frame_window(ctx, frame);
+    ns_node *n = (ns_node *)frame;
+    if (!ns_node_is_element_named(n, "iframe") ||
+        !ns_iframe_ensure_content_root(n))
+        return JS_NULL;
+    JSValue el = ns_make_element(ctx, frame);
+    JSValue win = ns_iframe_realm_window(ctx, el, n);
+    JS_FreeValue(ctx, el);
+    if (!JS_IsObject(win)) return win;
+    return ns_iframe_cross_origin_window(caller, win);
+}
+
+/* Whether the calling script may see the page's own objects: the page
+ * itself, or a frame of the page's origin. */
+static gboolean
+ns_js_caller_is_page_origin(ns_js *js, JSContext *ctx)
+{
+    JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
+    JSContext *caller = ns_js_calling_realm(js, ctx);
+    if (ns_js_caller_unknown(js, caller)) return FALSE;
+    if (!caller || caller == main_ctx) return TRUE;
+    g_autofree char *co = ns_js_realm_origin(js, caller);
+    return co && js->document_origin &&
+           ns_origin_equal(co, js->document_origin);
+}
+
 /* Resolves a window[key] key to a child frame by index or name. */
 static const ns_node *
 ns_window_child_frame_for(const ns_node *doc, const char *key)
@@ -4312,7 +4363,7 @@ ns_window_child_frame(JSContext *ctx, JSValueConst this_val, int argc,
     if (!key) return JS_EXCEPTION;
     const ns_node *frame = ns_window_child_frame_for(doc, key);
     JS_FreeCString(ctx, key);
-    return frame ? ns_frame_window(ctx, frame) : JS_UNDEFINED;
+    return frame ? ns_frame_window_for_caller(ctx, frame) : JS_UNDEFINED;
 }
 
 static void
@@ -4349,8 +4400,14 @@ ns_window_named_get(JSContext *ctx, JSPropertyDescriptor *desc,
     int flags = indexed ? JS_PROP_CONFIGURABLE | JS_PROP_ENUMERABLE
                         : JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE;
     const ns_node *frame = ns_window_child_frame_for(doc, name);
-    JSValue value = frame ? ns_frame_window(ctx, frame) : JS_UNDEFINED;
-    if (JS_IsUndefined(value) && !indexed) {
+    /* The page's WindowProperties object is on every frame global's
+     * prototype chain. */
+    gboolean page_props = !JS_GetOpaque(obj, ns_window_named_class_id);
+    JSValue value = !frame ? JS_UNDEFINED
+        : (page_props ? ns_frame_window_for_caller(ctx, frame)
+                      : ns_frame_window(ctx, frame));
+    if (JS_IsUndefined(value) && !indexed &&
+        (!page_props || ns_js_caller_is_page_origin(js, ctx))) {
         ns_node *el = *name ? ns_node_find_by_id((ns_node *)doc, name) : NULL;
         if (el) value = ns_make_element(ctx, el);
     }
@@ -12444,7 +12501,6 @@ ns_window_message_channel(JSContext *ctx, JSValueConst this_val,
 }
 
 static const ns_node *ns_js_frame_of_window(ns_js *js, JSValueConst window);
-static JSValue ns_iframe_cross_origin_window(JSContext *ctx, JSValue target);
 
 /* A frame's URL and origin as the browser loaded it.  A frame's script
  * can rewrite its own location object (location.href in a frame realm
@@ -12919,8 +12975,13 @@ ns_window_post_message_from(JSContext *ctx, JSValueConst this_val,
     (void)this_val;
     if (argc < 3 || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1]))
         return JS_UNDEFINED;
-    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    /* The cross-origin window views the engine builds are page-realm
+     * script even when a frame holds them, so look past the page's
+     * functions for a frame underneath: its messages must carry its own
+     * origin, not the page's. */
     ns_js *pm_js = js_from_ctx(ctx);
+    JSContext *caller = pm_js ? ns_js_calling_realm(pm_js, ctx)
+                              : JS_GetCallerRealmOrNull(ctx);
     if (pm_js && ns_js_caller_unknown(pm_js, caller)) return JS_UNDEFINED;
     if (!caller) caller = ctx;
     JSValue source = ns_post_message_source_is_callers(js_from_ctx(ctx),

@@ -19,6 +19,10 @@ void JS_SetCrossRealmCompileCheck(int (*cb)(JSContext *target, JSContext *caller
 JSContext *JS_GetCallerRealmOrNull(JSContext *ctx);
 /* From the caller-realm-outside patch applied to both engines. */
 JSContext *JS_GetCallerRealmOutside(JSContext *ctx, JSContext *skip);
+#ifdef NS_QUICKJS_ORIGINAL
+/* From the pending-job-context patch; quickjs-ng has it upstream. */
+JSContext *JS_GetPendingJobContext(JSRuntime *rt);
+#endif
 void JS_SetEvalStringCheck(int (*cb)(JSContext *ctx));
 
 int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,

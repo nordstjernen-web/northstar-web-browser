@@ -14,6 +14,15 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a frame's promise callbacks could run while the browser's
+  "current document" was the embedding page's: after a few hundred
+  chained reactions, or in a `fetch().then()` callback. DOM functions
+  that fall back to the current document then handed a cross-origin frame
+  the page's: `ownerDocument` of an element the frame had created,
+  `document.activeElement`, and document methods called on another
+  object. A promise job of a frame's realm now runs with that frame's
+  document and URL current, and those fallbacks give a calling frame its
+  own document whatever turn the engine is in.
 * Security: a frame from another origin could reach the real window of a
   sibling frame that shares the embedding page's origin (`parent[0]`,
   `parent.name`), and through it the page itself. Whether a frame's

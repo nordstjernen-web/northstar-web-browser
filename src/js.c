@@ -835,6 +835,30 @@ ns_js_calling_realm(ns_js *js, JSContext *ctx)
     return caller;
 }
 
+/* The document a DOM function should take for "the current document" when
+ * its receiver does not name one.  js->current_doc is whichever document's
+ * turn the engine is in, and a frame's script also runs outside its
+ * frame's turn (a promise reaction drained in the page's turn, a
+ * completion callback).  A calling frame realm always gets its own frame's
+ * document, never the page's. */
+static ns_node *
+ns_js_doc_for_caller(ns_js *js, JSContext *ctx)
+{
+    if (!js) return NULL;
+    if (!js->frame_contexts || !js->frame_ctxs || js->frame_ctxs->len == 0)
+        return js->current_doc;
+    JSContext *caller = ns_js_calling_realm(js, ctx);
+    if (!caller || caller == js->main_realm_ctx) return js->current_doc;
+    GHashTableIter iter;
+    gpointer key, value;
+    g_hash_table_iter_init(&iter, js->frame_contexts);
+    while (g_hash_table_iter_next(&iter, &key, &value))
+        if (value == caller) return ns_iframe_document_node(key);
+    for (guint i = 0; i < js->frame_ctxs->len; i++)
+        if (g_ptr_array_index(js->frame_ctxs, i) == caller) return NULL;
+    return js->current_doc;
+}
+
 /* Returns the iframe node owning a realm context, falling back to the current rAF frame. */
 static ns_node *
 ns_js_context_frame(ns_js *js, JSContext *ctx)
@@ -1232,6 +1256,48 @@ ns_schedule_microtask_drain(ns_js *js)
         ns_js_attach_idle(js, ns_microtask_drain_idle, js);
 }
 
+
+/* Runs the next pending job.  A job of a frame's realm runs with that
+ * frame's document, URL and context current, as the frame's timers and
+ * events do: jobs are drained wherever the queue happens to be emptied --
+ * in the page's turn, or from an idle once a slice is used up -- and the
+ * DOM functions that fall back to "the current document" would otherwise
+ * hand a frame's promise reaction the page's. */
+static int
+ns_js_execute_pending_job(ns_js *js, JSContext **ctx_out)
+{
+    JSContext *realm = js->frame_contexts && js->frame_ctxs &&
+                       js->frame_ctxs->len > 0
+        ? JS_GetPendingJobContext(js->rt) : NULL;
+    ns_node *frame = NULL;
+    if (realm && realm != js->main_realm_ctx) {
+        GHashTableIter it;
+        gpointer iframe, fctx;
+        g_hash_table_iter_init(&it, js->frame_contexts);
+        while (g_hash_table_iter_next(&it, &iframe, &fctx))
+            if (fctx == realm) { frame = iframe; break; }
+    }
+    ns_node *frame_doc = frame ? ns_iframe_document_node(frame) : NULL;
+    if (!frame_doc || js->current_doc == frame_doc)
+        return JS_ExecutePendingJob(js->rt, ctx_out);
+    JSContext *previous_ctx = js->ctx;
+    ns_node *previous_doc = js->current_doc;
+    ns_node *previous_frame = js->raf_frame_ctx;
+    char *previous_url = js->current_url;
+    const char *frame_url = ns_element_get_attr(frame, "data-nd-frame-url");
+    js->ctx = realm;
+    js->current_doc = frame_doc;
+    js->raf_frame_ctx = frame;
+    js->current_url = g_strdup(frame_url ? frame_url : "");
+    int r = JS_ExecutePendingJob(js->rt, ctx_out);
+    g_free(js->current_url);
+    js->current_url = previous_url;
+    js->raf_frame_ctx = previous_frame;
+    js->current_doc = previous_doc;
+    js->ctx = previous_ctx;
+    return r;
+}
+
 /* Runs pending jobs in a time/job-bounded slice, rescheduling leftovers; logs errors. */
 void
 ns_drain_microtasks(ns_js *js)
@@ -1254,7 +1320,7 @@ ns_drain_microtasks(ns_js *js)
         if (jobs >= NS_MICROTASK_SLICE_JOBS ||
             g_get_monotonic_time() >= slice_deadline)
             break;
-        if ((r = JS_ExecutePendingJob(js->rt, &ctx_out)) <= 0)
+        if ((r = ns_js_execute_pending_job(js, &ctx_out)) <= 0)
             break;
         jobs++;
     }
@@ -36574,8 +36640,14 @@ ns_element_get_ownerDocument(JSContext *ctx, JSValueConst this_val)
     JSValue own = JS_GetPropertyStr(ctx, this_val, "__ndOwnerDoc");
     if (JS_IsObject(own)) return own;
     JS_FreeValue(ctx, own);
-    if (!js->current_doc) return JS_NULL;
-    return ns_make_element(ctx, js->current_doc);
+    const ns_node *fallback = ns_js_doc_for_caller(js, ctx);
+    if (!fallback) return JS_NULL;
+    if (fallback != js->current_doc && fallback->parent) {
+        JSValue realm = ns_iframe_lookup_realm_doc(js, fallback->parent);
+        if (JS_IsObject(realm)) return realm;
+        JS_FreeValue(ctx, realm);
+    }
+    return ns_make_element(ctx, fallback);
 }
 
 static JSValue ns_element_get_shadowRoot(JSContext *ctx, JSValueConst this_val);
@@ -47217,8 +47289,7 @@ ns_document_context_node(JSContext *ctx, JSValueConst this_val)
 {
     ns_node *doc = ns_unwrap_element_mut(this_val);
     if (doc && doc->kind == NS_NODE_DOCUMENT) return doc;
-    ns_js *js = js_from_ctx(ctx);
-    return js ? js->current_doc : NULL;
+    return ns_js_doc_for_caller(js_from_ctx(ctx), ctx);
 }
 
 /* document.getElementById(); ids containing NUL never match. */
@@ -47286,7 +47357,7 @@ ns_document_root_node(JSContext *ctx, JSValueConst this_val)
 {
     ns_js *js = js_from_ctx(ctx);
     ns_node *doc = ns_unwrap_element_mut(this_val);
-    if (!doc && js) doc = js->current_doc;
+    if (!doc && js) doc = ns_js_doc_for_caller(js, ctx);
     if (!doc) return NULL;
     if (doc->kind == NS_NODE_ELEMENT) return doc;
     for (ns_node *c = doc->first_child; c; c = c->next_sibling)
@@ -47393,12 +47464,12 @@ ns_document_get_activeElement(JSContext *ctx, JSValueConst this_val)
 {
     (void)this_val;
     ns_js *js = js_from_ctx(ctx);
-    if (!js || !js->current_doc) return JS_NULL;
-    if (js->focused_node &&
-        ns_node_contains(js->current_doc, js->focused_node))
+    ns_node *doc = ns_js_doc_for_caller(js, ctx);
+    if (!js || !doc) return JS_NULL;
+    if (js->focused_node && ns_node_contains(doc, js->focused_node))
         return ns_make_element(ctx, js->focused_node);
-    js->focused_node = NULL;
-    ns_node *body = ns_node_find_first_element(js->current_doc, "body");
+    if (doc == js->current_doc) js->focused_node = NULL;
+    ns_node *body = ns_node_find_first_element(doc, "body");
     return ns_make_element(ctx, body);
 }
 

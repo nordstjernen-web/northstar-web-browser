@@ -14,6 +14,14 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a stylesheet could read what the user typed into a form
+  field, passwords included, and the final URL of a framed page. The
+  browser keeps that state in internal `data-nd-*` attributes that
+  scripts cannot see, but CSS attribute selectors and `attr()` could:
+  `input[data-nd-value^="a"]` with a background image per prefix sent
+  the value out one character at a time, with no script. Those attributes
+  now match nothing in page stylesheets and `querySelector`, and
+  `attr()` reads them as absent.
 * Security: a frame's promise callbacks could run while the browser's
   "current document" was the embedding page's: after a few hundred
   chained reactions, or in a `fetch().then()` callback. DOM functions

@@ -5336,7 +5336,8 @@ marker_resolve_content_text(const char *raw, const ns_node *li,
             while (*p && *p != ')' && *p != ',' && !g_ascii_isspace(*p)) p++;
             if (li && p != start) {
                 char *attr_name = g_strndup(start, p - start);
-                const char *val = ns_element_get_attr(li, attr_name);
+                const char *val = ns_attr_name_is_internal(attr_name)
+                    ? NULL : ns_element_get_attr(li, attr_name);
                 if (val) g_string_append(out, val);
                 g_free(attr_name);
             }

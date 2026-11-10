@@ -75,6 +75,15 @@ Significant changes in each release:
 * Fix: the `doh_url` setting and `NS_DOH_URL` were ignored for the same
   `#ifdef` reason, so DNS went to the system resolver. DNS-over-HTTPS is
   now used when it is configured.
+* Security: a frame that navigated itself (by submitting a form) to its
+  embedder's site could keep running script from its old document, in a
+  pending promise or network callback, with the new document's identity.
+  That script could read the embedder's pages with the user's cookies
+  through `XMLHttpRequest`, and its `postMessage` calls reported the
+  embedder's origin. The old document's script realm is now detached from
+  the frame when its content is replaced, and a detached realm has an
+  opaque origin: no cookies, no same-origin reads, no top-level
+  navigation, no camera, and it cannot cancel the page's timers.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

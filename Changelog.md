@@ -14,6 +14,18 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a frame from another origin, a sandboxed one included, could
+  run script in the page embedding it. Inline event handlers (`onclick=`
+  and the rest) were compiled in the page for any element outside a
+  frame's document tree, and through the shared `on*` accessors for every
+  element whatever document it was in, so a frame only had to set a
+  handler attribute on an element and click it. A handler now belongs to
+  the document its element is in; for an element in no document, to the
+  realm whose script fires the event. Known limit: on a page that has
+  script-running frames, a handler attribute on an element that is in no
+  document no longer runs for events the browser itself fires (an image
+  that was never inserted finishing its load); `addEventListener` and
+  handler properties are unaffected.
 * Security: a frame from another origin could read and script the page
   embedding it. A message the frame posted through an internal helper was
   stamped with the page's origin and window, and a frame that had

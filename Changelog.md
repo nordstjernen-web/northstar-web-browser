@@ -14,6 +14,14 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a frame from another origin could reach the real window of a
+  sibling frame that shares the embedding page's origin (`parent[0]`,
+  `parent.name`), and through it the page itself. Whether a frame's
+  window is handed out whole or as the restricted cross-origin view was
+  decided for the frame's embedder, whoever asked. It is now decided for
+  the calling script. A cross-origin frame also no longer finds the
+  page's elements by id as bare global names, and a message it sends
+  through a restricted view carries its own origin, not the page's.
 * Security: a frame from another origin, a sandboxed one included, could
   run script in the page embedding it. Inline event handlers (`onclick=`
   and the rest) were compiled in the page for any element outside a

@@ -517,10 +517,35 @@ ns_run_proc_gui(const char *url, const char *gsk_renderer_override,
     return status;
 }
 
+/* Applies the "--" end-of-options marker in place: the marker is removed
+ * and every argument after it becomes a positional (a URL or file), never
+ * an option. Options are matched by their leading "--" in several places
+ * (here, the watchdog, the window), so an argument after the marker that
+ * begins with '-' is rewritten to "./<arg>", the relative file it names.
+ * The URL and file handlers are registered as `northstar -- "%1"`, so text
+ * smuggled into the URL by another program cannot add options such as
+ * --proxy= or --trace=. */
+static void
+ns_args_apply_end_of_options(int *argc, char **argv)
+{
+    int n = *argc;
+    int marker = 0;
+    for (int i = 1; i < n; i++)
+        if (g_strcmp0(argv[i], "--") == 0) { marker = i; break; }
+    if (!marker) return;
+    for (int i = marker; i + 1 < n; i++) {
+        char *arg = argv[i + 1];
+        argv[i] = arg && arg[0] == '-' ? g_strconcat("./", arg, NULL) : arg;
+    }
+    argv[n - 1] = NULL;
+    *argc = n - 1;
+}
+
 /* Entry point: watchdog supervision, sandbox setup, argument parsing, then GUI or headless. */
 int
 main(int argc, char **argv)
 {
+    ns_args_apply_end_of_options(&argc, argv);
 #ifdef G_OS_WIN32
     if (ns_win32_args_need_console(argc, argv))
         ns_win32_attach_parent_console();

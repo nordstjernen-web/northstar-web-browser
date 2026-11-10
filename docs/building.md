@@ -292,6 +292,7 @@ is the manual page.
 | `--no-watchdog` | Run without the watchdog. |
 | `--print-config` | Print the effective configuration and exit. |
 | `--trace=FILE` | Write a Chrome trace-event JSON of frame phases, relayouts, scripts, fetches and decodes, for Perfetto (ui.perfetto.dev) or `chrome://tracing`. Works in the GUI and headless. |
+| `--` | End of options: every argument after it is a URL or file, never an option. The URL and file handlers are registered this way (`northstar -- "%1"`), so a URL passed in by another program cannot add options. |
 
 ## Headless mode (scripting / testing)
 

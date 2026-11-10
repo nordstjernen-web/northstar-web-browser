@@ -31,10 +31,6 @@ libcurl, carrying no upstream browser engine.
 - **[cve-2026-85046.md](cve-2026-85046.md)** — why the actively exploited
   V8 JIT type confusion CVE-2026-85046 does not apply to Northstar Web Browser: no V8,
   no JIT, no elements-kind maps, no write barriers.
-- **[security-audit-2026-11.md](security-audit-2026-11.md)** — the
-  November 2026 source review for security vulnerabilities: 22 findings
-  with severity and reproduction status, the SECURITY.md statements the
-  code does not match, what was tested and held, and what was not covered.
 
 Image assets kept here: `architecture.svg` (the architecture diagram),
 `screenshot.png` and `best-viewed-in-northstar.gif`, both shown in the

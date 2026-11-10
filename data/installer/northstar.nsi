@@ -129,7 +129,7 @@ Section "Northstar Web Browser (required)" SecMain
 
   WriteRegStr HKCU "${APP_CLASSKEY}"                    "" "Northstar Web Browser HTML Document"
   WriteRegStr HKCU "${APP_CLASSKEY}\DefaultIcon"        "" "$INSTDIR\northstar.exe,0"
-  WriteRegStr HKCU "${APP_CLASSKEY}\shell\open\command" "" '"$INSTDIR\northstar.exe" "%1"'
+  WriteRegStr HKCU "${APP_CLASSKEY}\shell\open\command" "" '"$INSTDIR\northstar.exe" -- "%1"'
 
   WriteRegStr HKCU "Software\RegisteredApplications" "${APP_KEY}" "${APP_SMIKEY}\Capabilities"
 

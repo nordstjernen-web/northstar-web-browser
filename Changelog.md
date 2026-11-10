@@ -44,6 +44,13 @@ Significant changes in each release:
   queueing calls are now held to the browser's own pid and
   `pidfd_send_signal` is refused; `tkill` is refused on glibc builds
   (musl's thread signalling needs it, so it stays allowed there).
+* Security: the command line accepts `--` as an end-of-options marker;
+  everything after it is a URL or file, never an option. The Windows
+  installer and the Linux desktop entry now register the browser as
+  `northstar -- "%1"` / `northstar -- %U`, so a URL handed over by
+  another program can no longer smuggle in options such as `--proxy=`,
+  `--ignore-certificate-errors` or `--trace=`. Existing Windows installs
+  pick up the new registration when the installer is run again.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

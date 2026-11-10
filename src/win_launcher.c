@@ -57,6 +57,7 @@ ns_args_need_console(int argc, wchar_t **argv)
 {
     for (int i = 1; i < argc; i++) {
         if (!argv[i]) continue;
+        if (wcscmp(argv[i], L"--") == 0) break;   /* end of options */
         if (wcscmp(argv[i], L"--headless") == 0 ||
             wcscmp(argv[i], L"--print-config") == 0 ||
             wcscmp(argv[i], L"--version") == 0 ||

@@ -12764,7 +12764,8 @@ ns_post_message_to_target(JSContext *ctx, JSValue target,
     /* The sender is the realm whose script called, not the realm this
      * function was created in: frames reach the page's copy of it. */
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
-    if (ns_js_caller_unknown(js_from_ctx(ctx), caller)) {
+    ns_js *pm_js = js_from_ctx(ctx);
+    if (pm_js && ns_js_caller_unknown(pm_js, caller)) {
         JS_FreeValue(ctx, target);
         return JS_UNDEFINED;
     }
@@ -12917,7 +12918,8 @@ ns_window_post_message_from(JSContext *ctx, JSValueConst this_val,
     if (argc < 3 || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1]))
         return JS_UNDEFINED;
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
-    if (ns_js_caller_unknown(js_from_ctx(ctx), caller)) return JS_UNDEFINED;
+    ns_js *pm_js = js_from_ctx(ctx);
+    if (pm_js && ns_js_caller_unknown(pm_js, caller)) return JS_UNDEFINED;
     if (!caller) caller = ctx;
     JSValue source = ns_post_message_source_is_callers(js_from_ctx(ctx),
                                                        caller, argv[1])

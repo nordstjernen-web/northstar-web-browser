@@ -73,6 +73,7 @@ ns_audio_decoder_new(const char *codec, GBytes *config, int channels,
                      int sample_rate)
 {
     (void)sample_rate;
+    (void)channels;
     if (!ns_audio_decoder_supports(codec)) return NULL;
 #ifdef NS_HAVE_OPUS
     if (strcmp(codec, "Opus") == 0) return opus_decoder_from_head(config, channels);

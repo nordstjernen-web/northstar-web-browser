@@ -14,6 +14,14 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a frame from another origin could read and script the page
+  embedding it. A message the frame posted through an internal helper was
+  stamped with the page's origin and window, and a frame that had
+  overwritten its own `parent` property then received the page's real
+  window as `event.source` in place of the restricted cross-origin view.
+  The sender is now the realm whose script called, a call with no script
+  on the stack is refused on pages that have frames, and a frame of
+  another origin only ever gets the restricted view of the page.
 * Security: a response was parsed as HTML, scripts included, whatever its
   type: `application/octet-stream`, `application/pdf`, `application/zip`,
   a file sent with `Content-Disposition: attachment`, and in a frame also

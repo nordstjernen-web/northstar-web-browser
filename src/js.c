@@ -12599,6 +12599,14 @@ ns_message_source_seen_by(ns_js *js, JSContext *rctx, JSValueConst receiver,
             return parent;
         }
         JS_FreeValue(rctx, parent);
+        /* "parent" is the frame's own writable property.  A frame that
+         * overwrote it must not get the page's real window instead: only
+         * a frame of the page's origin may see that. */
+        const ns_node *rf = ns_js_frame_of_window(js, receiver);
+        g_autofree char *ro = rf ? ns_frame_recorded_origin(rf) : NULL;
+        if (!ro || !js->document_origin || strcmp(ro, "null") == 0 ||
+            !ns_origin_equal(ro, js->document_origin))
+            return ns_iframe_cross_origin_window(rctx, source);
     }
     if (!from_page && !to_page) {
         /* The delivery job already mapped a page source to the receiver's
@@ -12753,7 +12761,15 @@ ns_post_message_to_target(JSContext *ctx, JSValue target,
         JS_FreeValue(ctx, target);
         return JS_UNDEFINED;
     }
-    JSContext *caller = JS_GetCallerRealm(ctx);
+    /* The sender is the realm whose script called, not the realm this
+     * function was created in: frames reach the page's copy of it. */
+    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    ns_js *pm_js = js_from_ctx(ctx);
+    if (pm_js && ns_js_caller_unknown(pm_js, caller)) {
+        JS_FreeValue(ctx, target);
+        return JS_UNDEFINED;
+    }
+    if (!caller) caller = ctx;
 
     g_autofree char *want_origin = NULL;
     JSValue transfer = JS_UNDEFINED;
@@ -12902,6 +12918,8 @@ ns_window_post_message_from(JSContext *ctx, JSValueConst this_val,
     if (argc < 3 || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1]))
         return JS_UNDEFINED;
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    ns_js *pm_js = js_from_ctx(ctx);
+    if (pm_js && ns_js_caller_unknown(pm_js, caller)) return JS_UNDEFINED;
     if (!caller) caller = ctx;
     JSValue source = ns_post_message_source_is_callers(js_from_ctx(ctx),
                                                        caller, argv[1])

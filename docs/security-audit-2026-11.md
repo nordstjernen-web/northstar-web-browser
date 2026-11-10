@@ -12,7 +12,8 @@ pl_mpeg, minimp3) were not reviewed, only our code that calls them.
 are listed: one high, six medium, the rest low or informational.** The
 serious ones are web-security policy gaps (document MIME handling, cookie
 scoping for cross-site frames) and sandbox rules that do not hold as
-written. None of the findings has been fixed by this document.
+written. Finding 1 has since been fixed (see its entry); the others are
+open.
 
 ## Method
 
@@ -38,7 +39,7 @@ Each finding carries a status:
 
 | # | Finding | Severity | Status |
 |---|---|---|---|
-| 1 | Top-level documents of any MIME type are parsed as HTML; `nosniff` and `Content-Disposition` ignored | High | Reproduced |
+| 1 | Top-level documents of any MIME type are parsed as HTML; `nosniff` and `Content-Disposition` ignored | High | Reproduced; **fixed** |
 | 2 | A cross-site frame's requests to its embedder's site carry the embedder's cookies | Medium | Reproduced |
 | 3 | seccomp `socket(AF_UNIX)` denial compares 64 bits of a 32-bit argument | Medium | Confirmed (rule); kernel truncation not tested |
 | 4 | "Signals only to this process" is bypassable through other allowed syscalls | Medium | Confirmed |
@@ -94,11 +95,19 @@ exposed to stored cross-site scripting in this browser. Only the
 top-level path was tested; frame loads go through `src/js.c` and should be
 checked for the same behaviour.
 
-**Fix.** Allow-list document types (`text/html`, XHTML/XML, `text/*`,
-images, JSON). Send everything else, and anything with
-`Content-Disposition: attachment`, to the download path. Never treat a
-response as HTML when `nosniff` is present and the type is not an HTML
-type.
+**Fixed** after this review. `ns_html_document_kind` (`src/html.c`) now
+classifies every response, and the top-level, headless and frame load
+paths all use it: only HTML and XML types are parsed as documents;
+images, JSON and other text get inert viewers; an attachment or any other
+type is not rendered (a top-level navigation shows a placeholder and
+queues a download, a frame stays empty); a response with no usable type
+is text when it carries `nosniff`. The frame path turned out to have the
+same flaw, and there it also covered JSON and non-plain text types; that
+is fixed too. The table above was re-run against the fixed build and no
+row except `text/html` and a missing type without `nosniff` runs script.
+`file:`, `about:` and `view-source:` documents are exempt. Not changed: a
+response with no `Content-Type` and no `nosniff` is still treated as
+HTML, without content sniffing.
 
 ### 2. A cross-site frame's requests to the embedder's site carry cookies
 

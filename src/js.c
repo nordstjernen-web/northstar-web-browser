@@ -60597,12 +60597,30 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
                     g_free(line);
                 }
             } else if (resp && resp->body && !resp->error &&
+                       ns_html_document_kind(
+                           abs_url, resp->content_type,
+                           resp->content_disposition,
+                           resp->x_content_type_options) ==
+                           NS_DOC_KIND_DOWNLOAD) {
+                /* An attachment or a type that is not a document is never
+                 * rendered in a frame; the frame stays empty. */
+                if (js->log_cb) {
+                    char *line = g_strdup_printf(
+                        "Not rendering %s in a frame: %s", abs_url,
+                        resp->content_disposition ? "sent as an attachment"
+                                                  : "not a document type");
+                    js->log_cb(line, js->log_user_data);
+                    g_free(line);
+                }
+            } else if (resp && resp->body && !resp->error &&
                        (resp->status == 200 || resp->status == 0 ||
                         (!is_object && resp->status > 200 &&
                          resp->status != 204 && resp->status != 205))) {
-                if (resp->body->len > 0 && resp->content_type &&
-                    g_ascii_strncasecmp(resp->content_type, "image/", 6) == 0 &&
-                    !ns_html_mime_is_xml(resp->content_type)) {
+                if (resp->body->len > 0 &&
+                    ns_html_document_kind(
+                        abs_url, resp->content_type,
+                        resp->content_disposition,
+                        resp->x_content_type_options) == NS_DOC_KIND_IMAGE) {
                     decoded = ns_html_image_document(
                         resp->final_url ? resp->final_url : abs_url);
                     ns_element_set_attr(iframe, "data-nd-frame-charset", "UTF-8");
@@ -60729,8 +60747,15 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             xhtml_suppress_scripts = TRUE;
         }
     }
-    gboolean is_plaintext = resp && resp->content_type &&
-        g_ascii_strncasecmp(resp->content_type, "text/plain", 10) == 0;
+    /* JSON and every text type other than HTML/XML is shown as inert text,
+     * never handed to the HTML parser. */
+    ns_doc_kind frame_doc_kind = resp
+        ? ns_html_document_kind(abs_url, resp->content_type,
+                                resp->content_disposition,
+                                resp->x_content_type_options)
+        : NS_DOC_KIND_HTML;
+    gboolean is_plaintext = frame_doc_kind == NS_DOC_KIND_TEXT ||
+                            frame_doc_kind == NS_DOC_KIND_JSON;
     if (!content_doc && decoded && is_plaintext) {
         content_doc = ns_node_new_document();
         ns_node *html = ns_node_new_element(g_strdup("html"));

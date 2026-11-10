@@ -12,7 +12,7 @@ pl_mpeg, minimp3) were not reviewed, only our code that calls them.
 are listed: one high, six medium, the rest low or informational.** The
 serious ones are web-security policy gaps (document MIME handling, cookie
 scoping for cross-site frames) and sandbox rules that do not hold as
-written. Findings 1 and 2 have since been fixed (see their entries); the
+written. Findings 1, 2 and 3 have since been fixed (see their entries); the
 others are open.
 
 ## Method
@@ -41,7 +41,7 @@ Each finding carries a status:
 |---|---|---|---|
 | 1 | Top-level documents of any MIME type are parsed as HTML; `nosniff` and `Content-Disposition` ignored | High | Reproduced; **fixed** |
 | 2 | A cross-site frame's requests to its embedder's site carry the embedder's cookies | Medium | Reproduced ; **fixed** |
-| 3 | seccomp `socket(AF_UNIX)` denial compares 64 bits of a 32-bit argument | Medium | Confirmed (rule); kernel truncation not tested |
+| 3 | seccomp `socket(AF_UNIX)` denial compares 64 bits of a 32-bit argument | Medium | Reproduced; **fixed** |
 | 4 | "Signals only to this process" is bypassable through other allowed syscalls | Medium | Confirmed |
 | 5 | Windows URL handler: option injection through `"%1"` | Medium | Likely |
 | 6 | Policy-blocked synchronous XHR runs other page tasks inside `send()` | Medium | Reproduced |
@@ -171,9 +171,16 @@ at `:1012` with `SCMP_CMP_MASKED_EQ, 0xffffffffu`. The rule is the
 documented mitigation that keeps a compromised content thread off D-Bus,
 `systemd --user`, ssh-agent and gpg-agent.
 
-**Fix.** `SCMP_A0(SCMP_CMP_MASKED_EQ, 0xffffffffu, AF_UNIX)`; better,
-allow only `AF_INET` and `AF_INET6` on content threads, and on Landlock
-ABI 6 add `LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET`.
+**Fixed** after this review: the rule is now
+`SCMP_A0(SCMP_CMP_MASKED_EQ, 0xffffffffu, AF_UNIX)`. A standalone program
+loading the old rule confirmed the bypass on a live x86-64 kernel
+(`socket` with the high half of the family set returned an `AF_UNIX`
+descriptor); with the new rule the same call fails with `EACCES` and
+`AF_INET` still works. Not done: allow-listing `AF_INET`/`AF_INET6`
+instead of denying one family, `LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET` on
+Landlock ABI 6, and the i386 build, where `socket` can also be reached
+through the multiplexed `socketcall`, whose arguments seccomp cannot
+inspect.
 
 ### 4. Signal restriction is bypassable
 

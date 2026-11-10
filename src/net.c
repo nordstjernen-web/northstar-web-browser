@@ -1730,10 +1730,12 @@ ns_net_cookies_for_js(const char *url, const char *top_url)
  * by a page whose top-level document is top_url.  The handshake is a GET
  * subresource request in the page's cookie partition, so it follows the
  * subresource rules: no cookies when cookies are off or, under the
- * first-party policy, when the socket is cross-site.  HttpOnly cookies are
- * sent.  Caller frees. */
+ * first-party policy, when the socket is cross-site to the page or to the
+ * document that opened it (origin).  HttpOnly cookies are sent.  Caller
+ * frees. */
 char *
-ns_net_cookies_for_websocket(const char *url, const char *top_url)
+ns_net_cookies_for_websocket(const char *url, const char *top_url,
+                             const char *origin)
 {
     if (!url || !top_url || !*top_url) return NULL;
     g_autofree char *http_url = NULL;
@@ -1749,6 +1751,12 @@ ns_net_cookies_for_websocket(const char *url, const char *top_url)
     if (policy == NS_COOKIE_NEVER ||
         (policy == NS_COOKIE_FIRST_PARTY &&
          !ns_url_is_same_site(http_url, top)))
+        return NULL;
+    /* origin is the document that opened the socket: a cross-site (or
+     * opaque-origin) frame connecting to its embedder's site is
+     * third-party by initiator and gets none either. */
+    if (policy == NS_COOKIE_FIRST_PARTY && origin && *origin &&
+        !ns_url_is_same_site(origin, http_url))
         return NULL;
     g_autofree char *site = ns_url_site_from(top);
     return ns_net_cookie_string(http_url, site, TRUE);
@@ -5689,6 +5697,13 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
         (cookie_policy != NS_COOKIE_NEVER);
     if (cookies_allowed && cookie_policy == NS_COOKIE_FIRST_PARTY &&
         top_url && !ns_url_is_same_site(url, site_top_url))
+        cookies_allowed = FALSE;
+    /* The same holds for the document that makes the request: a cross-site
+     * frame asking for a resource on its embedder's site is third-party by
+     * initiator, even though the target matches the top-level site. */
+    if (cookies_allowed && cookie_policy == NS_COOKIE_FIRST_PARTY &&
+        !top_level_nav && top_url && ns_url_is_http_or_https(top_url) &&
+        !ns_url_is_same_site(top_url, url))
         cookies_allowed = FALSE;
     /* Cookies carry no SameSite attribute here, so treat them all as
      * SameSite=Lax: a cross-site initiator only gets them sent on safe

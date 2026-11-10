@@ -1437,28 +1437,6 @@ browser_arm_declarative_refresh(ns_browser *b, const char *header_value)
     b->refresh_due_us = g_get_monotonic_time() + (gint64)(seconds * 1e6);
 }
 
-static gboolean
-browser_content_type_starts(const char *content_type, const char *prefix)
-{
-    return content_type && prefix &&
-        g_ascii_strncasecmp(content_type, prefix, strlen(prefix)) == 0;
-}
-
-static gboolean
-browser_content_type_is_html(const char *content_type)
-{
-    return browser_content_type_starts(content_type, "text/html");
-}
-
-/* TRUE for JSON media types, including +json suffixes. */
-static gboolean
-browser_content_type_is_json(const char *content_type)
-{
-    return browser_content_type_starts(content_type, "application/json") ||
-           browser_content_type_starts(content_type, "text/json") ||
-           (content_type && strstr(content_type, "+json") != NULL);
-}
-
 /* Wraps plain text in an HTML <pre> document titled with the URL; caller frees. */
 static char *
 browser_text_document(const char *url, const char *text)

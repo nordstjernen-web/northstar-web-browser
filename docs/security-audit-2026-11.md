@@ -12,8 +12,8 @@ pl_mpeg, minimp3) were not reviewed, only our code that calls them.
 are listed: one high, six medium, the rest low or informational.** The
 serious ones are web-security policy gaps (document MIME handling, cookie
 scoping for cross-site frames) and sandbox rules that do not hold as
-written. Finding 1 has since been fixed (see its entry); the others are
-open.
+written. Findings 1 and 2 have since been fixed (see their entries); the
+others are open.
 
 ## Method
 
@@ -40,7 +40,7 @@ Each finding carries a status:
 | # | Finding | Severity | Status |
 |---|---|---|---|
 | 1 | Top-level documents of any MIME type are parsed as HTML; `nosniff` and `Content-Disposition` ignored | High | Reproduced; **fixed** |
-| 2 | A cross-site frame's requests to its embedder's site carry the embedder's cookies | Medium | Reproduced |
+| 2 | A cross-site frame's requests to its embedder's site carry the embedder's cookies | Medium | Reproduced ; **fixed** |
 | 3 | seccomp `socket(AF_UNIX)` denial compares 64 bits of a 32-bit argument | Medium | Confirmed (rule); kernel truncation not tested |
 | 4 | "Signals only to this process" is bypassable through other allowed syscalls | Medium | Confirmed |
 | 5 | Windows URL handler: option injection through `"%1"` | Medium | Likely |
@@ -61,6 +61,7 @@ Each finding carries a status:
 | 20 | Per-response memory budget has no global cap | Info | Confirmed |
 | 21 | Short cache key from a corrupted database is indexed unchecked | Info | Confirmed |
 | 22 | Smaller items (address bar, downloads, `about:start`, npm checksums, logging) | Info | See text |
+| 23 | `MessageEvent.origin` names the embedding page for a message a frame posts from an XHR or timer callback | Medium | Reproduced; cause not traced |
 
 ## Findings
 
@@ -134,9 +135,23 @@ cross-site frame is third-party by initiator and should not carry them.
 An embedded advertisement or widget can therefore make state-changing
 requests to its host site as the logged-in user.
 
-**Fix.** For non-navigation requests, also require the requesting
-document to be same-site with the target, and apply the unsafe-method rule
-using the requesting document.
+**Fixed** after this review. Under the first-party policy,
+`ns_fetch_sync_hop` (`src/net.c`) now also withholds cookies when the
+document making a non-navigation request is not same-site with the
+target, and `ns_net_cookies_for_websocket` applies the same rule to the
+handshake using the socket's `Origin`. Testing the fix showed a second
+path: a form submitted inside a frame navigates that frame through the
+frame loader, which attributed the request to the embedding page, so it
+went out with the embedder's cookies and the embedder's `Origin`. The
+loader now uses the submitting frame's document as the initiator
+(`frame_initiators` in `src/js.c`). Re-tested: `fetch`, XHR POST, image,
+nested-frame and form GET/POST requests from a cross-site frame arrive
+without cookies and with the frame's `Origin`; the same requests from a
+same-site frame, and a frame whose `src` the embedder sets, still carry
+cookies. The WebSocket change was not exercised (no WebSocket server in
+the test setup). Not changed: with `cookie_policy` set to allow
+third-party cookies the old behaviour remains, and a same-site frame
+nested inside a cross-site frame still gets cookies.
 
 ### 3. seccomp `socket(AF_UNIX)` denial compares all 64 bits
 
@@ -470,6 +485,23 @@ parallel large responses or decompression output can exhaust memory.
 - **Crash recovery.** The session file is in `$XDG_RUNTIME_DIR`, which
   Landlock grants read-only, so recovery may not work under the sandbox.
   Functional rather than a security issue. Likely.
+
+### 23. `MessageEvent.origin` can name the embedding page
+
+**Medium. Reproduced while testing the fix for finding 2; the cause was
+not traced.**
+
+A page on `shop.example.com` embedded frames from `ads.evil.net` and
+`sub.example.com`. Each frame called `parent.postMessage(…, '*')` from a
+`setTimeout` callback scheduled inside an `XMLHttpRequest` `loadend`
+handler. The parent's `message` event reported
+`origin = http://shop.example.com` — its own origin — for both, while
+the frames' `location.origin` was correct. A message posted from a
+frame's top-level script reported the right origin in earlier tests. A
+page that trusts messages whose `origin` equals its own would accept
+them from any frame. The sender origin comes from
+`ns_js_caller_origin` (`src/js.c:12966`); which realm is current in a
+callback nested this way is the place to look.
 
 ## SECURITY.md statements that do not match the code
 

@@ -488,8 +488,8 @@ ns_ws_worker_curl(gpointer data)
     }
     /* Servers that authenticate the socket by session cookie (chess.com's
      * pubsub) answer a cookieless handshake with 401. */
-    g_autofree char *cookie = ns_net_cookies_for_websocket(ws->url,
-                                                           ws->top_url);
+    g_autofree char *cookie = ns_net_cookies_for_websocket(
+        ws->url, ws->top_url, ws->origin);
     if (cookie && *cookie && !strpbrk(cookie, "\r\n")) {
         g_autofree char *h = g_strconcat("Cookie: ", cookie, NULL);
         headers = curl_slist_append(headers, h);

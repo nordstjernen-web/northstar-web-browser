@@ -25,6 +25,14 @@ Significant changes in each release:
   download manager, and a frame stays empty. A response with no usable
   type is shown as text when it says `X-Content-Type-Options: nosniff`.
   Local `file:` pages are unchanged.
+* Security: a frame from another site could make requests to the site of
+  the page embedding it with that site's cookies attached: `fetch` and
+  `XMLHttpRequest` with credentials, images, nested frames and WebSocket
+  handshakes. A form submitted inside such a frame went out with the
+  embedding page's cookies and its `Origin` as well. Cookies are now
+  withheld unless the document making the request is same-site with the
+  target, and a frame's own form submission carries the frame's `Origin`
+  and `Referer`. Same-site frames are unaffected.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

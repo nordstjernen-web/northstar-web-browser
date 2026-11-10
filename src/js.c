@@ -789,6 +789,31 @@ typedef struct ns_raf_entry {
     gboolean done;      /* in a firing batch: already run or cancelled */
 } ns_raf_entry;
 
+/* TRUE for a frame realm that no longer has a frame: the document it ran
+ * was replaced when its frame navigated (or it never got one).  Realms
+ * live until the page is torn down, so a promise reaction or a network
+ * callback of the old document can still run in one.  Such a realm has no
+ * identity of its own left and must never be taken for the page, which is
+ * what "not found in frame_contexts" otherwise means: every caller check
+ * treats it as an opaque, untrusted origin. */
+static gboolean
+ns_js_realm_detached(const ns_js *js, const JSContext *realm)
+{
+    if (!js || !realm || !js->frame_ctxs) return FALSE;
+    gboolean is_frame_realm = FALSE;
+    for (guint i = 0; i < js->frame_ctxs->len && !is_frame_realm; i++)
+        is_frame_realm = g_ptr_array_index(js->frame_ctxs, i) == realm;
+    if (!is_frame_realm) return FALSE;
+    if (js->frame_contexts) {
+        GHashTableIter it;
+        gpointer iframe, fctx;
+        g_hash_table_iter_init(&it, js->frame_contexts);
+        while (g_hash_table_iter_next(&it, &iframe, &fctx))
+            if (fctx == realm) return FALSE;
+    }
+    return TRUE;
+}
+
 /* Returns the iframe node owning a realm context, falling back to the current rAF frame. */
 static ns_node *
 ns_js_context_frame(ns_js *js, JSContext *ctx)
@@ -1750,7 +1775,7 @@ ns_js_may_cancel_for_frame(ns_js *js, JSContext *ctx, const ns_node *owner)
     g_hash_table_iter_init(&it, js->frame_contexts);
     while (g_hash_table_iter_next(&it, &iframe, &fctx))
         if (fctx == caller) return iframe == owner;
-    return TRUE;
+    return !ns_js_realm_detached(js, caller);
 }
 
 /* clearTimeout/clearInterval: cancels and removes the timer by id. */
@@ -10273,6 +10298,7 @@ ns_cam_caller_may_use(ns_js *js, JSContext *ctx)
     if (!js) return FALSE;
     JSContext *caller = JS_GetCallerRealmOrNull(ctx);
     if (ns_js_caller_unknown(js, caller)) return FALSE;
+    if (ns_js_realm_detached(js, caller)) return FALSE;
     const ns_node *frame = NULL;
     if (caller && js->frame_contexts) {
         GHashTableIter it;
@@ -12955,6 +12981,8 @@ ns_js_realm_origin(ns_js *js, JSContext *realm)
             return o ? o : g_strdup_printf("null:%p", iframe);
         }
     }
+    if (ns_js_realm_detached(js, realm))
+        return g_strdup_printf("null:detached:%p", (void *)realm);
     char *o = js->current_url ? ns_url_origin_from(js->current_url) : NULL;
     return o ? o : g_strdup_printf("null:%p", (void *)js);
 }
@@ -12996,6 +13024,7 @@ ns_js_caller_document_url(ns_js *js, JSContext *ctx)
             return g_strdup(u);
         }
     }
+    if (ns_js_realm_detached(js, caller)) return g_strdup("about:blank");
     return g_strdup(js->current_url);
 }
 
@@ -56082,6 +56111,8 @@ ns_js_caller_iframe(ns_js *js, JSContext *ctx)
 static gboolean
 ns_location_top_nav_allowed(ns_js *js, JSContext *ctx)
 {
+    if (js && ns_js_realm_detached(js, JS_GetCallerRealmOrNull(ctx)))
+        return FALSE;
     const ns_node *iframe = ns_js_caller_iframe(js, ctx);
     if (!iframe) return TRUE;
     unsigned sb = ns_iframe_effective_sandbox(iframe);
@@ -59490,6 +59521,15 @@ ns_js_iframe_clear_content(ns_js *js, ns_node *iframe)
     ns_js_purge_frame_rafs(js, iframe);
     ns_js_purge_frame_timers(js, iframe);
     ns_js_scrub_iframe_globals(js, iframe);
+    /* The realm that ran the outgoing document stops being this frame's.
+     * A new document only gets a realm of its own when it has scripts (or
+     * its window is asked for), so leaving the mapping in place would let
+     * the old document's pending callbacks keep running as the frame and
+     * pick up the new document's URL and origin: a cross-origin frame
+     * that navigates itself to its embedder's site would then act as the
+     * embedder.  Unmapped, the old realm is detached (see
+     * ns_js_realm_detached) and has an opaque origin. */
+    if (js->frame_contexts) g_hash_table_remove(js->frame_contexts, iframe);
     ns_node *c = iframe->first_child;
     while (c) {
         ns_node *next = c->next_sibling;

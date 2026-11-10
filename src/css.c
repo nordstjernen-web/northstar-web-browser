@@ -3893,6 +3893,7 @@ typedef struct ns_css_scope_text {
 #define NS_CSS_MAX_AT_NESTING 32
 
 static gboolean g_sel_parse_error;
+static gboolean g_sel_internal_attrs;
 static gboolean g_sel_ns_prefix;
 static gboolean g_sel_has_hover;
 static gboolean g_sel_has_active;
@@ -4705,6 +4706,17 @@ parse_one_selector_rel(const char **pp, const char *end, int depth,
                     p = term == ']' ? close + 1 : close;
                     continue;
                 }
+                /* data-nd-* attributes hold engine state the DOM hides
+                 * from script: an input's current value, a frame's final
+                 * URL.  Only the built-in sheet may select on them; in
+                 * author CSS and querySelector they match nothing.  The
+                 * adopted-stylesheet scope marker is the exception: it is
+                 * written into author CSS by the engine and carries no
+                 * state. */
+                if (!g_sel_internal_attrs &&
+                    ns_attr_name_is_internal(attr_name) &&
+                    g_ascii_strcasecmp(attr_name, "data-nd-adopt") != 0)
+                    cmp->never_match = TRUE;
                 ns_css_attr_pred ap = {0};
                 ap.name = g_strdup(attr_name);
                 ap.namespace_uri = attr_namespace_uri;
@@ -29226,7 +29238,8 @@ attr_function_value(const char *args, const ns_node *node, int depth,
         }
     }
     char *lname = g_ascii_strdown(toks[0], -1);
-    const char *raw = node && node->kind == NS_NODE_ELEMENT
+    const char *raw = node && node->kind == NS_NODE_ELEMENT &&
+                      !ns_attr_name_is_internal(lname)
         ? ns_element_get_attr(node, lname) : NULL;
     g_free(lname);
     if (raw) {
@@ -29745,12 +29758,18 @@ ua_sheet_for(const ns_node *doc)
     if (doc && (doc->flags & NS_NODE_QUIRKS)) {
         if (!quirks) {
             char *css = g_strconcat(kUa, kUaQuirks, NULL);
+            g_sel_internal_attrs = TRUE;
             quirks = ns_css_stylesheet_parse(css, -1);
+            g_sel_internal_attrs = FALSE;
             g_free(css);
         }
         return quirks;
     }
-    if (!standard) standard = ns_css_stylesheet_parse(kUa, -1);
+    if (!standard) {
+        g_sel_internal_attrs = TRUE;
+        standard = ns_css_stylesheet_parse(kUa, -1);
+        g_sel_internal_attrs = FALSE;
+    }
     return standard;
 }
 

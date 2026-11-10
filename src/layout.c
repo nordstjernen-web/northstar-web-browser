@@ -2514,7 +2514,8 @@ resolve_pseudo_content(const char *raw, const ns_node *host)
             while (*p && *p != ')' && *p != ',' && *p != ' ') p++;
             if (host && p != start) {
                 char *attr_name = g_strndup(start, p - start);
-                const char *val = ns_element_get_attr(host, attr_name);
+                const char *val = ns_attr_name_is_internal(attr_name)
+                    ? NULL : ns_element_get_attr(host, attr_name);
                 if (val) g_string_append(out, val);
                 g_free(attr_name);
             }

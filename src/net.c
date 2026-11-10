@@ -6080,9 +6080,14 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
             errbuf[0] = '\0';
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-            /* The same share as the first attempt: a top-level navigation
-             * carries its cookie partition, whose share holds the jar. */
-            if (share) curl_easy_setopt(curl, CURLOPT_SHARE, share);
+            /* Nobody has confirmed this server's identity, so the retry
+             * carries no cookies and keeps none: detached from the cookie
+             * partition's share, the handle has only an empty cookie store
+             * of its own, discarded with it.  An on-path attacker answering
+             * for the site would otherwise receive the user's session,
+             * Secure cookies included, or plant cookies in the jar. */
+            if (share) curl_easy_setopt(curl, CURLOPT_SHARE, NULL);
+            curl_easy_setopt(curl, CURLOPT_COOKIELIST, "ALL");
             rc = ns_net_multi_perform(curl);
             if (rc == CURLE_OK) {
                 resp->tls_warning = warn;

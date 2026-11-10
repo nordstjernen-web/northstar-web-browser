@@ -1849,9 +1849,10 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         }
     }
 
-    if (resp->content_type &&
-        g_ascii_strncasecmp(resp->content_type, "image/", 6) == 0 &&
-        !ns_html_mime_is_xml(resp->content_type) &&
+    ns_doc_kind doc_kind = ns_html_document_kind(
+        resp->final_url ? resp->final_url : fetch_url, resp->content_type,
+        resp->content_disposition, resp->x_content_type_options);
+    if (doc_kind == NS_DOC_KIND_IMAGE &&
         resp->body && resp->body->len > 0) {
         char *html = ns_html_image_document(
             resp->final_url ? resp->final_url : fetch_url);
@@ -1864,7 +1865,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
 
     if (resp->content_type && resp->body && resp->body->len > 0) {
         const char *ct = resp->content_type;
-        gboolean is_json = strstr(ct, "json") != NULL;
+        gboolean is_json = doc_kind == NS_DOC_KIND_JSON;
         if (is_json) {
             char *decoded = ns_html_decode_body_full(
                 (const char *)resp->body->data, resp->body->len, ct, NULL);
@@ -1879,8 +1880,36 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
                 g_free(html);
                 g_free(resp->content_type);
                 resp->content_type = g_strdup("text/html; charset=utf-8");
+                doc_kind = NS_DOC_KIND_HTML;
             }
         }
+    }
+
+    /* Only HTML and XML types may reach a parser that runs script: other
+     * text is shown escaped, and an attachment or unsupported type not at all. */
+    if (resp->body && (doc_kind == NS_DOC_KIND_DOWNLOAD ||
+                       doc_kind == NS_DOC_KIND_TEXT ||
+                       doc_kind == NS_DOC_KIND_JSON)) {
+        char *html;
+        if (doc_kind == NS_DOC_KIND_DOWNLOAD) {
+            html = ns_html_download_document(
+                resp->final_url ? resp->final_url : fetch_url);
+        } else {
+            char *text = ns_html_decode_body_full(
+                (const char *)resp->body->data, resp->body->len,
+                resp->content_type, NULL);
+            char *esc = ns_html_escape_text(text ? text : "");
+            html = g_strconcat("<!doctype html><html><head><meta charset="
+                               "\"utf-8\"></head><body><pre>", esc,
+                               "</pre></body></html>", NULL);
+            g_free(esc);
+            g_free(text);
+        }
+        g_byte_array_set_size(resp->body, 0);
+        g_byte_array_append(resp->body, (const guint8 *)html, strlen(html));
+        g_free(html);
+        g_free(resp->content_type);
+        resp->content_type = g_strdup("text/html; charset=utf-8");
     }
 
     const char *raw = resp->body ? (const char *)resp->body->data : "";

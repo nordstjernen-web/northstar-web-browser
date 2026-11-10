@@ -14,6 +14,17 @@ Significant changes in each release:
   parsed eagerly. Layout and rendering are unchanged: identical layout
   dumps for all 61 fixtures and identical PNGs. Ported from Nordstjernen
   Sol #666.
+* Security: a response was parsed as HTML, scripts included, whatever its
+  type: `application/octet-stream`, `application/pdf`, `application/zip`,
+  a file sent with `Content-Disposition: attachment`, and in a frame also
+  JSON, CSS and other text. A site serving user uploads that way — the
+  standard defence — was open to stored cross-site scripting. Now only
+  HTML and XML types are parsed as documents. Images, JSON and other text
+  get inert viewers; an attachment or any other type is not rendered: a
+  top-level navigation shows a placeholder and hands the file to the
+  download manager, and a frame stays empty. A response with no usable
+  type is shown as text when it says `X-Content-Type-Options: nosniff`.
+  Local `file:` pages are unchanged.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

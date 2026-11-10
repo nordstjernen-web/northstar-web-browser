@@ -1482,41 +1482,63 @@ browser_text_document(const char *url, const char *text)
     return html;
 }
 
-/* Rewrites image, JSON and non-HTML text responses into HTML viewer documents. */
-static void
+/* Rewrites every response that is not an HTML or XML document into an inert
+ * HTML viewer document, so only those types reach a parser that runs script.
+ * Returns the queued "url\tfilename" download for a response that must not be
+ * rendered (an attachment or an unsupported type) fetched over http(s), else
+ * NULL; caller frees. */
+static char *
 browser_prepare_document_response(ns_response *resp)
 {
-    if (!resp || !resp->body || !resp->content_type)
-        return;
+    if (!resp || !resp->body)
+        return NULL;
     const char *final_url = resp->final_url ? resp->final_url : "";
+    ns_doc_kind kind = ns_html_document_kind(final_url, resp->content_type,
+                                             resp->content_disposition,
+                                             resp->x_content_type_options);
     char *html = NULL;
-    if (browser_content_type_starts(resp->content_type, "image/") &&
-        !ns_html_mime_is_xml(resp->content_type)) {
+    char *download = NULL;
+    switch (kind) {
+    case NS_DOC_KIND_HTML:
+    case NS_DOC_KIND_XML:
+        return NULL;
+    case NS_DOC_KIND_IMAGE:
         html = ns_html_image_document(final_url);
-    } else if (browser_content_type_is_json(resp->content_type)) {
+        break;
+    case NS_DOC_KIND_JSON:
+    case NS_DOC_KIND_TEXT: {
         char *decoded = ns_html_decode_body_full((const char *)resp->body->data,
                                                  resp->body->len,
                                                  resp->content_type, NULL);
-        html = ns_html_json_document(final_url, decoded,
-                                     decoded ? strlen(decoded) : 0);
+        if (kind == NS_DOC_KIND_JSON)
+            html = ns_html_json_document(final_url, decoded,
+                                         decoded ? strlen(decoded) : 0);
         if (!html) html = browser_text_document(final_url, decoded);
         g_free(decoded);
-    } else if (browser_content_type_starts(resp->content_type, "text/") &&
-               !browser_content_type_is_html(resp->content_type) &&
-               !ns_html_mime_is_xml(resp->content_type)) {
-        char *decoded = ns_html_decode_body_full((const char *)resp->body->data,
-                                                 resp->body->len,
-                                                 resp->content_type, NULL);
-        html = browser_text_document(final_url, decoded);
-        g_free(decoded);
+        break;
     }
-    if (!html)
-        return;
+    case NS_DOC_KIND_DOWNLOAD:
+        html = ns_html_download_document(final_url);
+        if (resp->status >= 200 && resp->status < 300 &&
+            (g_ascii_strncasecmp(final_url, "http://", 7) == 0 ||
+             g_ascii_strncasecmp(final_url, "https://", 8) == 0)) {
+            char *name = ns_html_attachment_filename(resp->content_disposition);
+            if (name) g_strdelimit(name, "\t\r\n", '_');
+            download = g_strdup_printf("%s\t%s", final_url, name ? name : "");
+            g_free(name);
+        }
+        break;
+    }
+    if (!html) {
+        g_free(download);
+        return NULL;
+    }
     g_byte_array_set_size(resp->body, 0);
     g_byte_array_append(resp->body, (const guint8 *)html, strlen(html));
     g_free(html);
     g_free(resp->content_type);
     resp->content_type = g_strdup("text/html; charset=utf-8");
+    return download;
 }
 
 /* TRUE if raw headers mention no-store (case-insensitive). */
@@ -1806,7 +1828,8 @@ browser_open_common(const char *url, int viewport_width, double viewport_height,
     g_free(file_url);
     g_free(stripped_url);
     g_free(https_url);
-    browser_prepare_document_response(resp);
+    char *queued_download = browser_prepare_document_response(resp);
+    if (body) g_clear_pointer(&queued_download, g_free);
 
     char *doc_charset = NULL;
     char *decoded = ns_html_decode_body_full((const char *)resp->body->data,
@@ -1847,9 +1870,14 @@ browser_open_common(const char *url, int viewport_width, double viewport_height,
     if (b) {
         b->security = sec;
         b->remote_ip = ip;
+        if (queued_download) {
+            g_free(b->pending_download);
+            b->pending_download = g_steal_pointer(&queued_download);
+        }
     } else {
         g_free(ip);
     }
+    g_free(queued_download);
     return b;
 }
 

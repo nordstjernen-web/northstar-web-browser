@@ -194,6 +194,139 @@ ns_html_image_document(const char *url)
     return html;
 }
 
+/* TRUE if url starts with scheme (ASCII case-insensitive). */
+static gboolean
+doc_url_has_scheme(const char *url, const char *scheme)
+{
+    return url && g_ascii_strncasecmp(url, scheme, strlen(scheme)) == 0;
+}
+
+/* TRUE if a Content-Disposition value has the disposition type "attachment". */
+static gboolean
+doc_disposition_is_attachment(const char *content_disposition)
+{
+    if (!content_disposition) return FALSE;
+    const char *p = content_disposition;
+    while (g_ascii_isspace(*p)) p++;
+    if (g_ascii_strncasecmp(p, "attachment", 10) != 0) return FALSE;
+    p += 10;
+    while (g_ascii_isspace(*p)) p++;
+    return *p == '\0' || *p == ';';
+}
+
+/* TRUE if an X-Content-Type-Options value's first token is "nosniff". */
+static gboolean
+doc_options_nosniff(const char *x_content_type_options)
+{
+    if (!x_content_type_options) return FALSE;
+    const char *p = x_content_type_options;
+    while (g_ascii_isspace(*p)) p++;
+    if (g_ascii_strncasecmp(p, "nosniff", 7) != 0) return FALSE;
+    p += 7;
+    while (g_ascii_isspace(*p)) p++;
+    return *p == '\0' || *p == ',';
+}
+
+/* Decides how a response may be shown as a document. Only HTML and XML types
+ * reach a parser that runs script; images, JSON and other text get inert viewer
+ * documents; an attachment or any other type is never rendered. A response with
+ * no usable type is HTML unless it says nosniff, then text. Local and browser
+ * pages (file:, about:, view-source:) keep rendering unknown types as HTML. */
+ns_doc_kind
+ns_html_document_kind(const char *url, const char *content_type,
+                      const char *content_disposition,
+                      const char *x_content_type_options)
+{
+    gboolean local = doc_url_has_scheme(url, "file:") ||
+                     doc_url_has_scheme(url, "about:") ||
+                     doc_url_has_scheme(url, "view-source:");
+    if (!local && doc_disposition_is_attachment(content_disposition))
+        return NS_DOC_KIND_DOWNLOAD;
+
+    g_autofree char *essence = NULL;
+    if (content_type) {
+        const char *start = content_type;
+        while (g_ascii_isspace(*start)) start++;
+        const char *end = strchr(start, ';');
+        if (!end) end = start + strlen(start);
+        while (end > start && g_ascii_isspace(end[-1])) end--;
+        essence = g_ascii_strdown(start, (gssize)(end - start));
+    }
+    gboolean unknown = !essence || !strchr(essence, '/') ||
+        strcmp(essence, "*/*") == 0 ||
+        strcmp(essence, "unknown/unknown") == 0 ||
+        strcmp(essence, "application/unknown") == 0;
+    if (unknown)
+        return !local && doc_options_nosniff(x_content_type_options)
+            ? NS_DOC_KIND_TEXT : NS_DOC_KIND_HTML;
+
+    if (strcmp(essence, "text/html") == 0) return NS_DOC_KIND_HTML;
+    if (ns_html_mime_is_xml(essence)) return NS_DOC_KIND_XML;
+    if (g_str_has_prefix(essence, "image/")) return NS_DOC_KIND_IMAGE;
+    if (strcmp(essence, "application/json") == 0 ||
+        strcmp(essence, "text/json") == 0 ||
+        g_str_has_suffix(essence, "+json"))
+        return NS_DOC_KIND_JSON;
+    if (g_str_has_prefix(essence, "text/")) return NS_DOC_KIND_TEXT;
+    return local ? NS_DOC_KIND_HTML : NS_DOC_KIND_DOWNLOAD;
+}
+
+/* The filename parameter of a Content-Disposition value, or NULL; caller frees.
+ * The result is page-controlled: pass it through the download-name sanitiser. */
+char *
+ns_html_attachment_filename(const char *content_disposition)
+{
+    if (!content_disposition) return NULL;
+    for (const char *p = strchr(content_disposition, ';'); p;
+         p = strchr(p, ';')) {
+        p++;
+        while (g_ascii_isspace(*p)) p++;
+        if (g_ascii_strncasecmp(p, "filename", 8) != 0) continue;
+        p += 8;
+        while (g_ascii_isspace(*p)) p++;
+        if (*p != '=') continue;
+        p++;
+        while (g_ascii_isspace(*p)) p++;
+        GString *name = g_string_new(NULL);
+        if (*p == '"') {
+            for (p++; *p && *p != '"'; p++) {
+                if (*p == '\\' && p[1]) p++;
+                g_string_append_c(name, *p);
+            }
+        } else {
+            for (; *p && *p != ';'; p++) g_string_append_c(name, *p);
+            while (name->len && g_ascii_isspace(name->str[name->len - 1]))
+                g_string_truncate(name, name->len - 1);
+        }
+        for (gsize i = 0; i < name->len; i++)
+            if ((guchar)name->str[i] < 0x20) name->str[i] = '_';
+        if (name->len == 0 || !g_utf8_validate(name->str, -1, NULL)) {
+            g_string_free(name, TRUE);
+            return NULL;
+        }
+        return g_string_free(name, FALSE);
+    }
+    return NULL;
+}
+
+/* Inert page shown in place of a response that must not be rendered; caller frees. */
+char *
+ns_html_download_document(const char *url)
+{
+    char *esc = ns_html_escape_text(url ? url : "");
+    char *html = g_strdup_printf(
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>%s</title>"
+        "<style>body{margin:0;padding:48px 24px;background:#fff;color:#111;"
+        "font:15px/1.5 system-ui,sans-serif;text-align:center}"
+        "p{margin:0 0 12px}.u{color:#555;overflow-wrap:anywhere}</style>"
+        "</head><body><p>This file cannot be shown in the browser.</p>"
+        "<p class=\"u\">%s</p>"
+        "<p><a href=\"%s\" download>Download</a></p></body></html>",
+        esc, esc, esc);
+    g_free(esc);
+    return html;
+}
+
 static const char NS_DOC_VIEWER_STYLE[] =
     "<style>"
     "body{margin:0;background:#fbfbfd;color:#1a1a1a;"

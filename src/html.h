@@ -71,6 +71,22 @@ char *ns_html_decode_body_full(const char *body, gsize len,
 
 char *ns_html_image_document(const char *url);
 
+/* How a fetched response may be shown as a document (see ns_html_document_kind). */
+typedef enum {
+    NS_DOC_KIND_HTML,
+    NS_DOC_KIND_XML,
+    NS_DOC_KIND_IMAGE,
+    NS_DOC_KIND_JSON,
+    NS_DOC_KIND_TEXT,
+    NS_DOC_KIND_DOWNLOAD,
+} ns_doc_kind;
+
+ns_doc_kind ns_html_document_kind(const char *url, const char *content_type,
+                                  const char *content_disposition,
+                                  const char *x_content_type_options);
+char *ns_html_attachment_filename(const char *content_disposition);
+char *ns_html_download_document(const char *url);
+
 char *ns_html_json_document(const char *url, const char *json, gsize len);
 G_END_DECLS
 

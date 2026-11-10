@@ -2502,11 +2502,11 @@ ns_net_apply_curl_tls(void *curl_handle)
 #ifdef G_OS_WIN32
     curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, (long)CURLSSLOPT_NATIVE_CA);
 #endif
-#ifdef CURLOPT_DOH_URL
+    /* Not behind #ifdef CURLOPT_DOH_URL: that name is an enum constant, so
+     * the test was never true and the setting was silently ignored. */
     const ns_config *cfg = ns_config_get();
     if (cfg && cfg->doh_url && g_str_has_prefix(cfg->doh_url, "https://"))
         curl_easy_setopt(curl, CURLOPT_DOH_URL, cfg->doh_url);
-#endif
 }
 
 void

@@ -64,6 +64,17 @@ Significant changes in each release:
   no cookies and stores none. The same applies to the first navigation
   past a certificate error under `--ignore-certificate-errors`; later
   requests to that accepted host carry cookies as before.
+* Security: `EventSource` never applied its protocol limits, because they
+  sat behind `#ifdef CURLOPT_…` tests that are never true (the names are
+  enum constants, not macros). A stream could be redirected to `ftp:`,
+  and an `https:` stream to `http:`. The limits are now applied. The body
+  of a response that never opened the stream (a redirect status with no
+  `Location`) was also parsed and delivered as messages, skipping the
+  content-type and cross-origin checks; it is now dropped. An `http:`
+  stream to a host with an HSTS entry is upgraded to `https:`.
+* Fix: the `doh_url` setting and `NS_DOH_URL` were ignored for the same
+  `#ifdef` reason, so DNS went to the system resolver. DNS-over-HTTPS is
+  now used when it is configured.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

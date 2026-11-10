@@ -1203,6 +1203,8 @@ static char *ns_js_caller_document_url(ns_js *js, JSContext *ctx);
 static gboolean ns_js_caller_unknown(ns_js *js, JSContext *caller);
 static char *ns_js_realm_origin(ns_js *js, JSContext *realm);
 static JSContext *ns_js_handler_realm(ns_js *js, const ns_node *n);
+static const ns_csp *ns_js_handler_csp(ns_js *js, const ns_node *n,
+                                       JSContext *hctx);
 static ns_node *ns_js_node_frame(const ns_node *node);
 static void ns_js_report_pending_rejections(ns_js *js);
 static void ns_js_drop_pending_rejections(ns_js *js);
@@ -3261,7 +3263,7 @@ ns_storage_fire_frame_body_handler(ns_js *js, JSValueConst fwin,
      * realm under the frame's policy, never in the embedder's. */
     JSContext *hctx = ns_js_handler_realm(js, body);
     if (!hctx) return;
-    if (!ns_csp_inline_event_handler_allowed(ns_js_csp_for_node(js, body)))
+    if (!ns_csp_inline_event_handler_allowed(ns_js_handler_csp(js, body, hctx)))
         return;
     GString *code = g_string_new(
         "(function(__nsStorageEvt){with(this){(function(event){\n");
@@ -24644,10 +24646,23 @@ ns_window_compile_handler(JSContext *ctx, JSValueConst this_val,
      * function runs in the realm that created it: compile in the realm
      * of the script that called it, or a frame could compile code into
      * its embedder's globals. */
-    JSContext *rctx = JS_GetCallerRealmOrNull(ctx);
-    if (js && ns_js_caller_unknown(js, rctx)) return JS_NULL;
-    if (!rctx) rctx = ctx;
-    if (js && !ns_csp_inline_event_handler_allowed(ns_js_realm_csp(js, rctx)))
+    /* The on* accessors that call this are page-realm script shared by
+     * every frame, so the innermost function says nothing: the handler
+     * belongs to the element it is read from (second argument). */
+    const ns_node *el = argc > 1 ? ns_unwrap_element(argv[1]) : NULL;
+    JSContext *rctx;
+    const ns_csp *csp;
+    if (js && el) {
+        rctx = ns_js_handler_realm(js, el);
+        if (!rctx) return JS_NULL;
+        csp = ns_js_handler_csp(js, el, rctx);
+    } else {
+        rctx = js ? ns_js_calling_realm(js, ctx) : JS_GetCallerRealmOrNull(ctx);
+        if (js && ns_js_caller_unknown(js, rctx)) return JS_NULL;
+        if (!rctx) rctx = ctx;
+        csp = js ? ns_js_realm_csp(js, rctx) : NULL;
+    }
+    if (js && !ns_csp_inline_event_handler_allowed(csp))
         return JS_NULL;
     const char *code = JS_ToCString(ctx, argv[0]);
     if (!code) return JS_EXCEPTION;
@@ -28594,6 +28609,31 @@ ns_node_is_window_handler_holder(const ns_node *n)
            ns_node_is_element_named(n, "frameset");
 }
 
+/* Records, for the handler lookup that follows, which realm's script is
+ * dispatching the event.  Nested dispatches keep the outermost answer's
+ * scope to their own lookup. */
+typedef struct {
+    gboolean   was_set;
+    JSContext *prev;
+} ns_inline_initiator_guard;
+
+static void
+ns_inline_initiator_push(ns_js *js, ns_inline_initiator_guard *g)
+{
+    g->was_set = js->inline_initiator_set;
+    g->prev = js->inline_initiator;
+    js->inline_initiator = ns_js_calling_realm(
+        js, js->main_realm_ctx ? js->main_realm_ctx : js->ctx);
+    js->inline_initiator_set = TRUE;
+}
+
+static void
+ns_inline_initiator_pop(ns_js *js, ns_inline_initiator_guard *g)
+{
+    js->inline_initiator_set = g->was_set;
+    js->inline_initiator = g->prev;
+}
+
 /* Compiles and runs an on<type> attribute in its realm under CSP; false return cancels. */
 static gboolean
 ns_fire_inline_on_handler(ns_js *js, const ns_node *target, const char *type,
@@ -28608,10 +28648,14 @@ ns_fire_inline_on_handler(ns_js *js, const ns_node *target, const char *type,
 
     /* A handler inside a frame runs in that frame's realm; a frame with no
      * realm (no scripts, or sandboxed without allow-scripts) runs none. */
+    ns_inline_initiator_guard ig;
+    ns_inline_initiator_push(js, &ig);
     JSContext *hctx = ns_js_handler_realm(js, target);
+    ns_inline_initiator_pop(js, &ig);
     if (!hctx) return FALSE;
 
-    if (!ns_csp_inline_event_handler_allowed(ns_js_csp_for_node(js, target))) {
+    if (!ns_csp_inline_event_handler_allowed(
+            ns_js_handler_csp(js, target, hctx))) {
         if (js->log_cb) {
             char *line = g_strdup_printf(
                 "CSP blocked: inline event handler %s", attr_name);
@@ -28697,7 +28741,10 @@ ns_fire_property_on_handler(ns_js *js, const ns_node *target, const char *type,
         g_snprintf(prop_name, sizeof prop_name, "on%s", type);
     }
     JSValue wrapper = JS_MKPTR(JS_TAG_OBJECT, target->js_wrapper);
+    ns_inline_initiator_guard ig;
+    ns_inline_initiator_push(js, &ig);
     JSValue handler = JS_GetPropertyStr(js->ctx, wrapper, prop_name);
+    ns_inline_initiator_pop(js, &ig);
     char source_key[56];
     g_snprintf(source_key, sizeof source_key, "\xffsrc:%s", prop_name);
     JSValue source = JS_GetPropertyStr(js->ctx, wrapper, source_key);
@@ -43075,7 +43122,7 @@ ns_element_activation_behavior(JSContext *ctx, const ns_node *act,
             JSContext *hctx = ns_js_handler_realm(js, act);
             if (!hctx ||
                 !ns_csp_inline_event_handler_allowed(
-                    ns_js_csp_for_node(js, act))) {
+                    ns_js_handler_csp(js, act, hctx))) {
                 if (hctx && js->log_cb)
                     js->log_cb("CSP blocked: javascript: URL",
                                js->log_user_data);
@@ -43525,16 +43572,53 @@ ns_js_node_realm_context(ns_js *js, const ns_node *node)
  * elements, the frame's realm for an element inside a frame, and NULL --
  * run nothing -- inside a frame that has no realm (no scripts, or
  * sandboxed without allow-scripts).  A frame element itself belongs to
- * the document that contains it. */
+ * the document that contains it.
+ *
+ * A node outside the page's tree (an element a script created and never
+ * inserted, a fragment, a parsed document) carries no record of who made
+ * it.  On a page that runs frame realms it belongs to the realm whose
+ * script is firing the event, never to the page by default: a frame's
+ * d.setAttribute('onclick', ...); d.click() must not run in the page.
+ * With no script on the stack there is nobody to attribute it to and
+ * nothing runs.  Event dispatch records who started it in
+ * js->inline_initiator before it looks a handler up. */
 static JSContext *
 ns_js_handler_realm(ns_js *js, const ns_node *n)
 {
     if (!js || !n) return NULL;
+    JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
     ns_node *frame = ns_js_node_frame(n->parent);
-    if (!frame)
-        return js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
-    return js->frame_contexts
-        ? g_hash_table_lookup(js->frame_contexts, frame) : NULL;
+    if (frame)
+        return js->frame_contexts
+            ? g_hash_table_lookup(js->frame_contexts, frame) : NULL;
+    if (!js->frame_ctxs || js->frame_ctxs->len == 0 ||
+        (js->main_document && ns_node_root(n) == js->main_document))
+        return main_ctx;
+    JSContext *caller = js->inline_initiator_set
+        ? js->inline_initiator : ns_js_calling_realm(js, main_ctx);
+    if (caller == main_ctx) return main_ctx;
+    for (guint i = 0; caller && i < js->frame_ctxs->len; i++)
+        if (g_ptr_array_index(js->frame_ctxs, i) == caller) return caller;
+    return NULL;
+}
+
+/* CSP for inline code of node running in hctx (from ns_js_handler_realm):
+ * the node's document's policy, or for a detached node run by a frame
+ * realm, that frame's. */
+static const ns_csp *
+ns_js_handler_csp(ns_js *js, const ns_node *n, JSContext *hctx)
+{
+    JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
+    if (hctx && hctx != main_ctx && n && !ns_js_node_frame(n->parent) &&
+        js->frame_contexts) {
+        GHashTableIter it;
+        gpointer iframe, fctx;
+        g_hash_table_iter_init(&it, js->frame_contexts);
+        while (g_hash_table_iter_next(&it, &iframe, &fctx))
+            if (fctx == hctx)
+                return ns_js_csp_for_node(js, ns_iframe_document_node(iframe));
+    }
+    return ns_js_csp_for_node(js, n);
 }
 
 /* Base URL of node's owner document, falling back to frame/page URL; caller frees. */
@@ -50293,7 +50377,8 @@ ns_element_on_get(JSContext *ctx, JSValueConst this_val,
     ns_js *js = js_from_ctx(ctx);
     JSContext *hctx = js ? ns_js_handler_realm(js, el) : ctx;
     if (!hctx) return JS_NULL;
-    if (js && !ns_csp_inline_event_handler_allowed(ns_js_csp_for_node(js, el)))
+    if (js && !ns_csp_inline_event_handler_allowed(
+                  ns_js_handler_csp(js, el, hctx)))
         return JS_NULL;
     JSValue fn = ns_compile_inline_handler(hctx, body);
     if (JS_IsException(fn)) {
@@ -52062,7 +52147,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
         0);
     JS_DefinePropertyValueStr(ctx, global, "__ndCompileHandler",
         JS_NewCFunction(ctx, ns_window_compile_handler,
-                        "__ndCompileHandler", 1), 0);
+                        "__ndCompileHandler", 2), 0);
     JS_DefinePropertyValueStr(ctx, global, "__ns_anim_list",
         JS_NewCFunction(ctx, ns_anim_list_native, "__ns_anim_list", 1), 0);
     JS_DefinePropertyValueStr(ctx, global, "__ns_anim_query",

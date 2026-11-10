@@ -1906,7 +1906,7 @@
                             var fn;
                             try {
                                 fn = typeof __ndCompileHandler === 'function'
-                                    ? __ndCompileHandler(code)
+                                    ? __ndCompileHandler(code, this)
                                     : new Function('event', code);
                             } catch (e) { return null; }
                             if (!fn) return null;

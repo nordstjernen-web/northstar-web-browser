@@ -127,6 +127,11 @@ struct ns_js {
     GArray       *raf_firing;   /* batch being run, for cancelAnimationFrame */
     int           next_raf_id;
     ns_node      *raf_frame_ctx;
+    /* While event dispatch looks up an inline handler: the realm whose
+     * script started the dispatch (NULL: the engine did).  The lookup
+     * itself runs page-realm accessors, which hide that caller. */
+    gboolean    inline_initiator_set;
+    JSContext  *inline_initiator;
     JSValue       pristine_promise;
     GHashTable   *style_table;
     const struct ns_box *layout_root;

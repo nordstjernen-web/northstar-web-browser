@@ -1,0 +1,39 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -41414,6 +41414,36 @@
+     return js_caller_realm(ctx->rt);
+ }
+ 
++/* Like JS_GetCallerRealmOrNull(), but JS functions that belong to realm
++ * skip are passed over: the realm of the innermost JS function on the stack
++ * that is not from skip, or NULL when there is none. An embedder whose
++ * platform wrappers are script in one realm uses it to find the realm that
++ * called the wrapper. */
++JSContext *JS_GetCallerRealmOutside(JSContext *ctx, JSContext *skip)
++{
++    JSStackFrame *sf;
++    for (sf = ctx->rt->current_stack_frame; sf; sf = sf->prev_frame) {
++        JSObject *p;
++        JSContext *realm;
++        if (JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
++            continue;
++        p = JS_VALUE_GET_OBJ(sf->cur_func);
++        switch (p->class_id) {
++        case JS_CLASS_BYTECODE_FUNCTION:
++        case JS_CLASS_GENERATOR_FUNCTION:
++        case JS_CLASS_ASYNC_FUNCTION:
++        case JS_CLASS_ASYNC_GENERATOR_FUNCTION:
++            realm = p->u.func.function_bytecode->realm;
++            if (realm != skip)
++                return realm;
++            break;
++        default:
++            break;
++        }
++    }
++    return NULL;
++}
++
+ static int js_cross_realm_compile_denied(JSContext *ctx)
+ {
+     JSContext *caller;

@@ -84,6 +84,21 @@ Significant changes in each release:
   the frame when its content is replaced, and a detached realm has an
   opaque origin: no cookies, no same-origin reads, no top-level
   navigation, no camera, and it cannot cancel the page's timers.
+* Security: use-after-free. The engine's pointer to the element holding
+  the pointer lock was not dropped when that element was freed, so
+  reading `document.pointerLockElement` afterwards touched freed memory;
+  a page could arrange this by locking an element in a frame and
+  navigating the frame. Nodes whose script wrapper had been collected
+  were freed without the clean-up that drops such pointers at all. The
+  clean-up now always runs, and also covers the pointer-lock element,
+  the active modal dialog and the document awaiting lifecycle events.
+* Security: a cross-origin frame shared the page's camera and microphone
+  permission without `allow="camera"`: once the page was granted access,
+  any embedded frame got the stream and the device label.
+  `getUserMedia` is script shared by all frames, and the permission check
+  mistook that script for the caller. The check now finds the frame that
+  called it. `URL.createObjectURL` in a frame's promise callbacks, which
+  named the page's origin for the same reason, is fixed with it.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

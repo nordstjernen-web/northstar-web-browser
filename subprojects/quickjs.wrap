@@ -3,7 +3,7 @@ url = https://github.com/bellard/quickjs.git
 revision = 3d5e064e9dd67c70f7962836505a7fa067bf0a4e
 depth = 1
 patch_directory = quickjs
-diff_files = quickjs-sort-calls-comparator.patch, quickjs-external-buffer-transfer.patch, quickjs-cross-realm-compile-check.patch
+diff_files = quickjs-sort-calls-comparator.patch, quickjs-external-buffer-transfer.patch, quickjs-cross-realm-compile-check.patch, quickjs-caller-realm-outside.patch
 
 [provide]
 quickjs = quickjs_dep

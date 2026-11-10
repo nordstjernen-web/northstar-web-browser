@@ -18855,15 +18855,10 @@ ns_on_xhr_done(GObject *src, GAsyncResult *result, gpointer user_data)
     ns_xhr_deliver(st, resp, err);
 }
 
-/* Reports a policy-blocked XHR as a network error asynchronously. */
-static gboolean
-ns_xhr_emit_blocked_idle(gpointer user_data)
+/* Reports a policy-blocked XHR as a network error and frees its state. */
+static void
+ns_xhr_emit_blocked_now(ns_xhr_state *st)
 {
-    ns_xhr_state *st = user_data;
-    if (st->js && st->js->in_pump) {
-        ns_engine_timeout_add(4, ns_xhr_emit_blocked_idle, st);
-        return G_SOURCE_REMOVE;
-    }
     if (st->ctx) {
         JSContext *ctx = st->ctx;
         ns_budget_guard bg = {0};
@@ -18884,6 +18879,19 @@ ns_xhr_emit_blocked_idle(gpointer user_data)
         ns_js_budget_pop(st->js, &bg);
     }
     ns_xhr_state_free(st);
+}
+
+/* Reports a policy-blocked asynchronous XHR from the page loop, retrying
+ * while a nested loop is pumping. */
+static gboolean
+ns_xhr_emit_blocked_idle(gpointer user_data)
+{
+    ns_xhr_state *st = user_data;
+    if (st->js && st->js->in_pump) {
+        ns_engine_timeout_add(4, ns_xhr_emit_blocked_idle, st);
+        return G_SOURCE_REMOVE;
+    }
+    ns_xhr_emit_blocked_now(st);
     return G_SOURCE_REMOVE;
 }
 
@@ -18995,7 +19003,7 @@ ns_xhr_open(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 }
 
 /* Iterates mc (the page's main context when NULL) until a sync XHR
- * finishes or 60 s pass. */
+ * finishes or 60 s pass.  Callers pass a private context: see send(). */
 static void
 ns_xhr_pump_until_done_in(JSContext *ctx, JSValueConst this_val,
                           GMainContext *mc)
@@ -19016,12 +19024,6 @@ ns_xhr_pump_until_done_in(JSContext *ctx, JSValueConst this_val,
         g_main_context_iteration(mc, TRUE);
     }
     ns_js_credit_pumped_time(js, pump_start_us);
-}
-
-static void
-ns_xhr_pump_until_done(JSContext *ctx, JSValueConst this_val)
-{
-    ns_xhr_pump_until_done_in(ctx, this_val, NULL);
 }
 
 /* True if the XHR was opened synchronously. */
@@ -19273,12 +19275,17 @@ ns_xhr_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
         JS_FreeValue(ctx, upload);
     }
     if (blocked) {
-        ns_js_attach_idle(st->js, ns_xhr_emit_blocked_idle, st);
         g_ptr_array_free(hdr_terminated, TRUE);
         g_free(body);
         g_free(auto_content_type);
+        /* A refused synchronous request finishes inside send(), with no
+         * loop pumped: waiting for an idle on the page's own loop ran the
+         * page's (and other pages') timers and tasks inside the script
+         * that called send().  An asynchronous one reports from the loop. */
         if (ns_xhr_is_sync(ctx, this_val))
-            ns_xhr_pump_until_done(ctx, this_val);
+            ns_xhr_emit_blocked_now(st);
+        else
+            ns_js_attach_idle(st->js, ns_xhr_emit_blocked_idle, st);
         return JS_UNDEFINED;
     }
 

@@ -51,6 +51,11 @@ Significant changes in each release:
   another program can no longer smuggle in options such as `--proxy=`,
   `--ignore-certificate-errors` or `--trace=`. Existing Windows installs
   pick up the new registration when the installer is run again.
+* Security: a synchronous `XMLHttpRequest` that the fetch policy refused
+  (CSP `connect-src`, mixed content) waited on the page's own event loop,
+  so timers and other tasks, of this page and of others, ran inside the
+  script that called `send()`. It now finishes inside `send()` without
+  running the loop, like a synchronous request that is allowed.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

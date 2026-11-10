@@ -1041,16 +1041,35 @@ ns_security_seccomp_init(void)
                 (void)seccomp_rule_add(deny, SCMP_ACT_ERRNO(EPERM), nr, 0);
         }
         /* Signals only to this process: kill(-1, SIGKILL) would take down
-         * every process the user owns. */
+         * every process the user owns.  Every syscall that names its
+         * target by process id is held to our own pid. */
         pid_t self = getpid();
-        int kill_nr = seccomp_syscall_resolve_name("kill");
-        if (kill_nr != __NR_SCMP_ERROR)
-            (void)seccomp_rule_add(deny, SCMP_ACT_ERRNO(EPERM), kill_nr, 1,
-                SCMP_A0(SCMP_CMP_NE, (scmp_datum_t)self));
-        int tgkill_nr = seccomp_syscall_resolve_name("tgkill");
-        if (tgkill_nr != __NR_SCMP_ERROR)
-            (void)seccomp_rule_add(deny, SCMP_ACT_ERRNO(EPERM), tgkill_nr, 1,
-                SCMP_A0(SCMP_CMP_NE, (scmp_datum_t)self));
+        static const char *const signal_by_pid[] = {
+            "kill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo",
+        };
+        for (gsize i = 0; i < G_N_ELEMENTS(signal_by_pid); i++) {
+            int nr = seccomp_syscall_resolve_name(signal_by_pid[i]);
+            if (nr != __NR_SCMP_ERROR)
+                (void)seccomp_rule_add(deny, SCMP_ACT_ERRNO(EPERM), nr, 1,
+                    SCMP_A0(SCMP_CMP_NE, (scmp_datum_t)self));
+        }
+        /* pidfd_send_signal() names its target by descriptor and tkill()
+         * by a bare thread id, so neither can be held to this process by
+         * argument: refuse them.  Nothing here signals through a pidfd.
+         * glibc sends thread signals with tgkill; musl's raise(),
+         * pthread_kill() and pthread_cancel() use tkill, so there it has
+         * to stay allowed. */
+        static const char *const signal_unscoped[] = {
+            "pidfd_send_signal",
+#ifdef __GLIBC__
+            "tkill",
+#endif
+        };
+        for (gsize i = 0; i < G_N_ELEMENTS(signal_unscoped); i++) {
+            int nr = seccomp_syscall_resolve_name(signal_unscoped[i]);
+            if (nr != __NR_SCMP_ERROR)
+                (void)seccomp_rule_add(deny, SCMP_ACT_ERRNO(EPERM), nr, 0);
+        }
         if (seccomp_load(deny) != 0)
             g_info("seccomp: argument filter not loaded");
         seccomp_release(deny);

@@ -12,8 +12,8 @@ pl_mpeg, minimp3) were not reviewed, only our code that calls them.
 are listed: one high, six medium, the rest low or informational.** The
 serious ones are web-security policy gaps (document MIME handling, cookie
 scoping for cross-site frames) and sandbox rules that do not hold as
-written. Findings 1, 2 and 3 have since been fixed (see their entries); the
-others are open.
+written. Findings 1 to 4 have since been fixed (see their entries); the others
+are open.
 
 ## Method
 
@@ -42,7 +42,7 @@ Each finding carries a status:
 | 1 | Top-level documents of any MIME type are parsed as HTML; `nosniff` and `Content-Disposition` ignored | High | Reproduced; **fixed** |
 | 2 | A cross-site frame's requests to its embedder's site carry the embedder's cookies | Medium | Reproduced ; **fixed** |
 | 3 | seccomp `socket(AF_UNIX)` denial compares 64 bits of a 32-bit argument | Medium | Reproduced; **fixed** |
-| 4 | "Signals only to this process" is bypassable through other allowed syscalls | Medium | Confirmed |
+| 4 | "Signals only to this process" is bypassable through other allowed syscalls | Medium | Reproduced; **fixed** (glibc; partly on musl) |
 | 5 | Windows URL handler: option injection through `"%1"` | Medium | Likely |
 | 6 | Policy-blocked synchronous XHR runs other page tasks inside `send()` | Medium | Reproduced |
 | 7 | Certificate-error override retries without a prompt and sends cookies | Medium (opt-in only) | Confirmed |
@@ -193,9 +193,19 @@ allow-list also contains `tkill`, `rt_sigqueueinfo`, `rt_tgsigqueueinfo`,
 compromised browser can signal any process the user owns, including the
 unsandboxed watchdog supervisor.
 
-**Fix.** Remove `tkill`, `rt_sigqueueinfo` and `pidfd_send_signal` from
-the allow-list, or constrain their pid argument to `getpid()`; on Landlock
-ABI 6 add `LANDLOCK_SCOPE_SIGNAL`.
+**Fixed** after this review, in the argument filter of
+`src/security.c`: `rt_sigqueueinfo` and `rt_tgsigqueueinfo` are held to
+the browser's own pid like `kill` and `tgkill`; `pidfd_send_signal` is
+refused; `tkill`, which names only a thread id, is refused on glibc
+builds. A standalone program loading the old and the new rules confirmed
+it on a live kernel: under the old rules `tkill`, `rt_sigqueueinfo`,
+`rt_tgsigqueueinfo` and `pidfd_send_signal` all reached another process;
+under the new ones all six calls are refused, while `raise`,
+`pthread_kill`, `kill` and `sigqueue` aimed at the process itself still
+work. Remaining gap: on musl builds `tkill` stays allowed, because musl's
+`raise`, `pthread_kill` and `pthread_cancel` use it, so one path to other
+processes' threads is still open there. `LANDLOCK_SCOPE_SIGNAL` (Landlock
+ABI 6) would close it on every libc and is not implemented.
 
 ### 5. Windows URL handler: option injection
 

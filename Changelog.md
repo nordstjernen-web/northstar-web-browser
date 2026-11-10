@@ -37,6 +37,13 @@ Significant changes in each release:
   from creating UNIX sockets compared all 64 bits of the address-family
   argument, which the kernel reads as 32 bits, so a raw `socket` call with
   the upper half set got past it. The rule now compares the low 32 bits.
+* Security (Linux sandbox): the rule that confines signals to the browser
+  itself covered `kill` and `tgkill` only; `tkill`, `rt_sigqueueinfo`,
+  `rt_tgsigqueueinfo` and `pidfd_send_signal` could still signal any
+  process the user owns, including the watchdog supervisor. The two
+  queueing calls are now held to the browser's own pid and
+  `pidfd_send_signal` is refused; `tkill` is refused on glibc builds
+  (musl's thread signalling needs it, so it stays allowed there).
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

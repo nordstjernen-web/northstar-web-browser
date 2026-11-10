@@ -214,8 +214,11 @@ unconfined.
   small filter loaded before it refuses a few argument combinations:
   `ioctl` `TIOCSTI` and `TIOCLINUX` (which could type into the terminal
   the browser was started from), `shmat` with `SHM_EXEC`, `clone` with
-  any namespace flag, `unshare` and `setns`, and `kill`/`tgkill` aimed at
-  any process but the browser itself; `clone3`, whose flags a filter
+  any namespace flag, `unshare` and `setns`, and signals aimed at any
+  process but the browser itself (`kill`, `tgkill`, `rt_sigqueueinfo` and
+  `rt_tgsigqueueinfo` to another pid; `pidfd_send_signal` always; `tkill`
+  on glibc builds — musl needs it for its own threads, so there it stays
+  allowed); `clone3`, whose flags a filter
   cannot read, returns `ENOSYS` so that the C library falls back to
   `clone`. TSYNC
   propagates the filters to every thread. The allow-list's one argument

@@ -344,7 +344,10 @@ ns_es_write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
     if (g_atomic_int_get(&p->es->exit_requested) || p->fatal) return 0;
     if (size != 0 && nmemb > G_MAXSIZE / size) return 0;
     size_t total = size * nmemb;
-    ns_es_feed(p, ptr, total);
+    /* Only a stream that passed the status, content-type and CORS checks
+     * is parsed; any other body (a redirect without Location, say) is
+     * read and dropped. */
+    if (p->opened) ns_es_feed(p, ptr, total);
     return total;
 }
 
@@ -382,14 +385,12 @@ ns_es_connect_once(ns_es *es, gboolean *opened_out)
     gboolean unverified = ns_net_apply_curl_tls_exception(curl, es->url);
     ns_net_apply_curl_proxy(curl, es->url);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, unverified ? 0L : 1L);
-#ifdef CURLOPT_PROTOCOLS_STR
+    /* CURLOPT_* names are enum constants, not macros: an #ifdef around
+     * these never compiled them in.  The build requires libcurl 8.5. */
     curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
-#endif
-#ifdef CURLOPT_REDIR_PROTOCOLS_STR
     curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR,
                      g_str_has_prefix(es->url, "https://") ? "https"
                                                             : "http,https");
-#endif
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
     curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
@@ -467,7 +468,11 @@ ns_es_new(const char *url, const char *origin, const char *last_event_id,
           const ns_es_callbacks *cbs, gpointer user_data)
 {
     ns_es *es = g_new0(ns_es, 1);
-    es->url = g_strdup(url);
+    /* A host with an HSTS entry is never contacted in cleartext. */
+    g_autofree char *host = url && g_str_has_prefix(url, "http://")
+        ? ns_url_host_from(url) : NULL;
+    es->url = host && ns_net_hsts_should_upgrade(host)
+        ? g_strconcat("https://", url + 7, NULL) : g_strdup(url);
     es->origin = g_strdup(origin);
     es->policy = ns_fetch_policy_ref(policy);
     es->last_event_id = g_strdup(last_event_id ? last_event_id : "");

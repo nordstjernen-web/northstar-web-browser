@@ -56,6 +56,14 @@ Significant changes in each release:
   so timers and other tasks, of this page and of others, ran inside the
   script that called `send()`. It now finishes inside `send()` without
   running the loop, like a synchronous request that is allowed.
+* Security: with `tls_allow_insecure_override` on, a top-level navigation
+  that failed certificate verification was retried without verification
+  and with the site's cookies attached, and cookies set by that
+  unverified response were saved. A network attacker answering for a
+  non-HSTS site got the user's session. The unverified retry now sends
+  no cookies and stores none. The same applies to the first navigation
+  past a certificate error under `--ignore-certificate-errors`; later
+  requests to that accepted host carry cookies as before.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

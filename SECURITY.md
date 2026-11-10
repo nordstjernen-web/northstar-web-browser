@@ -353,15 +353,19 @@ The `tls_allow_insecure_override` setting, off by default, lets the user
 proceed past a certificate error, never for an HSTS host, and only for
 the top-level navigation itself, which the address bar then marks as not
 secure; a subresource, frame, `fetch()`, worker or media request that
-fails verification is never retried without it.
+fails verification is never retried without it. There is no prompt: with
+the setting on, the retry is automatic. The unverified request therefore
+sends no cookies and stores none, so a network attacker answering for the
+site receives no session and cannot plant one; anything the user then
+types into that page is still exposed.
 
 The `--ignore-certificate-errors` command-line option, for home lab
 servers with self-signed certificates, applies the same top-level rule
 for one run, without changing the setting. The GUI shows a warning
 dialog first and loads nothing until the user chooses *Continue*;
-headless runs print the warning to stderr. Once a top-level navigation
-to a host has proceeded past a certificate error, later requests to that
-same host (subresources, frames, `fetch()`, workers, media, WebSocket and
+headless runs print the warning to stderr. The navigation that first
+proceeds past a certificate error carries no cookies. After it, later
+requests to that same host (subresources, frames, `fetch()`, workers, media, WebSocket and
 EventSource) skip verification for the rest of the run, so the page
 works; their responses are marked not secure and never enter the HTTP
 cache, and an unverified EventSource does not follow redirects. Every

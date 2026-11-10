@@ -814,6 +814,27 @@ ns_js_realm_detached(const ns_js *js, const JSContext *realm)
     return TRUE;
 }
 
+/* The realm whose script is calling the running native function, for
+ * identity decisions (origin, cookies, permissions).  Parts of the platform
+ * are script in the page realm (data/js/polyfills.js) shared by every
+ * frame, so the innermost JS function can be a page-realm wrapper that a
+ * frame called: navigator.mediaDevices.getUserMedia, URL.createObjectURL.
+ * Taking that for the caller would give a cross-origin frame the page's
+ * identity.  When the innermost function is the page's, look past the
+ * page's functions; a frame realm found underneath is the caller. */
+static JSContext *
+ns_js_calling_realm(ns_js *js, JSContext *ctx)
+{
+    JSContext *caller = ctx ? JS_GetCallerRealmOrNull(ctx) : NULL;
+    if (!js || !caller || caller != js->main_realm_ctx ||
+        !js->frame_ctxs || js->frame_ctxs->len == 0)
+        return caller;
+    JSContext *outer = JS_GetCallerRealmOutside(ctx, caller);
+    for (guint i = 0; outer && i < js->frame_ctxs->len; i++)
+        if (g_ptr_array_index(js->frame_ctxs, i) == outer) return outer;
+    return caller;
+}
+
 /* Returns the iframe node owning a realm context, falling back to the current rAF frame. */
 static ns_node *
 ns_js_context_frame(ns_js *js, JSContext *ctx)
@@ -3734,10 +3755,12 @@ ns_element_finalizer(JSRuntime *rt, JSValue val)
 {
     (void)rt;
     ns_node *n = JS_GetOpaque(val, ns_element_class_id);
-    if (n) {
-        n->js_wrapper = NULL;
-        n->js_invalidate = NULL;
-    }
+    /* Only the wrapper goes away here.  js_invalidate stays armed: it is
+     * the hook that drops the engine's raw pointers to the node (pointer
+     * lock, focus, image loads, listeners) when the node is freed, and
+     * the orphan sweep frees exactly the nodes whose wrappers were
+     * collected.  Disarming it here left those pointers dangling. */
+    if (n) n->js_wrapper = NULL;
 }
 
 static int ns_element_named_get_own(JSContext *ctx, JSPropertyDescriptor *desc,
@@ -3883,6 +3906,17 @@ ns_invalidate_wrapper(ns_node *n)
     }
     if (js && js->focused_node == n)
         js->focused_node = NULL;
+    /* Every raw node pointer the engine keeps must be dropped here, or it
+     * dangles once the node is freed (a frame's document swept after the
+     * frame navigates, for one). */
+    if (js && js->pointer_lock_element == n)
+        js->pointer_lock_element = NULL;
+    if (js && js->lifecycle_doc == n)
+        js->lifecycle_doc = NULL;
+    if (js && js->active_modal == n) {
+        js->active_modal = NULL;
+        ns_dom_set_active_modal(NULL);
+    }
     if (js && js->orphan_nodes)
         g_hash_table_remove(js->orphan_nodes, n);
     if (js && js->js_image_loads)
@@ -8986,7 +9020,7 @@ static ns_fetch_policy *
 ns_js_caller_fetch_policy(ns_js *js, JSContext *ctx)
 {
     if (!js) return NULL;
-    JSContext *c = ctx ? JS_GetCallerRealmOrNull(ctx) : NULL;
+    JSContext *c = ns_js_calling_realm(js, ctx);
     if (!c) c = ctx;
     JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
     if (c && c != main_ctx && js->frame_contexts) {
@@ -10296,7 +10330,7 @@ static gboolean
 ns_cam_caller_may_use(ns_js *js, JSContext *ctx)
 {
     if (!js) return FALSE;
-    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    JSContext *caller = ns_js_calling_realm(js, ctx);
     if (ns_js_caller_unknown(js, caller)) return FALSE;
     if (ns_js_realm_detached(js, caller)) return FALSE;
     const ns_node *frame = NULL;
@@ -12993,7 +13027,7 @@ ns_js_realm_origin(ns_js *js, JSContext *realm)
 static char *
 ns_js_caller_origin(ns_js *js, JSContext *ctx)
 {
-    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    JSContext *caller = ns_js_calling_realm(js, ctx);
     if (ns_js_caller_unknown(js, caller))
         return g_strdup_printf("null:unknown:%p", (void *)js);
     return ns_js_realm_origin(js, caller ? caller : ctx);
@@ -13007,7 +13041,7 @@ ns_js_caller_origin(ns_js *js, JSContext *ctx)
 static char *
 ns_js_caller_document_url(ns_js *js, JSContext *ctx)
 {
-    JSContext *caller = JS_GetCallerRealmOrNull(ctx);
+    JSContext *caller = ns_js_calling_realm(js, ctx);
     if (ns_js_caller_unknown(js, caller)) return g_strdup("about:blank");
     /* Not "caller != js->ctx": js->ctx is the frame's own realm while its
      * timers, events and rAF callbacks run.  The main realm is never in

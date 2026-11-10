@@ -56986,6 +56986,7 @@ ns_js_free(ns_js *js)
     if (js->csp) { ns_csp_free(js->csp); js->csp = NULL; }
     if (js->doc_csp) { g_hash_table_destroy(js->doc_csp); js->doc_csp = NULL; }
     g_clear_pointer(&js->frame_posts, g_hash_table_destroy);
+    g_clear_pointer(&js->frame_initiators, g_hash_table_destroy);
     g_clear_pointer(&js->fetch_policy, ns_fetch_policy_unref);
     g_clear_pointer(&js->doc_fetch_policy, g_hash_table_destroy);
     g_free(js->early_inject_src);
@@ -60556,16 +60557,26 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             GError *err = NULL;
             ns_frame_post *post = js->frame_posts
                 ? g_hash_table_lookup(js->frame_posts, iframe) : NULL;
+            /* A frame that navigated itself (a form submitted inside it)
+             * is the initiator of this request, not the page embedding
+             * it: Origin, Referer and the cookie decision follow the
+             * frame's own document. */
+            g_autofree char *nav_initiator = js->frame_initiators
+                ? g_strdup(g_hash_table_lookup(js->frame_initiators, iframe))
+                : NULL;
+            if (nav_initiator)
+                g_hash_table_remove(js->frame_initiators, iframe);
+            const char *fetch_origin = nav_initiator ? nav_initiator : origin;
             ns_fetch_destination frame_dest =
                 is_object ? NS_FETCH_DEST_OBJECT : NS_FETCH_DEST_FRAME;
             if (post && g_strcmp0(post->url, abs_url) == 0)
                 resp = ns_js_fetch_resource_with_body(
-                    js, abs_url, origin, "POST", post->body, post->body_len,
+                    js, abs_url, fetch_origin, "POST", post->body, post->body_len,
                     post->content_type, NULL, frame_dest,
                     ns_js_fetch_policy(js, iframe), &err);
             else
                 resp = ns_js_fetch_resource(
-                    js, abs_url, origin, NULL, frame_dest,
+                    js, abs_url, fetch_origin, NULL, frame_dest,
                     ns_js_fetch_policy(js, iframe), &err);
             if (post) g_hash_table_remove(js->frame_posts, iframe);
             g_autofree char *csp_sandbox = resp
@@ -61446,6 +61457,11 @@ ns_js_submit_form_in_frame(ns_js *js, const ns_node *form,
                                   data->str);
         g_string_free(data, TRUE);
     }
+    if (!js->frame_initiators)
+        js->frame_initiators = g_hash_table_new_full(g_direct_hash,
+                                                     g_direct_equal, NULL,
+                                                     g_free);
+    g_hash_table_replace(js->frame_initiators, frame, g_strdup(frame_url));
     ns_js_set_attr_recorded(js, frame, src_attr, url);
     ns_js_schedule_iframe_load_full(js, frame, TRUE);
     g_free(url);

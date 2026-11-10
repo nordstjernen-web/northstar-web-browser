@@ -251,6 +251,7 @@ struct ns_js {
     ns_csp *csp;
     GHashTable   *doc_csp;
     GHashTable   *frame_posts;
+    GHashTable   *frame_initiators;
     ns_fetch_policy *fetch_policy;
     GHashTable   *doc_fetch_policy;
     char         *selection_text;

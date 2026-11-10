@@ -33,6 +33,10 @@ Significant changes in each release:
   withheld unless the document making the request is same-site with the
   target, and a frame's own form submission carries the frame's `Origin`
   and `Referer`. Same-site frames are unaffected.
+* Security (Linux sandbox): the seccomp rule that stops content threads
+  from creating UNIX sockets compared all 64 bits of the address-family
+  argument, which the kernel reads as 32 bits, so a raw `socket` call with
+  the upper half set got past it. The rule now compares the low 32 bits.
 * Security: a sandboxed frame (`sandbox="allow-scripts"`) was treated as
   the page itself while its own timers, events and animation frames ran,
   so from a `setTimeout` it could make same-origin XHR requests with the

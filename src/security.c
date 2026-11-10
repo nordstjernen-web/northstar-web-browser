@@ -1151,8 +1151,12 @@ ns_security_deny_exec_memory(gboolean whole_process)
      * try nscd or systemd-resolved over a socket fall back to DNS. */
     int socket_nr = seccomp_syscall_resolve_name("socket");
     if (socket_nr != __NR_SCMP_ERROR)
+        /* The family is an int: the kernel reads only the low 32 bits of
+         * the register, so compare only those. A plain equality test on
+         * all 64 would let a raw syscall with the high half set through. */
         (void)seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EACCES), socket_nr, 1,
-                               SCMP_A0(SCMP_CMP_EQ, AF_UNIX));
+                               SCMP_A0(SCMP_CMP_MASKED_EQ, 0xffffffffu,
+                                       AF_UNIX));
     int rc = seccomp_load(ctx);
     if (rc != 0)
         g_info("seccomp: executable-memory filter not loaded: %s",

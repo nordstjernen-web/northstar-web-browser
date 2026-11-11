@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A browser you can actually study: software freedom and the three Nordstjernen browsers</title>
+<meta name="description" content="A program is free when its users control it. Nordstjernen is a browser engine written from scratch, small enough for one person to read, released under the GNU GPL as three browsers: Sol, Northstar and Southstar.">
+<link rel="canonical" href="https://www.nordstjernen.org/a-browser-you-can-actually-study.html">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="en">
+<meta property="og:title" content="A browser you can actually study: software freedom and the three Nordstjernen browsers">
+<meta property="og:description" content="A program is free when its users control it. Nordstjernen is a browser engine written from scratch, small enough for one person to read, released under the GNU GPL as three browsers: Sol, Northstar and Southstar.">
+<meta property="og:url" content="https://www.nordstjernen.org/a-browser-you-can-actually-study.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-22.png">
+<meta property="og:image:alt" content="Northstar 1.0.22 showing a Wikipedia article">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="frame">
+
+  <a class="skip-link" href="#article">Skip to content</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.png" width="144" height="50" alt="Best viewed in Nordstjernen">
+    </a>
+    <div class="brand">
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Nordstjernen logo"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
+    </div>
+    <p class="tag">Nordstjernen is an independent, unique web browser</p>
+  </header>
+
+  <nav class="nav" aria-label="Primary">
+    <a href="index.html#about">About</a>
+    <a href="index.html#news">News</a>
+    <a href="screenshots.html">Screenshots</a>
+    <a href="download.html">Download</a>
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
+    <input type="checkbox" id="nav-more" class="nav-more-toggle">
+    <label class="nav-more-btn" for="nav-more">More <span aria-hidden="true">&#9662;</span></label>
+    <div class="nav-sec">
+      <a href="index.html#specs">Specifications</a>
+      <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">Releases</a>
+      <a href="https://discord.gg/4W959nW5vF">Discord</a>
+    </div>
+  </nav>
+
+  <main class="content">
+
+        <h1 id="article" style="color:#003366;">A browser you can actually study</h1>
+
+        <p class="lead">Software freedom and the three Nordstjernen browsers: Sol, Northstar and Southstar.</p>
+
+        <p>&laquo; <a href="index.html">Back to nordstjernen.org</a></p>
+
+        <p>A program is free software if it respects the freedom of its users. Specifically, the users must have four essential freedoms: the freedom to run the program as they wish (freedom 0), the freedom to study and change its source code (freedom 1), the freedom to redistribute exact copies (freedom 2), and the freedom to distribute modified versions (freedom 3). With these freedoms, the users control the program. Without them, the program controls the users, and its developer controls the program.</p>
+
+        <p>The browser is where this question matters most. It is the program through which people read, write, bank, vote and talk to each other. It runs code sent by strangers all day long. If any program should be under its users&rsquo; control, it is this one.</p>
+
+        <h2 id="exercise">The freedom nobody can exercise</h2>
+        <p>Several browsers are free software in the legal sense. Their source code is published under free licenses. That is essential, and we should be grateful for it.</p>
+        <p>But consider freedom 1 in practice. The three engines that nearly every browser is built on each run to tens of millions of lines. No person can read one. A community of volunteers cannot realistically maintain an independent version of one. In practice, only a company with hundreds of paid engineers can decide what such a program does, and so the direction of the web is decided by a few companies, whatever the license says.</p>
+        <p>Freedom that cannot be exercised is freedom in name only. The license is necessary. It is not sufficient.</p>
+        <p>This is one place where the difference between &ldquo;free software&rdquo; and &ldquo;open source&rdquo; shows. The open source idea asks whether the source can be seen and whether the development model is efficient. The free software movement asks whether the users are in control. A program too large for its users ever to understand fails the second question even when it passes the first.</p>
+
+        <h2 id="small">A browser small enough to be controlled</h2>
+        <p>Nordstjernen is a browser engine written from scratch. It contains no code from Blink, WebKit or Gecko. The complete browser is about 268,000 lines of C, which is small enough for one person to read and audit from beginning to end.</p>
+        <p>It is not a toy. It runs service workers, IndexedDB, WebAssembly, WebGL and extensions, and it plays video from the large streaming sites. Measured against the shared test suites, it passes 91.5% of the web-platform-tests subtests for HTML, DOM and URL, 73.2% for CSS, and all 82,248 tests of test262. We publish the weak results as well as the strong ones, because users are entitled to know what the program does and does not do.</p>
+        <p>It is released under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License</a>, version 3 or later. The GPL is a copyleft license: everyone who receives the program receives the four freedoms, and nobody may strip them from a modified version. This matters. A browser under a lax license can be taken, made proprietary, and turned against its users. A copylefted browser cannot.</p>
+
+        <h2 id="refuses">What the browser refuses to do</h2>
+        <p>A free program can still mistreat its users if its developers choose to. So it is worth stating what Nordstjernen does not do.</p>
+        <p>It does not report on you. There is no telemetry, there are no update pings, there are no &ldquo;studies&rdquo; and there is no account. It checks sites against Google Safe Browsing by default, but the lists are kept on your machine, only a 4-byte hash prefix is sent when an address matches one, and you can turn the feature off in Settings.</p>
+        <p>It does not implement Digital Restrictions Management. Encrypted Media Extensions exist to restrict what you may do with your own computer, and they are outside the scope of this project. They will stay there.</p>
+        <p>It contains no JIT compiler. JavaScript and WebAssembly are interpreted, so no page is ever given memory that is both writable and executable. In Nordstjernen Sol and Southstar, each tab runs in its own sandboxed process.</p>
+        <p>One caution is in order. A free browser does not make the web free. Most sites send nonfree JavaScript programs to your machine, and running them in a free browser does not make them free. What a small, readable browser gives you is the ability to decide: to block, to inspect, and to change how the browser treats what it is sent.</p>
+
+        <h2 id="three">Three browsers</h2>
+        <p>One implementation of a standard is not a standard. It is a single program whose behavior everyone else must copy. Independent implementations are what keep the web from being the property of whoever maintains the dominant engine. That is the reason to write another browser.</p>
+        <p>We wrote three, because building the same design in different ways tells us what each choice costs.</p>
+        <ul>
+          <li><b><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">Nordstjernen Sol</a></b> is the full browser, with tabs, a sandboxed process per tab, developer tools, WebDriver, and a binding that lets Java programs drive the engine in a separate process. It runs on GNU/Linux, the BSDs, Android, macOS and Windows.</li>
+          <li><b><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a></b> is Sol rewritten in Rust, with the Boa JavaScript engine, in about 385,000 lines. It holds no C code of its own.</li>
+          <li><b><a href="northstar-browser/">Northstar</a></b> is the minimalist: one process, one page per window, about 219,000 lines of C.</li>
+        </ul>
+
+        <h2 id="northstar">Why Northstar is the future</h2>
+        <p>Sol may be used under the GPL, and so it is free software. It is also offered under a second license, the Nordstjernen Source License, which forbids use in a competing browser. That license is not a free software license. You are never obliged to accept it, but its presence is a complication.</p>
+        <p>Northstar has no such complication. It is licensed under the GNU GPL version 3 or later, and nothing else. Every user receives the same four freedoms on the same terms.</p>
+        <p>It is also the edition in which those freedoms are easiest to use. Its HTML parser and JavaScript engine are unmodified upstream releases, so there are no private forks to understand. There is one process, so there is no internal protocol to learn before changing anything. And it is the smallest of the three. A person who wants to know what their browser does can sit down and find out.</p>
+        <p>That is what a browser should be: a program its users can read, change and share, in practice and not only in principle.</p>
+
+        <h2 id="get">Getting it</h2>
+        <p>The best way to get a free program is as source code, which you build yourself:</p>
+<pre><code>git clone https://github.com/nordstjernen-web/northstar-web-browser.git
+cd northstar-web-browser
+meson setup builddir &amp;&amp; meson compile -C builddir</code></pre>
+        <p>The build needs the development packages listed in the <a href="https://github.com/nordstjernen-web/northstar-web-browser#build-and-run">README</a>. Packages for GNU/Linux distributions (<code>.deb</code> and <code>.rpm</code>) are published with each Sol release, and there are build recipes for Arch, Alpine, FreeBSD and NetBSD. The browsers can also be installed through npm, which builds them from source. See the <a href="download.html">download page</a>.</p>
+        <p>Builds also exist for Windows, macOS and Android. Those systems, and the stores that distribute programs for them, do not respect your freedom. We publish there because people who have not yet escaped them deserve a browser that does not spy on them. We hope it is a first step and not the last.</p>
+        <p>Read it, change it, and share your changes.</p>
+
+        <p>&laquo; <a href="index.html">Back to nordstjernen.org</a></p>
+
+  </main>
+
+  <footer class="footer">
+    Copyright &copy; 2026 the Nordstjernen project &middot;
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
+    <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
+    <a href="privacy/">Privacy</a>
+  </footer>
+
+</div>
+
+</body>
+</html>

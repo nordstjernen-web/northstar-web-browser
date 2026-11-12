@@ -3,6 +3,7 @@ northstar_gtk_sources = files(
   'icons.c',
   'procview.c',
   'procwindow.c',
+  'uiscale.c',
   '../libnorthstar.c',
   '../page_session.c',
   '../threaddump.c',

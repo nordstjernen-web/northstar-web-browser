@@ -9,6 +9,7 @@
 #include "audio/audio.h"
 #include "icons.h"
 #include "procview.h"
+#include "uiscale.h"
 #include "i18n.h"
 #include "bookmarks.h"
 #include "cache.h"
@@ -53,9 +54,10 @@ configure_media_inputs(void)
         if (monitor) {
             GdkRectangle geometry;
             gdk_monitor_get_geometry(monitor, &geometry);
-            device.width = geometry.width;
-            device.height = geometry.height;
-            device.resolution_dppx = gdk_monitor_get_scale_factor(monitor);
+            double ui = ns_ui_scale();
+            device.width = (int)(geometry.width / ui + 0.5);
+            device.height = (int)(geometry.height / ui + 0.5);
+            device.resolution_dppx = gdk_monitor_get_scale_factor(monitor) * ui;
             g_object_unref(monitor);
         }
         GdkSeat *seat = gdk_display_get_default_seat(display);
@@ -207,8 +209,7 @@ install_status_css(void)
     if (!display)
         return;
     GtkCssProvider *p = gtk_css_provider_new();
-    gtk_css_provider_load_from_string(
-        p,
+    char *css = ns_ui_scale_css(
         ".ns-procstatus {"
         "  padding: 2px 10px;"
         "  border-top-right-radius: 6px;"
@@ -233,6 +234,9 @@ install_status_css(void)
         "  min-height: 26px;"
         "  min-width: 26px;"
         "  padding: 0;"
+        "}"
+        "headerbar windowcontrols > button > image {"
+        "  -gtk-icon-size: 16px;"
         "}"
         ".ns-toolbar menubutton > button {"
         "  min-height: 34px;"
@@ -409,6 +413,8 @@ install_status_css(void)
         "  border-bottom: 1px solid #ffffff;"
         "  box-shadow: inset 1px 1px 0 #6b778c;"
         "}");
+    gtk_css_provider_load_from_string(p, css);
+    g_free(css);
     gtk_style_context_add_provider_for_display(
         display, GTK_STYLE_PROVIDER(p),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -437,7 +443,7 @@ toolbar_button_icon_size(GtkWidget *button, int pixels)
 {
     GtkImage *img = toolbar_button_image(button);
     if (img)
-        gtk_image_set_pixel_size(img, pixels);
+        gtk_image_set_pixel_size(img, ns_ui_px(pixels));
 }
 
 /* Creates a frameless toolbar button with icon, optional label, tooltip and a11y label. */
@@ -920,7 +926,7 @@ show_downloads_window(ProcWindow *pw)
     }
     GtkWidget *win = gtk_window_new();
     gtk_window_set_title(GTK_WINDOW(win), ns_i18n("Downloads"));
-    gtk_window_set_default_size(GTK_WINDOW(win), 460, 420);
+    gtk_window_set_default_size(GTK_WINDOW(win), ns_ui_px(460), ns_ui_px(420));
     gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(pw->window));
     g_signal_connect(win, "close-request",
                      G_CALLBACK(downloads_win_close), NULL);
@@ -1983,7 +1989,8 @@ proc_window_new(GtkApplication *app, const char *home_url,
         gtk_window_set_default_size(GTK_WINDOW(pw->window),
                                     g_initial_win_w, g_initial_win_h);
     } else {
-        gtk_window_set_default_size(GTK_WINDOW(pw->window), 1024, 768);
+        gtk_window_set_default_size(GTK_WINDOW(pw->window),
+                                    ns_ui_px(1024), ns_ui_px(768));
         gtk_window_maximize(GTK_WINDOW(pw->window));
     }
 
@@ -2100,7 +2107,7 @@ proc_window_new(GtkApplication *app, const char *home_url,
     gtk_widget_set_halign(menu_box, GTK_ALIGN_CENTER);
     gtk_widget_set_valign(menu_box, GTK_ALIGN_CENTER);
     GtkWidget *menu_icon = gtk_image_new_from_icon_name("open-menu-symbolic");
-    gtk_image_set_pixel_size(GTK_IMAGE(menu_icon), 20);
+    gtk_image_set_pixel_size(GTK_IMAGE(menu_icon), ns_ui_px(20));
     GtkWidget *menu_label = gtk_label_new(ns_i18n("Menu"));
     gtk_widget_add_css_class(menu_label, "ns-toolbar-label");
     gtk_box_append(GTK_BOX(menu_box), menu_icon);
@@ -2115,7 +2122,7 @@ proc_window_new(GtkApplication *app, const char *home_url,
     g_object_unref(appmenu);
 
     GtkWidget *logo = ns_icon_image_new("northstar");
-    gtk_image_set_pixel_size(GTK_IMAGE(logo), 22);
+    gtk_image_set_pixel_size(GTK_IMAGE(logo), ns_ui_px(22));
     GtkWidget *logo_button = gtk_button_new();
     gtk_button_set_child(GTK_BUTTON(logo_button), logo);
     gtk_button_set_has_frame(GTK_BUTTON(logo_button), FALSE);
@@ -2326,7 +2333,7 @@ build_bookmarks_popover(ProcWindow *pw)
     gtk_widget_set_margin_bottom(box, 6);
     gtk_widget_set_margin_start(box, 6);
     gtk_widget_set_margin_end(box, 6);
-    gtk_widget_set_size_request(box, 320, -1);
+    gtk_widget_set_size_request(box, ns_ui_px(320), -1);
 
     GtkWidget *add = gtk_button_new_with_label(
         current_page_bookmarked(pw) ? ns_i18n("Remove this bookmark")

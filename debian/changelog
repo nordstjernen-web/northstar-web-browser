@@ -1,3 +1,14 @@
+northstar (1.0.23+ds-1) unstable; urgency=medium
+
+  * New upstream release: security fixes that keep cross-origin frames
+    apart from the embedding page, stop stylesheets reading form input
+    and parse only HTML and XML responses as documents; tighter seccomp
+    rules for sockets and signals; lazy parsing of stylesheet
+    declarations; a working DNS-over-HTTPS setting; and rendering and
+    canvas fixes.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Thu, 12 Nov 2026 20:40:00 +0100
+
 northstar (1.0.22+ds-1) unstable; urgency=medium
 
   * New upstream release: Google Safe Browsing with the local blocklist

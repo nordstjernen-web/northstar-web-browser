@@ -200,6 +200,14 @@ Significant changes in each release:
   nine local patches apply unchanged. lexbor, WAMR, Wuffs and pl_mpeg are
   still at their upstream heads; Bellard QuickJS has no release after
   2026-06-04.
+* Windows: the browser follows the display scale setting at 125%, 150%
+  and 175%. GTK on Windows scales widgets by whole factors only, so at
+  those settings only the interface text grew; toolbar icons, buttons and
+  web pages stayed at 100% size. Pages are now laid out and painted at
+  the display scale (`devicePixelRatio` 1.5 at 150%, sharp text and
+  images, not an enlarged bitmap), `screen.width` and the resolution
+  media queries report CSS pixels, and the toolbar, its icons and the
+  title-bar buttons scale with it. `NS_UI_SCALE` overrides the factor.
 
 1.0.22:
 =======

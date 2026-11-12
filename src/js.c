@@ -1567,16 +1567,17 @@ ns_nav_screen_metrics(int *width, int *height,
     *avail_left = 0;
     *avail_top = 0;
 #ifdef G_OS_WIN32
+    double dppx = device.resolution_dppx > 0 ? device.resolution_dppx : 1.0;
     int screen_width = GetSystemMetrics(SM_CXSCREEN);
     int screen_height = GetSystemMetrics(SM_CYSCREEN);
-    if (screen_width > 0) *width = screen_width;
-    if (screen_height > 0) *height = screen_height;
+    if (screen_width > 0) *width = (int)(screen_width / dppx + 0.5);
+    if (screen_height > 0) *height = (int)(screen_height / dppx + 0.5);
     RECT work_area;
     if (SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0)) {
-        *avail_width = work_area.right - work_area.left;
-        *avail_height = work_area.bottom - work_area.top;
-        *avail_left = work_area.left;
-        *avail_top = work_area.top;
+        *avail_width = (int)((work_area.right - work_area.left) / dppx + 0.5);
+        *avail_height = (int)((work_area.bottom - work_area.top) / dppx + 0.5);
+        *avail_left = (int)(work_area.left / dppx + 0.5);
+        *avail_top = (int)(work_area.top / dppx + 0.5);
     }
 #endif
 }

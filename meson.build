@@ -1,7 +1,7 @@
 project(
   'northstar',
   'c',
-  version: '1.0.23-dev',
+  version: '1.0.23',
   license: 'GPL-3.0-or-later',
   default_options: [
     'c_std=gnu2x,c2x,gnu11,c11',

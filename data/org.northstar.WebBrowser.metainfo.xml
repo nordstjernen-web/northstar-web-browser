@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.23" date="2026-11-12">
+      <description>
+        <p>Security and performance release.</p>
+        <ul>
+          <li>Security: embedded frames from other sites are kept apart from the page around them. They can no longer run script in it, read it, reach its same-origin frames, use its cookies, camera or microphone, or cancel its timers.</li>
+          <li>Security: stylesheets can no longer read what is typed into form fields, and only HTML and XML responses are parsed as documents; attachments and other types are downloaded or shown in inert viewers.</li>
+          <li>Security: tighter Linux sandbox rules for sockets and signals, a use-after-free fix, and URL handlers that can no longer pass command-line options to the browser.</li>
+          <li>Faster styling of pages with large stylesheets: declarations are parsed only when a rule first matches.</li>
+          <li>The DNS-over-HTTPS setting takes effect, Google sign-in accepts input, and canvas and gradient rendering fixes.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.22" date="2026-11-08">
       <description>
         <p>Feature release.</p>

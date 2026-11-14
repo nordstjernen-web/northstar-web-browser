@@ -4,6 +4,18 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* SVG: `getScreenCTM()` inside an `<iframe>` now maps to the frame's own
+  client coordinates, as `getBoundingClientRect()` does. It used the
+  position in the top-level page, so pointer positions computed from it
+  (d3's `mouse()`, which charting libraries use) were off by the frame's
+  offset. Speedometer 3.1's React-Stockcharts-SVG threw on its first
+  mouse event whenever the window was wide enough to centre the test
+  frame far from the left edge, and the run ended in "Error".
+* Focus: an element removed from the page while it had focus no longer
+  receives `blur` and `focusout` when focus moves elsewhere, as the HTML
+  focus fixup requires. The handlers of a removed frame's elements ran
+  against a document whose window was no longer theirs and threw
+  `SecurityError` (Speedometer's TodoMVC jQuery and Backbone suites).
 * Frames: scripts written into a frame with `document.write()` now run.
   `frame.contentDocument.write('<script>…')` parsed nothing until
   `close()` and never ran the scripts it wrote, with or without `close()`.

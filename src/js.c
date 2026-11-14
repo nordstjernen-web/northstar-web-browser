@@ -35089,6 +35089,27 @@ ns_box_visual_padding_box(const ns_box *box,
     ns_box_apply_visual_transform(box, x, y, w, h);
 }
 
+/* Offset to subtract from a page-layout position of node to get its client
+ * (viewport) position: the window scroll and, inside an iframe, the frame's
+ * own client position, as getBoundingClientRect() reports it. */
+static void
+ns_js_client_offset(JSContext *ctx, const ns_node *node, double *dx, double *dy)
+{
+    *dx = ns_window_scroll_prop(ctx, "scrollX");
+    *dy = ns_window_scroll_prop(ctx, "scrollY");
+    const ns_node *iframe = ns_node_owner_iframe(node);
+    ns_js *js = js_from_ctx(ctx);
+    const ns_box *iframe_box = js && js->layout_root && iframe
+        ? ns_box_find_by_dom(js->layout_root, iframe) : NULL;
+    if (iframe_box) {
+        double frame_x, frame_y, frame_w, frame_h;
+        ns_box_visual_border_box(iframe_box, &frame_x, &frame_y,
+                                 &frame_w, &frame_h);
+        *dx += frame_x - ns_window_scroll_prop(ctx, "scrollX");
+        *dy += frame_y - ns_window_scroll_prop(ctx, "scrollY");
+    }
+}
+
 /* getBoundingClientRect(): transformed border box in viewport coords, frame-relative. */
 static JSValue
 ns_element_getBoundingClientRect(JSContext *ctx, JSValueConst this_val,
@@ -35102,22 +35123,10 @@ ns_element_getBoundingClientRect(JSContext *ctx, JSValueConst this_val,
         got_box = TRUE;
     if (b) ns_box_visual_border_box(b, &x, &y, &w, &h);
     if (got_box) {
-        x -= ns_window_scroll_prop(ctx, "scrollX");
-        y -= ns_window_scroll_prop(ctx, "scrollY");
-        const ns_node *node = ns_unwrap_element(this_val);
-        const ns_node *iframe = ns_node_owner_iframe(node);
-        ns_js *js = js_from_ctx(ctx);
-        const ns_box *iframe_box = js && js->layout_root && iframe
-            ? ns_box_find_by_dom(js->layout_root, iframe) : NULL;
-        if (iframe_box) {
-            double frame_x, frame_y, frame_w, frame_h;
-            ns_box_visual_border_box(iframe_box, &frame_x, &frame_y,
-                                     &frame_w, &frame_h);
-            frame_x -= ns_window_scroll_prop(ctx, "scrollX");
-            frame_y -= ns_window_scroll_prop(ctx, "scrollY");
-            x -= frame_x;
-            y -= frame_y;
-        }
+        double dx, dy;
+        ns_js_client_offset(ctx, ns_unwrap_element(this_val), &dx, &dy);
+        x -= dx;
+        y -= dy;
     }
     return ns_make_dom_rect(ctx, x, y, w, h);
 }
@@ -35569,7 +35578,7 @@ ns_svg_owner_root(const ns_node *n)
     return svg;
 }
 
-/* getScreenCTM(): viewBox scale and translation onto the outer svg's layout box. */
+/* getScreenCTM(): viewBox scale and translation onto the outer svg's client box. */
 static JSValue
 ns_element_getScreenCTM(JSContext *ctx, JSValueConst this_val,
                         int argc, JSValueConst *argv)
@@ -35581,9 +35590,14 @@ ns_element_getScreenCTM(JSContext *ctx, JSValueConst this_val,
     ns_js *js = js_from_ctx(ctx);
     if (js) {
         ns_js_flush_layout(js);
-        if (js->layout_root && svg) {
-            const ns_box *b = ns_box_find_by_dom(js->layout_root, svg);
-            if (b) ns_box_border_rect(b, &sx, &sy, &sw, &sh);
+        const ns_box *b = js->layout_root && svg
+            ? ns_box_find_by_dom(js->layout_root, svg) : NULL;
+        if (b) {
+            double dx, dy;
+            ns_box_border_rect(b, &sx, &sy, &sw, &sh);
+            ns_js_client_offset(ctx, svg, &dx, &dy);
+            sx -= dx;
+            sy -= dy;
         }
     }
     double scaleX = 1, scaleY = 1, minx = 0, miny = 0;
@@ -41049,7 +41063,10 @@ ns_js_set_focus(ns_js *js, const ns_node *el)
     JSValue old_ref = old ? ns_make_element(js->ctx, old) : JS_NULL;
     JSValue el_ref = el ? ns_make_element(js->ctx, el) : JS_NULL;
 
-    if (old) {
+    /* A focused element that has left the page loses focus without a
+     * blur (the HTML focus fixup); its handlers may belong to a realm
+     * that is gone. */
+    if (old && ns_js_node_in_page(js, old)) {
         ns_js_dispatch_focus_event(js, old, el, "blur", FALSE);
         ns_js_dispatch_focus_event(js, old, el, "focusout", TRUE);
     }

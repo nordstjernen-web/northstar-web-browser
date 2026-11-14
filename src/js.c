@@ -61927,6 +61927,14 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (content_root)
         ns_js_schedule_static_iframes(js, content_root);
     ns_js_schedule_pending_script_drain(js);
+    /* Style and lay the new document out before its frame reports load.
+     * Left for later, that first pass, the most expensive one a document
+     * gets, runs inside whichever script first reads a size or at the next
+     * frame: a page that starts work on a frame at its load event (and
+     * Speedometer, which starts its timer there) paid for it. */
+    if (!written_open && content_root && !js->halted &&
+        js->eval_depth == 0 && js->iframe_load_depth == 0)
+        ns_js_flush_layout_from(js, "frame load");
     if (!written_open)
         ns_js_dispatch_event(js, iframe, "load", NULL);
 

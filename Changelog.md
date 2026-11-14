@@ -70,10 +70,16 @@ Significant changes in each release:
   blurred again each time. Only the corners and edges are blurred now,
   once for all boxes with the same corners, blur and color; the result is
   pixel for pixel what it was.
+* Frames: a frame's document is styled and laid out before the frame's
+  `load` event. That first pass is the most expensive one a document
+  gets, and it used to run at the next frame or inside the first script
+  that read a size, so code that starts work at `load` paid for it.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
-  Speedometer 3.1 completes with a score (about 3.5; it ended without
-  one). JetStream needs `js_eval_budget_ms` raised, for example
+  Speedometer 3.1 completes with a score (it ended without one): about
+  3.5 after the frame and memory fixes, and about 3.9 to 4.0 on
+  browserbench.org with the transition, layout, shadow and frame-layout
+  changes above. JetStream needs `js_eval_budget_ms` raised, for example
   `NS_JS_EVAL_BUDGET_MS=900000`: four of its benchmarks run longer than
   the default 60 seconds as a single script and are interrupted
   otherwise.

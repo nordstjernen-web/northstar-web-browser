@@ -43,6 +43,18 @@ Significant changes in each release:
   at 60 seconds those benchmarks could not finish however it was
   configured. The page-wide halt and the watchdog's hang limit follow the
   configured budget.
+* XMLHttpRequest: `responseXML` is the parsed document for
+  `responseType = "document"` and for an XML response with the default
+  type. It was always `null`.
+* HTML parser: `<?target data>` becomes a ProcessingInstruction node, as
+  the HTML Standard now specifies, and serializes back as `<?target
+  data>`. The node the parser built was dropped, so the markup vanished
+  from the tree.
+* DOM: `input.files` is a `FileList` (it was a plain array),
+  `HTMLElement.accessKeyLabel` is visible to scripts, and
+  `document.queryCommandIndeterm()` exists beside the other
+  `queryCommand*` methods. With `responseXML`, html5test.co goes from 495
+  to 499 points.
 
 1.0.23:
 =======

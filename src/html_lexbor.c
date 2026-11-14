@@ -134,7 +134,21 @@ lxb_node_convert(lxb_dom_node_t *src)
             g_strndup(pub && plen ? (const char *)pub : "", plen),
             g_strndup(sys && slen ? (const char *)sys : "", slen));
     }
-    case LXB_DOM_NODE_TYPE_PROCESSING_INSTRUCTION:
+    case LXB_DOM_NODE_TYPE_PROCESSING_INSTRUCTION: {
+        /* <?target data> in HTML: kept as the ProcessingInstruction node
+         * the parser built, in the form the XML parser uses for one. */
+        lxb_dom_processing_instruction_t *pi =
+            lxb_dom_interface_processing_instruction(src);
+        const lexbor_str_t *data = &pi->char_data.data;
+        ns_node *out = ns_node_new_comment(
+            g_strndup(data->data ? (const char *)data->data : "",
+                      data->data ? data->length : 0));
+        ns_node_set_name_owned(
+            out, g_strndup(pi->target.data ? (const char *)pi->target.data : "",
+                           pi->target.data ? pi->target.length : 0));
+        out->flags |= NS_NODE_PI;
+        return out;
+    }
     case LXB_DOM_NODE_TYPE_ATTRIBUTE:
     case LXB_DOM_NODE_TYPE_ENTITY_REFERENCE:
     case LXB_DOM_NODE_TYPE_ENTITY:

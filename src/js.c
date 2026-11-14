@@ -18858,6 +18858,55 @@ ns_target_removeEventListener(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* TRUE for an XML response type: text/xml, application/xml or any +xml type. */
+static gboolean
+ns_xhr_content_type_is_xml(const char *content_type)
+{
+    if (!content_type) return FALSE;
+    g_autofree char *essence = g_ascii_strdown(content_type, -1);
+    char *semi = strchr(essence, ';');
+    if (semi) *semi = '\0';
+    g_strstrip(essence);
+    return strcmp(essence, "text/xml") == 0 ||
+           strcmp(essence, "application/xml") == 0 ||
+           g_str_has_suffix(essence, "+xml");
+}
+
+/* Parses an XHR response body as an XML or HTML document through DOMParser; null on failure. */
+static JSValue
+ns_xhr_parse_document(JSContext *ctx, const char *body, gsize blen, gboolean xml)
+{
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue dp_ctor = JS_GetPropertyStr(ctx, global, "DOMParser");
+    JS_FreeValue(ctx, global);
+    JSValue doc = JS_NULL;
+    if (JS_IsConstructor(ctx, dp_ctor)) {
+        JSValue parser = JS_CallConstructor(ctx, dp_ctor, 0, NULL);
+        if (!JS_IsException(parser) && JS_IsObject(parser)) {
+            JSValue parse_fn = JS_GetPropertyStr(ctx, parser, "parseFromString");
+            if (JS_IsFunction(ctx, parse_fn)) {
+                JSValue src_v = JS_NewStringLen(ctx, body, blen);
+                JSValue mime_v = JS_NewString(ctx,
+                    xml ? "application/xml" : "text/html");
+                JSValueConst args[2] = { src_v, mime_v };
+                doc = JS_Call(ctx, parse_fn, parser, 2, args);
+                if (JS_IsException(doc)) {
+                    JS_FreeValue(ctx, JS_GetException(ctx));
+                    doc = JS_NULL;
+                }
+                JS_FreeValue(ctx, src_v);
+                JS_FreeValue(ctx, mime_v);
+            }
+            JS_FreeValue(ctx, parse_fn);
+        } else if (JS_IsException(parser)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+        }
+        JS_FreeValue(ctx, parser);
+    }
+    JS_FreeValue(ctx, dp_ctor);
+    return doc;
+}
+
 /* Completes an XHR: CORS check, status/headers, typed response, load events. */
 static void
 ns_xhr_deliver(ns_xhr_state *st, ns_response *resp, GError *err)
@@ -18960,44 +19009,25 @@ ns_xhr_deliver(ns_xhr_state *st, ns_response *resp, GError *err)
             JS_FreeValue(ctx, blob_ctor);
             JS_SetPropertyStr(ctx, st->obj, "response", blob);
         } else if (rt && strcmp(rt, "document") == 0) {
-            JSValue global = JS_GetGlobalObject(ctx);
-            JSValue dp_ctor = JS_GetPropertyStr(ctx, global, "DOMParser");
-            JS_FreeValue(ctx, global);
-            JSValue doc = JS_NULL;
-            if (JS_IsConstructor(ctx, dp_ctor)) {
-                JSValue parser = JS_CallConstructor(ctx, dp_ctor, 0, NULL);
-                if (!JS_IsException(parser) && JS_IsObject(parser)) {
-                    JSValue parse_fn =
-                        JS_GetPropertyStr(ctx, parser, "parseFromString");
-                    if (JS_IsFunction(ctx, parse_fn)) {
-                        gboolean xml = resp->content_type &&
-                            (strstr(resp->content_type, "xml") != NULL ||
-                             strstr(resp->content_type, "svg") != NULL);
-                        JSValue src_v = JS_NewStringLen(ctx, body, blen);
-                        JSValue mime_v = JS_NewString(ctx,
-                            xml ? "application/xml" : "text/html");
-                        JSValueConst args[2] = { src_v, mime_v };
-                        doc = JS_Call(ctx, parse_fn, parser, 2, args);
-                        if (JS_IsException(doc)) {
-                            JS_FreeValue(ctx, JS_GetException(ctx));
-                            doc = JS_NULL;
-                        }
-                        JS_FreeValue(ctx, src_v);
-                        JS_FreeValue(ctx, mime_v);
-                    }
-                    JS_FreeValue(ctx, parse_fn);
-                } else if (JS_IsException(parser)) {
-                    JS_FreeValue(ctx, JS_GetException(ctx));
-                }
-                JS_FreeValue(ctx, parser);
-            }
-            JS_FreeValue(ctx, dp_ctor);
+            /* The body parsed as a document: HTML unless the response is
+             * an XML type.  response and responseXML are the same object. */
+            JSValue doc = ns_xhr_parse_document(ctx, body, blen,
+                                                ns_xhr_content_type_is_xml(
+                                                    resp->content_type));
+            JS_SetPropertyStr(ctx, st->obj, "responseXML",
+                              JS_DupValue(ctx, doc));
             JS_SetPropertyStr(ctx, st->obj, "response", doc);
         } else {
             JS_SetPropertyStr(ctx, st->obj, "response",
                               ns_xhr_response_text_value(ctx, st->obj,
                                   (const guint8 *)body, blen,
                                   resp->content_type));
+            /* With the default responseType, responseXML is the parsed
+             * document of an XML response and null for anything else. */
+            if ((!rt || !*rt) && blen > 0 &&
+                ns_xhr_content_type_is_xml(resp->content_type))
+                JS_SetPropertyStr(ctx, st->obj, "responseXML",
+                                  ns_xhr_parse_document(ctx, body, blen, TRUE));
         }
         if (rt) JS_FreeCString(ctx, rt);
     } else {
@@ -36809,6 +36839,37 @@ ns_input_get_files(JSContext *ctx, JSValueConst this_val)
     JSValue arr = JS_NewArray(ctx);
     JS_SetPropertyStr(ctx, arr, "item",
         JS_NewCFunction(ctx, ns_namedmap_item, "item", 1));
+    /* The list is a FileList: indexed, iterable, but without the Array
+     * methods. */
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue fl_ctor = JS_GetPropertyStr(ctx, global, "FileList");
+    JSValue fl_proto = JS_IsObject(fl_ctor)
+        ? JS_GetPropertyStr(ctx, fl_ctor, "prototype") : JS_UNDEFINED;
+    if (JS_IsObject(fl_proto)) {
+        JSValue sym_ctor = JS_GetPropertyStr(ctx, global, "Symbol");
+        JSValue sym_iter = JS_GetPropertyStr(ctx, sym_ctor, "iterator");
+        JSAtom iter = JS_IsSymbol(sym_iter) ? JS_ValueToAtom(ctx, sym_iter)
+                                            : JS_ATOM_NULL;
+        JS_FreeValue(ctx, sym_iter);
+        JS_FreeValue(ctx, sym_ctor);
+        if (iter != JS_ATOM_NULL) {
+            JSValue own = JS_GetProperty(ctx, fl_proto, iter);
+            if (!JS_IsFunction(ctx, own)) {
+                JSValue values = JS_GetProperty(ctx, arr, iter);
+                if (JS_IsFunction(ctx, values))
+                    JS_DefinePropertyValue(ctx, fl_proto, iter,
+                        JS_DupValue(ctx, values),
+                        JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+                JS_FreeValue(ctx, values);
+            }
+            JS_FreeValue(ctx, own);
+            JS_FreeAtom(ctx, iter);
+        }
+        JS_SetPrototype(ctx, arr, fl_proto);
+    }
+    JS_FreeValue(ctx, fl_proto);
+    JS_FreeValue(ctx, fl_ctor);
+    JS_FreeValue(ctx, global);
     JS_DefinePropertyValueStr(ctx, this_val, "__nd_files_cache",
         JS_DupValue(ctx, arr),
         JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
@@ -55221,7 +55282,7 @@ static const char ns_element_shapes_src[] =
         "setHTML setHTMLUnsafe setPointerCapture shadowRoot slot "
         "startViewTransition tagName toggleAttribute webkitMatchesSelector "
         "webkitRequestFullScreen webkitRequestFullscreen',"
-        "  HTMLElement: 'accessKey attachInternals attributeStyleMap autocapitalize "
+        "  HTMLElement: 'accessKey accessKeyLabel attachInternals attributeStyleMap autocapitalize "
         "autocorrect autofocus blur click contentEditable dataset dir "
         "draggable editContext enterKeyHint focus focusGroup "
         "focusGroupStart hidden hidePopover inert innerText inputMode "
@@ -56503,6 +56564,7 @@ static const JSCFunctionListEntry ns_document_funcs[] = {
     JS_CFUNC_DEF("queryCommandSupported", 1, ns_document_queryCommandSupported),
     JS_CFUNC_DEF("queryCommandEnabled",   1, ns_document_queryCommandEnabled),
     JS_CFUNC_DEF("queryCommandState",     1, ns_returns_false),
+    JS_CFUNC_DEF("queryCommandIndeterm",  1, ns_returns_false),
     JS_CFUNC_DEF("queryCommandValue",     1, ns_returns_undefined),
     JS_CGETSET_DEF("currentScript",      ns_document_get_currentScript, ns_element_noop_set),
     JS_CGETSET_DEF("rootElement",        ns_document_get_documentElement, ns_element_noop_set),

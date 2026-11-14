@@ -63,6 +63,13 @@ Significant changes in each release:
   once per element on every layout. Subtrees that lie entirely before the
   element now answer from a cached value. The "Complex DOM" suites of
   Speedometer 3.1 are 25 to 40 % faster (Lit: 729 ms to 444 ms).
+* Performance: a blurred `box-shadow` is no longer blurred at full size
+  on every paint. The cache of blurred shadows was keyed by the exact
+  size of the box and skipped anything over 8 MB, so a tall box whose
+  height keeps changing, such as a growing list, had its whole shadow
+  blurred again each time. Only the corners and edges are blurred now,
+  once for all boxes with the same corners, blur and color; the result is
+  pixel for pixel what it was.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
   Speedometer 3.1 completes with a score (about 3.5; it ended without

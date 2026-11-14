@@ -297,7 +297,7 @@ build(const ns_gst_codec *codec, const ns_gst_choice *choice)
     self->pipeline = pipeline;
     self->decoder = decoder;
     self->sink = GST_APP_SINK(sink);
-    self->wanted = g_hash_table_new(g_int64_hash, g_int64_equal);
+    self->wanted = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, NULL);
     g_queue_init(&self->late);
     self->src = gst_pad_new("src", GST_PAD_SRC);
     GstPad *first = gst_element_get_static_pad(parser ? parser : decoder, "sink");
@@ -325,18 +325,6 @@ ns_gst_video_decoder_new(const char *codec)
     return decoder;
 }
 
-static void
-wanted_clear(ns_gst_video_decoder *self)
-{
-    GHashTableIter iter;
-    gpointer key;
-    g_hash_table_iter_init(&iter, self->wanted);
-    while (g_hash_table_iter_next(&iter, &key, NULL)) {
-        g_hash_table_iter_remove(&iter);
-        g_free(key);
-    }
-}
-
 void
 ns_gst_video_decoder_free(ns_gst_video_decoder *decoder)
 {
@@ -351,10 +339,7 @@ ns_gst_video_decoder_free(ns_gst_video_decoder *decoder)
     }
     if (decoder->config) g_bytes_unref(decoder->config);
     ns_video_late_clear(&decoder->late);
-    if (decoder->wanted) {
-        wanted_clear(decoder);
-        g_hash_table_unref(decoder->wanted);
-    }
+    if (decoder->wanted) g_hash_table_unref(decoder->wanted);
     g_free(decoder);
 }
 
@@ -442,10 +427,7 @@ collect(ns_gst_video_decoder *self, gint64 timestamp)
             continue;
         }
         gint64 stamp = (gint64)(pts / GST_USECOND) - NS_GST_PTS_BIAS_US;
-        gpointer key = NULL;
-        if (g_hash_table_lookup_extended(self->wanted, &stamp, &key, NULL)) {
-            g_hash_table_remove(self->wanted, &stamp);
-            g_free(key);
+        if (g_hash_table_remove(self->wanted, &stamp)) {
             ns_texture *texture = sample_to_texture(sample);
             if (stamp == timestamp && !result) {
                 result = texture;
@@ -470,7 +452,7 @@ ns_gst_video_decoder_flush(ns_gst_video_decoder *decoder)
     while ((sample = gst_app_sink_try_pull_sample(decoder->sink, 0)) != NULL)
         gst_sample_unref(sample);
     ns_video_late_clear(&decoder->late);
-    wanted_clear(decoder);
+    g_hash_table_remove_all(decoder->wanted);
     decoder->broken = FALSE;
 }
 
@@ -495,10 +477,12 @@ ns_gst_video_decoder_decode(ns_gst_video_decoder *decoder, GBytes *sample,
         GST_MEMORY_FLAG_READONLY, (gpointer)data, len, 0, len,
         g_bytes_ref(sample), (GDestroyNotify)g_bytes_unref);
     GST_BUFFER_PTS(buffer) = (GstClockTime)(timestamp + NS_GST_PTS_BIAS_US) * GST_USECOND;
-    if (want_texture) {
+    /* The table owns its keys: g_hash_table_add() keeps the new key on a
+     * duplicate, so a key must never be freed after it is added. */
+    if (want_texture && !g_hash_table_contains(decoder->wanted, &timestamp)) {
         gint64 *key = g_new(gint64, 1);
         *key = timestamp;
-        if (!g_hash_table_add(decoder->wanted, key)) g_free(key);
+        g_hash_table_add(decoder->wanted, key);
     }
     GstFlowReturn flow = gst_pad_push(decoder->src, buffer);
     if (flow != GST_FLOW_OK && flow != GST_FLOW_FLUSHING) {

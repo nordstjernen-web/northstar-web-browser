@@ -8597,10 +8597,12 @@ ns_js_activate_inserted(ns_js *js, const ns_node *parent, GPtrArray *inserted)
     }
 }
 
-/* ParentNode.replaceChildren(): validates, replaces all children, one mutation record. */
+/* ParentNode.replaceChildren() with string arguments already converted
+ * (ns_args_to_strings), so no page script runs while it edits the tree. */
 static JSValue
-ns_element_replaceChildren(JSContext *ctx, JSValueConst this_val,
-                           int argc, JSValueConst *argv)
+ns_element_replace_children_converted(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv,
+                                      char **strs)
 {
     ns_node *self = ns_unwrap_element_mut(this_val);
     if (!self) return JS_UNDEFINED;
@@ -8684,12 +8686,8 @@ ns_element_replaceChildren(JSContext *ctx, JSValueConst this_val,
                 ns_node_remove(child);
                 g_ptr_array_add(added, child);
             }
-        } else {
-            const char *txt = JS_ToCString(ctx, argv[i]);
-            if (txt) {
-                g_ptr_array_add(added, ns_node_new_text(g_strdup(txt)));
-                JS_FreeCString(ctx, txt);
-            }
+        } else if (strs[i]) {
+            g_ptr_array_add(added, ns_node_new_text(g_strdup(strs[i])));
         }
     }
     GPtrArray *removed = g_ptr_array_new();
@@ -8734,6 +8732,23 @@ ns_element_replaceChildren(JSContext *ctx, JSValueConst this_val,
     g_ptr_array_free(removed, FALSE);
     g_ptr_array_free(original, FALSE);
     return JS_UNDEFINED;
+}
+
+static char **ns_args_to_strings(JSContext *ctx, int argc, JSValueConst *argv);
+static void ns_args_strings_free(char **strs, int argc);
+
+/* ParentNode.replaceChildren(): validates, replaces all children, one mutation record. */
+static JSValue
+ns_element_replaceChildren(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    if (!ns_unwrap_element_mut(this_val)) return JS_UNDEFINED;
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
+    JSValue ret = ns_element_replace_children_converted(ctx, this_val, argc,
+                                                        argv, strs);
+    ns_args_strings_free(strs, argc);
+    return ret;
 }
 
 /* ASCII-lowercases an attribute name for HTML elements; *lowered_out is caller-freed. */
@@ -31984,10 +31999,44 @@ ns_convert_arg_node(ns_js *js, ns_node *node, GPtrArray *seq)
     }
 }
 
-/* Converts ChildNode/ParentNode varargs to nodes, turning strings into text nodes. */
+/* Converts every non-node ChildNode/ParentNode argument to a string, as
+ * WebIDL does before the method body runs.  A conversion can run page
+ * script (toString, Symbol.toPrimitive) that reshapes the tree, so callers
+ * do this first and read tree state only afterwards.  Returns an argc-long
+ * array with NULL for node arguments, or NULL with an exception pending;
+ * free it with ns_args_strings_free. */
+static char **
+ns_args_to_strings(JSContext *ctx, int argc, JSValueConst *argv)
+{
+    char **strs = g_new0(char *, argc > 0 ? argc : 1);
+    for (int i = 0; i < argc; i++) {
+        if (ns_unwrap_element_mut(argv[i])) continue;
+        const char *txt = JS_ToCString(ctx, argv[i]);
+        if (!txt) {
+            for (int j = 0; j < i; j++) g_free(strs[j]);
+            g_free(strs);
+            return NULL;
+        }
+        strs[i] = g_strdup(txt);
+        JS_FreeCString(ctx, txt);
+    }
+    return strs;
+}
+
+static void
+ns_args_strings_free(char **strs, int argc)
+{
+    if (!strs) return;
+    for (int i = 0; i < argc; i++) g_free(strs[i]);
+    g_free(strs);
+}
+
+/* Builds the insertion sequence from arguments already converted by
+ * ns_args_to_strings: detaches node arguments, turns strings into text
+ * nodes.  Runs no page script. */
 static GPtrArray *
-ns_args_to_node_sequence(JSContext *ctx, ns_js *js, int argc,
-                         JSValueConst *argv, const ns_node *parent,
+ns_args_to_node_sequence(ns_js *js, int argc, JSValueConst *argv,
+                         char **strs, const ns_node *parent,
                          const ns_node *skip)
 {
     GPtrArray *seq = g_ptr_array_new();
@@ -31996,12 +32045,8 @@ ns_args_to_node_sequence(JSContext *ctx, ns_js *js, int argc,
         if (node) {
             if (node == skip || ns_node_ancestor_or_self(parent, node)) continue;
             ns_convert_arg_node(js, node, seq);
-        } else {
-            const char *txt = JS_ToCString(ctx, argv[i]);
-            if (txt) {
-                g_ptr_array_add(seq, ns_node_new_text(g_strdup(txt)));
-                JS_FreeCString(ctx, txt);
-            }
+        } else if (strs[i]) {
+            g_ptr_array_add(seq, ns_node_new_text(g_strdup(strs[i])));
         }
     }
     return seq;
@@ -32013,10 +32058,17 @@ ns_element_before(JSContext *ctx, JSValueConst this_val,
                   int argc, JSValueConst *argv)
 {
     ns_node *self = ns_unwrap_element_mut(this_val);
-    if (!self || !self->parent) return JS_UNDEFINED;
+    if (!self) return JS_UNDEFINED;
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
+    if (!self->parent) {
+        ns_args_strings_free(strs, argc);
+        return JS_UNDEFINED;
+    }
     ns_js *_j = js_from_ctx(ctx);
-    GPtrArray *seq = ns_args_to_node_sequence(ctx, _j, argc, argv,
+    GPtrArray *seq = ns_args_to_node_sequence(_j, argc, argv, strs,
                                               self->parent, self);
+    ns_args_strings_free(strs, argc);
     for (guint k = 0; k < seq->len; k++) {
         ns_node *to_insert = g_ptr_array_index(seq, k);
         ns_insert_sibling_before(self, to_insert);
@@ -32040,7 +32092,13 @@ ns_element_after(JSContext *ctx, JSValueConst this_val,
                  int argc, JSValueConst *argv)
 {
     ns_node *self = ns_unwrap_element_mut(this_val);
-    if (!self || !self->parent) return JS_UNDEFINED;
+    if (!self) return JS_UNDEFINED;
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
+    if (!self->parent) {
+        ns_args_strings_free(strs, argc);
+        return JS_UNDEFINED;
+    }
     ns_node *parent = self->parent;
     ns_js *_j = js_from_ctx(ctx);
 
@@ -32048,8 +32106,9 @@ ns_element_after(JSContext *ctx, JSValueConst this_val,
     while (viable_next && ns_args_contain_node(argv, argc, viable_next))
         viable_next = viable_next->next_sibling;
 
-    GPtrArray *seq = ns_args_to_node_sequence(ctx, _j, argc, argv, parent,
+    GPtrArray *seq = ns_args_to_node_sequence(_j, argc, argv, strs, parent,
                                               NULL);
+    ns_args_strings_free(strs, argc);
 
     for (guint k = 0; k < seq->len; k++) {
         ns_node *node = g_ptr_array_index(seq, k);
@@ -32081,7 +32140,13 @@ ns_element_replaceWith(JSContext *ctx, JSValueConst this_val,
                        int argc, JSValueConst *argv)
 {
     ns_node *self = ns_unwrap_element_mut(this_val);
-    if (!self || !self->parent) return JS_UNDEFINED;
+    if (!self) return JS_UNDEFINED;
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
+    if (!self->parent) {
+        ns_args_strings_free(strs, argc);
+        return JS_UNDEFINED;
+    }
     ns_node *parent = self->parent;
     ns_js *_j = js_from_ctx(ctx);
 
@@ -32090,8 +32155,9 @@ ns_element_replaceWith(JSContext *ctx, JSValueConst this_val,
     while (viable_prev && ns_args_contain_node(argv, argc, viable_prev))
         viable_prev = viable_prev->prev_sibling;
 
-    GPtrArray *seq = ns_args_to_node_sequence(ctx, _j, argc, argv, parent,
+    GPtrArray *seq = ns_args_to_node_sequence(_j, argc, argv, strs, parent,
                                               NULL);
+    ns_args_strings_free(strs, argc);
 
     ns_node *anchor = self_in_args
         ? (viable_prev ? viable_prev->next_sibling : parent->first_child)
@@ -32323,17 +32389,26 @@ ns_element_append(JSContext *ctx, JSValueConst this_val,
     ns_node *parent = ns_unwrap_element_mut(this_val);
     if (!parent) return JS_UNDEFINED;
     ns_js *_j = js_from_ctx(ctx);
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
     JSValue berr = ns_validate_doc_batch(ctx, parent, argc, argv);
-    if (JS_IsException(berr)) return berr;
+    if (JS_IsException(berr)) {
+        ns_args_strings_free(strs, argc);
+        return berr;
+    }
     for (int i = 0; i < argc; i++) {
         ns_node *child = ns_unwrap_element_mut(argv[i]);
         if (child) {
             JSValue verr = ns_pre_insert_validity(ctx, parent, child, NULL, TRUE);
-            if (JS_IsException(verr)) return verr;
+            if (JS_IsException(verr)) {
+                ns_args_strings_free(strs, argc);
+                return verr;
+            }
         }
     }
-    GPtrArray *seq = ns_args_to_node_sequence(ctx, _j, argc, argv, parent,
+    GPtrArray *seq = ns_args_to_node_sequence(_j, argc, argv, strs, parent,
                                               NULL);
+    ns_args_strings_free(strs, argc);
     for (guint k = 0; k < seq->len; k++) {
         ns_node *added = g_ptr_array_index(seq, k);
         ns_node_append_child(parent, added);
@@ -32355,32 +32430,37 @@ ns_element_prepend(JSContext *ctx, JSValueConst this_val,
     ns_node *parent = ns_unwrap_element_mut(this_val);
     if (!parent) return JS_UNDEFINED;
     ns_js *_j = js_from_ctx(ctx);
+    char **strs = ns_args_to_strings(ctx, argc, argv);
+    if (!strs) return JS_EXCEPTION;
     JSValue berr = ns_validate_doc_batch(ctx, parent, argc, argv);
-    if (JS_IsException(berr)) return berr;
+    if (JS_IsException(berr)) {
+        ns_args_strings_free(strs, argc);
+        return berr;
+    }
     for (int i = 0; i < argc; i++) {
         ns_node *child = ns_unwrap_element_mut(argv[i]);
         if (child) {
             ns_node *first = parent->first_child;
             JSValue verr = ns_pre_insert_validity(ctx, parent, child,
                                                   first, first == NULL);
-            if (JS_IsException(verr)) return verr;
+            if (JS_IsException(verr)) {
+                ns_args_strings_free(strs, argc);
+                return verr;
+            }
         }
     }
-    GPtrArray *seq = ns_args_to_node_sequence(ctx, _j, argc, argv, parent,
+    GPtrArray *seq = ns_args_to_node_sequence(_j, argc, argv, strs, parent,
                                               NULL);
+    ns_args_strings_free(strs, argc);
     ns_node *ref = parent->first_child;
     for (guint k = 0; k < seq->len; k++) {
         ns_node *to_insert = g_ptr_array_index(seq, k);
-        if (!ref) {
+        /* Both helpers detach to_insert first, so a node listed twice in
+         * the arguments is moved, never linked into two places. */
+        if (ref && ref->parent == parent && ref != to_insert)
+            ns_insert_sibling_before(ref, to_insert);
+        else if (ref != to_insert)
             ns_node_append_child(parent, to_insert);
-        } else {
-            to_insert->parent = parent;
-            to_insert->next_sibling = ref;
-            to_insert->prev_sibling = ref->prev_sibling;
-            if (ref->prev_sibling) ref->prev_sibling->next_sibling = to_insert;
-            else parent->first_child = to_insert;
-            ref->prev_sibling = to_insert;
-        }
         if (_j)
             ns_js_record_child_change(_j, parent, to_insert, NULL,
                                       to_insert->prev_sibling,

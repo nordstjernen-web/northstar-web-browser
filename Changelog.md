@@ -44,8 +44,17 @@ Significant changes in each release:
   hit the 2 GB JavaScript memory limit after about 40 of them, failing
   every benchmark from there on. Memory now returns to its level between
   benchmarks, and with a smaller heap to collect several of them score 20
-  to 50 % higher. A frame element removed from the page also stops its
-  timers and loads afresh if it is inserted again.
+  to 50 % higher. Speedometer 3.1, which navigates one frame through 20
+  workloads, went from 2.39 to 3.5 on browserbench.org. A frame element
+  removed from the page also stops its timers and loads afresh if it is
+  inserted again.
+* Benchmarks: with the changes above JetStream 2 runs all 64 of its
+  benchmarks (score about 26; none of them started before) and
+  Speedometer 3.1 completes with a score (about 3.5; it ended without
+  one). JetStream needs `js_eval_budget_ms` raised, for example
+  `NS_JS_EVAL_BUDGET_MS=900000`: four of its benchmarks run longer than
+  the default 60 seconds as a single script and are interrupted
+  otherwise.
 * Performance: a linked stylesheet is requested once. The style pass and
   the loader that fires the `<link>` element's `load` event each fetched
   it, so every stylesheet cost a second round trip to the server, one

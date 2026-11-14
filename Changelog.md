@@ -74,6 +74,25 @@ Significant changes in each release:
   `load` event. That first pass is the most expensive one a document
   gets, and it used to run at the next frame or inside the first script
   that read a size, so code that starts work at `load` paid for it.
+* Images: an `<img>` in the page's markup or inserted with `innerHTML`
+  fires `load` or `error` whether or not it is rendered. The events came
+  from the layout tree, so a broken image without `alt` text, which gets
+  no box, never fired `error`, and an image under `display: none` never
+  fired `load`. Images with `srcset`, in a `<picture>` or with
+  `loading="lazy"` are still handled by layout, which picks their source
+  and decides when to fetch.
+* DOM: SVG elements have their own interfaces: `<svg>` is an
+  `SVGSVGElement`, `<rect>` an `SVGRectElement` (and an
+  `SVGGeometryElement` and `SVGGraphicsElement`), and so on for the shapes,
+  text, gradients, paint servers, `<foreignObject>` and the filter
+  primitives, with their constants (`SVG_FECOLORMATRIX_TYPE_SATURATE`, ...).
+  Every SVG element was a plain `SVGElement`, so `instanceof` checks that
+  libraries use to tell shapes apart failed. `onerror` is an event handler
+  property of every element, as it is in other browsers; it was missing
+  except on `<body>`. `ImageBitmap` is exposed as an interface, so
+  `bitmap instanceof ImageBitmap` holds for what `createImageBitmap()`
+  returns, and a closed bitmap reports a size of 0 x 0. html5test.co: 499
+  to 503 of 588.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
   Speedometer 3.1 completes with a score (it ended without one): about

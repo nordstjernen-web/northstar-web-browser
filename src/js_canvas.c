@@ -158,12 +158,15 @@ static JSValue
 ns_image_bitmap_close(JSContext *ctx, JSValueConst this_val,
                       int argc, JSValueConst *argv)
 {
-    (void)ctx; (void)argc; (void)argv;
+    (void)argc; (void)argv;
     ns_image_bitmap *b = JS_GetOpaque(this_val, ns_image_bitmap_class_id);
     if (b && b->surf) {
         cairo_surface_destroy(b->surf);
         b->surf = NULL;
         b->w = b->h = 0;
+        /* A closed bitmap reports a size of 0 x 0. */
+        JS_SetPropertyStr(ctx, this_val, "width", JS_NewInt32(ctx, 0));
+        JS_SetPropertyStr(ctx, this_val, "height", JS_NewInt32(ctx, 0));
     }
     return JS_UNDEFINED;
 }
@@ -3917,6 +3920,17 @@ void ns_canvas_register_image_bitmap_class(JSRuntime *rt)
 {
     ns_new_class_id(&ns_image_bitmap_class_id);
     JS_NewClass(rt, ns_image_bitmap_class_id, &ns_image_bitmap_class);
+}
+
+/* Exposes the ImageBitmap interface in a realm: a prototype with close()
+ * for the bitmaps createImageBitmap() returns, and the global interface
+ * object, so `ImageBitmap` exists and `bitmap instanceof ImageBitmap`. */
+void ns_canvas_install_image_bitmap(JSContext *ctx, JSValueConst global)
+{
+    JSValue proto = JS_NewObject(ctx);
+    ns_bind_fn(ctx, proto, "close", ns_image_bitmap_close, 0);
+    ns_make_interface_object(ctx, global, "ImageBitmap", proto);
+    JS_SetClassProto(ctx, ns_image_bitmap_class_id, proto);
 }
 
 void ns_canvas_register_path2d_class(JSRuntime *rt)

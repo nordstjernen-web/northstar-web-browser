@@ -324,6 +324,10 @@ struct ns_js {
     JSValue       proto_svgelement;
     JSValue       proto_svgaelement;
     JSValue       proto_svg_smil[NS_SVG_SMIL_IFACES];
+    /* SVG element interfaces by lower-cased tag name (SVGRectElement, ...);
+     * values are borrowed from svg_iface_protos, which owns them. */
+    GHashTable   *svg_tag_protos;
+    GPtrArray    *svg_iface_protos;
     JSValue       proto_chardata;
     JSValue       proto_text;
     JSValue       proto_comment;
@@ -455,6 +459,7 @@ ns_canvas_png_write(void *closure, const unsigned char *data, unsigned int lengt
 JSValue ns_canvas_blob_from_surface(JSContext *ctx, cairo_surface_t *surface);
 
 void ns_canvas_register_image_bitmap_class(JSRuntime *rt);
+void ns_canvas_install_image_bitmap(JSContext *ctx, JSValueConst global);
 void ns_canvas_register_path2d_class(JSRuntime *rt);
 
 void ns_make_interface_object(JSContext *ctx, JSValueConst global,

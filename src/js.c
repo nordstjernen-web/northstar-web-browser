@@ -4128,6 +4128,126 @@ static const struct {
 };
 G_STATIC_ASSERT(G_N_ELEMENTS(ns_svg_smil_ifaces) == NS_SVG_SMIL_IFACES);
 
+/* SVG element interfaces other than the animation ones above, parent
+ * first.  An entry with no tag is an abstract base; parent NULL means
+ * SVGElement.  Elements keep reaching the SVGElement members through the
+ * chain; what this adds is the right constructor and instanceof. */
+static const struct {
+    const char *iface, *parent, *tag;
+} ns_svg_ifaces[] = {
+    { "SVGGraphicsElement",            NULL,                        NULL },
+    { "SVGGeometryElement",            "SVGGraphicsElement",        NULL },
+    { "SVGTextContentElement",         "SVGGraphicsElement",        NULL },
+    { "SVGTextPositioningElement",     "SVGTextContentElement",     NULL },
+    { "SVGGradientElement",            NULL,                        NULL },
+    { "SVGComponentTransferFunctionElement", NULL,                  NULL },
+    { "SVGSVGElement",                 "SVGGraphicsElement",        "svg" },
+    { "SVGGElement",                   "SVGGraphicsElement",        "g" },
+    { "SVGDefsElement",                "SVGGraphicsElement",        "defs" },
+    { "SVGUseElement",                 "SVGGraphicsElement",        "use" },
+    { "SVGImageElement",               "SVGGraphicsElement",        "image" },
+    { "SVGSwitchElement",              "SVGGraphicsElement",        "switch" },
+    { "SVGForeignObjectElement",       "SVGGraphicsElement",        "foreignObject" },
+    { "SVGRectElement",                "SVGGeometryElement",        "rect" },
+    { "SVGCircleElement",              "SVGGeometryElement",        "circle" },
+    { "SVGEllipseElement",             "SVGGeometryElement",        "ellipse" },
+    { "SVGLineElement",                "SVGGeometryElement",        "line" },
+    { "SVGPathElement",                "SVGGeometryElement",        "path" },
+    { "SVGPolylineElement",            "SVGGeometryElement",        "polyline" },
+    { "SVGPolygonElement",             "SVGGeometryElement",        "polygon" },
+    { "SVGTextElement",                "SVGTextPositioningElement", "text" },
+    { "SVGTSpanElement",               "SVGTextPositioningElement", "tspan" },
+    { "SVGTextPathElement",            "SVGTextContentElement",     "textPath" },
+    { "SVGLinearGradientElement",      "SVGGradientElement",        "linearGradient" },
+    { "SVGRadialGradientElement",      "SVGGradientElement",        "radialGradient" },
+    { "SVGStopElement",                NULL,                        "stop" },
+    { "SVGPatternElement",             NULL,                        "pattern" },
+    { "SVGClipPathElement",            NULL,                        "clipPath" },
+    { "SVGMaskElement",                NULL,                        "mask" },
+    { "SVGMarkerElement",              NULL,                        "marker" },
+    { "SVGSymbolElement",              NULL,                        "symbol" },
+    { "SVGTitleElement",               NULL,                        "title" },
+    { "SVGDescElement",                NULL,                        "desc" },
+    { "SVGMetadataElement",            NULL,                        "metadata" },
+    { "SVGStyleElement",               NULL,                        "style" },
+    { "SVGScriptElement",              NULL,                        "script" },
+    { "SVGViewElement",                NULL,                        "view" },
+    { "SVGFilterElement",              NULL,                        "filter" },
+    { "SVGFEBlendElement",             NULL,                        "feBlend" },
+    { "SVGFEColorMatrixElement",       NULL,                        "feColorMatrix" },
+    { "SVGFEComponentTransferElement", NULL,                        "feComponentTransfer" },
+    { "SVGFECompositeElement",         NULL,                        "feComposite" },
+    { "SVGFEConvolveMatrixElement",    NULL,                        "feConvolveMatrix" },
+    { "SVGFEDiffuseLightingElement",   NULL,                        "feDiffuseLighting" },
+    { "SVGFEDisplacementMapElement",   NULL,                        "feDisplacementMap" },
+    { "SVGFEDistantLightElement",      NULL,                        "feDistantLight" },
+    { "SVGFEDropShadowElement",        NULL,                        "feDropShadow" },
+    { "SVGFEFloodElement",             NULL,                        "feFlood" },
+    { "SVGFEFuncAElement",             "SVGComponentTransferFunctionElement", "feFuncA" },
+    { "SVGFEFuncBElement",             "SVGComponentTransferFunctionElement", "feFuncB" },
+    { "SVGFEFuncGElement",             "SVGComponentTransferFunctionElement", "feFuncG" },
+    { "SVGFEFuncRElement",             "SVGComponentTransferFunctionElement", "feFuncR" },
+    { "SVGFEGaussianBlurElement",      NULL,                        "feGaussianBlur" },
+    { "SVGFEImageElement",             NULL,                        "feImage" },
+    { "SVGFEMergeElement",             NULL,                        "feMerge" },
+    { "SVGFEMergeNodeElement",         NULL,                        "feMergeNode" },
+    { "SVGFEMorphologyElement",        NULL,                        "feMorphology" },
+    { "SVGFEOffsetElement",            NULL,                        "feOffset" },
+    { "SVGFEPointLightElement",        NULL,                        "fePointLight" },
+    { "SVGFESpecularLightingElement",  NULL,                        "feSpecularLighting" },
+    { "SVGFESpotLightElement",         NULL,                        "feSpotLight" },
+    { "SVGFETileElement",              NULL,                        "feTile" },
+    { "SVGFETurbulenceElement",        NULL,                        "feTurbulence" },
+};
+
+/* Constants the SVG filter interfaces carry on constructor and prototype. */
+static const struct {
+    const char *iface, *name;
+    int value;
+} ns_svg_iface_consts[] = {
+    { "SVGFEColorMatrixElement", "SVG_FECOLORMATRIX_TYPE_UNKNOWN", 0 },
+    { "SVGFEColorMatrixElement", "SVG_FECOLORMATRIX_TYPE_MATRIX", 1 },
+    { "SVGFEColorMatrixElement", "SVG_FECOLORMATRIX_TYPE_SATURATE", 2 },
+    { "SVGFEColorMatrixElement", "SVG_FECOLORMATRIX_TYPE_HUEROTATE", 3 },
+    { "SVGFEColorMatrixElement", "SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA", 4 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_UNKNOWN", 0 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_NORMAL", 1 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_MULTIPLY", 2 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_SCREEN", 3 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_DARKEN", 4 },
+    { "SVGFEBlendElement", "SVG_FEBLEND_MODE_LIGHTEN", 5 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_UNKNOWN", 0 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_OVER", 1 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_IN", 2 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_OUT", 3 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_ATOP", 4 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_XOR", 5 },
+    { "SVGFECompositeElement", "SVG_FECOMPOSITE_OPERATOR_ARITHMETIC", 6 },
+    { "SVGFEMorphologyElement", "SVG_MORPHOLOGY_OPERATOR_UNKNOWN", 0 },
+    { "SVGFEMorphologyElement", "SVG_MORPHOLOGY_OPERATOR_ERODE", 1 },
+    { "SVGFEMorphologyElement", "SVG_MORPHOLOGY_OPERATOR_DILATE", 2 },
+    { "SVGFETurbulenceElement", "SVG_TURBULENCE_TYPE_UNKNOWN", 0 },
+    { "SVGFETurbulenceElement", "SVG_TURBULENCE_TYPE_FRACTALNOISE", 1 },
+    { "SVGFETurbulenceElement", "SVG_TURBULENCE_TYPE_TURBULENCE", 2 },
+    { "SVGGradientElement", "SVG_SPREADMETHOD_UNKNOWN", 0 },
+    { "SVGGradientElement", "SVG_SPREADMETHOD_PAD", 1 },
+    { "SVGGradientElement", "SVG_SPREADMETHOD_REFLECT", 2 },
+    { "SVGGradientElement", "SVG_SPREADMETHOD_REPEAT", 3 },
+};
+
+/* Prototype of the SVG element interface for a tag name, or undefined. */
+static JSValue
+ns_svg_tag_proto(ns_js *js, const char *name)
+{
+    if (!js || !name || !js->svg_tag_protos) return JS_UNDEFINED;
+    char lower[32];
+    gsize n = strlen(name);
+    if (n >= sizeof lower) return JS_UNDEFINED;
+    for (gsize i = 0; i <= n; i++) lower[i] = g_ascii_tolower(name[i]);
+    JSValue *slot = g_hash_table_lookup(js->svg_tag_protos, lower);
+    return slot ? *slot : JS_UNDEFINED;
+}
+
 /* Prototype of the SVG animation interface for a tag name, or undefined. */
 static JSValue
 ns_svg_smil_proto(ns_js *js, const char *name)
@@ -4152,6 +4272,8 @@ ns_node_kind_proto(ns_js *js, const ns_node *node)
                 return js->proto_svgaelement;
             JSValue smil_proto = ns_svg_smil_proto(js, node->name);
             if (JS_IsObject(smil_proto)) return smil_proto;
+            JSValue tag_proto = ns_svg_tag_proto(js, node->name);
+            if (JS_IsObject(tag_proto)) return tag_proto;
             return JS_IsObject(js->proto_svgelement)
                 ? js->proto_svgelement : js->proto_element;
         }
@@ -44059,7 +44181,28 @@ ns_js_node_document_base_url(ns_js *js, const ns_node *node)
     return ns_js_document_base_url(js, doc, fallback);
 }
 
-/* Restarts loads for imgs whose src now resolves to a different URL than requested. */
+/* TRUE for an <img> whose image is its src attribute alone and loads now:
+ * no srcset, not in a <picture> (layout picks the source for those), not
+ * lazy.  Such an image can be tracked by URL from the moment it is in the
+ * document, rendered or not. */
+static gboolean
+ns_js_img_trackable_by_src(const ns_node *el)
+{
+    const char *src = ns_element_get_attr(el, "src");
+    if (!src || !*src) return FALSE;
+    if (ns_element_get_attr(el, "srcset")) return FALSE;
+    if (el->parent && ns_node_is_element_named(el->parent, "picture"))
+        return FALSE;
+    const char *loading = ns_element_get_attr(el, "loading");
+    if (loading && g_ascii_strcasecmp(loading, "lazy") == 0) return FALSE;
+    return TRUE;
+}
+
+/* Restarts loads for imgs whose src now resolves to a different URL than
+ * requested, and starts tracking the ones not tracked yet.  An <img> fires
+ * load or error whether or not it is rendered; left to the layout tree, a
+ * broken image without alt text, or any image under display:none, never
+ * fired either. */
 static void
 ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
 {
@@ -44069,7 +44212,10 @@ ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
         const char *src = ns_element_get_attr(root, "src");
         ns_js_image_load *r = (src && *src && js->js_image_loads)
             ? g_hash_table_lookup(js->js_image_loads, root) : NULL;
-        if (r && r->requested_url) {
+        if (!r && !(root->flags & NS_NODE_IMG_LOAD_FIRED) &&
+            ns_js_img_trackable_by_src(root))
+            ns_js_start_image_load(js, root, src);
+        else if (r && r->requested_url) {
             char *base = ns_js_node_document_base_url(js, root);
             char *abs = base ? ns_url_resolve(base, src) : NULL;
             if (abs && strcmp(abs, r->requested_url) != 0) {
@@ -44080,6 +44226,7 @@ ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
             g_free(base);
         }
     }
+    if (ns_node_is_element_named(root, "template")) return;
     for (ns_node *c = root->first_child; c; c = c->next_sibling)
         ns_js_rescan_subtree_images(js, c, depth + 1);
 }
@@ -50904,6 +51051,8 @@ static const char *const ns_event_handler_names[] = {
     "onwebkitanimationiteration", "onwebkitanimationstart",
     "onwebkittransitionend", "onwheel",
     "onbegin", "onend", "onrepeat",
+    /* Appended, not sorted in: the index is the accessor's magic. */
+    "onerror",
 };
 
 /* Defines every on* event handler name as null on target when absent. */
@@ -51813,6 +51962,67 @@ ns_install_dom_hierarchy(ns_js *js, JSContext *ctx, JSValueConst global)
         ns_make_interface_object(ctx, global, ns_svg_smil_ifaces[i].iface,
                                  proto);
         js->proto_svg_smil[i] = proto;
+    }
+    if (JS_IsObject(svg_proto)) {
+        if (!js->svg_tag_protos)
+            js->svg_tag_protos = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                                       g_free, g_free);
+        if (!js->svg_iface_protos)
+            js->svg_iface_protos = g_ptr_array_new();
+        GHashTable *by_iface = g_hash_table_new(g_str_hash, g_str_equal);
+        for (gsize i = 0; i < G_N_ELEMENTS(ns_svg_ifaces); i++) {
+            const char *iface = ns_svg_ifaces[i].iface;
+            JSValue *parent_slot = ns_svg_ifaces[i].parent
+                ? g_hash_table_lookup(by_iface, ns_svg_ifaces[i].parent)
+                : NULL;
+            JSValue proto;
+            /* SVGSVGElement already has an interface object (and its own
+             * members); give it its place in the chain instead of a new
+             * one. */
+            JSValue existing = ns_proto_of(ctx, global, iface);
+            if (JS_IsObject(existing)) {
+                proto = existing;
+            } else {
+                JS_FreeValue(ctx, existing);
+                proto = JS_NewObject(ctx);
+                ns_make_interface_object(ctx, global, iface, proto);
+            }
+            JS_SetPrototype(ctx, proto, parent_slot ? *parent_slot : svg_proto);
+            for (gsize k = 0; k < G_N_ELEMENTS(ns_svg_iface_consts); k++) {
+                if (strcmp(ns_svg_iface_consts[k].iface, iface) != 0) continue;
+                JSValue v = JS_NewInt32(ctx, ns_svg_iface_consts[k].value);
+                JS_DefinePropertyValueStr(ctx, proto, ns_svg_iface_consts[k].name,
+                                          JS_DupValue(ctx, v), JS_PROP_ENUMERABLE);
+                JSValue ctor = JS_GetPropertyStr(ctx, global, iface);
+                if (JS_IsObject(ctor))
+                    JS_DefinePropertyValueStr(ctx, ctor,
+                                              ns_svg_iface_consts[k].name,
+                                              JS_DupValue(ctx, v),
+                                              JS_PROP_ENUMERABLE);
+                JS_FreeValue(ctx, ctor);
+                JS_FreeValue(ctx, v);
+            }
+            g_ptr_array_add(js->svg_iface_protos, JS_VALUE_GET_PTR(proto));
+            JSValue *slot = g_new(JSValue, 1);
+            *slot = proto;
+            g_hash_table_insert(by_iface, (gpointer)iface, slot);
+            if (ns_svg_ifaces[i].tag) {
+                JSValue *tslot = g_new(JSValue, 1);
+                *tslot = proto;
+                g_hash_table_insert(js->svg_tag_protos,
+                                    g_ascii_strdown(ns_svg_ifaces[i].tag, -1),
+                                    tslot);
+            }
+        }
+        /* SVGAElement is a graphics element too. */
+        JSValue *graphics = g_hash_table_lookup(by_iface, "SVGGraphicsElement");
+        if (graphics && JS_IsObject(svga_proto))
+            JS_SetPrototype(ctx, svga_proto, *graphics);
+        GHashTableIter it;
+        gpointer k, v;
+        g_hash_table_iter_init(&it, by_iface);
+        while (g_hash_table_iter_next(&it, &k, &v)) g_free(v);
+        g_hash_table_destroy(by_iface);
     }
 
     JSValue chardata_proto = ns_proto_of(ctx, global, "CharacterData");
@@ -52826,6 +53036,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
 
     ns_canvas_register_image_bitmap_class(js->rt);
     ns_bind_fn(ctx, global, "createImageBitmap", ns_window_create_image_bitmap, 1);
+    ns_canvas_install_image_bitmap(ctx, global);
     ns_bind_ctor(ctx, global, "Image",           ns_window_image_ctor,           2);
     ns_bind_ctor(ctx, global, "OffscreenCanvas", ns_window_offscreen_canvas_ctor, 2);
     ns_bind_ctor(ctx, global, "DOMMatrix",          ns_window_dommatrix_ctor,          1);
@@ -58046,6 +58257,13 @@ ns_js_free(ns_js *js)
         JS_FreeValue(js->ctx, js->proto_svgaelement);
         for (gsize i = 0; i < NS_SVG_SMIL_IFACES; i++)
             JS_FreeValue(js->ctx, js->proto_svg_smil[i]);
+        if (js->svg_iface_protos) {
+            for (guint i = 0; i < js->svg_iface_protos->len; i++)
+                JS_FreeValue(js->ctx, JS_MKPTR(JS_TAG_OBJECT,
+                    g_ptr_array_index(js->svg_iface_protos, i)));
+            g_clear_pointer(&js->svg_iface_protos, g_ptr_array_unref);
+        }
+        g_clear_pointer(&js->svg_tag_protos, g_hash_table_destroy);
         JS_FreeValue(js->ctx, js->proto_chardata);
         JS_FreeValue(js->ctx, js->proto_text);
         JS_FreeValue(js->ctx, js->proto_comment);
@@ -60001,7 +60219,7 @@ ns_js_run_inserted_scripts(ns_js *js, ns_node *root)
         ns_js_script_needs_prepare(js, root->parent);
         if (root->kind != NS_NODE_ELEMENT) return;
     }
-    if (js->js_image_loads && g_hash_table_size(js->js_image_loads) > 0)
+    if (js->image_cache)
         ns_js_rescan_subtree_images(js, root, 0);
     if (js->in_pump) {
         /* Inserted while a script fetch pumps the loop (the streamed rest
@@ -61889,8 +62107,11 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
          * whatever script first reads a size there, long after load: the
          * Speedometer runner starts timing a workload at the frame's load
          * event, and the first step paid for the stylesheet's round trip. */
-        if (content_doc && !written_open && !js->halted)
+        if (content_doc && !written_open && !js->halted) {
             ns_js_load_document_stylesheets(js, content_doc);
+            if (js->image_cache)
+                ns_js_rescan_subtree_images(js, content_doc, 0);
+        }
         if (content_doc && !written_open) {
             ns_js_dispatch_event(js, content_doc, "DOMContentLoaded", NULL);
             ns_js_dispatch_event(js, content_doc, "readystatechange", NULL);
@@ -62124,6 +62345,7 @@ ns_js_lifecycle_tick(gpointer data)
             return G_SOURCE_REMOVE;
         }
         ns_js_load_document_stylesheets(js, doc);
+        if (js->image_cache) ns_js_rescan_subtree_images(js, doc, 0);
         ns_js_drain_deferred_scripts(js);
         ns_js_drain_async_script_roots(js);
         ns_js_process_pending_iframes(js);

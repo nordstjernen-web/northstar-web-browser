@@ -195,14 +195,21 @@ js_mse_append(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *arg
         JS_ToFloat64(ctx, &window_end, argv[5]))
         return argc < 6 ? mse_append_result(ctx, "error", 0, NULL) : JS_EXCEPTION;
     gboolean sequence = JS_ToBool(ctx, argv[3]) > 0;
-    mse_handle *handle = mse_find(ctx, id);
     const guint8 *data = NULL;
     size_t len = 0;
     JSValue holder = JS_UNDEFINED;
-    if (!handle || !handle->buffer ||
-        !ns_js_buffer_source_bytes(ctx, argv[1], &data, &len, &holder) ||
-        !data)
+    /* Resolving a DataView runs its (replaceable) accessors, which can call
+     * __ndMseRemoveBuffer and free the handle, so the handle is looked up
+     * only once the bytes are in hand and no more page script can run. */
+    if (!ns_js_buffer_source_bytes(ctx, argv[1], &data, &len, &holder) || !data) {
+        JS_FreeValue(ctx, holder);
         return mse_append_result(ctx, "error", 0, NULL);
+    }
+    mse_handle *handle = mse_find(ctx, id);
+    if (!handle || !handle->buffer) {
+        JS_FreeValue(ctx, holder);
+        return mse_append_result(ctx, "error", 0, NULL);
+    }
     gint64 trace_start = ns_trace_now();
     ns_mse_append_result status = ns_mse_buffer_append(handle->buffer, data, len,
                                                        &offset, sequence,

@@ -2,6 +2,26 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.24:
+=======
+* Frames: scripts written into a frame with `document.write()` now run.
+  `frame.contentDocument.write('<script>…')` parsed nothing until
+  `close()` and never ran the scripts it wrote, with or without `close()`.
+  JetStream 2 runs every one of its benchmarks that way, so none of them
+  started. Written markup is now in the tree as soon as `write()` returns,
+  its scripts run in the frame's own realm once the writing script
+  yields, and `load` fires when the document is closed.
+* Frames: an `<iframe>` without a source keeps the document script has
+  already filled in. Its first load replaced the document, discarding
+  `contentDocument.body.innerHTML = …` done before it, and
+  `iframe.textContent = ''` (or `innerHTML`, `replaceChildren()`) on the
+  element detached the frame's document, so later writes to
+  `contentDocument` went nowhere.
+* Frames: the load of an `<iframe>` that runs no script no longer calls
+  the embedding page's `window.onload` a second time, and an exception a
+  frame's script leaves uncaught is reported to that frame's
+  `window.onerror` and `error` listeners instead of only to the log.
+
 1.0.23:
 =======
 * Performance: page stylesheets keep each rule's declarations as text and

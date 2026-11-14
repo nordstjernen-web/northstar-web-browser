@@ -7845,6 +7845,15 @@ ns_js_record_child_change_arrays(ns_js *js, ns_node *parent,
                                  ns_node *previous_sibling,
                                  ns_node *next_sibling);
 
+/* TRUE for a child the DOM does not list: a shadow root, or the content
+ * document a frame element holds.  Replacing an element's children
+ * (textContent, innerHTML, replaceChildren) leaves both in place. */
+static gboolean
+ns_child_is_internal(const ns_node *c)
+{
+    return ns_node_is_shadow_root(c) || ns_node_is_embedded_document(c);
+}
+
 /* Removes and frees all light children, updating the document indexes. */
 static void
 ns_element_clear_children(ns_node *n)
@@ -7853,7 +7862,7 @@ ns_element_clear_children(ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7891,7 +7900,7 @@ ns_js_clear_children(ns_js *js, ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7925,7 +7934,7 @@ ns_js_orphan_children(ns_js *js, ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7937,12 +7946,12 @@ ns_js_orphan_children(ns_js *js, ns_node *n)
     }
 }
 
-/* First child that is not a shadow root. */
+/* First child that is not a shadow root or a frame's content document. */
 static ns_node *
 ns_first_light_child(const ns_node *n)
 {
     ns_node *c = n->first_child;
-    while (c && ns_node_is_shadow_root(c)) c = c->next_sibling;
+    while (c && ns_child_is_internal(c)) c = c->next_sibling;
     return c;
 }
 
@@ -29261,9 +29270,18 @@ ns_fire_window_property_handlers(ns_js *js, const ns_node *target,
     JSContext *ctx = js->ctx;
     char prop_name[48];
     g_snprintf(prop_name, sizeof prop_name, "on%s", type);
-    JSValue global = ns_event_window_for_document(
-        js, ns_event_document_for_target(js, target));
-    JSValue handler = JS_GetPropertyStr(ctx, global, prop_name);
+    const ns_node *event_doc = ns_event_document_for_target(js, target);
+    JSValue global = ns_event_window_for_document(js, event_doc);
+    /* A frame that never ran a script has no window of its own, only a
+     * proxy over its embedder's: reading on<type> through it finds the
+     * embedder's handler, which must not run for the frame's event (an
+     * empty <iframe> finishing its load would call the page's onload a
+     * second time). */
+    gboolean borrowed_window = event_doc && event_doc != js->main_document &&
+        ns_node_is_embedded_document(event_doc) &&
+        !ns_js_node_realm_context(js, event_doc);
+    JSValue handler = borrowed_window
+        ? JS_UNDEFINED : JS_GetPropertyStr(ctx, global, prop_name);
     if (JS_IsFunction(ctx, handler)) {
         gboolean special = FALSE;
         JSValue ret = ns_call_on_handler(js, handler, global, type, event,
@@ -56142,6 +56160,71 @@ ns_document_writeln(JSContext *ctx, JSValueConst this_val,
     return ns_document_write_common(ctx, argc, argv, TRUE);
 }
 
+/* The frame element a realm document belongs to, or NULL for a free-standing document. */
+static ns_node *
+ns_realmdoc_host_frame(const ns_node *doc)
+{
+    ns_node *host = doc ? doc->parent : NULL;
+    if (host && host->kind == NS_NODE_ELEMENT &&
+        (ns_node_is_element_named(host, "iframe") ||
+         ns_node_is_element_named(host, "frame")))
+        return host;
+    return NULL;
+}
+
+/* Queues the frame of a written document so its scripts run, and its load
+ * event fires once it is closed, after the writing script yields. */
+static void
+ns_realmdoc_queue_frame(ns_js *js, ns_node *host)
+{
+    if (!js || !host) return;
+    if (!js->pending_iframe_loads)
+        js->pending_iframe_loads = g_ptr_array_new();
+    for (guint i = 0; i < js->pending_iframe_loads->len; i++)
+        if (g_ptr_array_index(js->pending_iframe_loads, i) == host) return;
+    g_ptr_array_add(js->pending_iframe_loads, host);
+}
+
+/* Moves the children of a parsed tree's node under dest, at the end. */
+static void
+ns_realmdoc_adopt_children(ns_js *js, ns_node *dest, ns_node *from)
+{
+    ns_node *c = from ? from->first_child : NULL;
+    while (c) {
+        ns_node *next = c->next_sibling;
+        ns_node_own_strings_deep(c);
+        ns_node_remove(c);
+        ns_node_append_child(dest, c);
+        ns_js_index_child_change(js, dest, c, NULL);
+        c = next;
+    }
+}
+
+/* Parses written markup into a realm document.  Until the frame's scripts
+ * have started, everything written so far is parsed again as one document
+ * and replaces the tree, so markup split across write() calls nests as it
+ * would in a stream.  Once they have, the tree is live and only the new
+ * text is parsed, its content appended to the body. */
+static void
+ns_realmdoc_parse_written(ns_js *js, ns_node *doc, const char *html,
+                          gboolean append)
+{
+    ns_node *parsed = ns_html_parse(html, -1);
+    if (!parsed) return;
+    ns_node *body = append ? ns_node_find_first_element(doc, "body") : NULL;
+    if (body) {
+        ns_realmdoc_adopt_children(
+            js, body, ns_node_find_first_element(parsed, "head"));
+        ns_realmdoc_adopt_children(
+            js, body, ns_node_find_first_element(parsed, "body"));
+    } else {
+        ns_js_orphan_children(js, doc);
+        ns_realmdoc_adopt_children(js, doc, parsed);
+    }
+    ns_node_free(parsed);
+    ns_js_note_layout_unscoped(js, G_STRFUNC);
+}
+
 /* document.open() on a realm document: clears it and starts a write buffer. */
 static JSValue
 ns_realmdoc_open(JSContext *ctx, JSValueConst this_val,
@@ -56161,17 +56244,19 @@ ns_realmdoc_open(JSContext *ctx, JSValueConst this_val,
     if (js && doc) {
         ns_js_orphan_children(js, doc);
         JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_NewString(ctx, ""));
-        ns_node *host = doc->parent;
-        if (host && host->kind == NS_NODE_ELEMENT &&
-            (ns_node_is_element_named(host, "iframe") ||
-             ns_node_is_element_named(host, "frame")))
+        ns_node *host = ns_realmdoc_host_frame(doc);
+        if (host) {
             ns_element_set_attr(host, "data-nd-doc-written", "1");
+            ns_element_set_attr(host, "data-nd-doc-open", "1");
+            ns_element_remove_attr(host, "data-nd-doc-flushed");
+        }
         ns_js_note_layout_unscoped(js, G_STRFUNC);
     }
     return JS_DupValue(ctx, this_val);
 }
 
-/* Appends write() arguments to a realm document's write buffer, opening if needed. */
+/* document.write() on a realm document: opens it if needed, parses the text
+ * into the tree at once and queues the frame so written scripts run. */
 static void
 ns_realmdoc_append_write(JSContext *ctx, JSValueConst this_val, int argc,
                          JSValueConst *argv, gboolean newline)
@@ -56184,21 +56269,37 @@ ns_realmdoc_append_write(JSContext *ctx, JSValueConst this_val, int argc,
         JS_FreeValue(ctx, cur);
         return;
     }
+    ns_node *host = ns_realmdoc_host_frame(doc);
     GString *buf = g_string_new(NULL);
     if (JS_IsString(cur)) {
         const char *c = JS_ToCString(ctx, cur);
         if (c) { g_string_append(buf, c); JS_FreeCString(ctx, c); }
     } else {
         ns_js_orphan_children(js, doc);
+        if (host) ns_element_remove_attr(host, "data-nd-doc-flushed");
     }
     JS_FreeValue(ctx, cur);
+    gsize fresh = buf->len;
     for (int i = 0; i < argc; i++) {
         const char *s = JS_ToCString(ctx, argv[i]);
         if (s) { g_string_append(buf, s); JS_FreeCString(ctx, s); }
     }
     if (newline) g_string_append_c(buf, '\n');
     JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_NewString(ctx, buf->str));
+    gboolean live = host &&
+        ns_element_get_attr(host, "data-nd-doc-flushed") != NULL;
+    if (live) {
+        if (buf->len > fresh)
+            ns_realmdoc_parse_written(js, doc, buf->str + fresh, TRUE);
+    } else {
+        ns_realmdoc_parse_written(js, doc, buf->str, FALSE);
+    }
     g_string_free(buf, TRUE);
+    if (host) {
+        ns_element_set_attr(host, "data-nd-doc-written", "1");
+        ns_element_set_attr(host, "data-nd-doc-open", "1");
+        ns_realmdoc_queue_frame(js, host);
+    }
 }
 
 static JSValue
@@ -56217,7 +56318,7 @@ ns_realmdoc_writeln(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* document.close() on a realm document: parses the write buffer and queues frame load. */
+/* document.close() on a realm document: ends the write stream and queues the frame load. */
 static JSValue
 ns_realmdoc_close(JSContext *ctx, JSValueConst this_val,
                   int argc, JSValueConst *argv)
@@ -56228,39 +56329,17 @@ ns_realmdoc_close(JSContext *ctx, JSValueConst this_val,
     if (!js || !doc) return JS_UNDEFINED;
     JSValue cur = JS_GetPropertyStr(ctx, this_val, "\xff" "wbuf");
     if (!JS_IsString(cur)) { JS_FreeValue(ctx, cur); return JS_UNDEFINED; }
-    const char *buf = JS_ToCString(ctx, cur);
     JS_FreeValue(ctx, cur);
-    if (buf) {
-        ns_node *parsed = ns_html_parse(buf, -1);
-        JS_FreeCString(ctx, buf);
-        if (parsed) {
-            ns_js_orphan_children(js, doc);
-            ns_node *c = parsed->first_child;
-            while (c) {
-                ns_node *next = c->next_sibling;
-                ns_node_own_strings_deep(c);
-                ns_node_remove(c);
-                ns_node_append_child(doc, c);
-                ns_js_index_child_change(js, doc, c, NULL);
-                c = next;
-            }
-            ns_node_free(parsed);
-            ns_js_note_layout_unscoped(js, G_STRFUNC);
-        }
-    }
+    /* write() keeps the tree current; only an open() that nothing was
+     * written to still needs its empty html/head/body. */
+    if (!ns_node_find_first_element(doc, "html"))
+        ns_realmdoc_parse_written(js, doc, "", FALSE);
     JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_UNDEFINED);
-    ns_node *host = doc->parent;
-    if (host && host->kind == NS_NODE_ELEMENT &&
-        (ns_node_is_element_named(host, "iframe") ||
-         ns_node_is_element_named(host, "frame"))) {
+    ns_node *host = ns_realmdoc_host_frame(doc);
+    if (host) {
         ns_element_set_attr(host, "data-nd-doc-written", "1");
-        if (!js->pending_iframe_loads)
-            js->pending_iframe_loads = g_ptr_array_new();
-        gboolean present = FALSE;
-        for (guint i = 0; i < js->pending_iframe_loads->len; i++)
-            if (g_ptr_array_index(js->pending_iframe_loads, i) == host)
-                present = TRUE;
-        if (!present) g_ptr_array_add(js->pending_iframe_loads, host);
+        ns_element_remove_attr(host, "data-nd-doc-open");
+        ns_realmdoc_queue_frame(js, host);
         ns_js_note_layout_unscoped(js, G_STRFUNC);
     }
     return JS_UNDEFINED;
@@ -57979,6 +58058,19 @@ ns_js_report_uncaught(ns_js *js, JSValueConst ex, const char *origin)
     ns_js_report_exception_at(js, ex, origin, 0, 0);
 }
 
+/* Reports an exception a frame's script left uncaught at that frame's own
+ * window, so the frame's window.onerror and error listeners see it. */
+static void
+ns_js_report_uncaught_in_realm(ns_js *js, JSContext *realm, JSValueConst ex,
+                               const char *origin)
+{
+    if (!js || !realm) return;
+    JSContext *saved = js->ctx;
+    js->ctx = realm;
+    ns_js_report_uncaught(js, ex, origin);
+    js->ctx = saved;
+}
+
 /* Parses the first file:line:col frame from a fresh Error stack; caller frees *file. */
 static gboolean
 ns_js_caller_position(JSContext *ctx, char **file, int *line, int *col)
@@ -58941,6 +59033,7 @@ ns_js_eval_script_source(ns_js *js, ns_node *script, const char *source,
                 JS_FreeValue(realm, stack_value);
             }
             if (message) JS_FreeCString(realm, message);
+            ns_js_report_uncaught_in_realm(js, realm, exception, origin);
             JS_FreeValue(realm, exception);
         }
         JS_FreeValue(realm, value);
@@ -60713,6 +60806,7 @@ ns_js_run_iframe_scripts(ns_js *js, ns_node *content_root,
                     JS_FreeValue(fctx, stk);
                 }
                 if (m) JS_FreeCString(fctx, m);
+                ns_js_report_uncaught_in_realm(js, fctx, ex, source->url);
                 JS_FreeValue(fctx, ex);
             }
             JS_FreeValue(fctx, v);
@@ -60956,20 +61050,49 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (!js || !iframe || js->halted || !js->current_doc) return;
     if (!ns_js_node_in_page(js, iframe)) return;
 
+    unsigned sandbox = ns_iframe_effective_sandbox(iframe);
+    gboolean scripts_ok = !(sandbox & NS_SANDBOX_ACTIVE) ||
+                          (sandbox & NS_SANDBOX_ALLOW_SCRIPTS);
+
+    /* A document script wrote with document.write(): its tree is already
+     * in place.  Run the scripts that were written, in the frame's realm,
+     * and fire load once the document has been closed. */
+    gboolean written = FALSE, written_open = FALSE;
     if (ns_element_get_attr(iframe, "data-nd-doc-written")) {
         const char *sa = ns_frame_src_attr(iframe);
         const char *sv = sa ? ns_element_get_attr(iframe, sa) : NULL;
         const char *sd = ns_element_get_attr(iframe, "srcdoc");
         if ((!sv || !*sv) && (!sd || !*sd)) {
-            ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
-            ns_js_dispatch_event(js, iframe, "load", NULL);
-            return;
+            written = TRUE;
+            written_open =
+                ns_element_get_attr(iframe, "data-nd-doc-open") != NULL;
+            ns_node *wroot = ns_iframe_content_root(iframe);
+            gboolean pending = scripts_ok && wroot &&
+                               ns_subtree_has_pending_script(wroot);
+            if (pending && ns_js_node_realm_context(js, wroot)) {
+                g_autofree char *worigin =
+                    ns_js_node_document_base_url(js, wroot);
+                if (!worigin) worigin = g_strdup("inline");
+                GArray *tasks =
+                    g_array_new(FALSE, FALSE, sizeof(ns_script_task));
+                ns_js_collect_script_tasks(wroot, tasks);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_BLOCKING, worigin);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_DEFERRED, worigin);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_ASYNC, worigin);
+                g_array_free(tasks, TRUE);
+                pending = FALSE;
+            }
+            if (!pending) {
+                if (wroot) ns_js_schedule_static_iframes(js, wroot);
+                if (!written_open) {
+                    ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+                    ns_js_dispatch_event(js, iframe, "load", NULL);
+                }
+                return;
+            }
+            ns_element_set_attr(iframe, "data-nd-doc-flushed", "1");
         }
     }
-
-    unsigned sandbox = ns_iframe_effective_sandbox(iframe);
-    gboolean scripts_ok = !(sandbox & NS_SANDBOX_ACTIVE) ||
-                          (sandbox & NS_SANDBOX_ALLOW_SCRIPTS);
 
     const char *embedder = ns_js_node_doc_base(js, iframe);
     const char *origin = embedder && *embedder ? embedder : "inline";
@@ -60980,6 +61103,18 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     char *abs_url = NULL;
     char *decoded = NULL;
     ns_response *resp = NULL;
+
+    /* A frame with no source shows its initial about:blank document from
+     * the moment it is inserted, and script may have filled that document
+     * in (contentDocument.body.innerHTML = ...) before this first load
+     * runs.  The load completes that document; it does not replace it. */
+    gboolean keep_doc = written;
+    if (!keep_doc && (!srcdoc || !*srcdoc) &&
+        (!src || !*src || g_ascii_strcasecmp(src, "about:blank") == 0) &&
+        ns_node_is_element_named(iframe, "iframe") &&
+        !ns_element_get_attr(iframe, "data-nd-frame-loaded") &&
+        ns_iframe_document_node(iframe))
+        keep_doc = TRUE;
 
     if (srcdoc && *srcdoc) {
         decoded = g_strdup(srcdoc);
@@ -61158,8 +61293,10 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
         }
     }
 
-    ns_js_iframe_clear_content(js, iframe);
-    ns_js_sweep_orphans(js);
+    if (!keep_doc) {
+        ns_js_iframe_clear_content(js, iframe);
+        ns_js_sweep_orphans(js);
+    }
 
     gboolean is_plain_xml = resp && resp->content_type
         && strstr(resp->content_type, "xml") != NULL
@@ -61405,7 +61542,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             ns_js_run_script_schedule(js, tasks, NS_SCRIPT_ASYNC, iorigin);
             g_array_free(tasks, TRUE);
         }
-        if (content_doc) {
+        if (content_doc && !written_open) {
             ns_js_dispatch_event(js, content_doc, "DOMContentLoaded", NULL);
             ns_js_dispatch_event(js, content_doc, "readystatechange", NULL);
             ns_js_dispatch_event(js, content_doc, "load", NULL);
@@ -61416,7 +61553,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             JS_FreeValue(js->ctx, load_window);
             load_window = JS_GetPropertyStr(js->ctx, realm_scope, "window");
         }
-        if (JS_IsObject(load_window) && content_doc) {
+        if (JS_IsObject(load_window) && content_doc && !written_open) {
             JSValue load_event = ns_target_make_event(js->ctx, load_window,
                                                        "load");
             ns_js_dispatch_window_only_event(js, content_doc, "load",
@@ -61441,7 +61578,8 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (content_root)
         ns_js_schedule_static_iframes(js, content_root);
     ns_js_schedule_pending_script_drain(js);
-    ns_js_dispatch_event(js, iframe, "load", NULL);
+    if (!written_open)
+        ns_js_dispatch_event(js, iframe, "load", NULL);
 
     if (resp) ns_response_free(resp);
     g_free(decoded);

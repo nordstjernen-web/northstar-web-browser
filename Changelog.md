@@ -48,6 +48,14 @@ Significant changes in each release:
   workloads, went from 2.39 to 3.5 on browserbench.org. A frame element
   removed from the page also stops its timers and loads afresh if it is
   inserted again.
+* Performance: watching for CSS transitions is much cheaper. On every
+  style pass each transitionable property of each element with a
+  transition was compared with its previous value by serializing both to
+  text, and an element with `transition: all` looked each of its
+  channels up by scanning the list of all of them. Simple values are now
+  compared directly and channels are indexed by property. The NewsSite
+  suite of Speedometer 3.1, which forces layout 150 times per run on a
+  page full of such elements, went from about 1,600 ms to 1,050 ms.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
   Speedometer 3.1 completes with a score (about 3.5; it ended without

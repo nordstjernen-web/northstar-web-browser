@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* Windows wider than 2560 or taller than 1600 device pixels are painted
+  in full. The page frame was capped at that size, so on a 4K display
+  (3840 px wide at 150%) only the top-left part of the page was drawn
+  and the rest of the window stayed white. The cap is now 6144×3456, and
+  the frame buffers grow to the window's size instead of being allocated
+  at the cap, so an ordinary window uses no more memory than before.
 * SVG: `getScreenCTM()` inside an `<iframe>` now maps to the frame's own
   client coordinates, as `getBoundingClientRect()` does. It used the
   position in the top-level page, so pointer positions computed from it

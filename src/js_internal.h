@@ -324,6 +324,10 @@ struct ns_js {
     JSValue       proto_svgelement;
     JSValue       proto_svgaelement;
     JSValue       proto_svg_smil[NS_SVG_SMIL_IFACES];
+    /* SVG element interfaces by lower-cased tag name (SVGRectElement, ...);
+     * values are borrowed from svg_iface_protos, which owns them. */
+    GHashTable   *svg_tag_protos;
+    GPtrArray    *svg_iface_protos;
     JSValue       proto_chardata;
     JSValue       proto_text;
     JSValue       proto_comment;

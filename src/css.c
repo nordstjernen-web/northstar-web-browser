@@ -27448,6 +27448,42 @@ ns_css_value_equal(const ns_css_value *a, const ns_css_value *b)
 {
     if (a == b) return TRUE;
     if (!a || !b) return FALSE;
+    /* Equality is defined by the serialized form, and serializing is slow:
+     * the transition observer asks this for every transitionable property
+     * of every element on every style pass, nearly always about two values
+     * that are the same.  Two simple values with identical contents
+     * serialize identically, so answer those without building strings.
+     * Anything else, and every difference, still goes the long way. */
+    if (a->kind == b->kind && !a->next_layer && !b->next_layer &&
+        !a->image_set_text && !b->image_set_text &&
+        g_strcmp0(a->specified, b->specified) == 0) {
+        switch (a->kind) {
+        case NS_CSS_V_KEYWORD:
+            if (a->u.keyword && b->u.keyword &&
+                strcmp(a->u.keyword, b->u.keyword) == 0)
+                return TRUE;
+            break;
+        case NS_CSS_V_LENGTH:
+            if (a->u.length.v == b->u.length.v &&
+                a->u.length.unit == b->u.length.unit)
+                return TRUE;
+            break;
+        case NS_CSS_V_COLOR:
+            if (a->u.color.r == b->u.color.r && a->u.color.g == b->u.color.g &&
+                a->u.color.b == b->u.color.b && a->u.color.a == b->u.color.a &&
+                a->u.color.space == b->u.color.space &&
+                a->u.color.none == b->u.color.none &&
+                a->u.color.current == b->u.color.current &&
+                a->u.color.c[0] == b->u.color.c[0] &&
+                a->u.color.c[1] == b->u.color.c[1] &&
+                a->u.color.c[2] == b->u.color.c[2] &&
+                a->u.color.c[3] == b->u.color.c[3])
+                return TRUE;
+            break;
+        default:
+            break;
+        }
+    }
     char *sa = ns_css_value_serialize(a);
     char *sb = ns_css_value_serialize(b);
     gboolean eq = g_strcmp0(sa, sb) == 0;

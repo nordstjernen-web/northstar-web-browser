@@ -425,6 +425,53 @@ blurred_shadow_surface(double sw, double sh_h, corner_radii radii, int radius,
     return surf;
 }
 
+/* Rebuilds a full-size shadow from one blurred without its repeated
+ * columns and rows: column keep_x of the small surface stands for cut_x + 1
+ * identical columns of the full one, and row keep_y for cut_y + 1 rows. */
+static cairo_surface_t *
+shadow_surface_expand(cairo_surface_t *small, int full_w, int full_h,
+                      int keep_x, int cut_x, int keep_y, int cut_y)
+{
+    int small_w = cairo_image_surface_get_width(small);
+    int small_h = cairo_image_surface_get_height(small);
+    if (small_w != full_w - cut_x || small_h != full_h - cut_y ||
+        keep_x < 0 || keep_x >= small_w || keep_y < 0 || keep_y >= small_h)
+        return NULL;
+    cairo_surface_t *full =
+        cairo_image_surface_create(CAIRO_FORMAT_ARGB32, full_w, full_h);
+    if (cairo_surface_status(full) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(full);
+        return NULL;
+    }
+    cairo_surface_flush(small);
+    const guchar *src = cairo_image_surface_get_data(small);
+    int src_stride = cairo_image_surface_get_stride(small);
+    guchar *dst = cairo_image_surface_get_data(full);
+    int dst_stride = cairo_image_surface_get_stride(full);
+    int left = keep_x + 1;
+    int right = small_w - left;
+    const guchar *repeated_row = NULL;
+    for (int y = 0; y < full_h; y++) {
+        guchar *d = dst + (gsize)y * dst_stride;
+        gboolean in_cut = y > keep_y && y <= keep_y + cut_y;
+        if (in_cut && repeated_row) {
+            memcpy(d, repeated_row, (gsize)full_w * 4);
+            continue;
+        }
+        int sy = y <= keep_y ? y : y - cut_y;
+        const guchar *r = src + (gsize)sy * src_stride;
+        memcpy(d, r, (gsize)left * 4);
+        const guchar *px = r + (gsize)keep_x * 4;
+        guchar *mid = d + (gsize)left * 4;
+        for (int x = 0; x < cut_x; x++) memcpy(mid + (gsize)x * 4, px, 4);
+        memcpy(d + (gsize)(left + cut_x) * 4, r + (gsize)left * 4,
+               (gsize)right * 4);
+        if (y == keep_y) repeated_row = d;
+    }
+    cairo_surface_mark_dirty(full);
+    return full;
+}
+
 /* Paints a blurred outer box-shadow, clipped to exclude the box's own border area. */
 static void
 paint_blurred_box_shadow(cairo_t *cr, double sx, double sy, double sw, double sh_h,
@@ -447,10 +494,41 @@ paint_blurred_box_shadow(cairo_t *cr, double sx, double sy, double sw, double sh
     if (sx - pad >= cx1 || sy - pad >= cy1 ||
         sx - pad + surf_w <= cx0 || sy - pad + surf_h <= cy0)
         return;
-    cairo_surface_t *surf = blurred_shadow_surface(sw, sh_h, radii, radius,
-                                                   pad, surf_w, surf_h,
+    /* Away from its corners a blurred box is the same in every column, and
+     * in every row: the three box blurs reach 3 * radius from an edge and
+     * no further.  So blur a box with the repeated columns and rows taken
+     * out, which is small whatever the size of the real one and is the
+     * same for every box with these corners, blur and color, and put the
+     * repeats back by copying.  The pixels are those of blurring the full
+     * box; a list that grows by a row no longer re-blurs its whole shadow
+     * on every paint. */
+    double max_rx = 0, max_ry = 0;
+    for (int i = 0; i < 4; i++) {
+        if (radii.x[i] > max_rx) max_rx = radii.x[i];
+        if (radii.y[i] > max_ry) max_ry = radii.y[i];
+    }
+    int keep_x = pad + (int)ceil(max_rx) + radius * 3;
+    int keep_y = pad + (int)ceil(max_ry) + radius * 3;
+    int cut_x = (pad + (int)floor(sw) - (int)ceil(max_rx) - radius * 3) -
+                keep_x - 1;
+    int cut_y = (pad + (int)floor(sh_h) - (int)ceil(max_ry) - radius * 3) -
+                keep_y - 1;
+    if (cut_x < 8) cut_x = 0;
+    if (cut_y < 8) cut_y = 0;
+    cairo_surface_t *surf = blurred_shadow_surface(sw - cut_x, sh_h - cut_y,
+                                                   radii, radius, pad,
+                                                   surf_w - cut_x,
+                                                   surf_h - cut_y,
                                                    br, bg, bb, ba);
     if (!surf) return;
+    if (cut_x > 0 || cut_y > 0) {
+        cairo_surface_t *full =
+            shadow_surface_expand(surf, surf_w, surf_h, keep_x, cut_x,
+                                  keep_y, cut_y);
+        cairo_surface_destroy(surf);
+        surf = full;
+        if (!surf) return;
+    }
 
     cairo_save(cr);
     cairo_new_path(cr);

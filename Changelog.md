@@ -48,10 +48,38 @@ Significant changes in each release:
   workloads, went from 2.39 to 3.5 on browserbench.org. A frame element
   removed from the page also stops its timers and loads afresh if it is
   inserted again.
+* Performance: watching for CSS transitions is much cheaper. On every
+  style pass each transitionable property of each element with a
+  transition was compared with its previous value by serializing both to
+  text, and an element with `transition: all` looked each of its
+  channels up by scanning the list of all of them. Simple values are now
+  compared directly and channels are indexed by property. The NewsSite
+  suite of Speedometer 3.1, which forces layout 150 times per run on a
+  page full of such elements, went from about 1,600 ms to 1,050 ms.
+* Performance: finding where an absolutely positioned element with
+  `top: auto` would sit in the flow no longer visits every box before it.
+  Each such element walked all the boxes that precede it in its
+  containing block, so a page with many of them paid for the whole page
+  once per element on every layout. Subtrees that lie entirely before the
+  element now answer from a cached value. The "Complex DOM" suites of
+  Speedometer 3.1 are 25 to 40 % faster (Lit: 729 ms to 444 ms).
+* Performance: a blurred `box-shadow` is no longer blurred at full size
+  on every paint. The cache of blurred shadows was keyed by the exact
+  size of the box and skipped anything over 8 MB, so a tall box whose
+  height keeps changing, such as a growing list, had its whole shadow
+  blurred again each time. Only the corners and edges are blurred now,
+  once for all boxes with the same corners, blur and color; the result is
+  pixel for pixel what it was.
+* Frames: a frame's document is styled and laid out before the frame's
+  `load` event. That first pass is the most expensive one a document
+  gets, and it used to run at the next frame or inside the first script
+  that read a size, so code that starts work at `load` paid for it.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
-  Speedometer 3.1 completes with a score (about 3.5; it ended without
-  one). JetStream needs `js_eval_budget_ms` raised, for example
+  Speedometer 3.1 completes with a score (it ended without one): about
+  3.5 after the frame and memory fixes, and about 3.9 to 4.0 on
+  browserbench.org with the transition, layout, shadow and frame-layout
+  changes above. JetStream needs `js_eval_budget_ms` raised, for example
   `NS_JS_EVAL_BUDGET_MS=900000`: four of its benchmarks run longer than
   the default 60 seconds as a single script and are interrupted
   otherwise.

@@ -84,6 +84,10 @@ enum { NS_ANIM_PHASE_IDLE, NS_ANIM_PHASE_BEFORE, NS_ANIM_PHASE_ACTIVE,
 typedef struct ns_anim_state {
     const ns_node *node;
     GPtrArray     *chans;
+    /* chans by property id.  `transition: all` gives an element a channel
+     * for every transitionable property and looks each one up on every
+     * style pass; a scan of chans made that quadratic. */
+    struct ns_anim_chan **chan_by_prop;
     GPtrArray     *runs;
     GPtrArray     *scripts;
     GHashTable    *base_values;
@@ -185,6 +189,7 @@ ns_anim_state_free(gpointer data)
     ns_anim_state *s = data;
     if (!s) return;
     if (s->chans) g_ptr_array_free(s->chans, TRUE);
+    g_free(s->chan_by_prop);
     if (s->runs) g_ptr_array_free(s->runs, TRUE);
     if (s->scripts) g_ptr_array_free(s->scripts, TRUE);
     if (s->base_values) g_hash_table_destroy(s->base_values);
@@ -487,6 +492,8 @@ static ns_anim_chan *
 chan_find(const ns_anim_state *s, int prop)
 {
     if (!s->chans) return NULL;
+    if (s->chan_by_prop && prop >= 0 && prop < NS_CSS_PROP_COUNT)
+        return s->chan_by_prop[prop];
     for (guint i = 0; i < s->chans->len; i++) {
         ns_anim_chan *ch = s->chans->pdata[i];
         if (ch->prop == prop) return ch;
@@ -501,9 +508,12 @@ chan_ensure(ns_anim_state *s, int prop)
     ns_anim_chan *ch = chan_find(s, prop);
     if (ch) return ch;
     if (!s->chans) s->chans = g_ptr_array_new_with_free_func(chan_free);
+    if (!s->chan_by_prop)
+        s->chan_by_prop = g_new0(ns_anim_chan *, NS_CSS_PROP_COUNT);
     ch = g_new0(ns_anim_chan, 1);
     ch->prop = prop;
     g_ptr_array_add(s->chans, ch);
+    if (prop >= 0 && prop < NS_CSS_PROP_COUNT) s->chan_by_prop[prop] = ch;
     return ch;
 }
 

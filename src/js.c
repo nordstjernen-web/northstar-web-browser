@@ -43540,11 +43540,10 @@ ns_node_owner_iframe(const ns_node *n)
     return NULL;
 }
 
-/* Navigates the enclosing iframe's window to href via its location; TRUE if done. */
+/* Navigates iframe's window to href via its location; TRUE if done. */
 static gboolean
-ns_iframe_follow_href(JSContext *ctx, const ns_node *el, const char *href)
+ns_iframe_navigate(JSContext *ctx, const ns_node *iframe, const char *href)
 {
-    const ns_node *iframe = ns_node_owner_iframe(el);
     if (!iframe || !iframe->js_wrapper || !href || !*href) return FALSE;
     JSValue win = ns_iframe_lookup_realm_window(js_from_ctx(ctx),
                                                 (ns_node *)iframe);
@@ -43559,6 +43558,42 @@ ns_iframe_follow_href(JSContext *ctx, const ns_node *el, const char *href)
     }
     JS_FreeValue(ctx, win);
     return followed;
+}
+
+/* Navigates the enclosing iframe's window to href via its location; TRUE if done. */
+static gboolean
+ns_iframe_follow_href(JSContext *ctx, const ns_node *el, const char *href)
+{
+    return ns_iframe_navigate(ctx, ns_node_owner_iframe(el), href);
+}
+
+/* Follows a link that is not in the page (created by script and never
+ * inserted).  Such a link still navigates, but its own document's browsing
+ * context: the frame of the realm whose script activated it.  Taking the
+ * page for it would let any frame, sandboxed or cross-origin, navigate the
+ * top page as the embedder.  Returns FALSE when the page's own script
+ * activated it (the caller navigates the page), TRUE when it was handled
+ * here: sent to the frame, or dropped because no frame can be named. */
+static gboolean
+ns_detached_link_follow(JSContext *ctx, ns_js *js, const char *href)
+{
+    if (!js->frame_ctxs || js->frame_ctxs->len == 0) return FALSE;
+    JSContext *main_ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
+    JSContext *caller = ns_js_calling_realm(js, ctx);
+    if (caller == main_ctx) return FALSE;
+    if (!caller || ns_js_realm_detached(js, caller) || !js->frame_contexts)
+        return TRUE;
+    const ns_node *iframe = NULL;
+    GHashTableIter it;
+    gpointer key, value;
+    g_hash_table_iter_init(&it, js->frame_contexts);
+    while (!iframe && g_hash_table_iter_next(&it, &key, &value))
+        if (value == caller) iframe = key;
+    if (!iframe) return TRUE;
+    const char *base = ns_element_get_attr(iframe, "data-nd-frame-url");
+    g_autofree char *abs = base && *base ? ns_url_resolve(base, href) : NULL;
+    ns_iframe_navigate(ctx, iframe, abs ? abs : href);
+    return TRUE;
 }
 
 /* Returns 1 for checkbox inputs, 2 for radio inputs, 0 otherwise. */
@@ -43776,6 +43811,9 @@ ns_element_activation_behavior(JSContext *ctx, const ns_node *act,
             return JS_UNDEFINED;
         }
         if (href && *href) {
+            if (!ns_js_node_in_page(js, act) &&
+                ns_detached_link_follow(ctx, js, href))
+                return JS_UNDEFINED;
             g_autofree char *abs_url = ns_element_anchor_resolved_href(act, js);
             if (abs_url && ns_js_anchor_fragment_navigate(js, abs_url))
                 return JS_UNDEFINED;
@@ -44102,6 +44140,10 @@ ns_element_form_submit(JSContext *ctx, JSValueConst this_val,
     if (!el || !js_from_ctx(ctx)) return JS_UNDEFINED;
     if (el->kind != NS_NODE_ELEMENT || !el->name ||
         g_ascii_strcasecmp(el->name, "form") != 0) return JS_UNDEFINED;
+    /* A form that is not in the page cannot navigate (HTML "cannot
+     * navigate"); it has no frame either, so sandbox flags and the
+     * submitting frame could not be derived from it. */
+    if (!ns_js_node_in_page(js_from_ctx(ctx), el)) return JS_UNDEFINED;
     const ns_node *submitter = (argc >= 1) ? ns_unwrap_element(argv[0]) : NULL;
     if (ns_maybe_close_dialog_form(ctx, el, submitter)) return JS_UNDEFINED;
     if (ns_node_sandbox_blocks_forms(el)) {

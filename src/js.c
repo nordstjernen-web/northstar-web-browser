@@ -53036,6 +53036,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
 
     ns_canvas_register_image_bitmap_class(js->rt);
     ns_bind_fn(ctx, global, "createImageBitmap", ns_window_create_image_bitmap, 1);
+    ns_canvas_install_image_bitmap(ctx, global);
     ns_bind_ctor(ctx, global, "Image",           ns_window_image_ctor,           2);
     ns_bind_ctor(ctx, global, "OffscreenCanvas", ns_window_offscreen_canvas_ctor, 2);
     ns_bind_ctor(ctx, global, "DOMMatrix",          ns_window_dommatrix_ctor,          1);

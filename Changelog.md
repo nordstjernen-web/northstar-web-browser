@@ -89,7 +89,10 @@ Significant changes in each release:
   Every SVG element was a plain `SVGElement`, so `instanceof` checks that
   libraries use to tell shapes apart failed. `onerror` is an event handler
   property of every element, as it is in other browsers; it was missing
-  except on `<body>`. html5test.co: 499 to 502 of 588.
+  except on `<body>`. `ImageBitmap` is exposed as an interface, so
+  `bitmap instanceof ImageBitmap` holds for what `createImageBitmap()`
+  returns, and a closed bitmap reports a size of 0 x 0. html5test.co: 499
+  to 503 of 588.
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
   Speedometer 3.1 completes with a score (it ended without one): about

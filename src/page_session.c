@@ -25,6 +25,7 @@
 
 struct ns_page_session {
     unsigned char *fb;
+    size_t         fb_cap;
     int            max_w;
     int            max_h;
     ns_browser    *cur;
@@ -39,7 +40,9 @@ struct ns_page_session {
     double         frame_scale;
     guint64        frame_gen;
     unsigned char *scratch_fb;
+    size_t         scratch_cap;
     unsigned char *verify_fb;
+    size_t         verify_cap;
     char          *page_nav;
     char          *post_url;
     char          *post_body;
@@ -260,12 +263,6 @@ ns_page_session_new(int max_width, int max_height)
     ns_page_session *s = calloc(1, sizeof *s);
     if (!s)
         return NULL;
-    s->fb = malloc((size_t)max_width * 4u *
-                   (size_t)(max_height + 2 * NS_DAMAGE_EDGE_PX));
-    if (!s->fb) {
-        free(s);
-        return NULL;
-    }
     s->max_w = max_width;
     s->max_h = max_height;
     s->tick_budget_ms = 16;
@@ -617,13 +614,18 @@ session_damage_region(ns_page_session *s, GArray *damage, long sx, long sy,
     return region;
 }
 
-/* Lazily allocates a padded framebuffer-sized scratch buffer. */
+/* Grows a buffer to hold a vw x vh frame plus its damage edges; NULL if out of memory. */
 static unsigned char *
-session_scratch(ns_page_session *s, unsigned char **buf)
+session_fit(unsigned char **buf, size_t *cap, int vw, int vh)
 {
-    if (!*buf)
-        *buf = malloc((size_t)s->max_w * 4u *
-                      (size_t)(s->max_h + 2 * NS_DAMAGE_EDGE_PX));
+    size_t need = (size_t)vw * 4u * (size_t)(vh + 2 * NS_DAMAGE_EDGE_PX);
+    if (*cap < need) {
+        unsigned char *grown = realloc(*buf, need);
+        if (!grown)
+            return NULL;
+        *buf = grown;
+        *cap = need;
+    }
     return *buf;
 }
 
@@ -649,7 +651,7 @@ session_verify_region(ns_page_session *s, long sx, long sy, int vw, int vh,
                       double scale)
 {
     size_t size = (size_t)vw * 4u * (size_t)vh;
-    if (!session_scratch(s, &s->verify_fb) ||
+    if (!session_fit(&s->verify_fb, &s->verify_cap, vw, vh) ||
         session_paint_band(s, s->verify_fb, 0, vw, 0, vh, sx, sy, vw, vh,
                            scale) != 0)
         return;
@@ -721,7 +723,7 @@ session_paint_region(ns_page_session *s, cairo_region_t *region, long sx,
 {
     int n = cairo_region_num_rectangles(region);
     if (n == 0) return 0;
-    if (!session_scratch(s, &s->scratch_fb)) return -1;
+    if (!session_fit(&s->scratch_fb, &s->scratch_cap, vw, vh)) return -1;
     cairo_rectangle_int_t *rects = g_new(cairo_rectangle_int_t, n);
     for (int i = 0; i < n; i++)
         cairo_region_get_rectangle(region, i, &rects[i]);
@@ -782,6 +784,8 @@ ns_page_session_render(ns_page_session *s, int width, int height,
     int vw = clamp(width, 1, s->max_w);
     int vh = clamp(height, 1, s->max_h);
     int stride = vw * 4;
+    if (!session_fit(&s->fb, &s->fb_cap, vw, vh))
+        return -1;
     long sx = scroll_x, sy = scroll_y;
     s->rendering = TRUE;
     gint64 frame_start = ns_trace_now();

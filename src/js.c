@@ -44059,7 +44059,28 @@ ns_js_node_document_base_url(ns_js *js, const ns_node *node)
     return ns_js_document_base_url(js, doc, fallback);
 }
 
-/* Restarts loads for imgs whose src now resolves to a different URL than requested. */
+/* TRUE for an <img> whose image is its src attribute alone and loads now:
+ * no srcset, not in a <picture> (layout picks the source for those), not
+ * lazy.  Such an image can be tracked by URL from the moment it is in the
+ * document, rendered or not. */
+static gboolean
+ns_js_img_trackable_by_src(const ns_node *el)
+{
+    const char *src = ns_element_get_attr(el, "src");
+    if (!src || !*src) return FALSE;
+    if (ns_element_get_attr(el, "srcset")) return FALSE;
+    if (el->parent && ns_node_is_element_named(el->parent, "picture"))
+        return FALSE;
+    const char *loading = ns_element_get_attr(el, "loading");
+    if (loading && g_ascii_strcasecmp(loading, "lazy") == 0) return FALSE;
+    return TRUE;
+}
+
+/* Restarts loads for imgs whose src now resolves to a different URL than
+ * requested, and starts tracking the ones not tracked yet.  An <img> fires
+ * load or error whether or not it is rendered; left to the layout tree, a
+ * broken image without alt text, or any image under display:none, never
+ * fired either. */
 static void
 ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
 {
@@ -44069,7 +44090,10 @@ ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
         const char *src = ns_element_get_attr(root, "src");
         ns_js_image_load *r = (src && *src && js->js_image_loads)
             ? g_hash_table_lookup(js->js_image_loads, root) : NULL;
-        if (r && r->requested_url) {
+        if (!r && !(root->flags & NS_NODE_IMG_LOAD_FIRED) &&
+            ns_js_img_trackable_by_src(root))
+            ns_js_start_image_load(js, root, src);
+        else if (r && r->requested_url) {
             char *base = ns_js_node_document_base_url(js, root);
             char *abs = base ? ns_url_resolve(base, src) : NULL;
             if (abs && strcmp(abs, r->requested_url) != 0) {
@@ -44080,6 +44104,7 @@ ns_js_rescan_subtree_images(ns_js *js, ns_node *root, int depth)
             g_free(base);
         }
     }
+    if (ns_node_is_element_named(root, "template")) return;
     for (ns_node *c = root->first_child; c; c = c->next_sibling)
         ns_js_rescan_subtree_images(js, c, depth + 1);
 }
@@ -60001,7 +60026,7 @@ ns_js_run_inserted_scripts(ns_js *js, ns_node *root)
         ns_js_script_needs_prepare(js, root->parent);
         if (root->kind != NS_NODE_ELEMENT) return;
     }
-    if (js->js_image_loads && g_hash_table_size(js->js_image_loads) > 0)
+    if (js->image_cache)
         ns_js_rescan_subtree_images(js, root, 0);
     if (js->in_pump) {
         /* Inserted while a script fetch pumps the loop (the streamed rest
@@ -61889,8 +61914,11 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
          * whatever script first reads a size there, long after load: the
          * Speedometer runner starts timing a workload at the frame's load
          * event, and the first step paid for the stylesheet's round trip. */
-        if (content_doc && !written_open && !js->halted)
+        if (content_doc && !written_open && !js->halted) {
             ns_js_load_document_stylesheets(js, content_doc);
+            if (js->image_cache)
+                ns_js_rescan_subtree_images(js, content_doc, 0);
+        }
         if (content_doc && !written_open) {
             ns_js_dispatch_event(js, content_doc, "DOMContentLoaded", NULL);
             ns_js_dispatch_event(js, content_doc, "readystatechange", NULL);
@@ -62124,6 +62152,7 @@ ns_js_lifecycle_tick(gpointer data)
             return G_SOURCE_REMOVE;
         }
         ns_js_load_document_stylesheets(js, doc);
+        if (js->image_cache) ns_js_rescan_subtree_images(js, doc, 0);
         ns_js_drain_deferred_scripts(js);
         ns_js_drain_async_script_roots(js);
         ns_js_process_pending_iframes(js);

@@ -616,9 +616,11 @@ ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi)
                   wasm_memory_get_bytes_per_page(mem);
     if (base == m->base && size == m->size)
         return;
-    if (JS_RepointArrayBuffer(ctx, m->buffer, base, size) == 0) {
+    /* A grow detaches the buffer, as the JS API specifies; memory that only
+     * moved keeps its buffer, pointed at the new address. */
+    if (size == m->size &&
+        JS_RepointArrayBuffer(ctx, m->buffer, base, size) == 0) {
         m->base = base;
-        m->size = size;
     } else {
         ns_wasm_memory_detach_buffer(m);
     }
@@ -712,18 +714,13 @@ ns_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc,
             guint64 new_size = new_pages * NS_WASM_PAGE_SIZE;
             if (new_size > NS_WASM_MEMORY_MAX_BYTES)
                 return JS_ThrowRangeError(ctx, "wasm memory.grow failed");
+            /* grow() detaches the current buffer; the next read of
+             * memory.buffer makes one of the new size. */
+            ns_wasm_memory_detach_buffer(m);
             m->staging = g_realloc(m->staging, new_size);
             memset(m->staging + m->staging_size, 0,
                    new_size - m->staging_size);
             m->staging_size = (size_t)new_size;
-            if (!JS_IsUndefined(m->buffer) &&
-                JS_RepointArrayBuffer(ctx, m->buffer, m->staging,
-                                      m->staging_size) == 0) {
-                m->base = m->staging;
-                m->size = m->staging_size;
-            } else {
-                ns_wasm_memory_detach_buffer(m);
-            }
         }
         return JS_NewUint32(ctx, old_pages);
     }
@@ -1917,6 +1914,15 @@ ns_wasm_adopt_provided_imports(JSContext *ctx, JSValueConst instance_obj,
         wasm_memory_inst_t mem =
             m && m->staging ? wasm_runtime_get_memory(wi->inst, 0) : NULL;
         if (mem) {
+            /* The instance starts at the size the module declares for the
+             * import; the memory it was given may already be larger, and
+             * that memory is the one the instance uses. */
+            guint64 bytes_per_page = wasm_memory_get_bytes_per_page(mem);
+            guint64 have = wasm_memory_get_cur_page_count(mem);
+            guint64 want = bytes_per_page
+                ? m->staging_size / bytes_per_page : 0;
+            if (want > have)
+                wasm_memory_enlarge(mem, want - have);
             guint8 *base = wasm_memory_get_base_address(mem);
             size_t size = (size_t)wasm_memory_get_cur_page_count(mem) *
                           wasm_memory_get_bytes_per_page(mem);
@@ -2469,6 +2475,7 @@ ns_wasm_install(JSContext *ctx, JSValueConst global)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     ns_wamr_set_host_calls_ctors(true);
+    ns_wamr_set_host_links_imports(true);
     ns_wasm_register_class(rt, &ns_wasm_module_class_id, &ns_wasm_module_class);
     ns_wasm_register_class(rt, &ns_wasm_instance_class_id,
                            &ns_wasm_instance_class);

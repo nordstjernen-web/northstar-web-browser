@@ -1,0 +1,203 @@
+--- a/libregexp.c
++++ b/libregexp.c
+@@ -3390,8 +3390,76 @@
+     uint32_t ascii[4];
+     uint16_t other[4];
+     int other_count;
++    bool non_ascii; /* any code unit >= 128 can start a match */
++    bool at_start;  /* an alternative is anchored with '^' (not multiline):
++                       it can only match at the start of the subject */
+ } REFirstChars;
+ 
++static void re_first_add_range(REFirstChars *fc, uint32_t low, uint32_t high)
++{
++    uint32_t c;
++
++    if (high >= 128) {
++        fc->non_ascii = true;
++        high = 127;
++    }
++    for(c = low; c <= high; c++)
++        fc->ascii[c >> 5] |= 1u << (c & 31);
++}
++
++/* first characters of a character class. 'pc' points to the opcode */
++static bool re_first_add_class(REFirstChars *fc, const uint8_t *pc,
++                               bool is_unicode, bool allow_slow)
++{
++    bool is_32 = (*pc == REOP_range32 || *pc == REOP_range32_i);
++    bool ignore_case = (*pc == REOP_range_i || *pc == REOP_range32_i);
++    int n = get_u16(pc + 1), i;
++    uint32_t c, low, high;
++
++    pc += 3;
++    if (!ignore_case) {
++        for(i = 0; i < n; i++) {
++            if (is_32) {
++                low = get_u32(pc + i * 8);
++                high = get_u32(pc + i * 8 + 4);
++            } else {
++                low = get_u16(pc + i * 4);
++                high = get_u16(pc + i * 4 + 2);
++            }
++            if (low < 128)
++                re_first_add_range(fc, low, high);
++            else
++                fc->non_ascii = true;
++        }
++        return true;
++    }
++    /* the subject character is canonicalized before it is compared: find
++       the ASCII characters that land in the class. Too slow to be worth
++       it for a short subject. */
++    if (!allow_slow)
++        return false;
++    fc->non_ascii = true;
++    for(c = 0; c < 128; c++) {
++        uint32_t cc = lre_canonicalize(c, is_unicode);
++        for(i = 0; i < n; i++) {
++            if (is_32) {
++                low = get_u32(pc + i * 8);
++                high = get_u32(pc + i * 8 + 4);
++            } else {
++                low = get_u16(pc + i * 4);
++                high = get_u16(pc + i * 4 + 2);
++                if (high == 0xffff)
++                    high = UINT32_MAX;
++            }
++            if (cc >= low && cc <= high) {
++                fc->ascii[c >> 5] |= 1u << (c & 31);
++                break;
++            }
++        }
++    }
++    return true;
++}
++
+ static bool re_first_add(REFirstChars *fc, uint32_t val, bool ignore_case,
+                          bool is_unicode)
+ {
+@@ -3421,7 +3489,8 @@
+ }
+ 
+ static bool re_first_chars(REFirstChars *fc, const uint8_t *pc,
+-                           const uint8_t *pc_end, bool is_unicode, int depth)
++                           const uint8_t *pc_end, bool is_unicode,
++                           bool allow_slow, int depth)
+ {
+     int steps;
+ 
+@@ -3431,11 +3500,47 @@
+         switch(*pc) {
+         case REOP_save_start:
+         case REOP_save_end:
++        case REOP_set_char_pos:
+             pc += 2;
+             break;
+         case REOP_save_reset:
+             pc += 3;
+             break;
++        case REOP_set_i32:
++            pc += 6;
++            break;
++        case REOP_word_boundary:
++        case REOP_word_boundary_i:
++        case REOP_not_word_boundary:
++        case REOP_not_word_boundary_i:
++            /* zero width: the first character comes from what follows */
++            pc += 1;
++            break;
++        case REOP_line_start:
++            fc->at_start = true;
++            return true;
++        case REOP_range:
++        case REOP_range_i:
++        case REOP_range32:
++        case REOP_range32_i:
++            return re_first_add_class(fc, pc, is_unicode, allow_slow);
++        case REOP_space:
++            re_first_add_range(fc, 0x09, 0x0d);
++            re_first_add_range(fc, 0x20, 0x20);
++            fc->non_ascii = true;
++            return true;
++        case REOP_not_space:
++            re_first_add_range(fc, 0x00, 0x08);
++            re_first_add_range(fc, 0x0e, 0x1f);
++            re_first_add_range(fc, 0x21, 0x7f);
++            fc->non_ascii = true;
++            return true;
++        case REOP_dot:
++            re_first_add_range(fc, 0x00, 0x09);
++            re_first_add_range(fc, 0x0b, 0x0c);
++            re_first_add_range(fc, 0x0e, 0x7f);
++            fc->non_ascii = true;
++            return true;
+         case REOP_char:
+         case REOP_char_i:
+             return re_first_add(fc, get_u16(pc + 1), *pc == REOP_char_i,
+@@ -3449,9 +3554,10 @@
+             break;
+         case REOP_split_goto_first:
+         case REOP_split_next_first:
+-            return re_first_chars(fc, pc + 5, pc_end, is_unicode, depth + 1) &&
++            return re_first_chars(fc, pc + 5, pc_end, is_unicode, allow_slow,
++                                  depth + 1) &&
+                 re_first_chars(fc, pc + 5 + (int)get_u32(pc + 1), pc_end,
+-                               is_unicode, depth + 1);
++                               is_unicode, allow_slow, depth + 1);
+         default:
+             return false;
+         }
+@@ -3465,6 +3571,8 @@
+ 
+     if (c < 128)
+         return (fc->ascii[c >> 5] >> (c & 31)) & 1;
++    if (fc->non_ascii)
++        return true;
+     for(i = 0; i < fc->other_count; i++) {
+         if (fc->other[i] == c)
+             return true;
+@@ -3517,23 +3625,38 @@
+         REFirstChars fc;
+ 
+         memset(&fc, 0, sizeof(fc));
+-        if (re_first_chars(&fc, body, body_end, s->is_unicode, 0)) {
++        if (re_first_chars(&fc, body, body_end, s->is_unicode,
++                           clen - cindex >= 32, 0)) {
+             int pos;
++            bool has_chars = fc.non_ascii || fc.other_count != 0 ||
++                (fc.ascii[0] | fc.ascii[1] | fc.ascii[2] | fc.ascii[3]) != 0;
+ 
+             searched = true;
+             ret = 0;
+-            for(pos = cptr == cbuf + (cindex << cbuf_type) ? cindex : cindex - 1;
+-                pos < clen; pos++) {
++            pos = cptr == cbuf + (cindex << cbuf_type) ? cindex : cindex - 1;
++            if (fc.at_start && pos == 0) {
++                /* the only position an anchored alternative can match at,
++                   whatever the first character and even in an empty
++                   subject */
++                ret = lre_exec_backtrack(s, capture, body, cbuf);
++                pos = 1;
++            }
++            /* with nothing but anchored alternatives no other position can
++               match: do not walk the subject at all */
++            for(; ret == 0 && has_chars && pos < clen; pos++) {
+                 uint32_t c = cbuf_type == 0 ? cbuf[pos] :
+                     ((const uint16_t *)cbuf)[pos];
+                 if (!re_first_test(&fc, c))
+                     continue;
++                /* a match never starts between the two halves of a
++                   surrogate pair in unicode mode */
++                if (s->cbuf_type == 2 && pos > 0 && is_lo_surrogate(c) &&
++                    is_hi_surrogate(((const uint16_t *)cbuf)[pos - 1]))
++                    continue;
+                 for(i = 0; i < s->capture_count * 2; i++)
+                     capture[i] = NULL;
+                 ret = lre_exec_backtrack(s, capture, body,
+                                          cbuf + (pos << cbuf_type));
+-                if (ret != 0)
+-                    break;
+             }
+         }
+     }

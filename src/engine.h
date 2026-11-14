@@ -31,6 +31,13 @@ ns_response *ns_engine_post_blocking(const char *url, const char *top_url,
 
 char *ns_engine_linked_css_text(const char *url);
 
+/* One request per linked stylesheet, shared by the style pass and the link
+ * loader (see css_handoff in engine.c).  The first takes ownership of resp. */
+void ns_engine_offer_stylesheet_response(const char *url, const char *top_url,
+                                         ns_response *resp);
+gboolean ns_engine_stylesheet_recently_loaded(const char *url,
+                                              const char *top_url);
+
 /* csp_header is the response's Content-Security-Policy (or NULL); the
  * document's <meta http-equiv> policies are added to it. */
 void ns_engine_speculative_preload(ns_node *doc, const char *base_url,

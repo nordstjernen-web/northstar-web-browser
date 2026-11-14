@@ -1,0 +1,171 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -584,6 +584,12 @@
+     JSValue function_ctor;
+     JSValue array_ctor;
+     JSValue regexp_ctor;
++    /* legacy RegExp statics (RegExp.$1, RegExp.lastMatch, ...): the subject
++       of the last successful match in this realm and the code unit offsets
++       of the match and of its first nine groups, -1 for a group that did
++       not participate */
++    JSValue regexp_last_input;
++    int regexp_last_capture[20];
+     JSValue promise_ctor;
+     JSValue native_error_proto[JS_NATIVE_ERROR_COUNT];
+     JSValue error_ctor;
+@@ -2872,6 +2878,7 @@
+     ctx->iterator_ctor = JS_NULL;
+     ctx->iterator_ctor_getset = JS_NULL;
+     ctx->regexp_ctor = JS_NULL;
++    ctx->regexp_last_input = JS_UNDEFINED;
+     ctx->promise_ctor = JS_NULL;
+     ctx->error_ctor = JS_NULL;
+     ctx->error_back_trace = JS_UNDEFINED;
+@@ -3099,6 +3106,7 @@
+     JS_FreeValue(ctx, ctx->promise_ctor);
+     JS_FreeValue(ctx, ctx->array_ctor);
+     JS_FreeValue(ctx, ctx->regexp_ctor);
++    JS_FreeValue(ctx, ctx->regexp_last_input);
+     JS_FreeValue(ctx, ctx->function_ctor);
+     JS_FreeValue(ctx, ctx->function_proto);
+ 
+@@ -50159,6 +50167,94 @@
+     return ret;
+ }
+ 
++/* remember a successful match for the legacy RegExp statics */
++static void js_regexp_set_last_match(JSContext *ctx, JSValueConst str_val,
++                                     uint8_t **capture, int capture_count,
++                                     const uint8_t *str_buf, int shift)
++{
++    int i;
++
++    if (JS_VALUE_GET_PTR(ctx->regexp_last_input) != JS_VALUE_GET_PTR(str_val) ||
++        JS_VALUE_GET_TAG(ctx->regexp_last_input) != JS_TAG_STRING) {
++        JS_FreeValue(ctx, ctx->regexp_last_input);
++        ctx->regexp_last_input = js_dup(str_val);
++    }
++    for(i = 0; i < 10; i++) {
++        int start = -1, end = -1;
++        if (i < capture_count && capture[2 * i] && capture[2 * i + 1]) {
++            start = (capture[2 * i] - str_buf) >> shift;
++            end = (capture[2 * i + 1] - str_buf) >> shift;
++        }
++        ctx->regexp_last_capture[2 * i] = start;
++        ctx->regexp_last_capture[2 * i + 1] = end;
++    }
++}
++
++enum {
++    JS_REGEXP_LEGACY_INPUT = 10,
++    JS_REGEXP_LEGACY_LAST_MATCH,
++    JS_REGEXP_LEGACY_LAST_PAREN,
++    JS_REGEXP_LEGACY_LEFT_CONTEXT,
++    JS_REGEXP_LEGACY_RIGHT_CONTEXT,
++};
++
++/* RegExp.$1 .. RegExp.$9 (magic 1..9), RegExp.input, lastMatch, lastParen,
++   leftContext and rightContext, with their $_ $& $+ $` $' aliases */
++static JSValue js_regexp_get_legacy(JSContext *ctx, JSValueConst this_val,
++                                    int magic)
++{
++    JSString *str;
++    const int *cap = ctx->regexp_last_capture;
++    int start, end, i;
++
++    if (JS_VALUE_GET_TAG(ctx->regexp_last_input) != JS_TAG_STRING)
++        return js_empty_string(ctx->rt);
++    str = JS_VALUE_GET_STRING(ctx->regexp_last_input);
++    switch(magic) {
++    case JS_REGEXP_LEGACY_INPUT:
++        return js_dup(ctx->regexp_last_input);
++    case JS_REGEXP_LEGACY_LAST_MATCH:
++        start = cap[0], end = cap[1];
++        break;
++    case JS_REGEXP_LEGACY_LAST_PAREN:
++        start = end = -1;
++        for(i = 9; i >= 1; i--) {
++            if (cap[2 * i] >= 0) {
++                start = cap[2 * i], end = cap[2 * i + 1];
++                break;
++            }
++        }
++        break;
++    case JS_REGEXP_LEGACY_LEFT_CONTEXT:
++        start = 0, end = cap[0];
++        break;
++    case JS_REGEXP_LEGACY_RIGHT_CONTEXT:
++        start = cap[1], end = str->len;
++        break;
++    default:
++        start = cap[2 * magic], end = cap[2 * magic + 1];
++        break;
++    }
++    if (start < 0 || end < start || (uint32_t)end > str->len)
++        return js_empty_string(ctx->rt);
++    return js_sub_string(ctx, str, start, end);
++}
++
++static JSValue js_regexp_set_legacy_input(JSContext *ctx, JSValueConst this_val,
++                                          JSValueConst val, int magic)
++{
++    JSValue str = JS_ToString(ctx, val);
++    int i;
++
++    if (JS_IsException(str))
++        return JS_EXCEPTION;
++    JS_FreeValue(ctx, ctx->regexp_last_input);
++    ctx->regexp_last_input = str;
++    for(i = 0; i < 20; i++)
++        ctx->regexp_last_capture[i] = -1;
++    return JS_UNDEFINED;
++}
++
+ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+ {
+@@ -50265,6 +50361,8 @@
+                     goto fail;
+             }
+         }
++        js_regexp_set_last_match(ctx, str_val, capture, capture_count,
++                                 str_buf, shift);
+         index = (capture[0] - str_buf) >> shift;
+         props[0].u.value = js_int32(capture_count); // length
+         props[1].u.value = js_int32(index);         // index
+@@ -50462,6 +50560,9 @@
+             }
+             break;
+         }
++        js_regexp_set_last_match(ctx, str_val, capture,
++                                 lre_get_capture_count(re_bytecode),
++                                 str_buf, shift);
+         start = (capture[0] - str_buf) >> shift;
+         end = (capture[1] - str_buf) >> shift;
+         last_index = end;
+@@ -51231,6 +51332,25 @@
+ static const JSCFunctionListEntry js_regexp_funcs[] = {
+     JS_CFUNC_DEF("escape", 1, js_regexp_escape ),
+     JS_CGETSET_DEF("[Symbol.species]", js_get_this, NULL ),
++    JS_CGETSET_MAGIC_DEF("input", js_regexp_get_legacy, js_regexp_set_legacy_input, JS_REGEXP_LEGACY_INPUT ),
++    JS_CGETSET_MAGIC_DEF("$_", js_regexp_get_legacy, js_regexp_set_legacy_input, JS_REGEXP_LEGACY_INPUT ),
++    JS_CGETSET_MAGIC_DEF("lastMatch", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LAST_MATCH ),
++    JS_CGETSET_MAGIC_DEF("$&", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LAST_MATCH ),
++    JS_CGETSET_MAGIC_DEF("lastParen", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LAST_PAREN ),
++    JS_CGETSET_MAGIC_DEF("$+", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LAST_PAREN ),
++    JS_CGETSET_MAGIC_DEF("leftContext", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LEFT_CONTEXT ),
++    JS_CGETSET_MAGIC_DEF("$`", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_LEFT_CONTEXT ),
++    JS_CGETSET_MAGIC_DEF("rightContext", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_RIGHT_CONTEXT ),
++    JS_CGETSET_MAGIC_DEF("$'", js_regexp_get_legacy, NULL, JS_REGEXP_LEGACY_RIGHT_CONTEXT ),
++    JS_CGETSET_MAGIC_DEF("$1", js_regexp_get_legacy, NULL, 1 ),
++    JS_CGETSET_MAGIC_DEF("$2", js_regexp_get_legacy, NULL, 2 ),
++    JS_CGETSET_MAGIC_DEF("$3", js_regexp_get_legacy, NULL, 3 ),
++    JS_CGETSET_MAGIC_DEF("$4", js_regexp_get_legacy, NULL, 4 ),
++    JS_CGETSET_MAGIC_DEF("$5", js_regexp_get_legacy, NULL, 5 ),
++    JS_CGETSET_MAGIC_DEF("$6", js_regexp_get_legacy, NULL, 6 ),
++    JS_CGETSET_MAGIC_DEF("$7", js_regexp_get_legacy, NULL, 7 ),
++    JS_CGETSET_MAGIC_DEF("$8", js_regexp_get_legacy, NULL, 8 ),
++    JS_CGETSET_MAGIC_DEF("$9", js_regexp_get_legacy, NULL, 9 ),
+ };
+ 
+ static const JSCFunctionListEntry js_regexp_proto_funcs[] = {

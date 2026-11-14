@@ -2,6 +2,123 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.24:
+=======
+* Frames: scripts written into a frame with `document.write()` now run.
+  `frame.contentDocument.write('<script>…')` parsed nothing until
+  `close()` and never ran the scripts it wrote, with or without `close()`.
+  JetStream 2 runs every one of its benchmarks that way, so none of them
+  started. Written markup is now in the tree as soon as `write()` returns,
+  its scripts run in the frame's own realm once the writing script
+  yields, and `load` fires when the document is closed.
+* Frames: an `<iframe>` without a source keeps the document script has
+  already filled in. Its first load replaced the document, discarding
+  `contentDocument.body.innerHTML = …` done before it, and
+  `iframe.textContent = ''` (or `innerHTML`, `replaceChildren()`) on the
+  element detached the frame's document, so later writes to
+  `contentDocument` went nowhere.
+* Frames: the load of an `<iframe>` that runs no script no longer calls
+  the embedding page's `window.onload` a second time, and an exception a
+  frame's script leaves uncaught is reported to that frame's
+  `window.onerror` and `error` listeners instead of only to the log.
+* Frames: an `<iframe>` in the page's markup is displayed again. The
+  built-in stylesheet hides a frame until the engine marks it as loaded,
+  and setting that mark did not recompute the frame's style, so a frame
+  styled before its document arrived stayed `display: none`, with no box
+  and nothing painted, until a script happened to touch one of its
+  attributes. Frames inserted by script were not affected.
+* Frames: a listener on a frame's `window` receives the events that
+  bubble out of the frame's document. Only the document's listeners ran;
+  code that tracks a drag with `mousemove` and `mouseup` on `window`, as
+  d3 does, never saw the button come up inside a frame. This is what
+  failed the React-Stockcharts suite of Speedometer 3.1 and left the
+  whole run without a score.
+* Frames: `innerWidth`, `innerHeight` and the root element's
+  `clientWidth`/`clientHeight` are the frame's own size inside a frame.
+  They were the embedding page's viewport.
+* Memory: the JavaScript realm of a frame's document is released when
+  the frame navigates away or is taken out of the page. Realms were kept
+  until the page itself was closed, each holding everything its scripts
+  had allocated, so a page that goes through many frames grew without
+  bound: JetStream 2 runs each of its 64 benchmarks in a new frame and
+  hit the 2 GB JavaScript memory limit after about 40 of them, failing
+  every benchmark from there on. Memory now returns to its level between
+  benchmarks, and with a smaller heap to collect several of them score 20
+  to 50 % higher. Speedometer 3.1, which navigates one frame through 20
+  workloads, went from 2.39 to 3.5 on browserbench.org. A frame element
+  removed from the page also stops its timers and loads afresh if it is
+  inserted again.
+* Benchmarks: with the changes above JetStream 2 runs all 64 of its
+  benchmarks (score about 26; none of them started before) and
+  Speedometer 3.1 completes with a score (about 3.5; it ended without
+  one). JetStream needs `js_eval_budget_ms` raised, for example
+  `NS_JS_EVAL_BUDGET_MS=900000`: four of its benchmarks run longer than
+  the default 60 seconds as a single script and are interrupted
+  otherwise.
+* Performance: a linked stylesheet is requested once. The style pass and
+  the loader that fires the `<link>` element's `load` event each fetched
+  it, so every stylesheet cost a second round trip to the server, one
+  after the other, before the page's `load` event. The two now share one
+  response.
+* Frames: a frame's `load` event waits for the frame's stylesheets. They
+  were fetched when the frame was first laid out, which could be inside
+  whatever script first read a size in it. Speedometer 3.1 starts timing
+  a workload at the frame's `load`, and the first measured step of a
+  suite included the stylesheet's network round trip: on browserbench.org
+  Editor-CodeMirror took 550 ms after another suite and 150 ms on its
+  own. With both changes the full run there went from 2.02 to 2.39.
+* Performance: writing `checked`, `indeterminate` or `value` on a form
+  control no longer schedules a full relayout when the write leaves the
+  control as it was, or when the control is not in the page yet.
+  Frameworks set these properties on every render and on every element
+  they build.
+* JavaScript: the legacy `RegExp` statics every browser engine has:
+  `RegExp.$1` to `$9`, `lastMatch`, `lastParen`, `leftContext`,
+  `rightContext` and `input`, with their `$&`, `$+`, `` $` ``, `$'` and
+  `$_` aliases. The WSL benchmark of JetStream 2 lexes with
+  `RegExp.lastMatch` and failed on its first token. quickjs-ng builds
+  only.
+* Performance: a regular expression anchored with `^` is tried at the
+  start of the string only, and one that begins with a character class,
+  `\s`, `\S` or `.` skips the positions that cannot start a match. Both
+  used to run the matcher at every position of the subject, so a lexer
+  that tests `/^\s+/` against the rest of a 300 KB source paid for all of
+  it on every token: 6,000 such tests took 5.1 s and now take 7 ms.
+  Checked against a position-by-position sticky search over 11,544
+  pattern, subject and start-index combinations, with identical results.
+* Settings: `js_eval_budget_ms` can be set above 60 seconds, up to an
+  hour, and the new `NS_JS_EVAL_BUDGET_MS` environment variable sets it
+  for one run. The default is unchanged: a script is still interrupted
+  after 60 seconds. JetStream 2 runs all 120 iterations of a benchmark as
+  one script, which takes minutes on an interpreter; with the limit fixed
+  at 60 seconds those benchmarks could not finish however it was
+  configured. The page-wide halt and the watchdog's hang limit follow the
+  configured budget.
+* WebAssembly: a `WebAssembly.Memory` created in JavaScript and imported
+  by a module keeps its `ArrayBuffer` when the module is instantiated.
+  The buffer was detached at that point, so every typed array made over
+  it beforehand went to length 0. Emscripten output that creates its
+  memory in JavaScript builds its `HEAP8`…`HEAPF64` views first and never
+  refreshes them: such a program started with an empty heap on the
+  JavaScript side, lost its arguments and exited at once (the tsf,
+  HashSet, quicksort and gcc-loops benchmarks of JetStream 2). The
+  instance now also takes the size the memory already has when that is
+  more than the module's declared minimum, and a memory or table may be
+  imported under any module name, not only `env`. `grow()` still detaches
+  the old buffer, as the JS API specifies. quickjs-ng builds only.
+* XMLHttpRequest: `responseXML` is the parsed document for
+  `responseType = "document"` and for an XML response with the default
+  type. It was always `null`.
+* HTML parser: `<?target data>` becomes a ProcessingInstruction node, as
+  the HTML Standard now specifies, and serializes back as `<?target
+  data>`. The node the parser built was dropped, so the markup vanished
+  from the tree.
+* DOM: `input.files` is a `FileList` (it was a plain array),
+  `HTMLElement.accessKeyLabel` is visible to scripts, and
+  `document.queryCommandIndeterm()` exists beside the other
+  `queryCommand*` methods. With `responseXML`, html5test.co goes from 495
+  to 499 points.
+
 1.0.23:
 =======
 * Performance: page stylesheets keep each rule's declarations as text and

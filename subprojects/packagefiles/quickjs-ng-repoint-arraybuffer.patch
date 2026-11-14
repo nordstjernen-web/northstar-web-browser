@@ -1,0 +1,27 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -60162,6 +60162,24 @@
+     }
+ }
+ 
++/* Point an ArrayBuffer whose memory the embedder manages (one created
++   without a free function) at another block, keeping the object and the
++   typed arrays and DataViews over it. Returns 0, or -1 if the buffer is
++   detached, shared or owns its memory. */
++int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
++                          size_t byte_length)
++{
++    JSArrayBuffer *abuf = JS_GetOpaque(obj, JS_CLASS_ARRAY_BUFFER);
++
++    if (!abuf || abuf->detached || abuf->shared || abuf->realloc_func ||
++        !data || byte_length > INT32_MAX)
++        return -1;
++    abuf->data = data;
++    abuf->byte_length = byte_length;
++    js_array_buffer_update_typed_arrays(abuf);
++    return 0;
++}
++
+ enum {
+     JS_ARRAY_BUFFER_TRANSFER,
+     JS_ARRAY_BUFFER_TRANSFER_TO_IMMUTABLE,

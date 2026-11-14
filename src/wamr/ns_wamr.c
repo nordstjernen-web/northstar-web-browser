@@ -100,6 +100,14 @@ ns_wamr_set_host_calls_ctors(bool enabled)
     ns_wamr_host_calls_ctors = enabled;
 }
 
+extern bool ns_wamr_host_links_imports;
+
+void
+ns_wamr_set_host_links_imports(bool enabled)
+{
+    ns_wamr_host_links_imports = enabled;
+}
+
 void
 wasm_trap_delete(void *trap)
 {

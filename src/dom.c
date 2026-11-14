@@ -3056,6 +3056,15 @@ serialize_node_opts(const ns_node *n, GString *out, gboolean include_self,
         return;
     }
     if (n->kind == NS_NODE_COMMENT) {
+        if (n->flags & NS_NODE_PI) {
+            /* HTML fragment serialization of a ProcessingInstruction. */
+            g_string_append(out, "<?");
+            g_string_append(out, n->name ? n->name : "");
+            g_string_append_c(out, ' ');
+            g_string_append(out, n->text ? n->text : "");
+            g_string_append_c(out, '>');
+            return;
+        }
         g_string_append(out, "<!--");
         g_string_append(out, n->text ? n->text : "");
         g_string_append(out, "-->");

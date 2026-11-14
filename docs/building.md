@@ -362,6 +362,7 @@ These environment variables override the file:
 | `NS_HOME_URL`, `NS_USER_AGENT`, `NS_COMPAT_MODE` | Start page, User-Agent, compatibility mode. |
 | `NS_HTTP_PROXY`, `NS_HTTPS_PROXY`, `NS_NO_PROXY`, `NS_DOH_URL` | Proxies and the DNS-over-HTTPS resolver. |
 | `NS_GSK_RENDERER` | GTK renderer, as for `--gsk-renderer`. |
+| `NS_JS_EVAL_BUDGET_MS` | Time one script may run before it is interrupted (`js_eval_budget_ms`, default 60000, at most 3600000). JetStream 2 needs more than the default: each of its benchmarks runs as one script for minutes on an interpreter. |
 | `NS_PRIVATE` | Start in private mode. |
 | `NS_NO_WATCHDOG`, `NS_NO_CACHE`, `NS_NO_IMAGES`, `NS_NO_LOCAL_STORAGE`, `NS_NO_HTTPS_FIRST`, `NS_NO_PRELOAD_SCAN`, `NS_NO_ASYNC_IMG_DECODE`, `NS_NO_HARDEN_ALLOC` | Turn the matching feature off. |
 

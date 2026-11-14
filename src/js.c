@@ -585,7 +585,14 @@ ns_js_eval_budget_us(void)
     return (gint64)ms * 1000LL;
 }
 
-#define NS_JS_MONITOR_LIMIT_US (60LL * 1000000LL)
+/* The monitor halts a page whose JavaScript holds one turn for this long:
+ * 60 s, or the per-script budget when that is configured higher. */
+static gint64
+ns_js_monitor_limit_us(void)
+{
+    gint64 budget = ns_js_eval_budget_us();
+    return budget > 60LL * 1000000LL ? budget : 60LL * 1000000LL;
+}
 
 /* QuickJS interrupt check: halts on worker close, monitor deadline or eval budget expiry. */
 static int
@@ -602,7 +609,7 @@ ns_js_interrupt(void *opaque)
     if (js->js_monitor_deadline_us != 0 && now > js->js_monitor_deadline_us) {
         js->halted = TRUE;
         g_warning("[js] monitor: page JavaScript ran longer than %d s — halting it",
-                  (int)(NS_JS_MONITOR_LIMIT_US / 1000000LL));
+                  (int)(ns_js_monitor_limit_us() / 1000000LL));
         return 1;
     }
     if (js->eval_deadline_us == 0) return 0;
@@ -734,7 +741,7 @@ ns_js_budget_push(ns_js *js, ns_budget_guard *g)
     g->saved = js->eval_deadline_us;
     gint64 now = g_get_monotonic_time();
     if (g->saved == 0)
-        js->js_monitor_deadline_us = now + NS_JS_MONITOR_LIMIT_US;
+        js->js_monitor_deadline_us = now + ns_js_monitor_limit_us();
     gint64 fresh = now + ns_js_eval_budget_us();
     if (g->saved == 0 || fresh < g->saved)
         js->eval_deadline_us = fresh;
@@ -789,6 +796,77 @@ typedef struct ns_raf_entry {
     ns_node *frame;
     gboolean done;      /* in a firing batch: already run or cancelled */
 } ns_raf_entry;
+
+/* Empties a frame realm whose document is gone: its frame navigated, or
+ * was removed from the page.  Every benchmark of a suite and every page a
+ * frame navigates through runs in a realm of its own, and a realm's global
+ * bindings keep its whole heap alive; realms are only freed with the page,
+ * so a page that cycles frames ran into the memory cap (JetStream 2, two
+ * thirds of the way through).  The context stays allocated and listed in
+ * frame_ctxs: anything still pointing at it remains valid, and it is still
+ * a detached frame realm to every identity check.  Only what the page's
+ * own globals held becomes collectable. */
+static void
+ns_js_release_frame_realm(ns_js *js, JSContext *realm)
+{
+    if (!js || !realm || !js->frame_ctxs) return;
+    if (realm == js->ctx || realm == js->main_realm_ctx ||
+        realm == js->module_ctx)
+        return;
+    /* Never under running script: a function of that realm may be on the
+     * stack. */
+    if (js->eval_depth > 0 || js->dispatch_depth > 0 ||
+        js->callback_depth > 0)
+        return;
+    gboolean listed = FALSE;
+    for (guint i = 0; i < js->frame_ctxs->len && !listed; i++)
+        listed = g_ptr_array_index(js->frame_ctxs, i) == realm;
+    if (!listed) return;
+    if (js->frame_contexts) {
+        GHashTableIter it;
+        gpointer iframe, fctx;
+        g_hash_table_iter_init(&it, js->frame_contexts);
+        while (g_hash_table_iter_next(&it, &iframe, &fctx))
+            if (fctx == realm) return;
+    }
+    JSValue global = JS_GetGlobalObject(realm);
+    JSPropertyEnum *props = NULL;
+    uint32_t count = 0;
+    if (JS_GetOwnPropertyNames(realm, &props, &count, global,
+                               JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) == 0) {
+        for (uint32_t i = 0; i < count; i++) {
+            /* What the platform put there stays, so that a callback of
+             * the dead document that still fires finds Date and
+             * setTimeout rather than nothing.  The document goes, and so
+             * do the handler properties: both lead back to the page's
+             * own objects. */
+            const char *name = JS_AtomToCString(realm, props[i].atom);
+            gboolean keep = name && js->platform_globals &&
+                g_hash_table_contains(js->platform_globals, name) &&
+                strcmp(name, "document") != 0 &&
+                !(name[0] == 'o' && name[1] == 'n');
+            if (name) JS_FreeCString(realm, name);
+            else if (JS_HasException(realm))
+                JS_FreeValue(realm, JS_GetException(realm));
+            if (keep) continue;
+            /* var and function declarations cannot be deleted; they can
+             * be overwritten. */
+            if (JS_DeleteProperty(realm, global, props[i].atom, 0) <= 0) {
+                if (JS_HasException(realm))
+                    JS_FreeValue(realm, JS_GetException(realm));
+                if (JS_SetProperty(realm, global, props[i].atom,
+                                   JS_UNDEFINED) < 0 &&
+                    JS_HasException(realm))
+                    JS_FreeValue(realm, JS_GetException(realm));
+            }
+        }
+        JS_FreePropertyEnum(realm, props, count);
+    } else if (JS_HasException(realm)) {
+        JS_FreeValue(realm, JS_GetException(realm));
+    }
+    JS_FreeValue(realm, global);
+    JS_ResetGlobalLexicals(realm);
+}
 
 /* TRUE for a frame realm that no longer has a frame: the document it ran
  * was replaced when its frame navigated (or it never got one).  Realms
@@ -7845,6 +7923,15 @@ ns_js_record_child_change_arrays(ns_js *js, ns_node *parent,
                                  ns_node *previous_sibling,
                                  ns_node *next_sibling);
 
+/* TRUE for a child the DOM does not list: a shadow root, or the content
+ * document a frame element holds.  Replacing an element's children
+ * (textContent, innerHTML, replaceChildren) leaves both in place. */
+static gboolean
+ns_child_is_internal(const ns_node *c)
+{
+    return ns_node_is_shadow_root(c) || ns_node_is_embedded_document(c);
+}
+
 /* Removes and frees all light children, updating the document indexes. */
 static void
 ns_element_clear_children(ns_node *n)
@@ -7853,7 +7940,7 @@ ns_element_clear_children(ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7891,7 +7978,7 @@ ns_js_clear_children(ns_js *js, ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7925,7 +8012,7 @@ ns_js_orphan_children(ns_js *js, ns_node *n)
     ns_node *c = n->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
-        if (ns_node_is_shadow_root(c)) {
+        if (ns_child_is_internal(c)) {
             c = next;
             continue;
         }
@@ -7937,12 +8024,12 @@ ns_js_orphan_children(ns_js *js, ns_node *n)
     }
 }
 
-/* First child that is not a shadow root. */
+/* First child that is not a shadow root or a frame's content document. */
 static ns_node *
 ns_first_light_child(const ns_node *n)
 {
     ns_node *c = n->first_child;
-    while (c && ns_node_is_shadow_root(c)) c = c->next_sibling;
+    while (c && ns_child_is_internal(c)) c = c->next_sibling;
     return c;
 }
 
@@ -18842,6 +18929,55 @@ ns_target_removeEventListener(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* TRUE for an XML response type: text/xml, application/xml or any +xml type. */
+static gboolean
+ns_xhr_content_type_is_xml(const char *content_type)
+{
+    if (!content_type) return FALSE;
+    g_autofree char *essence = g_ascii_strdown(content_type, -1);
+    char *semi = strchr(essence, ';');
+    if (semi) *semi = '\0';
+    g_strstrip(essence);
+    return strcmp(essence, "text/xml") == 0 ||
+           strcmp(essence, "application/xml") == 0 ||
+           g_str_has_suffix(essence, "+xml");
+}
+
+/* Parses an XHR response body as an XML or HTML document through DOMParser; null on failure. */
+static JSValue
+ns_xhr_parse_document(JSContext *ctx, const char *body, gsize blen, gboolean xml)
+{
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue dp_ctor = JS_GetPropertyStr(ctx, global, "DOMParser");
+    JS_FreeValue(ctx, global);
+    JSValue doc = JS_NULL;
+    if (JS_IsConstructor(ctx, dp_ctor)) {
+        JSValue parser = JS_CallConstructor(ctx, dp_ctor, 0, NULL);
+        if (!JS_IsException(parser) && JS_IsObject(parser)) {
+            JSValue parse_fn = JS_GetPropertyStr(ctx, parser, "parseFromString");
+            if (JS_IsFunction(ctx, parse_fn)) {
+                JSValue src_v = JS_NewStringLen(ctx, body, blen);
+                JSValue mime_v = JS_NewString(ctx,
+                    xml ? "application/xml" : "text/html");
+                JSValueConst args[2] = { src_v, mime_v };
+                doc = JS_Call(ctx, parse_fn, parser, 2, args);
+                if (JS_IsException(doc)) {
+                    JS_FreeValue(ctx, JS_GetException(ctx));
+                    doc = JS_NULL;
+                }
+                JS_FreeValue(ctx, src_v);
+                JS_FreeValue(ctx, mime_v);
+            }
+            JS_FreeValue(ctx, parse_fn);
+        } else if (JS_IsException(parser)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+        }
+        JS_FreeValue(ctx, parser);
+    }
+    JS_FreeValue(ctx, dp_ctor);
+    return doc;
+}
+
 /* Completes an XHR: CORS check, status/headers, typed response, load events. */
 static void
 ns_xhr_deliver(ns_xhr_state *st, ns_response *resp, GError *err)
@@ -18944,44 +19080,25 @@ ns_xhr_deliver(ns_xhr_state *st, ns_response *resp, GError *err)
             JS_FreeValue(ctx, blob_ctor);
             JS_SetPropertyStr(ctx, st->obj, "response", blob);
         } else if (rt && strcmp(rt, "document") == 0) {
-            JSValue global = JS_GetGlobalObject(ctx);
-            JSValue dp_ctor = JS_GetPropertyStr(ctx, global, "DOMParser");
-            JS_FreeValue(ctx, global);
-            JSValue doc = JS_NULL;
-            if (JS_IsConstructor(ctx, dp_ctor)) {
-                JSValue parser = JS_CallConstructor(ctx, dp_ctor, 0, NULL);
-                if (!JS_IsException(parser) && JS_IsObject(parser)) {
-                    JSValue parse_fn =
-                        JS_GetPropertyStr(ctx, parser, "parseFromString");
-                    if (JS_IsFunction(ctx, parse_fn)) {
-                        gboolean xml = resp->content_type &&
-                            (strstr(resp->content_type, "xml") != NULL ||
-                             strstr(resp->content_type, "svg") != NULL);
-                        JSValue src_v = JS_NewStringLen(ctx, body, blen);
-                        JSValue mime_v = JS_NewString(ctx,
-                            xml ? "application/xml" : "text/html");
-                        JSValueConst args[2] = { src_v, mime_v };
-                        doc = JS_Call(ctx, parse_fn, parser, 2, args);
-                        if (JS_IsException(doc)) {
-                            JS_FreeValue(ctx, JS_GetException(ctx));
-                            doc = JS_NULL;
-                        }
-                        JS_FreeValue(ctx, src_v);
-                        JS_FreeValue(ctx, mime_v);
-                    }
-                    JS_FreeValue(ctx, parse_fn);
-                } else if (JS_IsException(parser)) {
-                    JS_FreeValue(ctx, JS_GetException(ctx));
-                }
-                JS_FreeValue(ctx, parser);
-            }
-            JS_FreeValue(ctx, dp_ctor);
+            /* The body parsed as a document: HTML unless the response is
+             * an XML type.  response and responseXML are the same object. */
+            JSValue doc = ns_xhr_parse_document(ctx, body, blen,
+                                                ns_xhr_content_type_is_xml(
+                                                    resp->content_type));
+            JS_SetPropertyStr(ctx, st->obj, "responseXML",
+                              JS_DupValue(ctx, doc));
             JS_SetPropertyStr(ctx, st->obj, "response", doc);
         } else {
             JS_SetPropertyStr(ctx, st->obj, "response",
                               ns_xhr_response_text_value(ctx, st->obj,
                                   (const guint8 *)body, blen,
                                   resp->content_type));
+            /* With the default responseType, responseXML is the parsed
+             * document of an XML response and null for anything else. */
+            if ((!rt || !*rt) && blen > 0 &&
+                ns_xhr_content_type_is_xml(resp->content_type))
+                JS_SetPropertyStr(ctx, st->obj, "responseXML",
+                                  ns_xhr_parse_document(ctx, body, blen, TRUE));
         }
         if (rt) JS_FreeCString(ctx, rt);
     } else {
@@ -29261,9 +29378,18 @@ ns_fire_window_property_handlers(ns_js *js, const ns_node *target,
     JSContext *ctx = js->ctx;
     char prop_name[48];
     g_snprintf(prop_name, sizeof prop_name, "on%s", type);
-    JSValue global = ns_event_window_for_document(
-        js, ns_event_document_for_target(js, target));
-    JSValue handler = JS_GetPropertyStr(ctx, global, prop_name);
+    const ns_node *event_doc = ns_event_document_for_target(js, target);
+    JSValue global = ns_event_window_for_document(js, event_doc);
+    /* A frame that never ran a script has no window of its own, only a
+     * proxy over its embedder's: reading on<type> through it finds the
+     * embedder's handler, which must not run for the frame's event (an
+     * empty <iframe> finishing its load would call the page's onload a
+     * second time). */
+    gboolean borrowed_window = event_doc && event_doc != js->main_document &&
+        ns_node_is_embedded_document(event_doc) &&
+        !ns_js_node_realm_context(js, event_doc);
+    JSValue handler = borrowed_window
+        ? JS_UNDEFINED : JS_GetPropertyStr(ctx, global, prop_name);
     if (JS_IsFunction(ctx, handler)) {
         gboolean special = FALSE;
         JSValue ret = ns_call_on_handler(js, handler, global, type, event,
@@ -29525,7 +29651,15 @@ ns_js_dispatch_built_event_impl(ns_js *js, const ns_node *target,
     gboolean resource_load = !bubbles &&
         target != (const ns_node *)js->current_doc &&
         (strcmp(type, "load") == 0 || strcmp(type, "error") == 0);
-    if (target_frame || resource_load)
+    /* A frame's window is in the path of the events of its own document,
+     * like the page's: a listener on the frame's window sees what bubbles
+     * out of the frame's document (d3's drag listens for mousemove and
+     * mouseup there).  The frame document's own non-bubbling events (load,
+     * readystatechange) are the exception: the frame loader fires load at
+     * the frame's window itself. */
+    gboolean frame_doc_event = target_frame && !bubbles &&
+        target == target_doc;
+    if (frame_doc_event || resource_load)
         window_in_path = FALSE;
     gboolean window_is_target = !bubbles && window_in_path &&
         target == (const ns_node *)js->current_doc &&
@@ -35332,6 +35466,42 @@ ns_element_get_offsetHeight(JSContext *ctx, JSValueConst this_val)
     return JS_NewInt32(ctx, (int)(h + 0.5));
 }
 
+/* The viewport a frame gives its document: the content box of the frame
+ * element.  A frame that has no box yet (its scripts run before it is first
+ * laid out) falls back to its size at the last layout, then to the page's
+ * viewport. */
+static void
+ns_js_frame_viewport_size(JSContext *ctx, ns_node *frame, double *w, double *h)
+{
+    *w = ns_css_viewport_w();
+    *h = ns_css_viewport_h();
+    if (!frame) return;
+    JSValue wrapper = ns_make_element(ctx, frame);
+    const ns_box *b = JS_IsObject(wrapper) ? ns_box_for_this(ctx, wrapper)
+                                           : NULL;
+    JS_FreeValue(ctx, wrapper);
+    if (b) {
+        *w = b->content_width > 0 ? b->content_width : 0;
+        *h = b->content_height > 0 ? b->content_height : 0;
+        return;
+    }
+    double fw = 0, fh = 0;
+    if (ns_layout_frame_viewport(frame, &fw, &fh) && fw > 0 && fh > 0) {
+        *w = fw;
+        *h = fh;
+    }
+}
+
+/* The viewport of the document n is in: its frame's, or the page's.  A
+ * frame's window and root element report the frame's size, not the page's. */
+static void
+ns_js_viewport_size_for(JSContext *ctx, const ns_node *n, double *w, double *h)
+{
+    ns_node *frame = n ? ns_js_node_frame(n) : NULL;
+    if (frame == n) frame = NULL;
+    ns_js_frame_viewport_size(ctx, frame, w, h);
+}
+
 /* clientWidth: padding-box width; the viewport width for the root element. */
 static JSValue
 ns_element_get_clientWidth(JSContext *ctx, JSValueConst this_val)
@@ -35340,12 +35510,16 @@ ns_element_get_clientWidth(JSContext *ctx, JSValueConst this_val)
     gboolean is_root = n && n->name &&
         (strcmp(n->name, "html") == 0 || strcmp(n->name, "body") == 0);
     const ns_box *b = ns_box_for_this(ctx, this_val);
+    double vw, vh;
     if (!b) {
-        if (is_root) return JS_NewInt32(ctx, (int)(ns_css_viewport_w() + 0.5));
-        return JS_NewInt32(ctx, 0);
+        if (!is_root) return JS_NewInt32(ctx, 0);
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vw + 0.5));
     }
-    if (n && n->name && strcmp(n->name, "html") == 0)
-        return JS_NewInt32(ctx, (int)(ns_css_viewport_w() + 0.5));
+    if (n && n->name && strcmp(n->name, "html") == 0) {
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vw + 0.5));
+    }
     double w = b->content_width + b->padding.left + b->padding.right;
     if (w < 0) w = 0;
     return JS_NewInt32(ctx, (int)(w + 0.5));
@@ -35359,12 +35533,16 @@ ns_element_get_clientHeight(JSContext *ctx, JSValueConst this_val)
     gboolean is_root = n && n->name &&
         (strcmp(n->name, "html") == 0 || strcmp(n->name, "body") == 0);
     const ns_box *b = ns_box_for_this(ctx, this_val);
+    double vw, vh;
     if (!b) {
-        if (is_root) return JS_NewInt32(ctx, (int)(ns_css_viewport_h() + 0.5));
-        return JS_NewInt32(ctx, 0);
+        if (!is_root) return JS_NewInt32(ctx, 0);
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vh + 0.5));
     }
-    if (n && n->name && strcmp(n->name, "html") == 0)
-        return JS_NewInt32(ctx, (int)(ns_css_viewport_h() + 0.5));
+    if (n && n->name && strcmp(n->name, "html") == 0) {
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vh + 0.5));
+    }
     double h = b->content_height + b->padding.top + b->padding.bottom;
     if (h < 0) h = 0;
     return JS_NewInt32(ctx, (int)(h + 0.5));
@@ -36784,6 +36962,37 @@ ns_input_get_files(JSContext *ctx, JSValueConst this_val)
     JSValue arr = JS_NewArray(ctx);
     JS_SetPropertyStr(ctx, arr, "item",
         JS_NewCFunction(ctx, ns_namedmap_item, "item", 1));
+    /* The list is a FileList: indexed, iterable, but without the Array
+     * methods. */
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue fl_ctor = JS_GetPropertyStr(ctx, global, "FileList");
+    JSValue fl_proto = JS_IsObject(fl_ctor)
+        ? JS_GetPropertyStr(ctx, fl_ctor, "prototype") : JS_UNDEFINED;
+    if (JS_IsObject(fl_proto)) {
+        JSValue sym_ctor = JS_GetPropertyStr(ctx, global, "Symbol");
+        JSValue sym_iter = JS_GetPropertyStr(ctx, sym_ctor, "iterator");
+        JSAtom iter = JS_IsSymbol(sym_iter) ? JS_ValueToAtom(ctx, sym_iter)
+                                            : JS_ATOM_NULL;
+        JS_FreeValue(ctx, sym_iter);
+        JS_FreeValue(ctx, sym_ctor);
+        if (iter != JS_ATOM_NULL) {
+            JSValue own = JS_GetProperty(ctx, fl_proto, iter);
+            if (!JS_IsFunction(ctx, own)) {
+                JSValue values = JS_GetProperty(ctx, arr, iter);
+                if (JS_IsFunction(ctx, values))
+                    JS_DefinePropertyValue(ctx, fl_proto, iter,
+                        JS_DupValue(ctx, values),
+                        JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+                JS_FreeValue(ctx, values);
+            }
+            JS_FreeValue(ctx, own);
+            JS_FreeAtom(ctx, iter);
+        }
+        JS_SetPrototype(ctx, arr, fl_proto);
+    }
+    JS_FreeValue(ctx, fl_proto);
+    JS_FreeValue(ctx, fl_ctor);
+    JS_FreeValue(ctx, global);
     JS_DefinePropertyValueStr(ctx, this_val, "__nd_files_cache",
         JS_DupValue(ctx, arr),
         JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
@@ -38081,6 +38290,14 @@ ns_element_set_disabled(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     return JS_UNDEFINED;
 }
 
+/* TRUE when a change to a form control's state can show: the control is in
+ * the page (or there is no engine state to ask, in which case assume so). */
+static gboolean
+ns_js_control_is_rendered(ns_js *js, const ns_node *el)
+{
+    return !js || !js->current_doc || ns_js_node_in_page(js, el);
+}
+
 static JSValue
 ns_element_get_checked(JSContext *ctx, JSValueConst this_val)
 {
@@ -38097,7 +38314,9 @@ ns_element_set_checked(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     ns_node *el = ns_unwrap_element_mut(this_val);
     if (!el) return JS_UNDEFINED;
     ns_js *_j = js_from_ctx(ctx);
-    if (JS_ToBool(ctx, val)) {
+    gboolean was = ns_input_is_checked(el);
+    gboolean now = JS_ToBool(ctx, val) > 0;
+    if (now) {
         const char *type = ns_element_get_attr(el, "type");
         if (type && g_ascii_strcasecmp(type, "radio") == 0)
             ns_js_clear_radio_group(_j, el);
@@ -38105,6 +38324,10 @@ ns_element_set_checked(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     } else {
         ns_element_set_attr(el, "data-nd-checked", "0");
     }
+    /* Frameworks write checked on every render.  A write that leaves the
+     * control as it was, or one to a control that is not in the page yet,
+     * changes nothing on screen: no relayout. */
+    if (was == now || !ns_js_control_is_rendered(_j, el)) return JS_UNDEFINED;
     if (_j) ns_js_note_layout_unscoped(_j, G_STRFUNC);
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
     return JS_UNDEFINED;
@@ -38121,10 +38344,14 @@ static void
 ns_js_set_indeterminate(ns_js *js, ns_node *el, gboolean indeterminate)
 {
     if (!el) return;
+    gboolean was = (el->flags & NS_NODE_INPUT_INDETERMINATE) != 0;
     if (indeterminate)
         el->flags |= NS_NODE_INPUT_INDETERMINATE;
     else
         el->flags &= ~NS_NODE_INPUT_INDETERMINATE;
+    /* As for checked: an unchanged flag, or a control outside the page,
+     * needs no relayout. */
+    if (was == !!indeterminate || !ns_js_control_is_rendered(js, el)) return;
     if (js) ns_js_note_layout_unscoped(js, G_STRFUNC);
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
 }
@@ -38627,8 +38854,14 @@ ns_element_set_value_prop(JSContext *ctx, JSValueConst this_val, JSValueConst va
         }
     }
     char *sanitized = ns_input_sanitize_value(el, s);
-    ns_element_set_attr(el, ns_input_value_is_dirty_mode(el) ? "data-nd-value"
-                                                             : "value", sanitized);
+    const char *value_attr = ns_input_value_is_dirty_mode(el) ? "data-nd-value"
+                                                              : "value";
+    const char *current = ns_element_get_attr(el, value_attr);
+    /* Writing the value a control already shows, or the value of a control
+     * that is not in the page, changes nothing on screen. */
+    gboolean shows = !(current && strcmp(current, sanitized) == 0) &&
+                     ns_js_control_is_rendered(js_from_ctx(ctx), el);
+    ns_element_set_attr(el, value_attr, sanitized);
     ns_element_remove_attr(el, "data-nd-user-edited");
     if (el->name && strcmp(el->name, "input") == 0)
         ns_element_set_attr(el, "data-nd-vdirty", "1");
@@ -38637,6 +38870,7 @@ ns_element_set_value_prop(JSContext *ctx, JSValueConst this_val, JSValueConst va
     if (selection_applies)
         ns_text_selection_value_changed(ctx, this_val, old_value);
     JS_FreeValue(ctx, old_value);
+    if (!shows) return JS_UNDEFINED;
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
     { ns_js *_j = js_from_ctx(ctx); if (_j) ns_js_note_layout_unscoped(_j, G_STRFUNC); }
     return JS_UNDEFINED;
@@ -45952,6 +46186,31 @@ ns_iframe_platform_names(JSContext *fctx, ns_js *js)
     return names;
 }
 
+/* innerWidth (magic 0) / innerHeight (magic 1) of a frame's window: the
+ * size of the frame element's content box.  data[0] is the frame element. */
+static JSValue
+ns_frame_window_inner_get(JSContext *ctx, JSValueConst this_val, int argc,
+                          JSValueConst *argv, int magic, JSValueConst *data)
+{
+    (void)this_val; (void)argc; (void)argv;
+    double w, h;
+    ns_js_frame_viewport_size(ctx, ns_unwrap_element_mut(data[0]), &w, &h);
+    return JS_NewInt32(ctx, (int)((magic ? h : w) + 0.5));
+}
+
+/* innerWidth and innerHeight are replaceable: assigning one makes it a plain value. */
+static JSValue
+ns_frame_window_inner_set(JSContext *ctx, JSValueConst this_val, int argc,
+                          JSValueConst *argv, int magic, JSValueConst *data)
+{
+    (void)data;
+    if (JS_IsObject(this_val) && argc > 0)
+        JS_DefinePropertyValueStr(ctx, this_val,
+                                  magic ? "innerHeight" : "innerWidth",
+                                  JS_DupValue(ctx, argv[0]), JS_PROP_C_W_E);
+    return JS_UNDEFINED;
+}
+
 /* Creates a frame realm: new context sharing DOM protos, bootstrapped window globals. */
 static JSContext *
 ns_iframe_make_realm_context(ns_js *js, ns_node *iframe,
@@ -46052,6 +46311,23 @@ ns_iframe_make_realm_context(ns_js *js, ns_node *iframe,
         }
         JS_FreeValue(fctx, parent_named);
         JS_FreeValue(fctx, win_proto);
+        /* The bootstrap copied the embedder's innerWidth/innerHeight; a
+         * frame's are those of its own viewport. */
+        JSValue frame_el = ns_make_element(fctx, iframe);
+        if (JS_IsObject(frame_el)) {
+            static const char *const inner[] = { "innerWidth", "innerHeight" };
+            for (int i = 0; i < 2; i++) {
+                JSAtom atom = JS_NewAtom(fctx, inner[i]);
+                JS_DefinePropertyGetSet(fctx, fg, atom,
+                    JS_NewCFunctionData(fctx, ns_frame_window_inner_get, 0, i,
+                                        1, &frame_el),
+                    JS_NewCFunctionData(fctx, ns_frame_window_inner_set, 1, i,
+                                        1, &frame_el),
+                    JS_PROP_CONFIGURABLE | JS_PROP_ENUMERABLE);
+                JS_FreeAtom(fctx, atom);
+            }
+        }
+        JS_FreeValue(fctx, frame_el);
         const char *fname = ns_element_get_attr(iframe, "name");
         JS_DefinePropertyValueStr(fctx, fg, "name",
                                   JS_NewString(fctx, fname ? fname : ""),
@@ -50253,7 +50529,10 @@ void
 ns_js_sync_window_metrics(ns_js *js)
 {
     if (!js || !js->ctx) return;
-    JSContext *ctx = js->ctx;
+    /* The page's window, whichever realm is running: js->ctx is a frame's
+     * while a frame's event is dispatched, and a frame's innerWidth is its
+     * own. */
+    JSContext *ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
     int vw = ns_js_viewport_metric(ns_css_viewport_w(), 1000);
     int vh = ns_js_viewport_metric(ns_css_viewport_h(), 800);
     int sw, sh, saw, sah, sal, sat;
@@ -55196,7 +55475,7 @@ static const char ns_element_shapes_src[] =
         "setHTML setHTMLUnsafe setPointerCapture shadowRoot slot "
         "startViewTransition tagName toggleAttribute webkitMatchesSelector "
         "webkitRequestFullScreen webkitRequestFullscreen',"
-        "  HTMLElement: 'accessKey attachInternals attributeStyleMap autocapitalize "
+        "  HTMLElement: 'accessKey accessKeyLabel attachInternals attributeStyleMap autocapitalize "
         "autocorrect autofocus blur click contentEditable dataset dir "
         "draggable editContext enterKeyHint focus focusGroup "
         "focusGroupStart hidden hidePopover inert innerText inputMode "
@@ -56142,6 +56421,71 @@ ns_document_writeln(JSContext *ctx, JSValueConst this_val,
     return ns_document_write_common(ctx, argc, argv, TRUE);
 }
 
+/* The frame element a realm document belongs to, or NULL for a free-standing document. */
+static ns_node *
+ns_realmdoc_host_frame(const ns_node *doc)
+{
+    ns_node *host = doc ? doc->parent : NULL;
+    if (host && host->kind == NS_NODE_ELEMENT &&
+        (ns_node_is_element_named(host, "iframe") ||
+         ns_node_is_element_named(host, "frame")))
+        return host;
+    return NULL;
+}
+
+/* Queues the frame of a written document so its scripts run, and its load
+ * event fires once it is closed, after the writing script yields. */
+static void
+ns_realmdoc_queue_frame(ns_js *js, ns_node *host)
+{
+    if (!js || !host) return;
+    if (!js->pending_iframe_loads)
+        js->pending_iframe_loads = g_ptr_array_new();
+    for (guint i = 0; i < js->pending_iframe_loads->len; i++)
+        if (g_ptr_array_index(js->pending_iframe_loads, i) == host) return;
+    g_ptr_array_add(js->pending_iframe_loads, host);
+}
+
+/* Moves the children of a parsed tree's node under dest, at the end. */
+static void
+ns_realmdoc_adopt_children(ns_js *js, ns_node *dest, ns_node *from)
+{
+    ns_node *c = from ? from->first_child : NULL;
+    while (c) {
+        ns_node *next = c->next_sibling;
+        ns_node_own_strings_deep(c);
+        ns_node_remove(c);
+        ns_node_append_child(dest, c);
+        ns_js_index_child_change(js, dest, c, NULL);
+        c = next;
+    }
+}
+
+/* Parses written markup into a realm document.  Until the frame's scripts
+ * have started, everything written so far is parsed again as one document
+ * and replaces the tree, so markup split across write() calls nests as it
+ * would in a stream.  Once they have, the tree is live and only the new
+ * text is parsed, its content appended to the body. */
+static void
+ns_realmdoc_parse_written(ns_js *js, ns_node *doc, const char *html,
+                          gboolean append)
+{
+    ns_node *parsed = ns_html_parse(html, -1);
+    if (!parsed) return;
+    ns_node *body = append ? ns_node_find_first_element(doc, "body") : NULL;
+    if (body) {
+        ns_realmdoc_adopt_children(
+            js, body, ns_node_find_first_element(parsed, "head"));
+        ns_realmdoc_adopt_children(
+            js, body, ns_node_find_first_element(parsed, "body"));
+    } else {
+        ns_js_orphan_children(js, doc);
+        ns_realmdoc_adopt_children(js, doc, parsed);
+    }
+    ns_node_free(parsed);
+    ns_js_note_layout_unscoped(js, G_STRFUNC);
+}
+
 /* document.open() on a realm document: clears it and starts a write buffer. */
 static JSValue
 ns_realmdoc_open(JSContext *ctx, JSValueConst this_val,
@@ -56161,17 +56505,19 @@ ns_realmdoc_open(JSContext *ctx, JSValueConst this_val,
     if (js && doc) {
         ns_js_orphan_children(js, doc);
         JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_NewString(ctx, ""));
-        ns_node *host = doc->parent;
-        if (host && host->kind == NS_NODE_ELEMENT &&
-            (ns_node_is_element_named(host, "iframe") ||
-             ns_node_is_element_named(host, "frame")))
+        ns_node *host = ns_realmdoc_host_frame(doc);
+        if (host) {
             ns_element_set_attr(host, "data-nd-doc-written", "1");
+            ns_element_set_attr(host, "data-nd-doc-open", "1");
+            ns_element_remove_attr(host, "data-nd-doc-flushed");
+        }
         ns_js_note_layout_unscoped(js, G_STRFUNC);
     }
     return JS_DupValue(ctx, this_val);
 }
 
-/* Appends write() arguments to a realm document's write buffer, opening if needed. */
+/* document.write() on a realm document: opens it if needed, parses the text
+ * into the tree at once and queues the frame so written scripts run. */
 static void
 ns_realmdoc_append_write(JSContext *ctx, JSValueConst this_val, int argc,
                          JSValueConst *argv, gboolean newline)
@@ -56184,21 +56530,37 @@ ns_realmdoc_append_write(JSContext *ctx, JSValueConst this_val, int argc,
         JS_FreeValue(ctx, cur);
         return;
     }
+    ns_node *host = ns_realmdoc_host_frame(doc);
     GString *buf = g_string_new(NULL);
     if (JS_IsString(cur)) {
         const char *c = JS_ToCString(ctx, cur);
         if (c) { g_string_append(buf, c); JS_FreeCString(ctx, c); }
     } else {
         ns_js_orphan_children(js, doc);
+        if (host) ns_element_remove_attr(host, "data-nd-doc-flushed");
     }
     JS_FreeValue(ctx, cur);
+    gsize fresh = buf->len;
     for (int i = 0; i < argc; i++) {
         const char *s = JS_ToCString(ctx, argv[i]);
         if (s) { g_string_append(buf, s); JS_FreeCString(ctx, s); }
     }
     if (newline) g_string_append_c(buf, '\n');
     JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_NewString(ctx, buf->str));
+    gboolean live = host &&
+        ns_element_get_attr(host, "data-nd-doc-flushed") != NULL;
+    if (live) {
+        if (buf->len > fresh)
+            ns_realmdoc_parse_written(js, doc, buf->str + fresh, TRUE);
+    } else {
+        ns_realmdoc_parse_written(js, doc, buf->str, FALSE);
+    }
     g_string_free(buf, TRUE);
+    if (host) {
+        ns_element_set_attr(host, "data-nd-doc-written", "1");
+        ns_element_set_attr(host, "data-nd-doc-open", "1");
+        ns_realmdoc_queue_frame(js, host);
+    }
 }
 
 static JSValue
@@ -56217,7 +56579,7 @@ ns_realmdoc_writeln(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* document.close() on a realm document: parses the write buffer and queues frame load. */
+/* document.close() on a realm document: ends the write stream and queues the frame load. */
 static JSValue
 ns_realmdoc_close(JSContext *ctx, JSValueConst this_val,
                   int argc, JSValueConst *argv)
@@ -56228,39 +56590,17 @@ ns_realmdoc_close(JSContext *ctx, JSValueConst this_val,
     if (!js || !doc) return JS_UNDEFINED;
     JSValue cur = JS_GetPropertyStr(ctx, this_val, "\xff" "wbuf");
     if (!JS_IsString(cur)) { JS_FreeValue(ctx, cur); return JS_UNDEFINED; }
-    const char *buf = JS_ToCString(ctx, cur);
     JS_FreeValue(ctx, cur);
-    if (buf) {
-        ns_node *parsed = ns_html_parse(buf, -1);
-        JS_FreeCString(ctx, buf);
-        if (parsed) {
-            ns_js_orphan_children(js, doc);
-            ns_node *c = parsed->first_child;
-            while (c) {
-                ns_node *next = c->next_sibling;
-                ns_node_own_strings_deep(c);
-                ns_node_remove(c);
-                ns_node_append_child(doc, c);
-                ns_js_index_child_change(js, doc, c, NULL);
-                c = next;
-            }
-            ns_node_free(parsed);
-            ns_js_note_layout_unscoped(js, G_STRFUNC);
-        }
-    }
+    /* write() keeps the tree current; only an open() that nothing was
+     * written to still needs its empty html/head/body. */
+    if (!ns_node_find_first_element(doc, "html"))
+        ns_realmdoc_parse_written(js, doc, "", FALSE);
     JS_SetPropertyStr(ctx, this_val, "\xff" "wbuf", JS_UNDEFINED);
-    ns_node *host = doc->parent;
-    if (host && host->kind == NS_NODE_ELEMENT &&
-        (ns_node_is_element_named(host, "iframe") ||
-         ns_node_is_element_named(host, "frame"))) {
+    ns_node *host = ns_realmdoc_host_frame(doc);
+    if (host) {
         ns_element_set_attr(host, "data-nd-doc-written", "1");
-        if (!js->pending_iframe_loads)
-            js->pending_iframe_loads = g_ptr_array_new();
-        gboolean present = FALSE;
-        for (guint i = 0; i < js->pending_iframe_loads->len; i++)
-            if (g_ptr_array_index(js->pending_iframe_loads, i) == host)
-                present = TRUE;
-        if (!present) g_ptr_array_add(js->pending_iframe_loads, host);
+        ns_element_remove_attr(host, "data-nd-doc-open");
+        ns_realmdoc_queue_frame(js, host);
         ns_js_note_layout_unscoped(js, G_STRFUNC);
     }
     return JS_UNDEFINED;
@@ -56417,6 +56757,7 @@ static const JSCFunctionListEntry ns_document_funcs[] = {
     JS_CFUNC_DEF("queryCommandSupported", 1, ns_document_queryCommandSupported),
     JS_CFUNC_DEF("queryCommandEnabled",   1, ns_document_queryCommandEnabled),
     JS_CFUNC_DEF("queryCommandState",     1, ns_returns_false),
+    JS_CFUNC_DEF("queryCommandIndeterm",  1, ns_returns_false),
     JS_CFUNC_DEF("queryCommandValue",     1, ns_returns_undefined),
     JS_CGETSET_DEF("currentScript",      ns_document_get_currentScript, ns_element_noop_set),
     JS_CGETSET_DEF("rootElement",        ns_document_get_documentElement, ns_element_noop_set),
@@ -57979,6 +58320,19 @@ ns_js_report_uncaught(ns_js *js, JSValueConst ex, const char *origin)
     ns_js_report_exception_at(js, ex, origin, 0, 0);
 }
 
+/* Reports an exception a frame's script left uncaught at that frame's own
+ * window, so the frame's window.onerror and error listeners see it. */
+static void
+ns_js_report_uncaught_in_realm(ns_js *js, JSContext *realm, JSValueConst ex,
+                               const char *origin)
+{
+    if (!js || !realm) return;
+    JSContext *saved = js->ctx;
+    js->ctx = realm;
+    ns_js_report_uncaught(js, ex, origin);
+    js->ctx = saved;
+}
+
 /* Parses the first file:line:col frame from a fresh Error stack; caller frees *file. */
 static gboolean
 ns_js_caller_position(JSContext *ctx, char **file, int *line, int *col)
@@ -58941,6 +59295,7 @@ ns_js_eval_script_source(ns_js *js, ns_node *script, const char *source,
                 JS_FreeValue(realm, stack_value);
             }
             if (message) JS_FreeCString(realm, message);
+            ns_js_report_uncaught_in_realm(js, realm, exception, origin);
             JS_FreeValue(realm, exception);
         }
         JS_FreeValue(realm, value);
@@ -59435,6 +59790,10 @@ ns_js_load_link_element(ns_js *js, ns_node *n, const char *origin)
             js->log_cb(line, js->log_user_data);
             g_free(line);
         }
+    } else if (!is_script &&
+               ns_engine_stylesheet_recently_loaded(abs_url, origin)) {
+        /* The style pass has just fetched it: no second request. */
+        loaded = TRUE;
     } else {
         GError *err = NULL;
         ns_response *resp = ns_js_fetch_resource(js, abs_url, origin, NULL,
@@ -59443,9 +59802,16 @@ ns_js_load_link_element(ns_js *js, ns_node *n, const char *origin)
                                                      : NS_FETCH_DEST_STYLE,
                                                  ns_js_fetch_policy(js, n),
                                                  &err);
-        if (resp && resp->status == 200)
+        if (resp && resp->status == 200) {
             loaded = TRUE;
-        else if (js->log_cb) {
+            /* The style pass needs the same bytes: hand them over rather
+             * than have it ask the network again. */
+            if (!is_script && !js->worker_host && resp->body &&
+                resp->body->len > 0 && !resp->error) {
+                ns_engine_offer_stylesheet_response(abs_url, origin, resp);
+                resp = NULL;
+            }
+        } else if (js->log_cb) {
             const char *why = err ? err->message :
                 (resp && resp->error ? resp->error :
                  (resp ? "non-200 status" : "fetch failed"));
@@ -59795,6 +60161,24 @@ ns_js_iframe_source_loaded(ns_js *js, ns_node *iframe)
     return same;
 }
 
+/* Sets or clears the marker of a frame that has a document to show.  The
+ * built-in sheet keeps a frame display:none until it carries the marker, so
+ * the frame's style has to be computed again when it changes: a frame
+ * styled before its load would otherwise stay hidden until something else
+ * restyled it. */
+static void
+ns_js_frame_mark_loaded(ns_node *iframe, gboolean loaded)
+{
+    if (!iframe) return;
+    gboolean was = ns_element_get_attr(iframe, "data-nd-frame-loaded") != NULL;
+    if (loaded)
+        ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+    else
+        ns_element_remove_attr(iframe, "data-nd-frame-loaded");
+    if (was != loaded)
+        ns_css_mark_restyle_dirty(iframe->parent ? iframe->parent : iframe);
+}
+
 /* Queues an iframe load; lazy ones beyond viewport+1500px are deferred unless forced. */
 static void
 ns_js_schedule_iframe_load_full(ns_js *js, ns_node *iframe, gboolean force)
@@ -59820,7 +60204,7 @@ ns_js_schedule_iframe_load_full(ns_js *js, ns_node *iframe, gboolean force)
         }
     }
     if (force)
-        ns_element_remove_attr(iframe, "data-nd-frame-loaded");
+        ns_js_frame_mark_loaded(iframe, FALSE);
     if (js->deferred_iframe_loads)
         g_ptr_array_remove(js->deferred_iframe_loads, iframe);
     if (!js->pending_iframe_loads)
@@ -59898,11 +60282,60 @@ ns_js_purge_subtree_pending_iframes(ns_js *js, ns_node *root)
         ns_js_purge_subtree_pending_iframes(js, c);
 }
 
+static void ns_js_iframe_clear_content(ns_js *js, ns_node *iframe);
+
+/* A frame element that has been taken out of the page has no browsing
+ * context any more: its timers stop, its realm is released and its
+ * document is dropped, so that it loads afresh if it is inserted again.
+ * Done from the orphan sweep rather than at removal, so that an element
+ * which is only being moved is left alone. */
+static void
+ns_js_discard_removed_frames(ns_js *js)
+{
+    if (!js || !js->frame_contexts ||
+        g_hash_table_size(js->frame_contexts) == 0)
+        return;
+    if (js->eval_depth > 0 || js->dispatch_depth > 0 ||
+        js->callback_depth > 0 || js->iframe_load_depth > 0)
+        return;
+    GPtrArray *gone = NULL;
+    GHashTableIter it;
+    gpointer key;
+    g_hash_table_iter_init(&it, js->frame_contexts);
+    while (g_hash_table_iter_next(&it, &key, NULL)) {
+        if (ns_js_node_in_page(js, key)) continue;
+        if (!gone) gone = g_ptr_array_new();
+        g_ptr_array_add(gone, key);
+    }
+    for (guint i = 0; gone && i < gone->len; i++) {
+        ns_node *iframe = g_ptr_array_index(gone, i);
+        ns_js_iframe_clear_content(js, iframe);
+        gpointer held;
+        if (js->frame_windows &&
+            (held = g_hash_table_lookup(js->frame_windows, iframe))) {
+            g_hash_table_remove(js->frame_windows, iframe);
+            JS_FreeValue(js->ctx, JS_MKPTR(JS_TAG_OBJECT, held));
+        }
+        if (js->frame_docs &&
+            (held = g_hash_table_lookup(js->frame_docs, iframe))) {
+            g_hash_table_remove(js->frame_docs, iframe);
+            JS_FreeValue(js->ctx, JS_MKPTR(JS_TAG_OBJECT, held));
+        }
+        ns_js_frame_mark_loaded(iframe, FALSE);
+        ns_element_remove_attr(iframe, "data-nd-doc-written");
+        ns_element_remove_attr(iframe, "data-nd-doc-open");
+        ns_element_remove_attr(iframe, "data-nd-doc-flushed");
+    }
+    if (gone) g_ptr_array_free(gone, TRUE);
+}
+
 /* Rate-limited GC pass freeing detached orphan subtrees that no wrapper references. */
 static void
 ns_js_sweep_orphans(ns_js *js)
 {
-    if (!js || !js->orphan_nodes || g_hash_table_size(js->orphan_nodes) == 0) return;
+    if (!js) return;
+    ns_js_discard_removed_frames(js);
+    if (!js->orphan_nodes || g_hash_table_size(js->orphan_nodes) == 0) return;
     gint64 now = g_get_monotonic_time();
     if (js->last_orphan_sweep_us != 0 && now - js->last_orphan_sweep_us < 250000)
         return;
@@ -59966,7 +60399,10 @@ ns_js_iframe_clear_content(ns_js *js, ns_node *iframe)
      * that navigates itself to its embedder's site would then act as the
      * embedder.  Unmapped, the old realm is detached (see
      * ns_js_realm_detached) and has an opaque origin. */
+    JSContext *outgoing = js->frame_contexts
+        ? g_hash_table_lookup(js->frame_contexts, iframe) : NULL;
     if (js->frame_contexts) g_hash_table_remove(js->frame_contexts, iframe);
+    ns_js_release_frame_realm(js, outgoing);
     ns_node *c = iframe->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
@@ -60713,6 +61149,7 @@ ns_js_run_iframe_scripts(ns_js *js, ns_node *content_root,
                     JS_FreeValue(fctx, stk);
                 }
                 if (m) JS_FreeCString(fctx, m);
+                ns_js_report_uncaught_in_realm(js, fctx, ex, source->url);
                 JS_FreeValue(fctx, ex);
             }
             JS_FreeValue(fctx, v);
@@ -60956,20 +61393,49 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (!js || !iframe || js->halted || !js->current_doc) return;
     if (!ns_js_node_in_page(js, iframe)) return;
 
+    unsigned sandbox = ns_iframe_effective_sandbox(iframe);
+    gboolean scripts_ok = !(sandbox & NS_SANDBOX_ACTIVE) ||
+                          (sandbox & NS_SANDBOX_ALLOW_SCRIPTS);
+
+    /* A document script wrote with document.write(): its tree is already
+     * in place.  Run the scripts that were written, in the frame's realm,
+     * and fire load once the document has been closed. */
+    gboolean written = FALSE, written_open = FALSE;
     if (ns_element_get_attr(iframe, "data-nd-doc-written")) {
         const char *sa = ns_frame_src_attr(iframe);
         const char *sv = sa ? ns_element_get_attr(iframe, sa) : NULL;
         const char *sd = ns_element_get_attr(iframe, "srcdoc");
         if ((!sv || !*sv) && (!sd || !*sd)) {
-            ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
-            ns_js_dispatch_event(js, iframe, "load", NULL);
-            return;
+            written = TRUE;
+            written_open =
+                ns_element_get_attr(iframe, "data-nd-doc-open") != NULL;
+            ns_node *wroot = ns_iframe_content_root(iframe);
+            gboolean pending = scripts_ok && wroot &&
+                               ns_subtree_has_pending_script(wroot);
+            if (pending && ns_js_node_realm_context(js, wroot)) {
+                g_autofree char *worigin =
+                    ns_js_node_document_base_url(js, wroot);
+                if (!worigin) worigin = g_strdup("inline");
+                GArray *tasks =
+                    g_array_new(FALSE, FALSE, sizeof(ns_script_task));
+                ns_js_collect_script_tasks(wroot, tasks);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_BLOCKING, worigin);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_DEFERRED, worigin);
+                ns_js_run_script_schedule(js, tasks, NS_SCRIPT_ASYNC, worigin);
+                g_array_free(tasks, TRUE);
+                pending = FALSE;
+            }
+            if (!pending) {
+                if (wroot) ns_js_schedule_static_iframes(js, wroot);
+                if (!written_open) {
+                    ns_js_frame_mark_loaded(iframe, TRUE);
+                    ns_js_dispatch_event(js, iframe, "load", NULL);
+                }
+                return;
+            }
+            ns_element_set_attr(iframe, "data-nd-doc-flushed", "1");
         }
     }
-
-    unsigned sandbox = ns_iframe_effective_sandbox(iframe);
-    gboolean scripts_ok = !(sandbox & NS_SANDBOX_ACTIVE) ||
-                          (sandbox & NS_SANDBOX_ALLOW_SCRIPTS);
 
     const char *embedder = ns_js_node_doc_base(js, iframe);
     const char *origin = embedder && *embedder ? embedder : "inline";
@@ -60980,6 +61446,18 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     char *abs_url = NULL;
     char *decoded = NULL;
     ns_response *resp = NULL;
+
+    /* A frame with no source shows its initial about:blank document from
+     * the moment it is inserted, and script may have filled that document
+     * in (contentDocument.body.innerHTML = ...) before this first load
+     * runs.  The load completes that document; it does not replace it. */
+    gboolean keep_doc = written;
+    if (!keep_doc && (!srcdoc || !*srcdoc) &&
+        (!src || !*src || g_ascii_strcasecmp(src, "about:blank") == 0) &&
+        ns_node_is_element_named(iframe, "iframe") &&
+        !ns_element_get_attr(iframe, "data-nd-frame-loaded") &&
+        ns_iframe_document_node(iframe))
+        keep_doc = TRUE;
 
     if (srcdoc && *srcdoc) {
         decoded = g_strdup(srcdoc);
@@ -61158,7 +61636,8 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
         }
     }
 
-    ns_js_iframe_clear_content(js, iframe);
+    if (!keep_doc)
+        ns_js_iframe_clear_content(js, iframe);
     ns_js_sweep_orphans(js);
 
     gboolean is_plain_xml = resp && resp->content_type
@@ -61295,7 +61774,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     }
 
     if (content_root && content_doc) {
-        ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+        ns_js_frame_mark_loaded(iframe, TRUE);
         if ((sandbox & NS_SANDBOX_ACTIVE) &&
             !(sandbox & NS_SANDBOX_ALLOW_SAME_ORIGIN))
             ns_element_set_attr(iframe, "data-nd-frame-opaque", "1");
@@ -61405,7 +61884,14 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             ns_js_run_script_schedule(js, tasks, NS_SCRIPT_ASYNC, iorigin);
             g_array_free(tasks, TRUE);
         }
-        if (content_doc) {
+        /* A frame's load waits for its stylesheets, as the page's does.
+         * Left to the first layout of the frame, the fetch runs inside
+         * whatever script first reads a size there, long after load: the
+         * Speedometer runner starts timing a workload at the frame's load
+         * event, and the first step paid for the stylesheet's round trip. */
+        if (content_doc && !written_open && !js->halted)
+            ns_js_load_document_stylesheets(js, content_doc);
+        if (content_doc && !written_open) {
             ns_js_dispatch_event(js, content_doc, "DOMContentLoaded", NULL);
             ns_js_dispatch_event(js, content_doc, "readystatechange", NULL);
             ns_js_dispatch_event(js, content_doc, "load", NULL);
@@ -61416,7 +61902,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             JS_FreeValue(js->ctx, load_window);
             load_window = JS_GetPropertyStr(js->ctx, realm_scope, "window");
         }
-        if (JS_IsObject(load_window) && content_doc) {
+        if (JS_IsObject(load_window) && content_doc && !written_open) {
             JSValue load_event = ns_target_make_event(js->ctx, load_window,
                                                        "load");
             ns_js_dispatch_window_only_event(js, content_doc, "load",
@@ -61441,7 +61927,8 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     if (content_root)
         ns_js_schedule_static_iframes(js, content_root);
     ns_js_schedule_pending_script_drain(js);
-    ns_js_dispatch_event(js, iframe, "load", NULL);
+    if (!written_open)
+        ns_js_dispatch_event(js, iframe, "load", NULL);
 
     if (resp) ns_response_free(resp);
     g_free(decoded);

@@ -44,13 +44,26 @@ for wrap in "$ROOT"/subprojects/*.wrap; do
             stale=1
             ;;
     esac
-    for patch in $(wrap_value "$wrap" diff_files | tr ',' ' '); do
-        if ! git -C "$dir" apply --reverse --check \
-                "$ROOT/subprojects/packagefiles/$patch" 2>/dev/null; then
-            echo "check-subprojects: $name lacks $patch, which $(basename "$wrap") applies" >&2
-            stale=1
-        fi
-    done
+    # Peel the patches off a scratch index last-first: a later patch may
+    # rewrite lines an earlier one added, so the earlier one only reverses
+    # cleanly once the later ones are gone.
+    patches=$(wrap_value "$wrap" diff_files | tr ',' ' ')
+    if [ -n "$patches" ]; then
+        scratch=$(mktemp -d)
+        export GIT_INDEX_FILE="$scratch/index"
+        git -C "$dir" read-tree HEAD
+        git -C "$dir" add -A 2>/dev/null
+        for patch in $(printf '%s\n' $patches | tac); do
+            if ! git -C "$dir" apply --cached --reverse \
+                    "$ROOT/subprojects/packagefiles/$patch" 2>/dev/null; then
+                echo "check-subprojects: $name lacks $patch, which $(basename "$wrap") applies" >&2
+                stale=1
+                break
+            fi
+        done
+        unset GIT_INDEX_FILE
+        rm -rf "$scratch"
+    fi
     overlay=$(wrap_value "$wrap" patch_directory)
     if [ -n "$overlay" ]; then
         while IFS= read -r -d '' file; do

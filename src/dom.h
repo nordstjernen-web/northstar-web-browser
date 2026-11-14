@@ -143,6 +143,8 @@ void ns_node_attach_backing(ns_node *root, void *backing, void (*destroy)(void *
 
 void ns_node_free(ns_node *node);
 
+guint64 ns_dom_mutation_serial(void);
+
 void ns_node_append_child(ns_node *parent, ns_node *child);
 void ns_node_remove(ns_node *child);
 

@@ -44,6 +44,8 @@ typedef struct ns_perf_observer {
     GPtrArray *records;
 } ns_perf_observer;
 
+#define NS_SVG_SMIL_IFACES 6
+
 struct ns_js {
     JSRuntime    *rt;
     JSContext    *ctx;
@@ -321,6 +323,7 @@ struct ns_js {
     JSValue       proto_htmlunknownelement;
     JSValue       proto_svgelement;
     JSValue       proto_svgaelement;
+    JSValue       proto_svg_smil[NS_SVG_SMIL_IFACES];
     JSValue       proto_chardata;
     JSValue       proto_text;
     JSValue       proto_comment;

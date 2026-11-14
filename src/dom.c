@@ -1215,6 +1215,23 @@ ns_node_has_class(const ns_node *el, const char *name, gsize len)
 void (*ns_node_free_hook)(ns_node *node);
 void (*ns_node_detach_hook)(ns_node *parent);
 
+static __thread guint64 g_dom_mutation_serial;
+
+/* Counts this thread's node removals and frees, tag-index updates, and
+ * attribute writes on SVG elements or to any id. */
+guint64
+ns_dom_mutation_serial(void)
+{
+    return g_dom_mutation_serial;
+}
+
+static void
+ns_dom_note_attr_write(const ns_node *el, const char *name)
+{
+    if ((el->flags & NS_NODE_SVG_NS) || g_ascii_strcasecmp(name, "id") == 0)
+        g_dom_mutation_serial++;
+}
+
 /* Frees a subtree iteratively (no recursion), running free/JS hooks and dropping indexes. */
 void
 ns_node_free(ns_node *node)
@@ -1222,6 +1239,7 @@ ns_node_free(ns_node *node)
     if (!node)
         return;
 
+    g_dom_mutation_serial++;
     GPtrArray *stack = g_ptr_array_new();
     g_ptr_array_add(stack, node);
 
@@ -1287,6 +1305,7 @@ ns_node_detach(ns_node *child)
     ns_node *p = child->parent;
     if (!p)
         return;
+    g_dom_mutation_serial++;
     if (ns_node_detach_hook)
         ns_node_detach_hook(p);
     if (child->prev_sibling)
@@ -1404,6 +1423,7 @@ ns_element_set_attr_len(ns_node *el, const char *name,
     ns_doc_id_index_attr_write(el, name, value);
     el->attr_bloom = 0;
     el->attr_gen++;
+    ns_dom_note_attr_write(el, name);
 
     ns_attr *tail = NULL;
     for (ns_attr *a = el->attrs; a; a = a->next) {
@@ -1452,6 +1472,7 @@ ns_element_set_attr_ns(ns_node *el, const char *namespace_uri,
     ns_doc_id_index_attr_write(el, qualified, value);
     el->attr_bloom = 0;
     el->attr_gen++;
+    ns_dom_note_attr_write(el, local_name);
 
     gsize vlen = value ? strlen(value) : 0;
     ns_attr *tail = NULL;
@@ -1489,6 +1510,7 @@ ns_element_remove_attr(ns_node *el, const char *name)
     ns_doc_id_index_attr_write(el, name, NULL);
     el->attr_bloom = 0;
     el->attr_gen++;
+    ns_dom_note_attr_write(el, name);
     ns_attr **link = &el->attrs;
     while (*link) {
         if (g_ascii_strcasecmp((*link)->name, name) == 0) {
@@ -1513,6 +1535,7 @@ ns_element_remove_attr_ns(ns_node *el, const char *namespace_uri,
     ns_doc_id_index_attr_write(el, local_name, NULL);
     el->attr_bloom = 0;
     el->attr_gen++;
+    ns_dom_note_attr_write(el, local_name);
     ns_attr **link = &el->attrs;
     while (*link) {
         if (ns_attr_matches_ns(*link, ns, local_name)) {
@@ -2340,6 +2363,7 @@ void
 ns_doc_tag_index_build(ns_node *doc)
 {
     if (!doc) return;
+    g_dom_mutation_serial++;
     if (doc->tag_index) {
         g_hash_table_remove_all(doc->tag_index);
     } else {
@@ -2354,6 +2378,7 @@ ns_doc_tag_index_build(ns_node *doc)
 void
 ns_doc_tag_index_subtree_added(ns_node *doc, ns_node *root)
 {
+    g_dom_mutation_serial++;
     if (!doc || !doc->tag_index || !root) return;
     ns_doc_tag_index_add_subtree(doc, root, 0);
 }
@@ -2361,6 +2386,7 @@ ns_doc_tag_index_subtree_added(ns_node *doc, ns_node *root)
 void
 ns_doc_tag_index_subtree_removed(ns_node *doc, ns_node *root)
 {
+    g_dom_mutation_serial++;
     if (!doc || !doc->tag_index || !root) return;
     ns_doc_tag_index_remove_subtree(doc, root, 0);
 }

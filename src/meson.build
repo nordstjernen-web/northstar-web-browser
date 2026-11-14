@@ -80,6 +80,7 @@ northstar_engine_sources = files(
   'html.c',
   'i18n.c',
   'image.c',
+  'smil.c',
   'svg.c',
   'video.c',
   'av1.c',

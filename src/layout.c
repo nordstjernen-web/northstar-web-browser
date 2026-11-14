@@ -16089,6 +16089,8 @@ static __thread GArray       *g_hit_hoist;
 static __thread int           g_hit_defer_depth;
 static __thread const ns_box *g_hit_flush_box;
 static __thread double        g_hit_local_x, g_hit_local_y;
+static __thread const ns_box  *g_hit_svg_box;
+static __thread const ns_node *g_hit_svg_shape;
 static double g_hit_vp_x, g_hit_vp_y;
 
 void
@@ -16325,6 +16327,17 @@ box_svg_yields_hit(const ns_box *b)
            b->border.bottom <= 0 && b->border.left <= 0;
 }
 
+/* The shape an <svg> box paints at a point given in its parent's coordinates, or NULL. */
+static const ns_node *
+box_svg_shape_at(const ns_box *b, double x, double y)
+{
+    if (b->kind != NS_BOX_SVG || !b->dom) return NULL;
+    double sx = x - (b->x + b->margin.left + b->border.left + b->padding.left);
+    double sy = y - (b->y + b->margin.top + b->border.top + b->padding.top);
+    return ns_svg_hit_node(b->dom, b->content_width, b->content_height,
+                           b->svg_styles, b->style, sx, sy);
+}
+
 /* True when a box forms a stacking context for hit testing. */
 static gboolean
 box_hit_layer_is_stacking_context(const ns_box *b)
@@ -16452,11 +16465,17 @@ box_hit_test_tree(const ns_box *root, double x, double y)
     if (best) return best;
 self_test: ;
     if (!box_blocks_hit_testing(root) && !box_is_table_hit_internal(root) &&
-        !box_svg_yields_hit(root) && box_hit_self_contains(root, x, y) &&
-        root->dom) {
-        g_hit_local_x = x;
-        g_hit_local_y = y;
-        return root;
+        root->dom && box_hit_self_contains(root, x, y)) {
+        const ns_node *shape = box_svg_shape_at(root, x, y);
+        if (shape || !box_svg_yields_hit(root)) {
+            g_hit_local_x = x;
+            g_hit_local_y = y;
+            if (shape) {
+                g_hit_svg_box = root;
+                g_hit_svg_shape = shape;
+            }
+            return root;
+        }
     }
     return NULL;
 }
@@ -16914,14 +16933,17 @@ image_map_hit(const ns_box *b, double local_x, double local_y)
                              0);
 }
 
-/* Deepest DOM node under the point, refined by inline elements, controls and image maps. */
+/* Deepest DOM node under the point, refined by SVG shapes, inline elements, controls
+ * and image maps. */
 const ns_node *
 ns_box_hit_dom(const ns_box *root, double x, double y)
 {
     const ns_box *from = hit_root_for_point(root, x, y);
+    g_hit_svg_box = NULL;
     const ns_box *hit = box_hit_test_root(from, x, y);
     double local_x = g_hit_local_x, local_y = g_hit_local_y;
     const ns_node *target = hit ? hit->dom : NULL;
+    if (hit && hit == g_hit_svg_box) target = g_hit_svg_shape;
     const ns_node *inline_target = ns_box_hit_inline_dom(from, x, y);
     if (inline_target && (!target || hit_node_refines(inline_target, target)))
         target = inline_target;

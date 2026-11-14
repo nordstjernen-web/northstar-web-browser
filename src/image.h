@@ -16,6 +16,7 @@ G_BEGIN_DECLS
 typedef struct ns_image_cache  ns_image_cache;
 typedef struct ns_image        ns_image;
 typedef struct ns_video_stream ns_video_stream;
+struct ns_svg_doc;
 
 typedef struct ns_image_anim_frame {
     ns_texture *texture;
@@ -58,6 +59,8 @@ struct ns_image {
     gboolean     anim_loop;
     guint        anim_seek_gen;
     ns_video_stream *video;
+    GBytes      *svg_source;
+    struct ns_svg_doc *svg_doc;
 };
 
 typedef void (*ns_image_ready_cb)(ns_image *img, gpointer user_data);

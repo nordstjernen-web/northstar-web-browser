@@ -43,6 +43,18 @@ Significant changes in each release:
   at 60 seconds those benchmarks could not finish however it was
   configured. The page-wide halt and the watchdog's hang limit follow the
   configured budget.
+* WebAssembly: a `WebAssembly.Memory` created in JavaScript and imported
+  by a module keeps its `ArrayBuffer` when the module is instantiated.
+  The buffer was detached at that point, so every typed array made over
+  it beforehand went to length 0. Emscripten output that creates its
+  memory in JavaScript builds its `HEAP8`…`HEAPF64` views first and never
+  refreshes them: such a program started with an empty heap on the
+  JavaScript side, lost its arguments and exited at once (the tsf,
+  HashSet, quicksort and gcc-loops benchmarks of JetStream 2). The
+  instance now also takes the size the memory already has when that is
+  more than the module's declared minimum, and a memory or table may be
+  imported under any module name, not only `env`. `grow()` still detaches
+  the old buffer, as the JS API specifies. quickjs-ng builds only.
 * XMLHttpRequest: `responseXML` is the parsed document for
   `responseType = "document"` and for an XML response with the default
   type. It was always `null`.

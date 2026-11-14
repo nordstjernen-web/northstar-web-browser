@@ -25,6 +25,9 @@ JSContext *JS_GetPendingJobContext(JSRuntime *rt);
 #endif
 void JS_SetEvalStringCheck(int (*cb)(JSContext *ctx));
 
+/* Points an externally managed ArrayBuffer at another block, keeping the
+ * object and its views; -1 when it cannot.  From the repoint-arraybuffer
+ * patch on quickjs-ng; a stub that always fails on the original engine. */
 int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
                           size_t byte_length);
 

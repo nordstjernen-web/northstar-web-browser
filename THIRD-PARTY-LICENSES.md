@@ -372,6 +372,10 @@ and separable:
   tried at the start of the subject only, and one that starts with a
   character class, `\s`, `\S` or `.` skips the positions that cannot
   start a match (`libregexp.c`).
+- `subprojects/packagefiles/quickjs-ng-repoint-arraybuffer.patch` — adds
+  `JS_RepointArrayBuffer`, which points an embedder-managed `ArrayBuffer`
+  at another block and keeps its typed arrays valid; `WebAssembly.Memory`
+  uses it when a module adopts a memory created in JavaScript.
 
 - `subprojects/packagefiles/quickjs-sort-calls-comparator.patch` — for the
   optional original QuickJS: `Array.prototype.sort` calls the comparator

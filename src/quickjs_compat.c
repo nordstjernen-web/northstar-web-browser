@@ -35,7 +35,10 @@ JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)
     return ctx;
 }
 
-/* Compat stub: repointing an ArrayBuffer is unsupported here; always returns -1. */
+#ifdef NS_QUICKJS_ORIGINAL
+/* The original engine has no way to repoint an ArrayBuffer: always -1, and
+ * the caller detaches the buffer instead.  quickjs-ng gets the real
+ * function from quickjs-ng-repoint-arraybuffer.patch. */
 int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
                           size_t byte_length)
 {
@@ -45,6 +48,7 @@ int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
     (void)byte_length;
     return -1;
 }
+#endif
 
 /* Error.prototype.stack setter: defines or sets an own stack property on the receiver. */
 static JSValue ns_quickjs_error_stack_set(JSContext *ctx, JSValueConst this_val,

@@ -17,7 +17,11 @@
 
 G_BEGIN_DECLS
 
-#define NS_JS_EVAL_BUDGET_MAX_MS 60000
+/* Upper bound for the js_eval_budget_ms setting.  The default budget stays
+ * 60 s; a higher setting is for pages whose scripts legitimately run for
+ * minutes in one go on an interpreter (JetStream runs each benchmark's 120
+ * iterations as a single script). */
+#define NS_JS_EVAL_BUDGET_MAX_MS 3600000
 
 typedef struct ns_js ns_js;
 typedef struct ns_js_drag_session ns_js_drag_session;

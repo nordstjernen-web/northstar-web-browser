@@ -226,6 +226,102 @@ ns_engine_linked_css_text(const char *url)
     return g_strndup(data, len);
 }
 
+/* A linked stylesheet has two consumers: the style pass, which needs its
+ * text, and the link loader, which fires the element's load event.  Each
+ * made its own request, so every stylesheet cost two round trips, the
+ * second a revalidation at best.  Whichever gets there first now leaves
+ * the outcome here for the other, for a short while and for the same
+ * origin only.  Main thread only. */
+#define NS_CSS_HANDOFF_MAX     64
+#define NS_CSS_HANDOFF_TTL_US  (30 * G_USEC_PER_SEC)
+
+typedef struct {
+    ns_response *resp;   /* a response the link loader fetched, or NULL */
+    gboolean     loaded; /* the style pass fetched it and it was usable */
+    gint64       at_us;
+} css_handoff;
+
+static GHashTable *g_css_handoff;
+
+static void
+css_handoff_free(gpointer p)
+{
+    css_handoff *h = p;
+    if (!h) return;
+    if (h->resp) ns_response_free(h->resp);
+    g_free(h);
+}
+
+/* Key of a stylesheet request: the URL and the origin it is fetched for. */
+static char *
+css_handoff_key(const char *url, const char *top_url)
+{
+    g_autofree char *origin = top_url ? ns_url_origin_from(top_url) : NULL;
+    return g_strconcat(origin ? origin : "", "\n", url, NULL);
+}
+
+static void
+css_handoff_put(const char *url, const char *top_url, ns_response *resp,
+                gboolean loaded)
+{
+    if (!g_css_handoff)
+        g_css_handoff = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+                                              css_handoff_free);
+    gint64 now = g_get_monotonic_time();
+    if (g_hash_table_size(g_css_handoff) >= NS_CSS_HANDOFF_MAX) {
+        GHashTableIter it;
+        gpointer v;
+        g_hash_table_iter_init(&it, g_css_handoff);
+        while (g_hash_table_iter_next(&it, NULL, &v))
+            if (now - ((css_handoff *)v)->at_us > NS_CSS_HANDOFF_TTL_US)
+                g_hash_table_iter_remove(&it);
+        if (g_hash_table_size(g_css_handoff) >= NS_CSS_HANDOFF_MAX)
+            g_hash_table_remove_all(g_css_handoff);
+    }
+    css_handoff *h = g_new0(css_handoff, 1);
+    h->resp = resp;
+    h->loaded = loaded;
+    h->at_us = now;
+    g_hash_table_insert(g_css_handoff, css_handoff_key(url, top_url), h);
+}
+
+/* The entry for a request if it is still fresh, else NULL (and dropped). */
+static css_handoff *
+css_handoff_lookup(const char *key)
+{
+    css_handoff *h = g_css_handoff ? g_hash_table_lookup(g_css_handoff, key)
+                                   : NULL;
+    if (h && g_get_monotonic_time() - h->at_us > NS_CSS_HANDOFF_TTL_US) {
+        g_hash_table_remove(g_css_handoff, key);
+        return NULL;
+    }
+    return h;
+}
+
+/* The link loader fetched a stylesheet: keeps the response for the style
+ * pass, which would otherwise request it again.  Takes ownership of resp. */
+void
+ns_engine_offer_stylesheet_response(const char *url, const char *top_url,
+                                    ns_response *resp)
+{
+    if (!url || !*url || !resp) {
+        if (resp) ns_response_free(resp);
+        return;
+    }
+    css_handoff_put(url, top_url, resp, FALSE);
+}
+
+/* TRUE if the style pass fetched this stylesheet moments ago and could use
+ * it: the link loader then fires load without a request of its own. */
+gboolean
+ns_engine_stylesheet_recently_loaded(const char *url, const char *top_url)
+{
+    if (!url || !*url) return FALSE;
+    g_autofree char *key = css_handoff_key(url, top_url);
+    css_handoff *h = css_handoff_lookup(key);
+    return h && h->loaded;
+}
+
 /* Fetches a stylesheet with MIME checks for cross-origin/nosniff; caches up to 3 failures. */
 static GBytes *
 fetch_css_bytes(const char *url, const char *top_url, GHashTable *cache,
@@ -251,8 +347,18 @@ fetch_css_bytes(const char *url, const char *top_url, GHashTable *cache,
             if (attempts >= 3) return NULL;
         }
     }
-    ns_response *resp = ns_engine_fetch_blocking_for(
-        url, top_url, NS_FETCH_DEST_STYLE, NULL);
+    ns_response *resp = NULL;
+    g_autofree char *handoff_key = css_handoff_key(url, top_url);
+    css_handoff *offered = css_handoff_lookup(handoff_key);
+    if (offered && offered->resp) {
+        /* The link loader already has it. */
+        resp = offered->resp;
+        offered->resp = NULL;
+        g_hash_table_remove(g_css_handoff, handoff_key);
+    } else {
+        resp = ns_engine_fetch_blocking_for(url, top_url, NS_FETCH_DEST_STYLE,
+                                            NULL);
+    }
     GBytes *bytes = NULL;
     /* The quirks-mode MIME leniency only applies to same-origin sheets;
      * otherwise any cross-origin HTML/JSON response would be parsed (and
@@ -274,6 +380,8 @@ fetch_css_bytes(const char *url, const char *top_url, GHashTable *cache,
         bytes = g_bytes_new(resp->body->data, resp->body->len);
         if (cache)
             g_hash_table_insert(cache, g_strdup(url), g_bytes_ref(bytes));
+        if (resp->status == 200)
+            css_handoff_put(url, top_url, NULL, TRUE);
     } else if (cache) {
         guint8 marker = attempts + 1;
         g_hash_table_insert(cache, g_strdup(url),

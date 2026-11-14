@@ -18,7 +18,7 @@ is fetched and built.
 | Source | [quickjs-ng/quickjs](https://github.com/quickjs-ng/quickjs) | [bellard/quickjs](https://github.com/bellard/quickjs), the original engine |
 | Wrap | `subprojects/quickjs-ng.wrap`; a system quickjs-ng is preferred when found | `subprojects/quickjs.wrap`, always the subproject |
 | Version | master `147d01c` (after v0.18.0) | release 2026-06-04, pinned by commit `3d5e064` |
-| Local patches | Windows link fix; test262 conformance fixes; locale-independent `JSON.parse` numbers; regexp first-character search; V8-worded TypeErrors; no `transfer()` of externally managed buffers | `Array.prototype.sort` always calls the comparator; no `transfer()` of externally managed buffers |
+| Local patches | Windows link fix; test262 conformance fixes; locale-independent `JSON.parse` numbers; regexp first-character search, extended to `^`-anchored patterns and character classes; V8-worded TypeErrors; legacy `RegExp.$1`…`$9`, `lastMatch`, `leftContext`, `rightContext` statics; no `transfer()` of externally managed buffers; `JS_RepointArrayBuffer`; `JS_ResetGlobalLexicals` | `Array.prototype.sort` always calls the comparator; no `transfer()` of externally managed buffers |
 | `about:northstar` | `JavaScript (quickjs-ng) 0.18.0` | `JavaScript (QuickJS) 2026-06-04` |
 | CI | every workflow | none; build it locally (see below) |
 
@@ -102,6 +102,27 @@ bytecode is not interchangeable, so the original engine keeps its cache in
   `Iterator.zip`/`zipKeyed` statics and `chunks`, `windows`, `join` and
   `includes` iterator methods, and the immutable-`ArrayBuffer` methods.
   Northstar Web Browser's own code and polyfills use none of them.
+- **Legacy RegExp statics.** `RegExp.$1`…`$9`, `RegExp.lastMatch`,
+  `lastParen`, `leftContext`, `rightContext` and `input` (with their
+  `$&`, `$+`, `` $` ``, `$'` and `$_` aliases) exist only in the quickjs-ng
+  build, through `quickjs-ng-regexp-legacy-statics.patch`. Every browser
+  engine has them and older code still reads them: the WSL benchmark of
+  JetStream 2 lexes with `RegExp.lastMatch`.
+- **WebAssembly memory created in JavaScript.** quickjs-ng moves the
+  `ArrayBuffer` of a `WebAssembly.Memory` onto the instance's linear
+  memory when a module imports it (`JS_RepointArrayBuffer`, from
+  `quickjs-ng-repoint-arraybuffer.patch`), so views made before
+  instantiation stay valid. The original engine cannot: there the buffer
+  is detached at instantiation and the page has to read `memory.buffer`
+  again, which Emscripten output of the era that creates its memory in
+  JavaScript does not do.
+- **Memory of discarded frames.** When a frame navigates or is removed,
+  the realm of its old document is emptied so its heap can be collected.
+  On quickjs-ng that includes the global `let`, `const` and `class`
+  bindings (`JS_ResetGlobalLexicals`, from
+  `quickjs-ng-reset-global-lexicals.patch`); on the original engine only
+  the global object's properties are cleared, and what those bindings
+  hold stays until the page is closed.
 - **Stored data.** The engines serialize values differently, so an
   IndexedDB written by one build reads back as empty values in the other.
 - **Error positions.** Line numbers match; column numbers in stack traces

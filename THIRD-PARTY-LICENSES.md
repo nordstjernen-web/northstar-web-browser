@@ -362,6 +362,24 @@ and separable:
   keeps a module whose dependencies failed to resolve, and rejects every
   later import of it, instead of freeing it while an import cycle still
   points at it.
+- `subprojects/packagefiles/quickjs-ng-regexp-legacy-statics.patch` —
+  adds the legacy `RegExp` statics every browser engine has (`RegExp.$1`
+  to `$9`, `lastMatch`, `lastParen`, `leftContext`, `rightContext`,
+  `input`), recorded per realm on each successful match.
+- `subprojects/packagefiles/quickjs-ng-regexp-anchored-search.patch` —
+  extends the first-character search of
+  `quickjs-ng-regexp-first-char.patch`: a pattern anchored with `^` is
+  tried at the start of the subject only, and one that starts with a
+  character class, `\s`, `\S` or `.` skips the positions that cannot
+  start a match (`libregexp.c`).
+- `subprojects/packagefiles/quickjs-ng-repoint-arraybuffer.patch` — adds
+  `JS_RepointArrayBuffer`, which points an embedder-managed `ArrayBuffer`
+  at another block and keeps its typed arrays valid; `WebAssembly.Memory`
+  uses it when a module adopts a memory created in JavaScript.
+- `subprojects/packagefiles/quickjs-ng-reset-global-lexicals.patch` —
+  adds `JS_ResetGlobalLexicals`, which drops a realm's global `let`,
+  `const` and `class` bindings; used to release the realm of a frame
+  document that is gone.
 
 - `subprojects/packagefiles/quickjs-sort-calls-comparator.patch` — for the
   optional original QuickJS: `Array.prototype.sort` calls the comparator

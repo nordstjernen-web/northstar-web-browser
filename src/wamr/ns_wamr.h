@@ -25,6 +25,9 @@ bool ns_wamr_table_set_ref(wasm_module_inst_t inst, const char *export_name,
 void ns_wamr_externref_reclaim(wasm_module_inst_t inst);
 
 void ns_wamr_set_host_calls_ctors(bool enabled);
+/* Lets a module import its memory and table under any module name, not
+ * only "env": the host provides them. */
+void ns_wamr_set_host_links_imports(bool enabled);
 
 void wasm_runtime_set_enlarge_mem_success_callback(
     void (*callback)(wasm_module_inst_t module_inst, void *user_data),

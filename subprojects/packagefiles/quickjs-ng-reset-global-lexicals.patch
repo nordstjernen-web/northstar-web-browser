@@ -1,0 +1,25 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -8009,6 +8009,22 @@
+     return js_dup(ctx->global_obj);
+ }
+ 
++/* Forget the global lexical declarations (let, const, class) of a realm
++   whose document is gone, so that what they hold can be collected while
++   the context itself stays valid. Functions that captured a binding keep
++   their own reference to it. */
++void JS_ResetGlobalLexicals(JSContext *ctx)
++{
++    JSValue fresh = JS_NewObjectProtoClassAlloc(ctx, JS_NULL,
++                                                JS_CLASS_OBJECT, 16);
++    if (JS_IsException(fresh)) {
++        JS_FreeValue(ctx, JS_GetException(ctx));
++        return;
++    }
++    JS_FreeValue(ctx, ctx->global_var_obj);
++    ctx->global_var_obj = fresh;
++}
++
+ /* WARNING: obj is freed */
+ JSValue JS_Throw(JSContext *ctx, JSValue obj)
+ {

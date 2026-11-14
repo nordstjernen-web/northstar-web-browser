@@ -1636,6 +1636,11 @@ lookup_post_instantiate_func(WASMModuleInstance *module_inst,
 
 bool ns_wamr_host_calls_ctors = false;
 
+/* Northstar: the embedder supplies every imported memory and table itself
+ * (the WebAssembly JS API), whatever module name the import carries, so
+ * instantiation must not insist on the built-in "env" name for them. */
+bool ns_wamr_host_links_imports = false;
+
 static bool
 execute_post_instantiate_functions(WASMModuleInstance *module_inst,
                                    bool is_sub_inst, WASMExecEnv *exec_env_main)
@@ -2003,7 +2008,8 @@ check_linked_symbol(WASMModuleInstance *module_inst, char *error_buf,
     for (i = 0; i < module->import_table_count; i++) {
         WASMTableImport *table = &((module->import_tables + i)->u.table);
 
-        if (!wasm_runtime_is_built_in_module(table->module_name)
+        if (!ns_wamr_host_links_imports
+            && !wasm_runtime_is_built_in_module(table->module_name)
 #if WASM_ENABLE_MULTI_MODULE != 0
             && !table->import_table_linked
 #endif
@@ -2018,7 +2024,8 @@ check_linked_symbol(WASMModuleInstance *module_inst, char *error_buf,
     for (i = 0; i < module->import_memory_count; i++) {
         WASMMemoryImport *memory = &((module->import_memories + i)->u.memory);
 
-        if (!wasm_runtime_is_built_in_module(memory->module_name)
+        if (!ns_wamr_host_links_imports
+            && !wasm_runtime_is_built_in_module(memory->module_name)
 #if WASM_ENABLE_MULTI_MODULE != 0
             && !memory->import_memory_linked
 #endif

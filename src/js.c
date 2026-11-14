@@ -25898,7 +25898,7 @@ ns_js_set_attr_recorded_len(ns_js *js, ns_node *n, const char *name,
      * path, apart from the one internal attribute the engine itself
      * records this way: a control's checkedness. */
     if (ns_attr_name_is_internal(name) &&
-        strcmp(name, "data-nd-checked") != 0)
+        g_strcmp0(name, "data-nd-checked") != 0)
         return;
     gsize vlen = len < 0 ? (value ? strlen(value) : 0) : (gsize)len;
     const char *new_value = value ? value : "";

@@ -60283,7 +60283,6 @@ ns_js_purge_subtree_pending_iframes(ns_js *js, ns_node *root)
 }
 
 static void ns_js_iframe_clear_content(ns_js *js, ns_node *iframe);
-static void ns_js_frame_mark_loaded(ns_node *iframe, gboolean loaded);
 
 /* A frame element that has been taken out of the page has no browsing
  * context any more: its timers stop, its realm is released and its

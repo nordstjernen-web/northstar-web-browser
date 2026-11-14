@@ -36,6 +36,16 @@ Significant changes in each release:
 * Frames: `innerWidth`, `innerHeight` and the root element's
   `clientWidth`/`clientHeight` are the frame's own size inside a frame.
   They were the embedding page's viewport.
+* Memory: the JavaScript realm of a frame's document is released when
+  the frame navigates away or is taken out of the page. Realms were kept
+  until the page itself was closed, each holding everything its scripts
+  had allocated, so a page that goes through many frames grew without
+  bound: JetStream 2 runs each of its 64 benchmarks in a new frame and
+  hit the 2 GB JavaScript memory limit after about 40 of them, failing
+  every benchmark from there on. Memory now returns to its level between
+  benchmarks, and with a smaller heap to collect several of them score 20
+  to 50 % higher. A frame element removed from the page also stops its
+  timers and loads afresh if it is inserted again.
 * Performance: a linked stylesheet is requested once. The style pass and
   the loader that fires the `<link>` element's `load` event each fetched
   it, so every stylesheet cost a second round trip to the server, one

@@ -797,6 +797,63 @@ typedef struct ns_raf_entry {
     gboolean done;      /* in a firing batch: already run or cancelled */
 } ns_raf_entry;
 
+/* Empties a frame realm whose document is gone: its frame navigated, or
+ * was removed from the page.  Every benchmark of a suite and every page a
+ * frame navigates through runs in a realm of its own, and a realm's global
+ * bindings keep its whole heap alive; realms are only freed with the page,
+ * so a page that cycles frames ran into the memory cap (JetStream 2, two
+ * thirds of the way through).  The context stays allocated and listed in
+ * frame_ctxs: anything still pointing at it remains valid, and it is still
+ * a detached frame realm to every identity check.  Only what its globals
+ * held becomes collectable. */
+static void
+ns_js_release_frame_realm(ns_js *js, JSContext *realm)
+{
+    if (!js || !realm || !js->frame_ctxs) return;
+    if (realm == js->ctx || realm == js->main_realm_ctx ||
+        realm == js->module_ctx)
+        return;
+    /* Never under running script: a function of that realm may be on the
+     * stack. */
+    if (js->eval_depth > 0 || js->dispatch_depth > 0 ||
+        js->callback_depth > 0)
+        return;
+    gboolean listed = FALSE;
+    for (guint i = 0; i < js->frame_ctxs->len && !listed; i++)
+        listed = g_ptr_array_index(js->frame_ctxs, i) == realm;
+    if (!listed) return;
+    if (js->frame_contexts) {
+        GHashTableIter it;
+        gpointer iframe, fctx;
+        g_hash_table_iter_init(&it, js->frame_contexts);
+        while (g_hash_table_iter_next(&it, &iframe, &fctx))
+            if (fctx == realm) return;
+    }
+    JSValue global = JS_GetGlobalObject(realm);
+    JSPropertyEnum *props = NULL;
+    uint32_t count = 0;
+    if (JS_GetOwnPropertyNames(realm, &props, &count, global,
+                               JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) == 0) {
+        for (uint32_t i = 0; i < count; i++) {
+            /* var and function declarations cannot be deleted; they can
+             * be overwritten. */
+            if (JS_DeleteProperty(realm, global, props[i].atom, 0) <= 0) {
+                if (JS_HasException(realm))
+                    JS_FreeValue(realm, JS_GetException(realm));
+                if (JS_SetProperty(realm, global, props[i].atom,
+                                   JS_UNDEFINED) < 0 &&
+                    JS_HasException(realm))
+                    JS_FreeValue(realm, JS_GetException(realm));
+            }
+        }
+        JS_FreePropertyEnum(realm, props, count);
+    } else if (JS_HasException(realm)) {
+        JS_FreeValue(realm, JS_GetException(realm));
+    }
+    JS_FreeValue(realm, global);
+    JS_ResetGlobalLexicals(realm);
+}
+
 /* TRUE for a frame realm that no longer has a frame: the document it ran
  * was replaced when its frame navigated (or it never got one).  Realms
  * live until the page is torn down, so a promise reaction or a network
@@ -60211,11 +60268,61 @@ ns_js_purge_subtree_pending_iframes(ns_js *js, ns_node *root)
         ns_js_purge_subtree_pending_iframes(js, c);
 }
 
+static void ns_js_iframe_clear_content(ns_js *js, ns_node *iframe);
+static void ns_js_frame_mark_loaded(ns_node *iframe, gboolean loaded);
+
+/* A frame element that has been taken out of the page has no browsing
+ * context any more: its timers stop, its realm is released and its
+ * document is dropped, so that it loads afresh if it is inserted again.
+ * Done from the orphan sweep rather than at removal, so that an element
+ * which is only being moved is left alone. */
+static void
+ns_js_discard_removed_frames(ns_js *js)
+{
+    if (!js || !js->frame_contexts ||
+        g_hash_table_size(js->frame_contexts) == 0)
+        return;
+    if (js->eval_depth > 0 || js->dispatch_depth > 0 ||
+        js->callback_depth > 0 || js->iframe_load_depth > 0)
+        return;
+    GPtrArray *gone = NULL;
+    GHashTableIter it;
+    gpointer key;
+    g_hash_table_iter_init(&it, js->frame_contexts);
+    while (g_hash_table_iter_next(&it, &key, NULL)) {
+        if (ns_js_node_in_page(js, key)) continue;
+        if (!gone) gone = g_ptr_array_new();
+        g_ptr_array_add(gone, key);
+    }
+    for (guint i = 0; gone && i < gone->len; i++) {
+        ns_node *iframe = g_ptr_array_index(gone, i);
+        ns_js_iframe_clear_content(js, iframe);
+        gpointer held;
+        if (js->frame_windows &&
+            (held = g_hash_table_lookup(js->frame_windows, iframe))) {
+            g_hash_table_remove(js->frame_windows, iframe);
+            JS_FreeValue(js->ctx, JS_MKPTR(JS_TAG_OBJECT, held));
+        }
+        if (js->frame_docs &&
+            (held = g_hash_table_lookup(js->frame_docs, iframe))) {
+            g_hash_table_remove(js->frame_docs, iframe);
+            JS_FreeValue(js->ctx, JS_MKPTR(JS_TAG_OBJECT, held));
+        }
+        ns_js_frame_mark_loaded(iframe, FALSE);
+        ns_element_remove_attr(iframe, "data-nd-doc-written");
+        ns_element_remove_attr(iframe, "data-nd-doc-open");
+        ns_element_remove_attr(iframe, "data-nd-doc-flushed");
+    }
+    if (gone) g_ptr_array_free(gone, TRUE);
+}
+
 /* Rate-limited GC pass freeing detached orphan subtrees that no wrapper references. */
 static void
 ns_js_sweep_orphans(ns_js *js)
 {
-    if (!js || !js->orphan_nodes || g_hash_table_size(js->orphan_nodes) == 0) return;
+    if (!js) return;
+    ns_js_discard_removed_frames(js);
+    if (!js->orphan_nodes || g_hash_table_size(js->orphan_nodes) == 0) return;
     gint64 now = g_get_monotonic_time();
     if (js->last_orphan_sweep_us != 0 && now - js->last_orphan_sweep_us < 250000)
         return;
@@ -60279,7 +60386,10 @@ ns_js_iframe_clear_content(ns_js *js, ns_node *iframe)
      * that navigates itself to its embedder's site would then act as the
      * embedder.  Unmapped, the old realm is detached (see
      * ns_js_realm_detached) and has an opaque origin. */
+    JSContext *outgoing = js->frame_contexts
+        ? g_hash_table_lookup(js->frame_contexts, iframe) : NULL;
     if (js->frame_contexts) g_hash_table_remove(js->frame_contexts, iframe);
+    ns_js_release_frame_realm(js, outgoing);
     ns_node *c = iframe->first_child;
     while (c) {
         ns_node *next = c->next_sibling;
@@ -61513,10 +61623,9 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
         }
     }
 
-    if (!keep_doc) {
+    if (!keep_doc)
         ns_js_iframe_clear_content(js, iframe);
-        ns_js_sweep_orphans(js);
-    }
+    ns_js_sweep_orphans(js);
 
     gboolean is_plain_xml = resp && resp->content_type
         && strstr(resp->content_type, "xml") != NULL

@@ -31,6 +31,11 @@ void JS_SetEvalStringCheck(int (*cb)(JSContext *ctx));
 int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
                           size_t byte_length);
 
+/* Drops a realm's global let/const/class bindings.  From the
+ * reset-global-lexicals patch on quickjs-ng; does nothing on the original
+ * engine. */
+void JS_ResetGlobalLexicals(JSContext *ctx);
+
 JSClassID ns_new_class_id(JSClassID *pclass_id);
 bool ns_js_buffer_source_bytes(JSContext *ctx, JSValueConst v,
                                const uint8_t **data, size_t *len,

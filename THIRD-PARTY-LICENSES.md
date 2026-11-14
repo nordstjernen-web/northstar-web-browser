@@ -376,6 +376,10 @@ and separable:
   `JS_RepointArrayBuffer`, which points an embedder-managed `ArrayBuffer`
   at another block and keeps its typed arrays valid; `WebAssembly.Memory`
   uses it when a module adopts a memory created in JavaScript.
+- `subprojects/packagefiles/quickjs-ng-reset-global-lexicals.patch` —
+  adds `JS_ResetGlobalLexicals`, which drops a realm's global `let`,
+  `const` and `class` bindings; used to release the realm of a frame
+  document that is gone.
 
 - `subprojects/packagefiles/quickjs-sort-calls-comparator.patch` — for the
   optional original QuickJS: `Array.prototype.sort` calls the comparator

@@ -48,6 +48,12 @@ int JS_RepointArrayBuffer(JSContext *ctx, JSValueConst obj, uint8_t *data,
     (void)byte_length;
     return -1;
 }
+
+/* No access to the global lexical object on the original engine. */
+void JS_ResetGlobalLexicals(JSContext *ctx)
+{
+    (void)ctx;
+}
 #endif
 
 /* Error.prototype.stack setter: defines or sets an own stack property on the receiver. */

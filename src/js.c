@@ -38219,6 +38219,14 @@ ns_element_set_disabled(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     return JS_UNDEFINED;
 }
 
+/* TRUE when a change to a form control's state can show: the control is in
+ * the page (or there is no engine state to ask, in which case assume so). */
+static gboolean
+ns_js_control_is_rendered(ns_js *js, const ns_node *el)
+{
+    return !js || !js->current_doc || ns_js_node_in_page(js, el);
+}
+
 static JSValue
 ns_element_get_checked(JSContext *ctx, JSValueConst this_val)
 {
@@ -38235,7 +38243,9 @@ ns_element_set_checked(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     ns_node *el = ns_unwrap_element_mut(this_val);
     if (!el) return JS_UNDEFINED;
     ns_js *_j = js_from_ctx(ctx);
-    if (JS_ToBool(ctx, val)) {
+    gboolean was = ns_input_is_checked(el);
+    gboolean now = JS_ToBool(ctx, val) > 0;
+    if (now) {
         const char *type = ns_element_get_attr(el, "type");
         if (type && g_ascii_strcasecmp(type, "radio") == 0)
             ns_js_clear_radio_group(_j, el);
@@ -38243,6 +38253,10 @@ ns_element_set_checked(JSContext *ctx, JSValueConst this_val, JSValueConst val)
     } else {
         ns_element_set_attr(el, "data-nd-checked", "0");
     }
+    /* Frameworks write checked on every render.  A write that leaves the
+     * control as it was, or one to a control that is not in the page yet,
+     * changes nothing on screen: no relayout. */
+    if (was == now || !ns_js_control_is_rendered(_j, el)) return JS_UNDEFINED;
     if (_j) ns_js_note_layout_unscoped(_j, G_STRFUNC);
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
     return JS_UNDEFINED;
@@ -38259,10 +38273,14 @@ static void
 ns_js_set_indeterminate(ns_js *js, ns_node *el, gboolean indeterminate)
 {
     if (!el) return;
+    gboolean was = (el->flags & NS_NODE_INPUT_INDETERMINATE) != 0;
     if (indeterminate)
         el->flags |= NS_NODE_INPUT_INDETERMINATE;
     else
         el->flags &= ~NS_NODE_INPUT_INDETERMINATE;
+    /* As for checked: an unchanged flag, or a control outside the page,
+     * needs no relayout. */
+    if (was == !!indeterminate || !ns_js_control_is_rendered(js, el)) return;
     if (js) ns_js_note_layout_unscoped(js, G_STRFUNC);
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
 }
@@ -38765,8 +38783,14 @@ ns_element_set_value_prop(JSContext *ctx, JSValueConst this_val, JSValueConst va
         }
     }
     char *sanitized = ns_input_sanitize_value(el, s);
-    ns_element_set_attr(el, ns_input_value_is_dirty_mode(el) ? "data-nd-value"
-                                                             : "value", sanitized);
+    const char *value_attr = ns_input_value_is_dirty_mode(el) ? "data-nd-value"
+                                                              : "value";
+    const char *current = ns_element_get_attr(el, value_attr);
+    /* Writing the value a control already shows, or the value of a control
+     * that is not in the page, changes nothing on screen. */
+    gboolean shows = !(current && strcmp(current, sanitized) == 0) &&
+                     ns_js_control_is_rendered(js_from_ctx(ctx), el);
+    ns_element_set_attr(el, value_attr, sanitized);
     ns_element_remove_attr(el, "data-nd-user-edited");
     if (el->name && strcmp(el->name, "input") == 0)
         ns_element_set_attr(el, "data-nd-vdirty", "1");
@@ -38775,6 +38799,7 @@ ns_element_set_value_prop(JSContext *ctx, JSValueConst this_val, JSValueConst va
     if (selection_applies)
         ns_text_selection_value_changed(ctx, this_val, old_value);
     JS_FreeValue(ctx, old_value);
+    if (!shows) return JS_UNDEFINED;
     ns_css_mark_restyle_dirty(el->parent ? el->parent : el);
     { ns_js *_j = js_from_ctx(ctx); if (_j) ns_js_note_layout_unscoped(_j, G_STRFUNC); }
     return JS_UNDEFINED;

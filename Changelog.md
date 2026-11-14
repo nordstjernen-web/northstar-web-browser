@@ -48,6 +48,11 @@ Significant changes in each release:
   suite included the stylesheet's network round trip: on browserbench.org
   Editor-CodeMirror took 550 ms after another suite and 150 ms on its
   own. With both changes the full run there went from 2.02 to 2.39.
+* Performance: writing `checked`, `indeterminate` or `value` on a form
+  control no longer schedules a full relayout when the write leaves the
+  control as it was, or when the control is not in the page yet.
+  Frameworks set these properties on every render and on every element
+  they build.
 * JavaScript: the legacy `RegExp` statics every browser engine has:
   `RegExp.$1` to `$9`, `lastMatch`, `lastParen`, `leftContext`,
   `rightContext` and `input`, with their `$&`, `$+`, `` $` ``, `$'` and

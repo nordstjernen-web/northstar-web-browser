@@ -29580,7 +29580,15 @@ ns_js_dispatch_built_event_impl(ns_js *js, const ns_node *target,
     gboolean resource_load = !bubbles &&
         target != (const ns_node *)js->current_doc &&
         (strcmp(type, "load") == 0 || strcmp(type, "error") == 0);
-    if (target_frame || resource_load)
+    /* A frame's window is in the path of the events of its own document,
+     * like the page's: a listener on the frame's window sees what bubbles
+     * out of the frame's document (d3's drag listens for mousemove and
+     * mouseup there).  The frame document's own non-bubbling events (load,
+     * readystatechange) are the exception: the frame loader fires load at
+     * the frame's window itself. */
+    gboolean frame_doc_event = target_frame && !bubbles &&
+        target == target_doc;
+    if (frame_doc_event || resource_load)
         window_in_path = FALSE;
     gboolean window_is_target = !bubbles && window_in_path &&
         target == (const ns_node *)js->current_doc &&
@@ -35387,6 +35395,42 @@ ns_element_get_offsetHeight(JSContext *ctx, JSValueConst this_val)
     return JS_NewInt32(ctx, (int)(h + 0.5));
 }
 
+/* The viewport a frame gives its document: the content box of the frame
+ * element.  A frame that has no box yet (its scripts run before it is first
+ * laid out) falls back to its size at the last layout, then to the page's
+ * viewport. */
+static void
+ns_js_frame_viewport_size(JSContext *ctx, ns_node *frame, double *w, double *h)
+{
+    *w = ns_css_viewport_w();
+    *h = ns_css_viewport_h();
+    if (!frame) return;
+    JSValue wrapper = ns_make_element(ctx, frame);
+    const ns_box *b = JS_IsObject(wrapper) ? ns_box_for_this(ctx, wrapper)
+                                           : NULL;
+    JS_FreeValue(ctx, wrapper);
+    if (b) {
+        *w = b->content_width > 0 ? b->content_width : 0;
+        *h = b->content_height > 0 ? b->content_height : 0;
+        return;
+    }
+    double fw = 0, fh = 0;
+    if (ns_layout_frame_viewport(frame, &fw, &fh) && fw > 0 && fh > 0) {
+        *w = fw;
+        *h = fh;
+    }
+}
+
+/* The viewport of the document n is in: its frame's, or the page's.  A
+ * frame's window and root element report the frame's size, not the page's. */
+static void
+ns_js_viewport_size_for(JSContext *ctx, const ns_node *n, double *w, double *h)
+{
+    ns_node *frame = n ? ns_js_node_frame(n) : NULL;
+    if (frame == n) frame = NULL;
+    ns_js_frame_viewport_size(ctx, frame, w, h);
+}
+
 /* clientWidth: padding-box width; the viewport width for the root element. */
 static JSValue
 ns_element_get_clientWidth(JSContext *ctx, JSValueConst this_val)
@@ -35395,12 +35439,16 @@ ns_element_get_clientWidth(JSContext *ctx, JSValueConst this_val)
     gboolean is_root = n && n->name &&
         (strcmp(n->name, "html") == 0 || strcmp(n->name, "body") == 0);
     const ns_box *b = ns_box_for_this(ctx, this_val);
+    double vw, vh;
     if (!b) {
-        if (is_root) return JS_NewInt32(ctx, (int)(ns_css_viewport_w() + 0.5));
-        return JS_NewInt32(ctx, 0);
+        if (!is_root) return JS_NewInt32(ctx, 0);
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vw + 0.5));
     }
-    if (n && n->name && strcmp(n->name, "html") == 0)
-        return JS_NewInt32(ctx, (int)(ns_css_viewport_w() + 0.5));
+    if (n && n->name && strcmp(n->name, "html") == 0) {
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vw + 0.5));
+    }
     double w = b->content_width + b->padding.left + b->padding.right;
     if (w < 0) w = 0;
     return JS_NewInt32(ctx, (int)(w + 0.5));
@@ -35414,12 +35462,16 @@ ns_element_get_clientHeight(JSContext *ctx, JSValueConst this_val)
     gboolean is_root = n && n->name &&
         (strcmp(n->name, "html") == 0 || strcmp(n->name, "body") == 0);
     const ns_box *b = ns_box_for_this(ctx, this_val);
+    double vw, vh;
     if (!b) {
-        if (is_root) return JS_NewInt32(ctx, (int)(ns_css_viewport_h() + 0.5));
-        return JS_NewInt32(ctx, 0);
+        if (!is_root) return JS_NewInt32(ctx, 0);
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vh + 0.5));
     }
-    if (n && n->name && strcmp(n->name, "html") == 0)
-        return JS_NewInt32(ctx, (int)(ns_css_viewport_h() + 0.5));
+    if (n && n->name && strcmp(n->name, "html") == 0) {
+        ns_js_viewport_size_for(ctx, n, &vw, &vh);
+        return JS_NewInt32(ctx, (int)(vh + 0.5));
+    }
     double h = b->content_height + b->padding.top + b->padding.bottom;
     if (h < 0) h = 0;
     return JS_NewInt32(ctx, (int)(h + 0.5));
@@ -46038,6 +46090,31 @@ ns_iframe_platform_names(JSContext *fctx, ns_js *js)
     return names;
 }
 
+/* innerWidth (magic 0) / innerHeight (magic 1) of a frame's window: the
+ * size of the frame element's content box.  data[0] is the frame element. */
+static JSValue
+ns_frame_window_inner_get(JSContext *ctx, JSValueConst this_val, int argc,
+                          JSValueConst *argv, int magic, JSValueConst *data)
+{
+    (void)this_val; (void)argc; (void)argv;
+    double w, h;
+    ns_js_frame_viewport_size(ctx, ns_unwrap_element_mut(data[0]), &w, &h);
+    return JS_NewInt32(ctx, (int)((magic ? h : w) + 0.5));
+}
+
+/* innerWidth and innerHeight are replaceable: assigning one makes it a plain value. */
+static JSValue
+ns_frame_window_inner_set(JSContext *ctx, JSValueConst this_val, int argc,
+                          JSValueConst *argv, int magic, JSValueConst *data)
+{
+    (void)data;
+    if (JS_IsObject(this_val) && argc > 0)
+        JS_DefinePropertyValueStr(ctx, this_val,
+                                  magic ? "innerHeight" : "innerWidth",
+                                  JS_DupValue(ctx, argv[0]), JS_PROP_C_W_E);
+    return JS_UNDEFINED;
+}
+
 /* Creates a frame realm: new context sharing DOM protos, bootstrapped window globals. */
 static JSContext *
 ns_iframe_make_realm_context(ns_js *js, ns_node *iframe,
@@ -46138,6 +46215,23 @@ ns_iframe_make_realm_context(ns_js *js, ns_node *iframe,
         }
         JS_FreeValue(fctx, parent_named);
         JS_FreeValue(fctx, win_proto);
+        /* The bootstrap copied the embedder's innerWidth/innerHeight; a
+         * frame's are those of its own viewport. */
+        JSValue frame_el = ns_make_element(fctx, iframe);
+        if (JS_IsObject(frame_el)) {
+            static const char *const inner[] = { "innerWidth", "innerHeight" };
+            for (int i = 0; i < 2; i++) {
+                JSAtom atom = JS_NewAtom(fctx, inner[i]);
+                JS_DefinePropertyGetSet(fctx, fg, atom,
+                    JS_NewCFunctionData(fctx, ns_frame_window_inner_get, 0, i,
+                                        1, &frame_el),
+                    JS_NewCFunctionData(fctx, ns_frame_window_inner_set, 1, i,
+                                        1, &frame_el),
+                    JS_PROP_CONFIGURABLE | JS_PROP_ENUMERABLE);
+                JS_FreeAtom(fctx, atom);
+            }
+        }
+        JS_FreeValue(fctx, frame_el);
         const char *fname = ns_element_get_attr(iframe, "name");
         JS_DefinePropertyValueStr(fctx, fg, "name",
                                   JS_NewString(fctx, fname ? fname : ""),
@@ -50339,7 +50433,10 @@ void
 ns_js_sync_window_metrics(ns_js *js)
 {
     if (!js || !js->ctx) return;
-    JSContext *ctx = js->ctx;
+    /* The page's window, whichever realm is running: js->ctx is a frame's
+     * while a frame's event is dispatched, and a frame's innerWidth is its
+     * own. */
+    JSContext *ctx = js->main_realm_ctx ? js->main_realm_ctx : js->ctx;
     int vw = ns_js_viewport_metric(ns_css_viewport_w(), 1000);
     int vh = ns_js_viewport_metric(ns_css_viewport_h(), 800);
     int sw, sh, saw, sah, sal, sat;
@@ -59957,6 +60054,24 @@ ns_js_iframe_source_loaded(ns_js *js, ns_node *iframe)
     return same;
 }
 
+/* Sets or clears the marker of a frame that has a document to show.  The
+ * built-in sheet keeps a frame display:none until it carries the marker, so
+ * the frame's style has to be computed again when it changes: a frame
+ * styled before its load would otherwise stay hidden until something else
+ * restyled it. */
+static void
+ns_js_frame_mark_loaded(ns_node *iframe, gboolean loaded)
+{
+    if (!iframe) return;
+    gboolean was = ns_element_get_attr(iframe, "data-nd-frame-loaded") != NULL;
+    if (loaded)
+        ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+    else
+        ns_element_remove_attr(iframe, "data-nd-frame-loaded");
+    if (was != loaded)
+        ns_css_mark_restyle_dirty(iframe->parent ? iframe->parent : iframe);
+}
+
 /* Queues an iframe load; lazy ones beyond viewport+1500px are deferred unless forced. */
 static void
 ns_js_schedule_iframe_load_full(ns_js *js, ns_node *iframe, gboolean force)
@@ -59982,7 +60097,7 @@ ns_js_schedule_iframe_load_full(ns_js *js, ns_node *iframe, gboolean force)
         }
     }
     if (force)
-        ns_element_remove_attr(iframe, "data-nd-frame-loaded");
+        ns_js_frame_mark_loaded(iframe, FALSE);
     if (js->deferred_iframe_loads)
         g_ptr_array_remove(js->deferred_iframe_loads, iframe);
     if (!js->pending_iframe_loads)
@@ -61154,7 +61269,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             if (!pending) {
                 if (wroot) ns_js_schedule_static_iframes(js, wroot);
                 if (!written_open) {
-                    ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+                    ns_js_frame_mark_loaded(iframe, TRUE);
                     ns_js_dispatch_event(js, iframe, "load", NULL);
                 }
                 return;
@@ -61501,7 +61616,7 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
     }
 
     if (content_root && content_doc) {
-        ns_element_set_attr(iframe, "data-nd-frame-loaded", "1");
+        ns_js_frame_mark_loaded(iframe, TRUE);
         if ((sandbox & NS_SANDBOX_ACTIVE) &&
             !(sandbox & NS_SANDBOX_ALLOW_SAME_ORIGIN))
             ns_element_set_attr(iframe, "data-nd-frame-opaque", "1");

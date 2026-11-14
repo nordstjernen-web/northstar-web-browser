@@ -21,6 +21,21 @@ Significant changes in each release:
   the embedding page's `window.onload` a second time, and an exception a
   frame's script leaves uncaught is reported to that frame's
   `window.onerror` and `error` listeners instead of only to the log.
+* Frames: an `<iframe>` in the page's markup is displayed again. The
+  built-in stylesheet hides a frame until the engine marks it as loaded,
+  and setting that mark did not recompute the frame's style, so a frame
+  styled before its document arrived stayed `display: none`, with no box
+  and nothing painted, until a script happened to touch one of its
+  attributes. Frames inserted by script were not affected.
+* Frames: a listener on a frame's `window` receives the events that
+  bubble out of the frame's document. Only the document's listeners ran;
+  code that tracks a drag with `mousemove` and `mouseup` on `window`, as
+  d3 does, never saw the button come up inside a frame. This is what
+  failed the React-Stockcharts suite of Speedometer 3.1 and left the
+  whole run without a score.
+* Frames: `innerWidth`, `innerHeight` and the root element's
+  `clientWidth`/`clientHeight` are the frame's own size inside a frame.
+  They were the embedding page's viewport.
 * JavaScript: the legacy `RegExp` statics every browser engine has:
   `RegExp.$1` to `$9`, `lastMatch`, `lastParen`, `leftContext`,
   `rightContext` and `input`, with their `$&`, `$+`, `` $` ``, `$'` and

@@ -585,7 +585,14 @@ ns_js_eval_budget_us(void)
     return (gint64)ms * 1000LL;
 }
 
-#define NS_JS_MONITOR_LIMIT_US (60LL * 1000000LL)
+/* The monitor halts a page whose JavaScript holds one turn for this long:
+ * 60 s, or the per-script budget when that is configured higher. */
+static gint64
+ns_js_monitor_limit_us(void)
+{
+    gint64 budget = ns_js_eval_budget_us();
+    return budget > 60LL * 1000000LL ? budget : 60LL * 1000000LL;
+}
 
 /* QuickJS interrupt check: halts on worker close, monitor deadline or eval budget expiry. */
 static int
@@ -602,7 +609,7 @@ ns_js_interrupt(void *opaque)
     if (js->js_monitor_deadline_us != 0 && now > js->js_monitor_deadline_us) {
         js->halted = TRUE;
         g_warning("[js] monitor: page JavaScript ran longer than %d s — halting it",
-                  (int)(NS_JS_MONITOR_LIMIT_US / 1000000LL));
+                  (int)(ns_js_monitor_limit_us() / 1000000LL));
         return 1;
     }
     if (js->eval_deadline_us == 0) return 0;
@@ -734,7 +741,7 @@ ns_js_budget_push(ns_js *js, ns_budget_guard *g)
     g->saved = js->eval_deadline_us;
     gint64 now = g_get_monotonic_time();
     if (g->saved == 0)
-        js->js_monitor_deadline_us = now + NS_JS_MONITOR_LIMIT_US;
+        js->js_monitor_deadline_us = now + ns_js_monitor_limit_us();
     gint64 fresh = now + ns_js_eval_budget_us();
     if (g->saved == 0 || fresh < g->saved)
         js->eval_deadline_us = fresh;

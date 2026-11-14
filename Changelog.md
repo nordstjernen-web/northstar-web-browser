@@ -35,6 +35,14 @@ Significant changes in each release:
   it on every token: 6,000 such tests took 5.1 s and now take 7 ms.
   Checked against a position-by-position sticky search over 11,544
   pattern, subject and start-index combinations, with identical results.
+* Settings: `js_eval_budget_ms` can be set above 60 seconds, up to an
+  hour, and the new `NS_JS_EVAL_BUDGET_MS` environment variable sets it
+  for one run. The default is unchanged: a script is still interrupted
+  after 60 seconds. JetStream 2 runs all 120 iterations of a benchmark as
+  one script, which takes minutes on an interpreter; with the limit fixed
+  at 60 seconds those benchmarks could not finish however it was
+  configured. The page-wide halt and the watchdog's hang limit follow the
+  configured budget.
 
 1.0.23:
 =======

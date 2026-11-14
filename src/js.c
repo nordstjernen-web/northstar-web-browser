@@ -804,8 +804,8 @@ typedef struct ns_raf_entry {
  * so a page that cycles frames ran into the memory cap (JetStream 2, two
  * thirds of the way through).  The context stays allocated and listed in
  * frame_ctxs: anything still pointing at it remains valid, and it is still
- * a detached frame realm to every identity check.  Only what its globals
- * held becomes collectable. */
+ * a detached frame realm to every identity check.  Only what the page's
+ * own globals held becomes collectable. */
 static void
 ns_js_release_frame_realm(ns_js *js, JSContext *realm)
 {
@@ -835,6 +835,20 @@ ns_js_release_frame_realm(ns_js *js, JSContext *realm)
     if (JS_GetOwnPropertyNames(realm, &props, &count, global,
                                JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) == 0) {
         for (uint32_t i = 0; i < count; i++) {
+            /* What the platform put there stays, so that a callback of
+             * the dead document that still fires finds Date and
+             * setTimeout rather than nothing.  The document goes, and so
+             * do the handler properties: both lead back to the page's
+             * own objects. */
+            const char *name = JS_AtomToCString(realm, props[i].atom);
+            gboolean keep = name && js->platform_globals &&
+                g_hash_table_contains(js->platform_globals, name) &&
+                strcmp(name, "document") != 0 &&
+                !(name[0] == 'o' && name[1] == 'n');
+            if (name) JS_FreeCString(realm, name);
+            else if (JS_HasException(realm))
+                JS_FreeValue(realm, JS_GetException(realm));
+            if (keep) continue;
             /* var and function declarations cannot be deleted; they can
              * be overwritten. */
             if (JS_DeleteProperty(realm, global, props[i].atom, 0) <= 0) {

@@ -59694,6 +59694,10 @@ ns_js_load_link_element(ns_js *js, ns_node *n, const char *origin)
             js->log_cb(line, js->log_user_data);
             g_free(line);
         }
+    } else if (!is_script &&
+               ns_engine_stylesheet_recently_loaded(abs_url, origin)) {
+        /* The style pass has just fetched it: no second request. */
+        loaded = TRUE;
     } else {
         GError *err = NULL;
         ns_response *resp = ns_js_fetch_resource(js, abs_url, origin, NULL,
@@ -59702,9 +59706,16 @@ ns_js_load_link_element(ns_js *js, ns_node *n, const char *origin)
                                                      : NS_FETCH_DEST_STYLE,
                                                  ns_js_fetch_policy(js, n),
                                                  &err);
-        if (resp && resp->status == 200)
+        if (resp && resp->status == 200) {
             loaded = TRUE;
-        else if (js->log_cb) {
+            /* The style pass needs the same bytes: hand them over rather
+             * than have it ask the network again. */
+            if (!is_script && !js->worker_host && resp->body &&
+                resp->body->len > 0 && !resp->error) {
+                ns_engine_offer_stylesheet_response(abs_url, origin, resp);
+                resp = NULL;
+            }
+        } else if (js->log_cb) {
             const char *why = err ? err->message :
                 (resp && resp->error ? resp->error :
                  (resp ? "non-200 status" : "fetch failed"));
@@ -61726,6 +61737,13 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
             ns_js_run_script_schedule(js, tasks, NS_SCRIPT_ASYNC, iorigin);
             g_array_free(tasks, TRUE);
         }
+        /* A frame's load waits for its stylesheets, as the page's does.
+         * Left to the first layout of the frame, the fetch runs inside
+         * whatever script first reads a size there, long after load: the
+         * Speedometer runner starts timing a workload at the frame's load
+         * event, and the first step paid for the stylesheet's round trip. */
+        if (content_doc && !written_open && !js->halted)
+            ns_js_load_document_stylesheets(js, content_doc);
         if (content_doc && !written_open) {
             ns_js_dispatch_event(js, content_doc, "DOMContentLoaded", NULL);
             ns_js_dispatch_event(js, content_doc, "readystatechange", NULL);

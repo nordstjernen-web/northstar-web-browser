@@ -36,6 +36,18 @@ Significant changes in each release:
 * Frames: `innerWidth`, `innerHeight` and the root element's
   `clientWidth`/`clientHeight` are the frame's own size inside a frame.
   They were the embedding page's viewport.
+* Performance: a linked stylesheet is requested once. The style pass and
+  the loader that fires the `<link>` element's `load` event each fetched
+  it, so every stylesheet cost a second round trip to the server, one
+  after the other, before the page's `load` event. The two now share one
+  response.
+* Frames: a frame's `load` event waits for the frame's stylesheets. They
+  were fetched when the frame was first laid out, which could be inside
+  whatever script first read a size in it. Speedometer 3.1 starts timing
+  a workload at the frame's `load`, and the first measured step of a
+  suite included the stylesheet's network round trip: on browserbench.org
+  Editor-CodeMirror took 550 ms after another suite and 150 ms on its
+  own. With both changes the full run there went from 2.02 to 2.39.
 * JavaScript: the legacy `RegExp` statics every browser engine has:
   `RegExp.$1` to `$9`, `lastMatch`, `lastParen`, `leftContext`,
   `rightContext` and `input`, with their `$&`, `$+`, `` $` ``, `$'` and

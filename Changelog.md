@@ -21,6 +21,20 @@ Significant changes in each release:
   the embedding page's `window.onload` a second time, and an exception a
   frame's script leaves uncaught is reported to that frame's
   `window.onerror` and `error` listeners instead of only to the log.
+* JavaScript: the legacy `RegExp` statics every browser engine has:
+  `RegExp.$1` to `$9`, `lastMatch`, `lastParen`, `leftContext`,
+  `rightContext` and `input`, with their `$&`, `$+`, `` $` ``, `$'` and
+  `$_` aliases. The WSL benchmark of JetStream 2 lexes with
+  `RegExp.lastMatch` and failed on its first token. quickjs-ng builds
+  only.
+* Performance: a regular expression anchored with `^` is tried at the
+  start of the string only, and one that begins with a character class,
+  `\s`, `\S` or `.` skips the positions that cannot start a match. Both
+  used to run the matcher at every position of the subject, so a lexer
+  that tests `/^\s+/` against the rest of a 300 KB source paid for all of
+  it on every token: 6,000 such tests took 5.1 s and now take 7 ms.
+  Checked against a position-by-position sticky search over 11,544
+  pattern, subject and start-index combinations, with identical results.
 
 1.0.23:
 =======

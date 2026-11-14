@@ -18,7 +18,7 @@ is fetched and built.
 | Source | [quickjs-ng/quickjs](https://github.com/quickjs-ng/quickjs) | [bellard/quickjs](https://github.com/bellard/quickjs), the original engine |
 | Wrap | `subprojects/quickjs-ng.wrap`; a system quickjs-ng is preferred when found | `subprojects/quickjs.wrap`, always the subproject |
 | Version | master `147d01c` (after v0.18.0) | release 2026-06-04, pinned by commit `3d5e064` |
-| Local patches | Windows link fix; test262 conformance fixes; locale-independent `JSON.parse` numbers; regexp first-character search; V8-worded TypeErrors; no `transfer()` of externally managed buffers | `Array.prototype.sort` always calls the comparator; no `transfer()` of externally managed buffers |
+| Local patches | Windows link fix; test262 conformance fixes; locale-independent `JSON.parse` numbers; regexp first-character search, extended to `^`-anchored patterns and character classes; V8-worded TypeErrors; legacy `RegExp.$1`…`$9`, `lastMatch`, `leftContext`, `rightContext` statics; no `transfer()` of externally managed buffers | `Array.prototype.sort` always calls the comparator; no `transfer()` of externally managed buffers |
 | `about:northstar` | `JavaScript (quickjs-ng) 0.18.0` | `JavaScript (QuickJS) 2026-06-04` |
 | CI | every workflow | none; build it locally (see below) |
 
@@ -102,6 +102,12 @@ bytecode is not interchangeable, so the original engine keeps its cache in
   `Iterator.zip`/`zipKeyed` statics and `chunks`, `windows`, `join` and
   `includes` iterator methods, and the immutable-`ArrayBuffer` methods.
   Northstar Web Browser's own code and polyfills use none of them.
+- **Legacy RegExp statics.** `RegExp.$1`…`$9`, `RegExp.lastMatch`,
+  `lastParen`, `leftContext`, `rightContext` and `input` (with their
+  `$&`, `$+`, `` $` ``, `$'` and `$_` aliases) exist only in the quickjs-ng
+  build, through `quickjs-ng-regexp-legacy-statics.patch`. Every browser
+  engine has them and older code still reads them: the WSL benchmark of
+  JetStream 2 lexes with `RegExp.lastMatch`.
 - **Stored data.** The engines serialize values differently, so an
   IndexedDB written by one build reads back as empty values in the other.
 - **Error positions.** Line numbers match; column numbers in stack traces

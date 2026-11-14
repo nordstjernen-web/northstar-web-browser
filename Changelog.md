@@ -56,6 +56,13 @@ Significant changes in each release:
   compared directly and channels are indexed by property. The NewsSite
   suite of Speedometer 3.1, which forces layout 150 times per run on a
   page full of such elements, went from about 1,600 ms to 1,050 ms.
+* Performance: finding where an absolutely positioned element with
+  `top: auto` would sit in the flow no longer visits every box before it.
+  Each such element walked all the boxes that precede it in its
+  containing block, so a page with many of them paid for the whole page
+  once per element on every layout. Subtrees that lie entirely before the
+  element now answer from a cached value. The "Complex DOM" suites of
+  Speedometer 3.1 are 25 to 40 % faster (Lit: 729 ms to 444 ms).
 * Benchmarks: with the changes above JetStream 2 runs all 64 of its
   benchmarks (score about 26; none of them started before) and
   Speedometer 3.1 completes with a score (about 3.5; it ended without

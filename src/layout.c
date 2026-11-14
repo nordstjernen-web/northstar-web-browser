@@ -14101,24 +14101,75 @@ box_outer_bottom(const ns_box *b)
            b->margin.bottom;
 }
 
-/* Static-position y of an abspos element: max bottom of preceding in-flow boxes. */
+/* Lowest outer bottom among the in-flow boxes of a subtree, the root
+ * included; subtrees of absolutely positioned boxes do not count.  Kept per
+ * box while absolutes are being placed (see static_abs_y_walk). */
+static GHashTable *g_static_bottom_cache;
+
+static double
+static_subtree_bottom(const ns_box *b, int depth)
+{
+    if (!b || depth >= NS_LAYOUT_MAX_DEPTH) return -G_MAXDOUBLE;
+    if (b->dom && style_is_absolute_or_fixed(b->style)) return -G_MAXDOUBLE;
+    double *hit = g_static_bottom_cache
+        ? g_hash_table_lookup(g_static_bottom_cache, b) : NULL;
+    if (hit) return *hit;
+    double m = b->dom ? box_outer_bottom(b) : -G_MAXDOUBLE;
+    for (const ns_box *c = b->first_child; c; c = c->next_sibling) {
+        double cm = static_subtree_bottom(c, depth + 1);
+        if (cm > m) m = cm;
+    }
+    if (g_static_bottom_cache) {
+        double *slot = g_new(double, 1);
+        *slot = m;
+        g_hash_table_insert(g_static_bottom_cache, (gpointer)b, slot);
+    }
+    return m;
+}
+
+/* TRUE if every box under b that has a DOM node has one inside b's own
+ * node: the subtree then lies wholly before or after anything outside it. */
+static gboolean
+static_subtree_is_dom_subtree(const ns_box *b, const ns_node *top, int depth)
+{
+    if (depth >= NS_LAYOUT_MAX_DEPTH) return FALSE;
+    for (const ns_box *c = b->first_child; c; c = c->next_sibling) {
+        if (c->dom && c->dom != top && !node_is_ancestor_of(top, c->dom))
+            return FALSE;
+        if (!static_subtree_is_dom_subtree(c, top, depth + 1)) return FALSE;
+    }
+    return TRUE;
+}
+
+/* Static-position y of an abspos element: max bottom of preceding in-flow boxes.
+ *
+ * A box that comes before the target and is not one of its ancestors has
+ * its whole subtree before the target, so the subtree contributes its
+ * lowest bottom, which is cached: the walk then only descends along the
+ * target's ancestors instead of visiting every box that precedes it, once
+ * per absolutely positioned element. */
 static void
 static_abs_y_walk(const ns_box *b, const ns_node *target, double *out)
 {
     if (!b || !target || !out) return;
-    if (b->dom && b->dom != target && !node_is_ancestor_of(b->dom, target)) {
-        if (node_precedes(target, b->dom)) return;
-        if (style_is_absolute_or_fixed(b->style)) return;
-        if (node_precedes(b->dom, target) &&
-            !style_is_absolute_or_fixed(b->style)) {
-            double bottom = box_outer_bottom(b);
-            if (bottom > *out) *out = bottom;
+    if (b->dom && b->dom != target) {
+        if (!node_is_ancestor_of(b->dom, target)) {
+            if (node_precedes(target, b->dom)) return;
+            if (style_is_absolute_or_fixed(b->style)) return;
+            if (node_precedes(b->dom, target)) {
+                if (g_static_bottom_cache &&
+                    static_subtree_is_dom_subtree(b, b->dom, 0)) {
+                    double bottom = static_subtree_bottom(b, 0);
+                    if (bottom > *out) *out = bottom;
+                    return;
+                }
+                double bottom = box_outer_bottom(b);
+                if (bottom > *out) *out = bottom;
+            }
+        } else if (!style_is_absolute_or_fixed(b->style)) {
+            double edge = b->y + b->margin.top + b->border.top + b->padding.top;
+            if (edge > *out) *out = edge;
         }
-    }
-    if (b->dom && b->dom != target && node_is_ancestor_of(b->dom, target) &&
-        !style_is_absolute_or_fixed(b->style)) {
-        double edge = b->y + b->margin.top + b->border.top + b->padding.top;
-        if (edge > *out) *out = edge;
     }
     for (const ns_box *c = b->first_child; c; c = c->next_sibling)
         static_abs_y_walk(c, target, out);
@@ -15005,6 +15056,10 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
         static_abs_y_precompute(root, box_map, styles, batch_y,
                                 batch_resolved);
     gint64 loop_start = profile_env ? g_get_monotonic_time() : 0;
+    /* In-flow boxes do not move while the absolutes are placed, and the
+     * boxes placed here are absolutes, which the cache leaves out. */
+    g_static_bottom_cache = g_hash_table_new_full(g_direct_hash,
+                                                  g_direct_equal, NULL, g_free);
     for (guint i = 0; i < g_abs_pending->len; i++) {
         ns_abs_entry e = g_array_index(g_abs_pending, ns_abs_entry, i);
         const ns_node *cb_dom = positioned_entry_cb_dom(&e, styles);
@@ -15255,6 +15310,7 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
                    batch_len, static_y_count);
     g_free(batch_y);
     g_free(batch_resolved);
+    g_clear_pointer(&g_static_bottom_cache, g_hash_table_destroy);
     g_hash_table_destroy(box_map);
     g_array_set_size(g_abs_pending, 0);
     g_clear_pointer(&g_node_order, g_hash_table_destroy);

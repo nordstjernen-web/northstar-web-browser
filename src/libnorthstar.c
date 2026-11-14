@@ -38,6 +38,7 @@
 #include "safebrowsing.h"
 #include "safebrowsing_google.h"
 #include "security.h"
+#include "smil.h"
 #include "selection.h"
 #include "camera.h"
 #include "trace.h"
@@ -57,6 +58,7 @@ struct ns_browser {
     gboolean        styles_serial_valid;
     ns_js          *js;
     ns_anim        *anim;
+    ns_smil        *smil;
     ns_image_cache *images;
     GHashTable     *css_cache;
     char           *base_url;
@@ -1118,6 +1120,8 @@ browser_settle_quiet(ns_browser *b)
     return TRUE;
 }
 
+static gboolean browser_tick_smil(ns_browser *b, gint64 now);
+
 /* Settle loop tick: runs animations and frames, applies mutations, quits when quiet. */
 static gboolean
 settle_tick_cb(gpointer user_data)
@@ -1132,6 +1136,7 @@ settle_tick_cb(gpointer user_data)
     }
     if (b->anim && ns_anim_take_restyle(b->anim)) b->dirty = TRUE;
     if (b->anim && b->js) ns_js_dispatch_anim_events(b->js, b->anim);
+    browser_tick_smil(b, now);
     if (b->js) ns_js_run_animation_frame(b->js);
     if (!b->dirty && b->restyle_pending && b->layout && !browser_restyle(b))
         b->dirty = TRUE;
@@ -1238,6 +1243,21 @@ browser_js_repaint_node(const ns_node *node, gpointer user_data)
 {
     ns_browser *browser = user_data;
     if (browser) browser_damage_node(browser, node);
+}
+
+/* Advances SVG SMIL animation: repaints the animated <svg> elements when a value
+ * changed, then fires the timing events. */
+static gboolean
+browser_tick_smil(ns_browser *b, gint64 now)
+{
+    gboolean changed = ns_smil_tick(b->smil, now);
+    if (changed) {
+        b->repaint_pending = TRUE;
+        if (!ns_smil_each_target_svg(b->smil, browser_js_repaint_node, b))
+            b->damage_full = TRUE;
+    }
+    ns_js_dispatch_smil_events(b->js, b->smil);
+    return changed;
 }
 
 /* Script DOM mutation hook: schedules relayout or restyle and cascade refresh. */
@@ -1573,6 +1593,7 @@ browser_build_from_doc(ns_node *doc, char *base, int viewport_width,
     b->anim = ns_anim_new();
     ns_engine_load_keyframes(b->anim, doc, base, b->css_cache);
     ns_engine_anim_observe(b->anim, b->styles, g_get_monotonic_time());
+    b->smil = ns_smil_new(doc, g_get_monotonic_time());
 
     b->js = ns_js_new(browser_js_log, b,
                       browser_js_mutated, b,
@@ -2214,6 +2235,10 @@ ns_browser_tick(ns_browser *browser, int budget_ms)
         }
         if (browser->anim && browser->js)
             ns_js_dispatch_anim_events(browser->js, browser->anim);
+        if (browser_tick_smil(browser, now)) {
+            changed = TRUE;
+            other_changed = TRUE;
+        }
         if (browser->js && ns_js_run_animation_frame(browser->js)) {
             changed = TRUE;
             other_changed = TRUE;
@@ -2285,6 +2310,7 @@ ns_browser_continuous(ns_browser *browser)
     if (browser->js && ns_js_has_pending_animation_frame(browser->js))
         return 1;
     if (browser->anim && ns_anim_has_active(browser->anim)) return 1;
+    if (ns_smil_has_active(browser->smil)) return 1;
     if (browser->images && ns_image_cache_animating(browser->images))
         return 1;
     return 0;
@@ -2308,6 +2334,7 @@ ns_browser_needs_frame(ns_browser *browser)
         return 1;
     if (browser->js && ns_js_wants_frame(browser->js)) return 1;
     if (browser->anim && ns_anim_has_active(browser->anim)) return 1;
+    if (ns_smil_has_active(browser->smil)) return 1;
     return 0;
 }
 
@@ -2333,6 +2360,8 @@ ns_browser_animating(ns_browser *browser)
     if (browser->js && ns_js_has_pending_work(browser->js))
         return 1;
     if (browser->anim && ns_anim_has_active(browser->anim))
+        return 1;
+    if (ns_smil_has_active(browser->smil))
         return 1;
     if (browser->images && ns_image_cache_animating(browser->images))
         return 1;
@@ -4320,6 +4349,7 @@ ns_browser_close(ns_browser *browser)
         ns_js_set_style_table(browser->js, NULL);
     }
     if (browser->anim) ns_anim_free(browser->anim);
+    ns_smil_free(browser->smil);
     if (browser->layout) { ns_paint_3d_invalidate(); ns_box_free(browser->layout); }
     if (browser->layout_styles) g_hash_table_destroy(browser->layout_styles);
     if (browser->styles) g_hash_table_destroy(browser->styles);

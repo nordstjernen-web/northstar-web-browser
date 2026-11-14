@@ -208,6 +208,28 @@ Significant changes in each release:
   images, not an enlarged bitmap), `screen.width` and the resolution
   media queries report CSS pixels, and the toolbar, its icons and the
   title-bar buttons scale with it. `NS_UI_SCALE` overrides the factor.
+* SVG SMIL animation runs. `<animate>`, `<set>`, `<animateTransform>`
+  and `<animateMotion>` (with `path` or `<mpath>`) animate inline SVG and
+  SVG used as an image (`<img>`, CSS background): `values`/`from`/`to`/`by`,
+  `keyTimes`, `keySplines`, `calcMode`, `repeatCount`/`repeatDur`,
+  `fill="freeze"`, `additive`, `accumulate`, and `begin`/`end` as offsets,
+  as another animation's `id.begin` / `id.end`, or as events
+  (`begin="click"`, `begin="button.mouseover+1s"`). `<svg>` gains
+  `pauseAnimations()`, `unpauseAnimations()`, `animationsPaused()`,
+  `getCurrentTime()` and a working `setCurrentTime()`; the animation
+  elements gain `beginElement()`, `endElement()`, `getStartTime()`,
+  `getSimpleDuration()` and `targetElement`, the `SVGAnimateElement`
+  family of interfaces, and the `beginEvent`, `endEvent` and `repeatEvent`
+  events (a `TimeEvent`, with `onbegin`/`onend`/`onrepeat`). Before,
+  nothing moved and a page calling `pauseAnimations()` threw a
+  `TypeError`. Not covered: SMIL inside a framed document. Ported from
+  Nordstjernen Sol #1103.
+* Mouse events inside an inline `<svg>` target the shape under the
+  pointer (fill and stroke, honouring `pointer-events: none`; a `<use>`
+  for the content it instances), so a click or hover handler on a
+  `<path>` or `<circle>` runs. Before, an `<svg>` with a background or
+  border was the target itself and one without was never a target; its
+  empty space still hands the pointer to what is under it.
 
 1.0.22:
 =======

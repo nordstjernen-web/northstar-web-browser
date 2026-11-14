@@ -28,6 +28,7 @@
 #endif
 
 #include "anim.h"
+#include "smil.h"
 #include "bytecode_cache.h"
 #include "camera.h"
 #include "config.h"
@@ -4036,6 +4037,30 @@ ns_html_tag_has_plain_interface(const char *lower_name)
                    ns_cmp_tag_name) != NULL;
 }
 
+static const struct {
+    const char *iface, *tag;
+    gboolean    animation;
+} ns_svg_smil_ifaces[] = {
+    { "SVGAnimationElement",        NULL,               FALSE },
+    { "SVGAnimateElement",          "animate",          TRUE },
+    { "SVGSetElement",              "set",              TRUE },
+    { "SVGAnimateTransformElement", "animateTransform", TRUE },
+    { "SVGAnimateMotionElement",    "animateMotion",    TRUE },
+    { "SVGMPathElement",            "mpath",            FALSE },
+};
+G_STATIC_ASSERT(G_N_ELEMENTS(ns_svg_smil_ifaces) == NS_SVG_SMIL_IFACES);
+
+/* Prototype of the SVG animation interface for a tag name, or undefined. */
+static JSValue
+ns_svg_smil_proto(ns_js *js, const char *name)
+{
+    if (!name) return JS_UNDEFINED;
+    for (gsize i = 1; i < G_N_ELEMENTS(ns_svg_smil_ifaces); i++)
+        if (g_ascii_strcasecmp(name, ns_svg_smil_ifaces[i].tag) == 0)
+            return js->proto_svg_smil[i];
+    return JS_UNDEFINED;
+}
+
 /* Picks the JS prototype for a node from its kind, namespace and tag name. */
 static JSValue
 ns_node_kind_proto(ns_js *js, const ns_node *node)
@@ -4047,6 +4072,8 @@ ns_node_kind_proto(ns_js *js, const ns_node *node)
             if (node->name && g_ascii_strcasecmp(node->name, "a") == 0 &&
                 JS_IsObject(js->proto_svgaelement))
                 return js->proto_svgaelement;
+            JSValue smil_proto = ns_svg_smil_proto(js, node->name);
+            if (JS_IsObject(smil_proto)) return smil_proto;
             return JS_IsObject(js->proto_svgelement)
                 ? js->proto_svgelement : js->proto_element;
         }
@@ -5580,15 +5607,14 @@ ns_make_svg_length(JSContext *ctx, const char *str)
     return o;
 }
 
-/* SVGAnimatedLength-like object with baseVal and animVal from data-nd-anim-* overrides. */
+/* SVGAnimatedLength-like object with baseVal from the attribute and animVal from SMIL. */
 static JSValue
 ns_make_svg_animated_length(JSContext *ctx, const ns_node *n, const char *attr)
 {
     const char *base_attr = ns_element_get_attr(n, attr);
     g_autofree char *base = g_strdup(base_attr ? base_attr : "0");
-    char anim_attr[64];
-    g_snprintf(anim_attr, sizeof anim_attr, "data-nd-anim-%s", attr);
-    g_autofree char *anim = g_strdup(ns_element_get_attr(n, anim_attr));
+    ns_smil_refresh(n);
+    g_autofree char *anim = g_strdup(ns_smil_attr(n, attr));
     JSValue o = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, o, "baseVal", ns_make_svg_length(ctx, base));
     JS_SetPropertyStr(ctx, o, "animVal",
@@ -5681,26 +5707,6 @@ ns_element_dimension_getter(JSContext *ctx, JSValueConst this_val, int magic)
                           : ns_element_img_natural_height(ctx, this_val);
     }
     return ns_element_int_attr_getter(ctx, this_val, magic);
-}
-
-/* SVG beginElement(): applies the animation's to value to the parent's anim override. */
-static JSValue
-ns_svg_beginElement(JSContext *ctx, JSValueConst this_val,
-                    int argc, JSValueConst *argv)
-{
-    (void)argc; (void)argv;
-    ns_node *n = ns_unwrap_element_mut(this_val);
-    if (!n || !(n->flags & NS_NODE_SVG_NS) || !n->parent) return JS_UNDEFINED;
-    const char *attr = ns_element_get_attr(n, "attributeName");
-    const char *to   = ns_element_get_attr(n, "to");
-    if (attr && *attr && to) {
-        char anim_attr[64];
-        g_snprintf(anim_attr, sizeof anim_attr, "data-nd-anim-%s", attr);
-        char *to_copy = g_strdup(to);
-        ns_js_set_attr_recorded(js_from_ctx(ctx), n->parent, anim_attr, to_copy);
-        g_free(to_copy);
-    }
-    return JS_UNDEFINED;
 }
 
 static JSValue
@@ -25889,11 +25895,10 @@ ns_js_set_attr_recorded_len(ns_js *js, ns_node *n, const char *name,
 {
     if (!n || n->kind != NS_NODE_ELEMENT || !name) return;
     /* Internal state is never written through the recorded (script-facing)
-     * path, apart from the two internal attributes the engine itself
-     * records this way: SVG animation values and a control's checkedness. */
+     * path, apart from the one internal attribute the engine itself
+     * records this way: a control's checkedness. */
     if (ns_attr_name_is_internal(name) &&
-        !g_str_has_prefix(name, "data-nd-anim-") &&
-        strcmp(name, "data-nd-checked") != 0)
+        g_strcmp0(name, "data-nd-checked") != 0)
         return;
     gsize vlen = len < 0 ? (value ? strlen(value) : 0) : (gsize)len;
     const char *new_value = value ? value : "";
@@ -27657,6 +27662,8 @@ ns_event_interface_for_type(const char *type)
         { "dragend", "DragEvent" }, { "dragenter", "DragEvent" },
         { "dragleave", "DragEvent" }, { "dragover", "DragEvent" },
         { "drop", "DragEvent" },
+        { "beginEvent", "TimeEvent" }, { "endEvent", "TimeEvent" },
+        { "repeatEvent", "TimeEvent" },
         { "message", "MessageEvent" }, { "messageerror", "MessageEvent" },
         { "hashchange", "HashChangeEvent" }, { "popstate", "PopStateEvent" },
         { "storage", "StorageEvent" },
@@ -29456,6 +29463,7 @@ ns_js_dispatch_built_event_impl(ns_js *js, const ns_node *target,
 
     JS_SetPropertyStr(js->ctx, event, "_dispatching", JS_TRUE);
 
+    ns_smil_dom_event(target, type);
     JSValue composed_value = JS_GetPropertyStr(js->ctx, event, "composed");
     gboolean composed = JS_ToBool(js->ctx, composed_value) ? TRUE : FALSE;
     JS_FreeValue(js->ctx, composed_value);
@@ -30380,6 +30388,53 @@ ns_js_dispatch_anim_events(ns_js *js, ns_anim *anim)
 {
     if (!js || !anim || js->halted || js->in_pump) return;
     ns_anim_drain_events(anim, ns_js_anim_event_cb, js);
+}
+
+/* Fires one SMIL timing event as a TimeEvent, then runs the onbegin/onend/onrepeat
+ * handler; an element no script has seen only feeds event-based begin and end. */
+static void
+ns_js_smil_event_cb(const ns_node *node, ns_smil_event_kind kind,
+                    int iteration, gpointer user)
+{
+    static const char *const handlers[] = { "onbegin", "onend", "onrepeat" };
+    ns_js *js = user;
+    const char *type = ns_smil_event_type(kind);
+    if (!js || !js->ctx || js->halted ||
+        (!node->js_wrapper && !ns_element_get_attr(node, handlers[kind]))) {
+        ns_smil_dom_event(node, type);
+        return;
+    }
+    JSContext *ctx = js->ctx;
+    JSValue el = ns_make_element(ctx, node);
+    JSValue event = ns_make_event(ctx, type, node);
+    JS_SetPropertyStr(ctx, event, "bubbles",    JS_FALSE);
+    JS_SetPropertyStr(ctx, event, "cancelable", JS_FALSE);
+    JS_SetPropertyStr(ctx, event, "detail",     JS_NewInt32(ctx, iteration));
+    JS_SetPropertyStr(ctx, event, "view",       JS_NULL);
+    JSValue for_handler = JS_DupValue(ctx, event);
+    ns_js_dispatch_built_event(js, node, type, event, NULL);
+    JSValue fn = JS_GetPropertyStr(ctx, el, handlers[kind]);
+    if (JS_IsFunction(ctx, fn)) {
+        JSValue r = JS_Call(ctx, fn, el, 1, &for_handler);
+        if (JS_IsException(r)) JS_FreeValue(ctx, JS_GetException(ctx));
+        JS_FreeValue(ctx, r);
+    }
+    JS_FreeValue(ctx, fn);
+    JS_FreeValue(ctx, for_handler);
+    JS_FreeValue(ctx, el);
+}
+
+/* Drains the SMIL timeline's queued beginEvent, endEvent and repeatEvent. */
+void
+ns_js_dispatch_smil_events(ns_js *js, struct ns_smil *smil)
+{
+    if (!smil) return;
+    if (!js) {
+        ns_smil_settle_events(smil);
+        return;
+    }
+    if (js->halted || js->in_pump) return;
+    ns_smil_drain_events(smil, ns_js_smil_event_cb, js);
 }
 
 /* Fires a submit event at form with the given submitter. */
@@ -46688,6 +46743,87 @@ typedef struct {
     JSCFunctionListEntry  member;
 } ns_interface_member;
 
+static JSValue
+ns_element_pauseAnimations(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv, int magic)
+{
+    (void)ctx; (void)argc; (void)argv;
+    ns_smil_pause(ns_unwrap_element(this_val), magic ? TRUE : FALSE);
+    return JS_UNDEFINED;
+}
+
+static JSValue
+ns_element_animationsPaused(JSContext *ctx, JSValueConst this_val,
+                            int argc, JSValueConst *argv)
+{
+    (void)argc; (void)argv;
+    return JS_NewBool(ctx, ns_smil_paused(ns_unwrap_element(this_val)));
+}
+
+static JSValue
+ns_element_smil_getCurrentTime(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    (void)argc; (void)argv;
+    return JS_NewFloat64(ctx, ns_smil_current_time(ns_unwrap_element(this_val)));
+}
+
+static JSValue
+ns_element_smil_setCurrentTime(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    double seconds = 0;
+    if (argc >= 1 && JS_ToFloat64(ctx, &seconds, argv[0]) < 0)
+        return JS_EXCEPTION;
+    ns_smil_set_current_time(ns_unwrap_element(this_val), seconds);
+    return JS_UNDEFINED;
+}
+
+/* beginElement(), beginElementAt(offset), and with magic set endElement(), endElementAt(offset). */
+static JSValue
+ns_element_smil_begin(JSContext *ctx, JSValueConst this_val,
+                      int argc, JSValueConst *argv, int magic)
+{
+    double offset = 0;
+    if (argc >= 1 && JS_ToFloat64(ctx, &offset, argv[0]) < 0)
+        return JS_EXCEPTION;
+    const ns_node *n = ns_unwrap_element(this_val);
+    if (magic) ns_smil_end_element(n, offset);
+    else       ns_smil_begin_element(n, offset);
+    return JS_UNDEFINED;
+}
+
+static JSValue
+ns_element_smil_getStartTime(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    (void)argc; (void)argv;
+    double start;
+    if (!ns_smil_start_time(ns_unwrap_element(this_val), &start))
+        return ns_throw_dom_exception(ctx, "InvalidStateError", 11,
+                                      "No current interval");
+    return JS_NewFloat64(ctx, start);
+}
+
+static JSValue
+ns_element_smil_getSimpleDuration(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    (void)argc; (void)argv;
+    double dur;
+    if (!ns_smil_simple_duration(ns_unwrap_element(this_val), &dur))
+        return ns_throw_dom_exception(ctx, "NotSupportedError", 9,
+                                      "The simple duration is not defined");
+    return JS_NewFloat64(ctx, dur);
+}
+
+static JSValue
+ns_element_get_smil_targetElement(JSContext *ctx, JSValueConst this_val)
+{
+    const ns_node *target = ns_smil_target(ns_unwrap_element(this_val));
+    return target ? ns_make_element(ctx, target) : JS_NULL;
+}
+
 static const ns_interface_member ns_interface_members[] = {
     { "SVGElement",
       JS_CFUNC_DEF("getNumberOfChars", 0, ns_element_getNumberOfChars) },
@@ -47088,9 +47224,29 @@ static const ns_interface_member ns_interface_members[] = {
       "HTMLVideoElement SVGElement",
       JS_CGETSET_MAGIC_DEF("height", ns_element_dimension_getter, ns_element_dimension_setter, 9) },
     { "SVGElement",
-      JS_CFUNC_DEF("beginElement", 0, ns_svg_beginElement) },
+      JS_CFUNC_MAGIC_DEF("pauseAnimations", 0, ns_element_pauseAnimations, 1) },
     { "SVGElement",
-      JS_CFUNC_DEF("setCurrentTime", 1, ns_returns_undefined) },
+      JS_CFUNC_MAGIC_DEF("unpauseAnimations", 0, ns_element_pauseAnimations, 0) },
+    { "SVGElement",
+      JS_CFUNC_DEF("animationsPaused", 0, ns_element_animationsPaused) },
+    { "SVGElement",
+      JS_CFUNC_DEF("getCurrentTime", 0, ns_element_smil_getCurrentTime) },
+    { "SVGElement",
+      JS_CFUNC_DEF("setCurrentTime", 1, ns_element_smil_setCurrentTime) },
+    { "SVGElement",
+      JS_CFUNC_MAGIC_DEF("beginElement", 0, ns_element_smil_begin, 0) },
+    { "SVGElement",
+      JS_CFUNC_MAGIC_DEF("beginElementAt", 1, ns_element_smil_begin, 0) },
+    { "SVGElement",
+      JS_CFUNC_MAGIC_DEF("endElement", 0, ns_element_smil_begin, 1) },
+    { "SVGElement",
+      JS_CFUNC_MAGIC_DEF("endElementAt", 1, ns_element_smil_begin, 1) },
+    { "SVGElement",
+      JS_CFUNC_DEF("getStartTime", 0, ns_element_smil_getStartTime) },
+    { "SVGElement",
+      JS_CFUNC_DEF("getSimpleDuration", 0, ns_element_smil_getSimpleDuration) },
+    { "SVGElement",
+      JS_CGETSET_DEF("targetElement", ns_element_get_smil_targetElement, NULL) },
     { "HTMLOListElement",
       JS_CGETSET_MAGIC_DEF("start", ns_element_int_attr_getter, ns_element_int_attr_setter, 10) },
     { NS_IFACES_HYPERLINK,
@@ -50468,6 +50624,7 @@ static const char *const ns_event_handler_names[] = {
     "ontransitionstart", "onvolumechange", "onwaiting", "onwebkitanimationend",
     "onwebkitanimationiteration", "onwebkitanimationstart",
     "onwebkittransitionend", "onwheel",
+    "onbegin", "onend", "onrepeat",
 };
 
 /* Defines every on* event handler name as null on target when absent. */
@@ -51370,6 +51527,14 @@ ns_install_dom_hierarchy(ns_js *js, JSContext *ctx, JSValueConst global)
     if (JS_IsObject(svg_proto))
         ns_proto_define_getset(ctx, svg_proto, "dataset",
                                ns_element_get_dataset, NULL);
+    for (gsize i = 0; JS_IsObject(svg_proto) && i < NS_SVG_SMIL_IFACES; i++) {
+        JSValue proto = JS_NewObject(ctx);
+        JS_SetPrototype(ctx, proto, ns_svg_smil_ifaces[i].animation
+                                        ? js->proto_svg_smil[0] : svg_proto);
+        ns_make_interface_object(ctx, global, ns_svg_smil_ifaces[i].iface,
+                                 proto);
+        js->proto_svg_smil[i] = proto;
+    }
 
     JSValue chardata_proto = ns_proto_of(ctx, global, "CharacterData");
     if (JS_IsObject(chardata_proto)) {
@@ -52471,7 +52636,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
         "MediaQueryListEvent","BlobEvent","FontFaceSetLoadEvent",
         "GamepadEvent","DeviceMotionEvent","DeviceOrientationEvent",
         "PromiseRejectionEvent","SecurityPolicyViolationEvent",
-        "TextEvent","ToggleEvent","FormDataEvent","TrackEvent",
+        "TextEvent","ToggleEvent","FormDataEvent","TrackEvent","TimeEvent",
         "MediaStreamTrackEvent","CookieChangeEvent",
         "AnimationPlaybackEvent","OfflineAudioCompletionEvent",
     };
@@ -57538,6 +57703,8 @@ ns_js_free(ns_js *js)
         JS_FreeValue(js->ctx, js->proto_htmlelement);
         JS_FreeValue(js->ctx, js->proto_svgelement);
         JS_FreeValue(js->ctx, js->proto_svgaelement);
+        for (gsize i = 0; i < NS_SVG_SMIL_IFACES; i++)
+            JS_FreeValue(js->ctx, js->proto_svg_smil[i]);
         JS_FreeValue(js->ctx, js->proto_chardata);
         JS_FreeValue(js->ctx, js->proto_text);
         JS_FreeValue(js->ctx, js->proto_comment);

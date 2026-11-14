@@ -14,6 +14,7 @@
 #include "css.h"
 #include "html.h"
 #include "paint.h"
+#include "smil.h"
 
 enum {
     NS_SVG_MAX_DEPTH        = 24,
@@ -69,9 +70,17 @@ typedef struct {
     gboolean          non_scaling_stroke;
 } svg_state;
 
+typedef struct svg_hit {
+    double         x, y;
+    const ns_node *node;
+    const ns_node *owner;
+} svg_hit;
+
 typedef struct {
     cairo_t       *cr;
     const ns_node *root;
+    svg_hit       *hit;
+    gboolean       animated_only;
     GHashTable    *styles;
     GHashTable    *ids;
     int            depth;
@@ -147,11 +156,19 @@ svg_length_str(const char *s, double pct_basis, double font_size, double fallbac
     return v;
 }
 
+/* Attribute value as rendered: the SMIL animated value when there is one, else the DOM's. */
+static const char *
+svg_attr(const ns_node *n, const char *name)
+{
+    const char *animated = ns_smil_attr(n, name);
+    return animated ? animated : ns_element_get_attr(n, name);
+}
+
 static double
 svg_attr_length(const ns_node *n, const char *name, double pct_basis,
                 double font_size, double fallback)
 {
-    const char *s = ns_element_get_attr(n, name);
+    const char *s = svg_attr(n, name);
     return s ? svg_length_str(s, pct_basis, font_size, fallback) : fallback;
 }
 
@@ -394,10 +411,13 @@ svg_style_decl(svg_ctx *ctx, const ns_node *n, const char *prop)
     return buf;
 }
 
-/* Property value from inline style, then attribute, with var() resolved from computed style. */
+/* Property value: the SMIL animated value, else inline style, then attribute, with var()
+ * resolved from computed style.  Only the animated value while ctx->animated_only. */
 static const char *
 svg_prop(svg_ctx *ctx, const ns_node *n, const char *name)
 {
+    const char *animated = ns_smil_attr(n, name);
+    if (animated || ctx->animated_only) return animated;
     const char *v = svg_style_decl(ctx, n, name);
     if (!v) v = ns_element_get_attr(n, name);
     if (!v || !strstr(v, "var(")) return v;
@@ -451,31 +471,23 @@ svg_css_number(const ns_style *s, ns_css_prop prop, double basis,
     return ns_css_length_or(v, fallback);
 }
 
-/* Applies an element's presentation attributes, then its cascaded CSS, onto inherited state. */
 static void
-svg_state_apply_node(svg_ctx *ctx, svg_state *st, const ns_node *n)
+svg_state_apply_color_attr(svg_ctx *ctx, svg_state *st, const ns_node *n)
 {
-    const ns_style *s = ctx->styles
-        ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
-    double basis = svg_diag_basis(ctx->vw, ctx->vh);
-    double inherited_font_size = st->font_size;
-    gboolean font_size_from_attr = FALSE;
-
-    if (s && s->values[NS_CSS_COLOR] &&
-        s->values[NS_CSS_COLOR]->kind == NS_CSS_V_COLOR) {
-        st->color_r = s->values[NS_CSS_COLOR]->u.color.r / 255.0;
-        st->color_g = s->values[NS_CSS_COLOR]->u.color.g / 255.0;
-        st->color_b = s->values[NS_CSS_COLOR]->u.color.b / 255.0;
-        st->color_a = s->values[NS_CSS_COLOR]->u.color.a / 255.0;
-    } else {
-        const char *col = svg_prop(ctx, n, "color");
-        guint8 r, g, b, a;
-        if (col && ns_css_parse_color(col, &r, &g, &b, &a)) {
-            st->color_r = r / 255.0; st->color_g = g / 255.0;
-            st->color_b = b / 255.0; st->color_a = a / 255.0;
-        }
+    const char *col = svg_prop(ctx, n, "color");
+    guint8 r, g, b, a;
+    if (col && ns_css_parse_color(col, &r, &g, &b, &a)) {
+        st->color_r = r / 255.0; st->color_g = g / 255.0;
+        st->color_b = b / 255.0; st->color_a = a / 255.0;
     }
+}
 
+/* Applies the presentation attributes and inline style; TRUE if font-size was among them. */
+static gboolean
+svg_state_apply_attrs(svg_ctx *ctx, svg_state *st, const ns_node *n,
+                      double basis, double inherited_font_size)
+{
+    gboolean font_size_from_attr = FALSE;
     const char *v;
     if ((v = svg_prop(ctx, n, "fill")))   svg_parse_paint(v, st, &st->fill);
     if ((v = svg_prop(ctx, n, "stroke"))) svg_parse_paint(v, st, &st->stroke);
@@ -526,6 +538,43 @@ svg_state_apply_node(svg_ctx *ctx, svg_state *st, const ns_node *n)
                       g_ascii_strcasecmp(v, "collapse") == 0);
     if ((v = svg_prop(ctx, n, "vector-effect")))
         st->non_scaling_stroke = g_ascii_strcasecmp(v, "non-scaling-stroke") == 0;
+    return font_size_from_attr;
+}
+
+/* Applies the SMIL animated values alone, after the cascade, so they override it. */
+static void
+svg_state_apply_animated(svg_ctx *ctx, svg_state *st, const ns_node *n,
+                         double basis, double inherited_font_size)
+{
+    if (!ns_smil_node_animated(n)) return;
+    ctx->animated_only = TRUE;
+    svg_state_apply_color_attr(ctx, st, n);
+    svg_state_apply_attrs(ctx, st, n, basis, inherited_font_size);
+    ctx->animated_only = FALSE;
+}
+
+/* Applies an element's presentation attributes, then its cascaded CSS, then its
+ * animated values, onto inherited state. */
+static void
+svg_state_apply_node(svg_ctx *ctx, svg_state *st, const ns_node *n)
+{
+    const ns_style *s = ctx->styles
+        ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
+    double basis = svg_diag_basis(ctx->vw, ctx->vh);
+    double inherited_font_size = st->font_size;
+
+    if (s && s->values[NS_CSS_COLOR] &&
+        s->values[NS_CSS_COLOR]->kind == NS_CSS_V_COLOR) {
+        st->color_r = s->values[NS_CSS_COLOR]->u.color.r / 255.0;
+        st->color_g = s->values[NS_CSS_COLOR]->u.color.g / 255.0;
+        st->color_b = s->values[NS_CSS_COLOR]->u.color.b / 255.0;
+        st->color_a = s->values[NS_CSS_COLOR]->u.color.a / 255.0;
+    } else {
+        svg_state_apply_color_attr(ctx, st, n);
+    }
+
+    gboolean font_size_from_attr =
+        svg_state_apply_attrs(ctx, st, n, basis, inherited_font_size);
 
     if (!s) return;
 
@@ -579,6 +628,7 @@ svg_state_apply_node(svg_ctx *ctx, svg_state *st, const ns_node *n)
         g_free(st->font_family);
         st->font_family = g_strdup(s->values[NS_CSS_FONT_FAMILY]->u.keyword);
     }
+    svg_state_apply_animated(ctx, st, n, basis, inherited_font_size);
 }
 
 /* Parses an SVG transform list (matrix/translate/scale/rotate/skew) into one matrix. */
@@ -634,14 +684,23 @@ svg_parse_transform(const char *s, cairo_matrix_t *out)
     return any;
 }
 
+/* The element's transform attribute followed by its animateMotion offset, if any. */
+static void
+svg_local_transform(const ns_node *n, const char *attr, cairo_matrix_t *out)
+{
+    svg_parse_transform(svg_attr(n, attr), out);
+    const char *motion = ns_smil_attr(n, NS_SMIL_MOTION_ATTR);
+    cairo_matrix_t along;
+    if (motion && svg_parse_transform(motion, &along))
+        cairo_matrix_multiply(out, out, &along);
+}
+
 /* Applies a transform attribute to the cairo context; FALSE if the matrix is singular. */
 static gboolean
 svg_apply_transform_attr(svg_ctx *ctx, const ns_node *n, const char *attr)
 {
-    const char *t = ns_element_get_attr(n, attr);
-    if (!t) return TRUE;
     cairo_matrix_t m;
-    if (!svg_parse_transform(t, &m)) return TRUE;
+    svg_local_transform(n, attr, &m);
     cairo_matrix_t inverse = m;
     if (cairo_matrix_invert(&inverse) != CAIRO_STATUS_SUCCESS) return FALSE;
     cairo_transform(ctx->cr, &m);
@@ -843,6 +902,37 @@ svg_path_data(cairo_t *cr, const char *d)
     }
 }
 
+/* Flattens path data into a polyline for animateMotion; move marks a subpath start. */
+GArray *
+ns_svg_path_polyline(const char *d)
+{
+    GArray *out = g_array_new(FALSE, FALSE, sizeof(ns_svg_path_pt));
+    if (!d) return out;
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+    cairo_t *cr = cairo_create(surface);
+    cairo_set_tolerance(cr, 0.05);
+    svg_path_data(cr, d);
+    cairo_path_t *flat = cairo_copy_path_flat(cr);
+    ns_svg_path_pt start = { 0, 0, TRUE };
+    for (int i = 0; i < flat->num_data; i += flat->data[i].header.length) {
+        const cairo_path_data_t *seg = &flat->data[i];
+        ns_svg_path_pt pt = start;
+        if (seg->header.type == CAIRO_PATH_MOVE_TO) {
+            pt = (ns_svg_path_pt){ seg[1].point.x, seg[1].point.y, TRUE };
+            start = pt;
+        } else if (seg->header.type == CAIRO_PATH_LINE_TO) {
+            pt = (ns_svg_path_pt){ seg[1].point.x, seg[1].point.y, FALSE };
+        } else {
+            pt.move = FALSE;
+        }
+        g_array_append_val(out, pt);
+    }
+    cairo_path_destroy(flat);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+    return out;
+}
+
 /* Geometry property from CSS (e.g. cx, width) else attribute; flags "auto". */
 static double
 svg_geom(svg_ctx *ctx, const ns_node *n, const char *attr, ns_css_prop prop,
@@ -851,7 +941,7 @@ svg_geom(svg_ctx *ctx, const ns_node *n, const char *attr, ns_css_prop prop,
     if (out_auto) *out_auto = FALSE;
     const ns_style *s = ctx->styles
         ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
-    const ns_css_value *v = s ? s->values[prop] : NULL;
+    const ns_css_value *v = s && !ns_smil_attr(n, attr) ? s->values[prop] : NULL;
     if (v) {
         if (v->kind == NS_CSS_V_KEYWORD && v->u.keyword &&
             g_ascii_strcasecmp(v->u.keyword, "auto") == 0) {
@@ -879,7 +969,7 @@ svg_shape_path(svg_ctx *ctx, const ns_node *n, const svg_state *st)
     double fs = st->font_size;
 
     if (strcmp(tag, "path") == 0) {
-        const char *d = ns_element_get_attr(n, "d");
+        const char *d = svg_attr(n, "d");
         if (!d || !*d) return FALSE;
         svg_path_data(cr, d);
         return TRUE;
@@ -970,7 +1060,7 @@ svg_shape_path(svg_ctx *ctx, const ns_node *n, const svg_state *st)
         return TRUE;
     }
     if (strcmp(tag, "polyline") == 0 || strcmp(tag, "polygon") == 0) {
-        const char *pts = ns_element_get_attr(n, "points");
+        const char *pts = svg_attr(n, "points");
         if (!pts) return FALSE;
         const char *p = pts;
         double x, y;
@@ -1018,8 +1108,8 @@ svg_by_id(svg_ctx *ctx, const char *id)
 static const char *
 svg_href(const ns_node *n)
 {
-    const char *h = ns_element_get_attr(n, "href");
-    if (!h) h = ns_element_get_attr(n, "xlink:href");
+    const char *h = svg_attr(n, "href");
+    if (!h) h = svg_attr(n, "xlink:href");
     return h;
 }
 
@@ -1040,7 +1130,7 @@ svg_inherited_attr(svg_ctx *ctx, const ns_node *n, const char *name)
 {
     const ns_node *cur = n;
     for (int i = 0; cur && i < NS_SVG_MAX_HREF_CHAIN; i++) {
-        const char *v = ns_element_get_attr(cur, name);
+        const char *v = svg_attr(cur, name);
         if (v) return v;
         cur = svg_href_target(ctx, cur);
     }
@@ -1081,7 +1171,8 @@ svg_add_stops(svg_ctx *ctx, cairo_pattern_t *pat, const ns_node *owner,
         double r = 0, g = 0, b = 0, a = 1.0;
         const ns_style *cs = ctx->styles
             ? g_hash_table_lookup(ctx->styles, (gpointer)c) : NULL;
-        const ns_css_value *sv = cs ? cs->values[NS_CSS_STOP_COLOR] : NULL;
+        const ns_css_value *sv = cs && !ns_smil_attr(c, "stop-color")
+            ? cs->values[NS_CSS_STOP_COLOR] : NULL;
         gboolean got = FALSE;
         if (sv && sv->kind == NS_CSS_V_COLOR) {
             r = sv->u.color.r / 255.0; g = sv->u.color.g / 255.0;
@@ -1098,7 +1189,8 @@ svg_add_stops(svg_ctx *ctx, cairo_pattern_t *pat, const ns_node *owner,
             }
         }
         double so = 1.0;
-        const ns_css_value *ov = cs ? cs->values[NS_CSS_STOP_OPACITY] : NULL;
+        const ns_css_value *ov = cs && !ns_smil_attr(c, "stop-opacity")
+            ? cs->values[NS_CSS_STOP_OPACITY] : NULL;
         if (ov) so = CLAMP(svg_css_number(cs, NS_CSS_STOP_OPACITY, 1.0, 1.0), 0.0, 1.0);
         else {
             const char *sos = svg_prop(ctx, c, "stop-opacity");
@@ -1245,6 +1337,46 @@ svg_apply_stroke_params(svg_ctx *ctx, const svg_state *st)
                        (int)st->dashes->len, st->dash_offset);
     else
         cairo_set_dash(cr, NULL, 0, 0.0);
+}
+
+static gboolean
+svg_hit_ignores(svg_ctx *ctx, const ns_node *n)
+{
+    const ns_style *s = ctx->styles
+        ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
+    const char *pe = s ? ns_style_keyword(s, NS_CSS_POINTER_EVENTS) : NULL;
+    if (!pe) pe = svg_prop(ctx, n, "pointer-events");
+    return pe && g_ascii_strcasecmp(pe, "none") == 0;
+}
+
+/* Records n as the element under the hit point, or the <use> that instances it. */
+static void
+svg_hit_record(svg_ctx *ctx, const ns_node *n)
+{
+    ctx->hit->node = ctx->hit->owner ? ctx->hit->owner : n;
+}
+
+/* While hit testing, tests the current path's fill and stroke against the point in
+ * place of painting it; TRUE if the path was consumed. */
+static gboolean
+svg_hit_current_path(svg_ctx *ctx, const ns_node *n, const svg_state *st)
+{
+    if (!ctx->hit) return FALSE;
+    cairo_t *cr = ctx->cr;
+    double x = ctx->hit->x, y = ctx->hit->y;
+    cairo_device_to_user(cr, &x, &y);
+    gboolean inside = FALSE;
+    if (!st->hidden && !svg_hit_ignores(ctx, n)) {
+        cairo_set_fill_rule(cr, st->fill_rule);
+        if (st->fill.kind != SVG_PAINT_NONE) inside = cairo_in_fill(cr, x, y);
+        if (!inside && st->stroke.kind != SVG_PAINT_NONE && st->stroke_width > 0) {
+            svg_apply_stroke_params(ctx, st);
+            inside = cairo_in_stroke(cr, x, y);
+        }
+    }
+    if (inside) svg_hit_record(ctx, n);
+    cairo_new_path(cr);
+    return TRUE;
 }
 
 /* Fills and strokes the current path in paint-order, honoring non-scaling-stroke. */
@@ -1402,7 +1534,7 @@ svg_apply_clip(svg_ctx *ctx, const ns_node *n, const svg_state *st)
 
     ctx->depth++;
     cairo_save(ctx->cr);
-    const char *units = ns_element_get_attr(clip, "clipPathUnits");
+    const char *units = svg_attr(clip, "clipPathUnits");
     gboolean obb = units && g_ascii_strcasecmp(units, "objectBoundingBox") == 0;
     gboolean degenerate = obb && (ctx->vw <= 0 || ctx->vh <= 0);
     if (obb && !degenerate) {
@@ -1424,7 +1556,7 @@ static void
 svg_viewbox_matrix(const ns_node *n, double vw, double vh, cairo_matrix_t *out)
 {
     cairo_matrix_init_identity(out);
-    const char *vb = ns_element_get_attr(n, "viewBox");
+    const char *vb = svg_attr(n, "viewBox");
     if (!vb) return;
     const char *p = vb;
     double x, y, w, h;
@@ -1432,7 +1564,7 @@ svg_viewbox_matrix(const ns_node *n, double vw, double vh, cairo_matrix_t *out)
         !svg_num(&p, &w) || !svg_num(&p, &h)) return;
     if (w <= 0 || h <= 0 || vw <= 0 || vh <= 0) return;
 
-    const char *par = ns_element_get_attr(n, "preserveAspectRatio");
+    const char *par = svg_attr(n, "preserveAspectRatio");
     gboolean slice = FALSE;
     gboolean none = FALSE;
     double ax = 0.5, ay = 0.5;
@@ -1520,6 +1652,7 @@ svg_render_text(svg_ctx *ctx, const ns_node *n, const svg_state *st)
     cairo_move_to(cr, x, y - baseline);
     ns_pango_cairo_layout_path(cr, layout);
     g_object_unref(layout);
+    if (svg_hit_current_path(ctx, n, st)) return;
     svg_paint_current_path(ctx, st);
 }
 
@@ -1639,12 +1772,12 @@ svg_draw_marker(svg_ctx *ctx, const ns_node *marker, const svg_state *st,
     double mh = svg_attr_length(marker, "markerHeight", ctx->vh, fs, 3);
     if (mw <= 0 || mh <= 0) return;
 
-    const char *units = ns_element_get_attr(marker, "markerUnits");
+    const char *units = svg_attr(marker, "markerUnits");
     gboolean stroke_units = !units || g_ascii_strcasecmp(units, "strokeWidth") == 0;
 
     cairo_save(cr);
     cairo_translate(cr, x, y);
-    const char *orient = ns_element_get_attr(marker, "orient");
+    const char *orient = svg_attr(marker, "orient");
     if (!orient || g_ascii_strcasecmp(orient, "auto") == 0 ||
         g_ascii_strcasecmp(orient, "auto-start-reverse") == 0)
         cairo_rotate(cr, angle);
@@ -1673,7 +1806,7 @@ svg_draw_marker(svg_ctx *ctx, const ns_node *marker, const svg_state *st,
     cairo_transform(cr, &vm);
 
     double ow = ctx->vw, oh = ctx->vh;
-    const char *vb = ns_element_get_attr(marker, "viewBox");
+    const char *vb = svg_attr(marker, "viewBox");
     if (vb) {
         const char *q = vb;
         double a, b, c, dd;
@@ -1729,7 +1862,7 @@ svg_render_markers(svg_ctx *ctx, const ns_node *n, const svg_state *st)
             a = 0;
         }
         if (i == 0 && m == ms) {
-            const char *o = ns_element_get_attr(m, "orient");
+            const char *o = svg_attr(m, "orient");
             if (o && g_ascii_strcasecmp(o, "auto-start-reverse") == 0)
                 a += G_PI;
         }
@@ -1751,7 +1884,7 @@ svg_render_children(svg_ctx *ctx, const ns_node *n, const svg_state *st)
 static gboolean
 svg_is_hidden(svg_ctx *ctx, const ns_node *n)
 {
-    const ns_style *s = ctx->styles
+    const ns_style *s = ctx->styles && !ns_smil_attr(n, "display")
         ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
     if (s) {
         const char *d = ns_style_keyword(s, NS_CSS_DISPLAY);
@@ -1798,7 +1931,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
     double opacity = 1.0;
     const ns_style *s = ctx->styles
         ? g_hash_table_lookup(ctx->styles, (gpointer)n) : NULL;
-    if (s && s->values[NS_CSS_OPACITY])
+    if (s && s->values[NS_CSS_OPACITY] && !ns_smil_attr(n, "opacity"))
         opacity = CLAMP(svg_css_number(s, NS_CSS_OPACITY, 1.0, 1.0), 0.0, 1.0);
     else {
         const char *o = svg_prop(ctx, n, "opacity");
@@ -1822,8 +1955,8 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
         return;
     }
 
-    cairo_surface_t *mask = svg_mask_surface(ctx, n, &st);
-    gboolean grouped = opacity < 1.0 || mask != NULL;
+    cairo_surface_t *mask = ctx->hit ? NULL : svg_mask_surface(ctx, n, &st);
+    gboolean grouped = !ctx->hit && (opacity < 1.0 || mask != NULL);
     if (grouped) cairo_push_group(cr);
 
     svg_apply_clip(ctx, n, &st);
@@ -1833,8 +1966,8 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
     } else if (strcmp(tag, "switch") == 0) {
         for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
             if (c->kind != NS_NODE_ELEMENT) continue;
-            if (ns_element_get_attr(c, "requiredExtensions") ||
-                ns_element_get_attr(c, "requiredFeatures")) continue;
+            if (svg_attr(c, "requiredExtensions") ||
+                svg_attr(c, "requiredFeatures")) continue;
             svg_render_node(ctx, c, &st);
             break;
         }
@@ -1851,7 +1984,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
         svg_viewbox_matrix(n, w, h, &vm);
         cairo_transform(cr, &vm);
         double ow = ctx->vw, oh = ctx->vh;
-        const char *vb = ns_element_get_attr(n, "viewBox");
+        const char *vb = svg_attr(n, "viewBox");
         if (vb) {
             const char *p = vb;
             double a, b, c, d;
@@ -1870,6 +2003,8 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
             double x = svg_attr_length(n, "x", ctx->vw, st.font_size, 0);
             double y = svg_attr_length(n, "y", ctx->vh, st.font_size, 0);
             cairo_translate(cr, x, y);
+            const ns_node *outer_owner = ctx->hit ? ctx->hit->owner : NULL;
+            if (ctx->hit && !outer_owner) ctx->hit->owner = n;
             ctx->depth++;
             if (t->name && strcmp(t->name, "symbol") == 0) {
                 double w = svg_attr_length(n, "width", ctx->vw, st.font_size, ctx->vw);
@@ -1885,6 +2020,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
                 svg_render_node(ctx, t, &st);
             }
             ctx->depth--;
+            if (ctx->hit) ctx->hit->owner = outer_owner;
         }
     } else if (strcmp(tag, "text") == 0) {
         svg_render_text(ctx, n, &st);
@@ -1892,7 +2028,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
         svg_render_text(ctx, n, &st);
     } else {
         cairo_new_path(cr);
-        if (svg_shape_path(ctx, n, &st)) {
+        if (svg_shape_path(ctx, n, &st) && !svg_hit_current_path(ctx, n, &st)) {
             gboolean markable = strcmp(tag, "path") == 0 ||
                                 strcmp(tag, "line") == 0 ||
                                 strcmp(tag, "polyline") == 0 ||
@@ -1939,7 +2075,8 @@ ns_svg_node_is_root(const ns_node *n)
            strcmp(n->name, "svg") == 0;
 }
 
-/* Computes intrinsic width/height/ratio from absolute width, height and viewBox. */
+/* Computes intrinsic width/height/ratio from absolute width, height and viewBox, as the
+ * DOM has them: an animation of these repaints, it does not lay the page out again. */
 void
 ns_svg_intrinsic_size(const ns_node *svg, ns_svg_size *out)
 {
@@ -1980,16 +2117,17 @@ ns_svg_intrinsic_size(const ns_node *svg, ns_svg_size *out)
     }
 }
 
-/* Renders an inline or standalone SVG root into a width x height viewport on cr. */
-void
-ns_svg_render_node(cairo_t *cr, const ns_node *svg, double width, double height,
-                   GHashTable *styles, const struct ns_style *inherited)
+/* Walks an SVG root in a width x height viewport on cr: paints it, or with hit set
+ * finds the element under the hit point without painting. */
+static void
+svg_render_root(cairo_t *cr, const ns_node *svg, double width, double height,
+                GHashTable *styles, const struct ns_style *inherited,
+                svg_hit *hit)
 {
-    if (!cr || !svg || width <= 0 || height <= 0) return;
-
     svg_ctx ctx = {
         .cr = cr,
         .root = svg,
+        .hit = hit,
         .styles = styles,
         .ids = NULL,
         .depth = 0,
@@ -2022,7 +2160,7 @@ ns_svg_render_node(cairo_t *cr, const ns_node *svg, double width, double height,
     svg_viewbox_matrix(svg, width, height, &vm);
     cairo_transform(cr, &vm);
 
-    const char *vb = ns_element_get_attr(svg, "viewBox");
+    const char *vb = svg_attr(svg, "viewBox");
     if (vb) {
         const char *p = vb;
         double a, b, c, d;
@@ -2039,6 +2177,33 @@ ns_svg_render_node(cairo_t *cr, const ns_node *svg, double width, double height,
     cairo_restore(cr);
     svg_state_clear(&st);
     if (ctx.ids) g_hash_table_destroy(ctx.ids);
+}
+
+/* Renders an inline or standalone SVG root into a width x height viewport on cr. */
+void
+ns_svg_render_node(cairo_t *cr, const ns_node *svg, double width, double height,
+                   GHashTable *styles, const struct ns_style *inherited)
+{
+    if (!cr || !svg || width <= 0 || height <= 0) return;
+    svg_render_root(cr, svg, width, height, styles, inherited, NULL);
+}
+
+/* The shape, text or image-like element painted at (x, y) of the SVG's viewport, or
+ * NULL where it paints nothing; content instanced by <use> reports the <use>. */
+const ns_node *
+ns_svg_hit_node(const ns_node *svg, double width, double height,
+                GHashTable *styles, const struct ns_style *inherited,
+                double x, double y)
+{
+    if (!svg || width <= 0 || height <= 0) return NULL;
+    if (x < 0 || y < 0 || x > width || y > height) return NULL;
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+    cairo_t *cr = cairo_create(surface);
+    svg_hit hit = { x, y, NULL, NULL };
+    svg_render_root(cr, svg, width, height, styles, inherited, &hit);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+    return hit.node;
 }
 
 /* Sniffs the first 1 KiB for an "<svg" tag. */
@@ -2074,21 +2239,10 @@ ns_svg_document_root(const ns_node *doc)
     return svg_find_root(doc, 0);
 }
 
-/* Rasterizes SVG bytes to a texture at intrinsic size (default 300x150), pixel-capped. */
-ns_texture *
-ns_svg_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
+/* Pixel size an SVG image rasterizes at: its intrinsic size (default 300x150), pixel-capped. */
+static void
+svg_image_pixel_size(const ns_node *root, int *out_w, int *out_h)
 {
-    if (!data || len == 0 || len > NS_SVG_MAX_INPUT_BYTES) return NULL;
-    if (!ns_svg_bytes_look_like_svg(data, len)) return NULL;
-
-    ns_node *doc = ns_html_parse((const char *)data, (gssize)len);
-    if (!doc) return NULL;
-    const ns_node *root = svg_find_root(doc, 0);
-    if (!root) {
-        ns_node_free(doc);
-        return NULL;
-    }
-
     ns_svg_size size;
     ns_svg_intrinsic_size(root, &size);
     double w = size.has_width  ? size.width  : NS_SVG_DEFAULT_DIM_PX;
@@ -2112,18 +2266,23 @@ ns_svg_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
     }
     int iw = (int)CLAMP(ceil(w - 0.001), 1.0, (double)NS_SVG_MAX_DIM_PX);
     int ih = (int)CLAMP(ceil(h - 0.001), 1.0, (double)NS_SVG_MAX_DIM_PX);
+    *out_w = iw;
+    *out_h = ih;
+}
 
+/* Renders an SVG root into a new iw x ih texture. */
+static ns_texture *
+svg_render_texture(const ns_node *root, int iw, int ih)
+{
     cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, iw, ih);
     if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
         cairo_surface_destroy(surf);
-        ns_node_free(doc);
         return NULL;
     }
     cairo_t *cr = cairo_create(surf);
     ns_svg_render_node(cr, root, iw, ih, NULL, NULL);
     cairo_destroy(cr);
     cairo_surface_flush(surf);
-    ns_node_free(doc);
 
     int stride = cairo_image_surface_get_stride(surf);
     const guchar *pixels = cairo_image_surface_get_data(surf);
@@ -2137,8 +2296,103 @@ ns_svg_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
     ns_texture *tex = ns_texture_new(iw, ih, NS_TEXTURE_DEFAULT, bytes,
                                      (gsize)stride);
     g_bytes_unref(bytes);
+    return tex;
+}
+
+/* Parses SVG image bytes into a document and its root element; caller frees the document. */
+static ns_node *
+svg_parse_image(const guchar *data, gsize len, const ns_node **out_root)
+{
+    if (!data || len == 0 || len > NS_SVG_MAX_INPUT_BYTES) return NULL;
+    if (!ns_svg_bytes_look_like_svg(data, len)) return NULL;
+
+    ns_node *doc = ns_html_parse((const char *)data, (gssize)len);
+    if (!doc) return NULL;
+    *out_root = svg_find_root(doc, 0);
+    if (!*out_root) {
+        ns_node_free(doc);
+        return NULL;
+    }
+    return doc;
+}
+
+/* Rasterizes SVG bytes to a texture at intrinsic size (default 300x150), pixel-capped. */
+ns_texture *
+ns_svg_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
+{
+    const ns_node *root = NULL;
+    ns_node *doc = svg_parse_image(data, len, &root);
+    if (!doc) return NULL;
+    int iw, ih;
+    svg_image_pixel_size(root, &iw, &ih);
+    ns_texture *tex = svg_render_texture(root, iw, ih);
+    ns_node_free(doc);
     if (!tex) return NULL;
     if (out_w) *out_w = iw;
     if (out_h) *out_h = ih;
     return tex;
+}
+
+/* TRUE if SVG source bytes contain a SMIL animation element. */
+gboolean
+ns_svg_bytes_animated(const guchar *data, gsize len)
+{
+    if (!data || len > NS_SVG_MAX_INPUT_BYTES) return FALSE;
+    const char *text = (const char *)data;
+    return g_strstr_len(text, (gssize)len, "<animate") != NULL ||
+           g_strstr_len(text, (gssize)len, "<set") != NULL;
+}
+
+struct ns_svg_doc {
+    ns_node       *doc;
+    const ns_node *root;
+    ns_smil       *smil;
+    int            width, height;
+};
+
+/* Parses SVG image bytes into a document that keeps its own SMIL timeline, starting now. */
+ns_svg_doc *
+ns_svg_doc_parse(const guchar *data, gsize len)
+{
+    const ns_node *root = NULL;
+    ns_node *doc = svg_parse_image(data, len, &root);
+    if (!doc) return NULL;
+    ns_svg_doc *d = g_new0(ns_svg_doc, 1);
+    d->doc = doc;
+    d->root = root;
+    d->smil = ns_smil_new(doc, g_get_monotonic_time());
+    svg_image_pixel_size(root, &d->width, &d->height);
+    return d;
+}
+
+/* Advances the document's timeline; TRUE if it now renders differently. */
+gboolean
+ns_svg_doc_tick(ns_svg_doc *d, gint64 now_us)
+{
+    if (!d) return FALSE;
+    gboolean changed = ns_smil_tick(d->smil, now_us);
+    ns_smil_settle_events(d->smil);
+    return changed;
+}
+
+gboolean
+ns_svg_doc_animating(const ns_svg_doc *d)
+{
+    return d && ns_smil_has_active(d->smil);
+}
+
+/* Rasterizes the document as it stands at its last tick, at the size it decodes to. */
+ns_texture *
+ns_svg_doc_render(ns_svg_doc *d)
+{
+    return d ? svg_render_texture(d->root, d->width, d->height) : NULL;
+}
+
+void
+ns_svg_doc_free(ns_svg_doc *d)
+{
+    if (!d) return;
+    ns_smil_free(d->smil);
+    ns_node_free(d->doc);
+    g_free(d);
 }

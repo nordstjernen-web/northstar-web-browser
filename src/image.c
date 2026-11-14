@@ -98,6 +98,14 @@ ns_image_pixel_frame_clear(gpointer data)
     if (f) g_free(f->pixels);
 }
 
+/* Forgets an SVG image's source and timeline; it stays as the still it last showed. */
+static void
+ns_image_drop_svg_animation(ns_image *img)
+{
+    g_clear_pointer(&img->svg_doc, ns_svg_doc_free);
+    g_clear_pointer(&img->svg_source, g_bytes_unref);
+}
+
 /* Frees a cache entry including its frames, video stream or texture. */
 static void
 ns_image_free(gpointer p)
@@ -112,6 +120,7 @@ ns_image_free(gpointer p)
     if (img->anim_frames) g_array_free(img->anim_frames, TRUE);
     else if (img->video) ns_video_stream_free(img->video);
     else ns_texture_unref(img->texture);
+    ns_image_drop_svg_animation(img);
     g_free(img);
 }
 
@@ -179,6 +188,7 @@ ns_image_cache_purge(ns_image_cache *cache, ns_image *img)
     } else {
         ns_texture_clear(&img->texture);
     }
+    ns_image_drop_svg_animation(img);
     if (img->render_surface) {
         cairo_surface_destroy(img->render_surface);
         img->render_surface = NULL;
@@ -258,10 +268,13 @@ ns_image_supports_mime(const char *mime)
     return ok;
 }
 
-/* Decodes a still image by sniffing: ICO, Wuffs formats, AVIF, then SVG; NULL if none. */
+/* Decodes a still image by sniffing: ICO, Wuffs formats, AVIF, then SVG; NULL if none.
+ * Sets *out_svg when the SVG renderer produced the texture. */
 static ns_texture *
-ns_image_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
+ns_image_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h,
+                      gboolean *out_svg)
 {
+    if (out_svg) *out_svg = FALSE;
     if (!data || len == 0) return NULL;
 
     if (len >= 4 && data[0] == 0 && data[1] == 0 &&
@@ -288,6 +301,7 @@ ns_image_decode_bytes(const guchar *data, gsize len, int *out_w, int *out_h)
 
     if (ns_svg_bytes_look_like_svg(data, len)) {
         ns_texture *tex = ns_svg_decode_bytes(data, len, out_w, out_h);
+        if (tex && out_svg) *out_svg = TRUE;
         if (tex) return tex;
     }
 
@@ -360,7 +374,7 @@ ns_image_decode_bytes_to_pixels(const guchar *data, gsize len,
 #endif
 
     int w = 0, h = 0;
-    ns_texture *tex = ns_image_decode_bytes(data, len, &w, &h);
+    ns_texture *tex = ns_image_decode_bytes(data, len, &w, &h, NULL);
     guint8 *pixels = ns_image_texture_to_pixels(tex, w, h,
                                                 out_stride, out_buf_len);
     if (!pixels) return NULL;
@@ -432,6 +446,7 @@ typedef struct {
     ns_texture      *tex;
     GArray          *frames;
     ns_video_stream *video;
+    GBytes          *svg_source;
     int              w;
     int              h;
 } ns_img_decoded;
@@ -446,13 +461,15 @@ ns_img_decoded_clear(ns_img_decoded *d)
     }
     ns_video_stream_free(d->video);
     if (d->tex) ns_texture_unref(d->tex);
+    if (d->svg_source) g_bytes_unref(d->svg_source);
 }
 
-/* Decodes a response body as MPEG-1 video, animated GIF/APNG, or a still image. */
+/* Decodes a response body as MPEG-1 video, animated GIF/APNG, or a still image.  An SVG
+ * with SMIL animation elements keeps its source, to be animated on the cache's thread. */
 static ns_img_decoded
 ns_image_decode_body(const guchar *data, gsize len)
 {
-    ns_img_decoded d = { NULL, NULL, NULL, 0, 0 };
+    ns_img_decoded d = { NULL, NULL, NULL, NULL, 0, 0 };
     int w = 0, h = 0;
     GArray *frames = NULL;
     if (ns_video_bytes_are_mpeg1(data, len)) {
@@ -476,9 +493,12 @@ ns_image_decode_body(const guchar *data, gsize len)
         g_array_set_clear_func(frames, ns_image_anim_frame_clear);
         g_array_free(frames, TRUE);
     }
-    d.tex = ns_image_decode_bytes(data, len, &w, &h);
+    gboolean from_svg = FALSE;
+    d.tex = ns_image_decode_bytes(data, len, &w, &h, &from_svg);
     d.w = w;
     d.h = h;
+    if (d.tex && from_svg && ns_svg_bytes_animated(data, len))
+        d.svg_source = g_bytes_new(data, len);
     return d;
 }
 
@@ -517,6 +537,7 @@ ns_image_apply_decoded_state(ns_image *img, ns_img_decoded *d,
         img->loaded = TRUE;
     } else if (d->tex) {
         img->texture = d->tex;
+        img->svg_source = d->svg_source;
         img->natural_width  = d->w;
         img->natural_height = d->h;
         img->loaded = TRUE;
@@ -577,7 +598,7 @@ on_image_decoded(GObject *src, GAsyncResult *res, gpointer user_data)
         ns_decode_job_free(job);
         return;
     }
-    ns_img_decoded result = { NULL, NULL, NULL, 0, 0 };
+    ns_img_decoded result = { NULL, NULL, NULL, NULL, 0, 0 };
     if (d) {
         result = *d;
         g_free(d);
@@ -952,6 +973,32 @@ ns_image_apply_phase(ns_image *img, int phase)
     return TRUE;
 }
 
+/* Advances an animated SVG image's own timeline, parsing it on first use, and
+ * rasterizes it again when a value changed; TRUE if the texture changed. */
+static gboolean
+ns_image_svg_advance(ns_image *img, gint64 now_us)
+{
+    if (!img->svg_doc) {
+        gsize len = 0;
+        const guchar *data = g_bytes_get_data(img->svg_source, &len);
+        img->svg_doc = ns_svg_doc_parse(data, len);
+        if (!img->svg_doc) {
+            ns_image_drop_svg_animation(img);
+            return FALSE;
+        }
+    }
+    if (!ns_svg_doc_tick(img->svg_doc, now_us)) return FALSE;
+    ns_texture *tex = ns_svg_doc_render(img->svg_doc);
+    if (!tex) return FALSE;
+    ns_texture_unref(img->texture);
+    img->texture = tex;
+    if (img->render_surface) {
+        cairo_surface_destroy(img->render_surface);
+        img->render_surface = NULL;
+    }
+    return TRUE;
+}
+
 gboolean
 ns_image_cache_tick(ns_image_cache *cache, gint64 now_us)
 {
@@ -970,8 +1017,10 @@ ns_image_cache_tick_collect(ns_image_cache *cache, gint64 now_us,
     g_hash_table_iter_init(&it, cache->by_url);
     while (g_hash_table_iter_next(&it, &key, &value)) {
         ns_image *img = value;
-        if (!ns_image_is_animation(img)) continue;
-        if (ns_image_apply_phase(img, ns_image_anim_phase_ms(img, now_us))) {
+        gboolean svg = img->svg_source && img->loaded && img->texture;
+        if (!svg && !ns_image_is_animation(img)) continue;
+        if (svg ? ns_image_svg_advance(img, now_us)
+                : ns_image_apply_phase(img, ns_image_anim_phase_ms(img, now_us))) {
             any = TRUE;
             if (changed) g_ptr_array_add(changed, img);
         }
@@ -994,6 +1043,9 @@ ns_image_cache_animating(const ns_image_cache *cache)
             !ns_image_anim_ended(img, now))
             return TRUE;
         if (img->video && ns_video_stream_waiting(img->video)) return TRUE;
+        if (img->svg_source &&
+            (!img->svg_doc || ns_svg_doc_animating(img->svg_doc)))
+            return TRUE;
     }
     return FALSE;
 }
@@ -1063,6 +1115,7 @@ ns_image_cache_insert_stream(ns_image_cache *cache, const char *url,
         if (img->anim_frames) g_array_free(img->anim_frames, TRUE);
         else if (img->video) ns_video_stream_free(img->video);
         else ns_texture_unref(img->texture);
+        ns_image_drop_svg_animation(img);
         img->anim_frames = NULL;
         img->failed = FALSE;
         cache->total_bytes -= img->bytes;

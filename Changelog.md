@@ -4,6 +4,19 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* Text fields and textareas select text with the mouse. Dragging selects
+  from the press to the pointer, and to the end of the value when the
+  pointer leaves the field. A double-click selects a word, and a drag
+  after it grows by whole words. A triple-click selects everything, and
+  shift-click extends the selection. Ctrl+C copies a field's selection
+  (never a password field's). A click in a textarea now puts the caret
+  where you click, as in a single-line field.
+* Clicks and drags land on the character under the pointer in long
+  fields and in text with letter or word spacing or justification.
+  Hit-testing built its own text layout without the attributes the text
+  is painted with, so its idea of where each character sat could drift
+  from what was drawn; a field's value could even wrap in that layout.
+  It now uses the painted layout.
 * Clicking in a text field puts the caret where you click. It always
   went to the end of the value, so mending a typo meant using the arrow
   keys. This works in password fields and in a field scrolled to show

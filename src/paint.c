@@ -3898,27 +3898,15 @@ paint_inline(cairo_t *cr, const ns_box *b, const char *highlight)
     g_object_unref(layout);
 }
 
-/* Builds an inline layout with font attrs only, for hit-testing and geometry queries. */
+/* Builds the inline layout a box is painted with, for hit-testing and geometry queries. */
 static NsPangoLayout *
 ns_paint_build_inline_layout(const ns_box *b)
 {
     if (!b || !b->text) return NULL;
-    const ns_style *s = inherited_style(b);
-    NsPangoAttrList *attrs;
-    NsPangoLayout *layout = paint_inline_layout_new(b, s, &attrs);
-    if (b->attrs) {
-        for (gint ii = (gint)b->attrs->len - 1; ii >= 0; ii--) {
-            const ns_inline_attr *r = &g_array_index(b->attrs, ns_inline_attr, (guint)ii);
-            attr_insert_range(attrs, ns_paint_inline_font_attr(r), r->start, r->len);
-        }
-    }
-    ns_inline_layout_set_attrs(layout, attrs, b);
-    ns_pango_attr_list_unref(attrs);
-
-    ns_paint_apply_text_align(layout, s);
-    apply_nowrap_align_width(layout, b);
-    ns_paint_start_align_overflowing_lines(layout);
-    return layout;
+    /* The layout text is painted with, so hit-testing sees the same line
+     * breaks and advances: fields that must not wrap, letter and word
+     * spacing, justification. */
+    return paint_inline_make_layout(b, inherited_style(b), NULL);
 }
 
 /* Recursively records each inline atomic's offset within its owning text box. */

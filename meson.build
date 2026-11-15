@@ -241,6 +241,7 @@ endif
 # installed copy named by -Dpdfjs_dir, which must then be a supported
 # version, or else from the release pinned in subprojects/pdfjs-dist.wrap.
 pdfjs_embedded = {}
+pdfjs_standard_fonts = []
 pdfjs_source = 'not built'
 if not get_option('pdfjs').disabled()
   if get_option('pdfjs_dir') != ''
@@ -256,6 +257,8 @@ if not get_option('pdfjs').disabled()
       kv = line.strip().split('\t')
       if kv[0] == 'version'
         pdfjs_version = kv[1]
+      elif kv[0] == 'font'
+        pdfjs_standard_fonts += files(kv[1])
       else
         pdfjs_embedded += {kv[0]: files(kv[1])}
       endif
@@ -265,12 +268,17 @@ if not get_option('pdfjs').disabled()
     pdfjs_sub = subproject('pdfjs-dist', required: get_option('pdfjs'))
     if pdfjs_sub.found()
       pdfjs_embedded = pdfjs_sub.get_variable('pdfjs_embedded')
+      pdfjs_standard_fonts = pdfjs_sub.get_variable('pdfjs_standard_fonts', [])
       pdfjs_version = pdfjs_sub.get_variable('pdfjs_version', 'pinned')
       pdfjs_source = pdfjs_version + ' (subprojects/pdfjs-dist.wrap)'
     endif
   endif
 endif
 have_pdfjs = pdfjs_embedded.keys().length() > 0
+if have_pdfjs and pdfjs_standard_fonts.length() == 0
+  error('pdfjs-dist: no standard fonts; the extracted subproject predates ' +
+        'them, delete subprojects/pdfjs-dist-*/ and set up again')
+endif
 if have_pdfjs
   add_project_arguments('-DNS_HAVE_PDFJS=1', language: 'c')
 endif

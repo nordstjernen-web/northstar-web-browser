@@ -127,8 +127,8 @@ license including the LLVM exceptions is reproduced in
 
 > PDF viewer library. Not in the source tree: the pinned `pdfjs-dist`
 > release is fetched by `subprojects/pdfjs-dist.wrap` at build time and
-> its `pdf.min.mjs`, `pdf.worker.min.mjs` and WebAssembly image decoders
-> are embedded in the binary.
+> its `pdf.min.mjs`, `pdf.worker.min.mjs`, WebAssembly image decoders and
+> the Foxit standard fonts are embedded in the binary.
 > <https://github.com/mozilla/pdf.js>
 >
 > Copyright Mozilla Foundation.
@@ -137,7 +137,11 @@ Licensed under the Apache License, Version 2.0. See the lexbor section
 above for the text. The embedded WebAssembly decoders carry their own
 licences, shipped in the package's `wasm/` directory: OpenJPEG
 (BSD 2-Clause), the JBIG2 decoder from PDFium (BSD 3-Clause) and qcms
-(MIT).
+(MIT). The embedded standard fonts are the Foxit fonts from PDFium
+(`standard_fonts/Foxit*.pfb`, Copyright 2014 PDFium Authors, BSD
+3-Clause, text in the package's `standard_fonts/LICENSE_FOXIT`). The
+package's Liberation Sans fonts, under GPL-2.0 with a font exception,
+are not embedded.
 
 ### minimp3 — CC0 1.0 (public domain)
 

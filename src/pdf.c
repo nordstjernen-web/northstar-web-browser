@@ -17,6 +17,7 @@
 #include "pdfjs_qcms.h"
 #include "pdf_viewer_js.h"
 #include "pdf_viewer_css.h"
+#include "pdfjs_fonts.h"
 
 #define NS_PDF_VIEWER_MAX_BYTES ((gsize)64u * 1024u * 1024u)
 #endif
@@ -94,7 +95,7 @@ static char *
 ns_pdf_viewer_csp(const char *nonce)
 {
     return g_strdup_printf(
-        "sandbox allow-scripts allow-modals allow-popups "
+        "sandbox allow-scripts allow-downloads allow-modals allow-popups "
         "allow-popups-to-escape-sandbox; "
         "default-src 'none'; script-src 'nonce-%s' 'wasm-unsafe-eval' blob:; "
         "worker-src blob:; style-src 'unsafe-inline'; "
@@ -139,6 +140,13 @@ ns_pdf_viewer_html(const guint8 *data, gsize len, const char *url,
                                sizeof(ns_pdfjs_jbig2) - 1);
     ns_pdf_append_base64_block(out, "wasm:qcms_bg.wasm", ns_pdfjs_qcms,
                                sizeof(ns_pdfjs_qcms) - 1);
+    /* Glyphs for the standard fonts a PDF names without embedding. */
+    for (gsize i = 0; i < G_N_ELEMENTS(ns_pdfjs_fonts); i++) {
+        char *id = g_strconcat("font:", ns_pdfjs_fonts[i].name, NULL);
+        ns_pdf_append_base64_block(out, id, ns_pdfjs_fonts[i].data,
+                                   ns_pdfjs_fonts[i].len);
+        g_free(id);
+    }
     ns_pdf_append_text_block(out, "pdfjs-lib", ns_pdfjs_lib);
     ns_pdf_append_text_block(out, "pdfjs-worker", ns_pdfjs_worker);
     g_string_append_printf(out, "<script nonce=\"%s\">", nonce);

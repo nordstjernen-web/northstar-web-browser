@@ -4,6 +4,18 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* The PDF viewer shows real-world PDFs. Nearly every PDF compresses its
+  pages, and DecompressionStream inside workers, where PDF.js parses,
+  handed the compressed bytes back unchanged, so pages showed no text or
+  garbage; workers now get the same zlib codec as pages, and
+  CompressionStream/DecompressionStream throw instead of passing data
+  through where no codec exists. Embedded fonts drew as symbols because
+  canvas text does not use fonts loaded through FontFace; the viewer
+  now has PDF.js draw glyph outlines instead. PDFs naming a standard
+  font without embedding it use the bundled Foxit fonts.
+* `<a download>` saves its target when clicked, instead of navigating to
+  it, and the PDF viewer's Download button saves the file. A page under
+  a CSP sandbox needs `allow-downloads` to start a download.
 * ReadableStream pulls from its source. The stream never called the
   source's pull(), ignored the queuing strategy, so a stream fed on
   demand stopped after its first chunk: PDF.js's text arrived one chunk

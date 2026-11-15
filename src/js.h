@@ -100,6 +100,7 @@ void   ns_js_add_csp_header(ns_js *js, const char *header_value);
 void   ns_js_set_control_selection(ns_js *js, const ns_node *el,
                                    gsize anchor_byte, gsize caret_byte);
 void   ns_js_set_document_sandbox(ns_js *js, ns_node *doc, const char *csp_header);
+gboolean ns_js_document_allows_downloads(const ns_js *js);
 void   ns_js_apply_meta_csp(ns_js *js, const ns_node *doc);
 gboolean ns_js_csp_form_action_allowed(const ns_js *js, const char *action_url);
 gboolean ns_js_submit_form_in_frame(ns_js *js, const ns_node *form,

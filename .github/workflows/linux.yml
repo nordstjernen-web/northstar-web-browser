@@ -109,6 +109,17 @@ jobs:
           head -3 about.txt
           grep -q 'Search duckduckgo.com' about.txt
 
+      - name: Headless PDF viewer smoke (compressed content, streamed text)
+        shell: bash
+        run: |
+          set -o pipefail
+          # Compressed page content shows only if the worker can inflate
+          # it; the last marker only if every text chunk is streamed.
+          ./builddir/src/gtk/northstar --headless --dump=text --settle-ms=8000 \
+            data/fixtures/compressed-text.pdf > pdf.txt
+          grep -q NSPDF-START pdf.txt
+          grep -q NSPDF-END pdf.txt
+
       - name: Headless JavaScript smoke (engine named, scripts run on it)
         shell: bash
         run: |

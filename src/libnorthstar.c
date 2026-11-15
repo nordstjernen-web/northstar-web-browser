@@ -3920,16 +3920,25 @@ browser_release(ns_browser *browser, gboolean have_pos, int rx, int ry,
         }
     } else if (!prevented && !browser->pending_nav) {
         const char *href = NULL;
+        const ns_node *link = NULL;
         for (const ns_node *a = node; a && !href; a = a->parent) {
             if (browser_node_is_hyperlink(a)) {
                 const char *h = ns_element_get_attr(a, "href");
-                if (h && *h) href = h;
+                if (h && *h) { href = h; link = a; }
             }
         }
         if (!href && node == press_node)
             href = ns_box_hit_link(browser->layout, (double)x, (double)y);
-        if (href && *href)
+        const char *save_as = link ? ns_element_get_attr(link, "download")
+                                   : NULL;
+        if (href && *href && save_as) {
+            /* <a download> saves the target instead of navigating; a
+             * sandboxed page needs allow-downloads. */
+            if (ns_js_document_allows_downloads(browser->js))
+                browser_js_download(href, save_as, browser);
+        } else if (href && *href) {
             browser->pending_nav = browser_resolve_navigation(browser, href);
+        }
     }
     }
 

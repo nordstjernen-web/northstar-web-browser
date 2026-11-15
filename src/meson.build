@@ -67,6 +67,14 @@ foreach name, src : pdf_viewer_embedded
     command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', 'ns_' + name],
   )
 endforeach
+if have_pdfjs
+  pdf_viewer_headers += custom_target(
+    'pdfjs_fonts.h',
+    input: ['../scripts/embed-pdfjs-fonts.py'] + pdfjs_standard_fonts,
+    output: 'pdfjs_fonts.h',
+    command: [python, '@INPUT0@', '@OUTPUT@'] + pdfjs_standard_fonts,
+  )
+endif
 
 northstar_engine_sources = files(
   'anim.c',

@@ -283,9 +283,12 @@ the release pinned in `subprojects/pdfjs-dist.wrap` (by version and
 SHA-256) into the git-ignored `subprojects/pdfjs-dist-<version>/`. With
 `pdfjs_dir`, it uses an installed copy instead, which
 `scripts/check-pdfjs.py` vets at setup: it must hold the library, the
-worker and the three WebAssembly image decoders, in either the pdfjs-dist
-layout (`build/pdf.min.mjs`, `wasm/`) or the generic viewer layout
-distributions install (`build/pdf.mjs`, `web/wasm/`), and be PDF.js 6.5
+worker, the three WebAssembly image decoders and the Foxit standard fonts
+(the BSD-licensed glyph data for PDFs that name a standard font without
+embedding it), in either the pdfjs-dist
+layout (`build/pdf.min.mjs`, `wasm/`, `standard_fonts/`) or the generic
+viewer layout distributions install (`build/pdf.mjs`, `web/wasm/`,
+`web/standard_fonts/`), and be PDF.js 6.5
 or a later 6.x — the range the viewer in `data/js/pdf-viewer.js` is written
 for. A directory that fails the check fails the build, so a distribution
 package cannot silently ship a viewer against an untested PDF.js.
@@ -293,6 +296,12 @@ package cannot silently ship a viewer against an untested PDF.js.
 ```sh
 meson setup builddir -Dpdfjs=enabled -Dpdfjs_dir=/usr/share/pdf.js   # Arch: pacman -S pdfjs
 ```
+
+`data/fixtures/compressed-text.pdf`, written by `scripts/gen-pdf-fixture.py`,
+is the viewer's smoke test: its page content is compressed and holds
+more text than PDF.js sends in one chunk, so the Linux CI job's text dump
+shows its last marker only when the worker inflates the page and the
+text stream delivers every chunk.
 
 Debian and Ubuntu's `libjs-pdf` (2.14) is too old; Fedora, MSYS2 and
 Homebrew have no package, so those builds use the pinned release. To move

@@ -170,6 +170,22 @@ ns_html_escape_text(const char *s)
     return g_string_free(g, FALSE);
 }
 
+/* Appends s as the body of a JSON or JavaScript string literal. Quotes,
+ * backslash, control characters and <, >, & become \uXXXX, so the result
+ * is valid in both and cannot close a surrounding <script>. */
+void
+ns_js_string_escape_append(GString *out, const char *s)
+{
+    for (const char *p = s ? s : ""; *p; p++) {
+        guchar c = (guchar)*p;
+        if (c < 0x20 || c == '\'' || c == '"' || c == '\\' ||
+            c == '<' || c == '>' || c == '&')
+            g_string_append_printf(out, "\\u%04x", c);
+        else
+            g_string_append_c(out, (char)c);
+    }
+}
+
 /* Builds the synthetic HTML page that displays a top-level image URL; caller frees. */
 char *
 ns_html_image_document(const char *url)

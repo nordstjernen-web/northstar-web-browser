@@ -4868,11 +4868,7 @@ static char *
 about_json_escape(const char *s)
 {
     GString *o = g_string_new(NULL);
-    for (; s && *s; s++) {
-        if (*s == '"' || *s == '\\') g_string_append_c(o, '\\');
-        if ((guchar)*s < 0x20) { g_string_append_printf(o, "\\u%04x", *s); continue; }
-        g_string_append_c(o, *s);
-    }
+    ns_js_string_escape_append(o, s);
     return g_string_free(o, FALSE);
 }
 
@@ -5031,12 +5027,7 @@ synthesize_about_response(const char *url, const char *top_url,
         ns_config_unlock();
         const char *engine = engine_dup;
         GString *esc_engine = g_string_new(NULL);
-        for (const char *p = engine; *p; p++) {
-            if (*p == '\'' || *p == '\\' || *p == '<' || *p == '"')
-                g_string_append_printf(esc_engine, "\\u%04x", (guchar)*p);
-            else
-                g_string_append_c(esc_engine, *p);
-        }
+        ns_js_string_escape_append(esc_engine, engine);
         char *engine_host = ns_url_host_from(engine);
         const char *search_name = "the web";
         g_autofree char *engine_host_lower = NULL;

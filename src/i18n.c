@@ -6,6 +6,7 @@
  */
 
 #include "i18n.h"
+#include "html.h"
 
 #include <string.h>
 
@@ -173,21 +174,6 @@ ns_i18n_html_dir(void)
     return "ltr";
 }
 
-/* Appends s as the body of a JavaScript string literal, \u-escaping quotes, backslash,
- * HTML-significant characters and controls. */
-static void
-append_js_escaped(GString *out, const char *s)
-{
-    for (; *s; s++) {
-        guchar c = (guchar)*s;
-        if (c < 0x20 || c == '\'' || c == '"' || c == '\\' ||
-            c == '<' || c == '>' || c == '&')
-            g_string_append_printf(out, "\\u%04x", c);
-        else
-            g_string_append_c(out, (char)c);
-    }
-}
-
 /* Expands translation markers in a built-in page template; caller frees.
  * {{Text}} becomes the HTML-escaped translation of Text, {{js:Text}} the same for use
  * inside a JavaScript string literal, and {{@lang}} / {{@dir}} the UI language's
@@ -211,7 +197,7 @@ ns_i18n_expand(const char *tmpl)
         } else if (strcmp(key, "@dir") == 0) {
             g_string_append(out, ns_i18n_html_dir());
         } else if (g_str_has_prefix(key, "js:")) {
-            append_js_escaped(out, ns_i18n(key + 3));
+            ns_js_string_escape_append(out, ns_i18n(key + 3));
         } else {
             char *esc = g_markup_escape_text(ns_i18n(key), -1);
             g_string_append(out, esc);

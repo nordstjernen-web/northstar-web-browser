@@ -34998,11 +34998,7 @@ ns_box_accumulate_transform(const ns_box *box, ns_mat4 *out)
         ns_mat4 m;
         ns_mat4_identity(&m);
         gboolean local = FALSE;
-        if (b->style &&
-            (b->style->values[NS_CSS_TRANSFORM] ||
-             b->style->values[NS_CSS_TRANSLATE] ||
-             b->style->values[NS_CSS_ROTATE] ||
-             b->style->values[NS_CSS_SCALE])) {
+        if (ns_style_has_transform(b->style)) {
             ns_css_transform eff;
             eff.n_ops = 0;
             ns_css_style_effective_transform(b->style, NULL, &eff);

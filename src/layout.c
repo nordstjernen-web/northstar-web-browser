@@ -14950,8 +14950,7 @@ box_hit_untransform_point(const ns_box *b, double *x, double *y)
 {
     const ns_style *s = b->style;
     if (!s) return TRUE;
-    if (!(s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-          s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE]))
+    if (!ns_style_has_transform(s))
         return TRUE;
     ns_css_transform eff;
     eff.n_ops = 0;
@@ -16358,9 +16357,7 @@ box_defers_hit_layer(const ns_box *b, int *out_z)
 static gboolean
 box_has_hit_transform(const ns_box *b)
 {
-    const ns_style *s = b ? b->style : NULL;
-    return s && (s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-                 s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE]);
+    return b && ns_style_has_transform(b->style);
 }
 
 /* True for an SVG box painting no background or border, so hits pass through it. */

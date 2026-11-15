@@ -62,6 +62,7 @@ gboolean ns_html_is_raw_text(const char *tag);
 void ns_html_escape_append(GString *out, const char *s, gboolean escape_quotes);
 
 char *ns_html_escape_text(const char *s);
+void ns_js_string_escape_append(GString *out, const char *s);
 
 char *ns_html_declared_charset(const char *body, gsize len,
                                const char *content_type);

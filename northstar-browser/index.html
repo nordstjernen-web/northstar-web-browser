@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Northstar Browser &middot; the free-software web browser written from scratch in C</title>
-<meta name="description" content="Northstar is a minimalist web browser written from scratch in C - one window, one page, one process, about 217,000 lines of original C. Free software under the GNU GPL v3 or later. Runs on Linux, macOS and Windows. No telemetry, no JIT, no AI.">
+<meta name="description" content="Northstar is a minimalist web browser written from scratch in C - one window, one page, one process, about 219,000 lines of original C. Free software under the GNU GPL v3 or later. Runs on Linux, macOS and Windows. No telemetry, no JIT, no AI.">
 <link rel="canonical" href="https://www.nordstjernen.org/northstar-browser/">
 <meta name="theme-color" content="#070d3a">
 <meta property="og:type" content="website">
@@ -13,8 +13,8 @@
 <meta property="og:title" content="Northstar Browser">
 <meta property="og:description" content="A minimalist, free-software web browser written from scratch in C. One window, one page, one process. No telemetry, no JIT.">
 <meta property="og:url" content="https://www.nordstjernen.org/northstar-browser/">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-22.png">
-<meta property="og:image:alt" content="Northstar 1.0.22 showing a Wikipedia article">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23 playing a YouTube video">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="../assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -24,9 +24,9 @@
   "name": "Northstar Browser",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Linux, macOS, Windows",
-  "softwareVersion": "1.0.22",
+  "softwareVersion": "1.0.23",
   "url": "https://www.nordstjernen.org/northstar-browser/",
-  "downloadUrl": "https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22",
+  "downloadUrl": "https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -71,13 +71,13 @@
   <main class="content">
 
         <h1 id="about" style="color:#003366;">Northstar Browser</h1>
-        <p class="lead">Northstar is a minimalist web browser written from scratch in C. One window, one page, one process &mdash; about 217,000 lines of original C, small enough for one person to read and audit end-to-end. It carries no upstream browser engine: no Gecko, no WebKit, no Blink. It is free software under the <b>GNU General Public License, version 3 or later</b>, and it runs on Linux, macOS and Windows &mdash; on Windows from the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
+        <p class="lead">Northstar is a minimalist web browser written from scratch in C. One window, one page, one process &mdash; about 219,000 lines of original C, small enough for one person to read and audit end-to-end. It carries no upstream browser engine: no Gecko, no WebKit, no Blink. It is free software under the <b>GNU General Public License, version 3 or later</b>, and it runs on Linux, macOS and Windows &mdash; on Windows from the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
 
-        <p class="release-line">Northstar Browser version 1.0.22 released! Every navigation is checked against Google Safe Browsing, on by default with the local blocklist as fallback; the about: pages and the main menus are translated into all 40 bundled languages; gradient layers honour <code>background-size</code>, <code>-position</code> and <code>-repeat</code>; canvas <code>drawImage(video)</code> draws the current frame; and a source-wide clean-up merged duplicated helpers and removed dead code. 1.0.21 added Save Page As, <code>--ignore-certificate-errors</code> for home-lab servers and security fixes for <code>postMessage</code> and <code>Function.caller</code>. <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">More info here</a>.</p>
+        <p class="release-line">Northstar Browser version 1.0.23 released! SVG SMIL animation runs, inline and in SVG images; the window follows the Windows display scale at 125%, 150% and 175%; the Google sign-in email field takes input again; quickjs-ng is updated; and a source review brought security fixes for frame realms and inline handlers, cookies on cross-site frame requests and the unverified-TLS retry, the seccomp filter, and a pointer-lock use-after-free. 1.0.22 added Google Safe Browsing, on by default, and a UI translated into all 40 languages. <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">More info here</a>.</p>
 
         <figure class="shot">
-          <a href="../screenshots/northstar-1-0-22.png"><img src="../screenshots/northstar-1-0-22.png" width="1239" height="984" loading="lazy" alt="Northstar 1.0.22 showing the Wikipedia article on A Farewell to Arms, with the contents sidebar and the infobox, below the classic labelled toolbar"></a>
-          <figcaption class="cap">Northstar 1.0.22 showing a Wikipedia article &mdash; one window, one page, the classic labelled toolbar. <a href="../screenshots.html">more screenshots &raquo;</a></figcaption>
+          <a href="../screenshots/northstar-1-0-23.png"><img src="../screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 playing a YouTube video, with the recommended videos beside it, below the classic labelled toolbar"></a>
+          <figcaption class="cap">Northstar 1.0.23 playing a YouTube video &mdash; one window, one page, the classic labelled toolbar. <a href="../screenshots.html">more screenshots &raquo;</a></figcaption>
         </figure>
 
         <div class="features">
@@ -114,17 +114,17 @@
         <h2 id="specs">specifications</h2>
         <div class="table-scroll">
         <table class="spec">
-          <caption class="sr-only">Technical specifications of Northstar 1.0.22</caption>
+          <caption class="sr-only">Technical specifications of Northstar 1.0.23</caption>
           <tr><th scope="row">version</th>
-              <td><b>1.0.22</b> &mdash; released 8 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">release notes</a></td></tr>
+              <td><b>1.0.23</b> &mdash; released 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">release notes</a></td></tr>
           <tr><th scope="row">character</th>
               <td>minimalist GPL edition of the Nordstjernen project &middot; single window, single page, single process</td></tr>
           <tr><th scope="row">language</th>
-              <td>C &middot; ~217 kLOC original, excluding the vendored web-text-lib, WAMR, Wuffs and audio decoders &middot; GTK&nbsp;4 shell &middot; fully auditable</td></tr>
+              <td>C &middot; ~219 kLOC original, excluding the vendored web-text-lib, WAMR, Wuffs and audio decoders &middot; GTK&nbsp;4 shell &middot; fully auditable</td></tr>
           <tr><th scope="row">html / css</th>
               <td><a href="https://github.com/lexbor/lexbor">lexbor</a> after v3.0.1 (parser, WHATWG URL, selectors) &middot; the engine's own cascade and layout</td></tr>
           <tr><th scope="row">javascript</th>
-              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ at <code>e22ce4d</code> &mdash; bytecode interpreter, no JIT &middot; or the original <a href="https://bellard.org/quickjs/">QuickJS</a> with <code>-Djs_engine=quickjs</code></td></tr>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ at <code>147d01c</code> &mdash; bytecode interpreter, no JIT &middot; or the original <a href="https://bellard.org/quickjs/">QuickJS</a> with <code>-Djs_engine=quickjs</code></td></tr>
           <tr><th scope="row">text</th>
               <td>web-text-lib &mdash; the vendored Pango fork (formerly <a href="https://github.com/nordstjernen-web/ns-pango">ns-pango</a>) with a cross-layout shaping cache, shared with Nordstjernen &middot; HarfBuzz &middot; FriBidi</td></tr>
           <tr><th scope="row">webassembly</th>
@@ -162,9 +162,9 @@
         <p>See the <a href="../index.html#specs">side-by-side comparison of Nordstjernen and Northstar</a> on the home page.</p>
 
         <h2 id="download">download</h2>
-        <p>Latest release: Northstar <b>1.0.22</b> &mdash; released 8 November 2026, as source and on the
+        <p>Latest release: Northstar <b>1.0.23</b> &mdash; released 14 November 2026, as source and on the
         <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.
-        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">full release notes &raquo;</a></p>
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">full release notes &raquo;</a></p>
 
         <p>The most recent prebuilt Linux and Windows zips are from Northstar <b>1.0.7</b> &mdash; released 8 August 2026.
         <a href="../northstar-release-1-0-7.html">read the announcement &raquo;</a> &middot;
@@ -173,9 +173,9 @@
         <table class="spec dl">
           <caption class="sr-only">Northstar downloads</caption>
           <tr>
-            <th scope="row">Source (1.0.22)</th>
-            <td><a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.22.tar.gz">1.0.22.tar.gz</a> &middot;
-                <a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.22.zip">1.0.22.zip</a></td>
+            <th scope="row">Source (1.0.23)</th>
+            <td><a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.23.tar.gz">1.0.23.tar.gz</a> &middot;
+                <a href="https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.23.zip">1.0.23.zip</a></td>
           </tr>
           <tr>
             <th scope="row">Windows</th>
@@ -219,7 +219,7 @@
         archive first saves repeating it on <code>northstar.exe</code> afterwards, since the
         mark is copied to every file extracted from a blocked archive.</p>
 
-        <p><a class="btn-red" href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">Download Northstar 1.0.22 &raquo;</a></p>
+        <p><a class="btn-red" href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Download Northstar 1.0.23 &raquo;</a></p>
 
         <h2 id="build">build and run</h2>
         <p>Linux is the primary platform. On Debian or Ubuntu, install the development
@@ -259,6 +259,10 @@
 
         <h2 id="news">news</h2>
         <ul class="news">
+        <li><time class="date" datetime="2026-11-14">14&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.23</b> released &mdash; SVG SMIL animation, Windows display scaling, a Google sign-in fix, quickjs-ng updated, and security fixes for frame realms, cross-site frame cookies, the seccomp filter and pointer lock.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Release notes &raquo;</a></li>
+
         <li><time class="date" datetime="2026-11-08">8&nbsp;NOV&nbsp;2026</time> &middot;
         Northstar <b>1.0.22</b> released &mdash; Google Safe Browsing on by default, the about: pages and the main UI translated into all 40 languages, gradient, canvas and form-control fixes, and a source-wide removal of duplicated helpers and dead code.
         <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">Release notes &raquo;</a></li>

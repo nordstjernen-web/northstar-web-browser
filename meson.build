@@ -237,8 +237,40 @@ if have_avif
 endif
 
 # PDF.js, embedded into the PDF viewer page at build time; see src/pdf.c.
-pdfjs_sub = subproject('pdfjs-dist', required: get_option('pdfjs'))
-have_pdfjs = pdfjs_sub.found()
+# -Dpdfjs is optional (auto) or required (enabled). It comes from an
+# installed copy named by -Dpdfjs_dir, which must then be a supported
+# version, or else from the release pinned in subprojects/pdfjs-dist.wrap.
+pdfjs_embedded = {}
+pdfjs_source = 'not built'
+if not get_option('pdfjs').disabled()
+  if get_option('pdfjs_dir') != ''
+    pdfjs_check = run_command(
+      import('python').find_installation(),
+      files('scripts/check-pdfjs.py'), get_option('pdfjs_dir'),
+      check: false)
+    if pdfjs_check.returncode() != 0
+      error('-Dpdfjs_dir: ' + pdfjs_check.stderr().strip())
+    endif
+    pdfjs_version = ''
+    foreach line : pdfjs_check.stdout().strip().split('\n')
+      kv = line.strip().split('\t')
+      if kv[0] == 'version'
+        pdfjs_version = kv[1]
+      else
+        pdfjs_embedded += {kv[0]: files(kv[1])}
+      endif
+    endforeach
+    pdfjs_source = pdfjs_version + ' from ' + get_option('pdfjs_dir')
+  else
+    pdfjs_sub = subproject('pdfjs-dist', required: get_option('pdfjs'))
+    if pdfjs_sub.found()
+      pdfjs_embedded = pdfjs_sub.get_variable('pdfjs_embedded')
+      pdfjs_version = pdfjs_sub.get_variable('pdfjs_version', 'pinned')
+      pdfjs_source = pdfjs_version + ' (subprojects/pdfjs-dist.wrap)'
+    endif
+  endif
+endif
+have_pdfjs = pdfjs_embedded.keys().length() > 0
 if have_pdfjs
   add_project_arguments('-DNS_HAVE_PDFJS=1', language: 'c')
 endif
@@ -436,7 +468,7 @@ install_data(
 )
 
 summary({'WebAssembly (WAMR)': have_wasm}, section: 'Features')
-summary({'PDF viewer (PDF.js)': have_pdfjs}, section: 'Features')
+summary({'PDF viewer (PDF.js)': pdfjs_source}, section: 'Features')
 summary({'AV1 video (dav1d)': have_av1}, section: 'Features')
 summary({'VP9 video (libvpx)': have_vp9}, section: 'Features')
 summary({'H.264 video (OpenH264)': have_h264}, section: 'Features')

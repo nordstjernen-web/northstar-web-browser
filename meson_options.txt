@@ -19,4 +19,6 @@ option('audio', type: 'feature', value: 'auto',
 option('js_engine', type: 'combo', choices: ['quickjs-ng', 'quickjs'], value: 'quickjs-ng',
        description: 'JavaScript engine: quickjs-ng (default) or the original QuickJS by Fabrice Bellard, each built from its pinned subproject.')
 option('pdfjs', type: 'feature', value: 'auto',
-       description: 'Show PDF documents in a viewer built on PDF.js, run as sandboxed script inside the engine. The pinned pdfjs-dist release is fetched through subprojects/pdfjs-dist.wrap and embedded at build time, never committed. Auto: used when the wrap can be fetched or is already in subprojects/. Without it a PDF shows a notice with a link to the file.')
+       description: 'Show PDF documents in a viewer built on PDF.js, run as sandboxed script inside the engine and embedded at build time. Auto: built when PDF.js is available. Enabled: required, the build fails without it. Disabled: left out, and a PDF shows a notice with a link to the file. PDF.js comes from pdfjs_dir when that is set, else from the release pinned in subprojects/pdfjs-dist.wrap, which is fetched and never committed.')
+option('pdfjs_dir', type: 'string', value: '',
+       description: 'Directory of an installed PDF.js to embed instead of the pinned release, such as /usr/share/pdf.js. Both the pdfjs-dist layout (build/pdf.min.mjs, wasm/) and the generic viewer layout (build/pdf.mjs, web/wasm/) are accepted. Must hold PDF.js 6.5 or a later 6.x; anything else fails the build.')

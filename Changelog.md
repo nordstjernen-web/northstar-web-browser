@@ -4,6 +4,13 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* PDF.js can come from an installed copy: `-Dpdfjs_dir=DIR` (for
+  example Arch's `/usr/share/pdf.js`) uses it instead of fetching the
+  pinned release. Setup checks the directory: it must hold the library,
+  the worker and the WebAssembly decoders, in the pdfjs-dist or the
+  distribution layout, and be PDF.js 6.5 or a later 6.x. `-Dpdfjs=enabled`
+  makes PDF.js a required dependency; `auto` keeps it optional. The
+  setup summary names the PDF.js version and where it came from.
 * Text fields and textareas select text with the mouse. Dragging selects
   from the press to the pointer, and to the end of the value when the
   pointer leaves the field. A double-click selects a word, and a drag

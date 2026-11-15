@@ -16,6 +16,28 @@
 <meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
 <meta property="og:image:alt" content="Northstar 1.0.23 playing a YouTube video">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
+<link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
+<link rel="alternate" hreflang="bn" href="https://www.nordstjernen.org/index_bn.html">
+<link rel="alternate" hreflang="zh" href="https://www.nordstjernen.org/index_cn.html">
+<link rel="alternate" hreflang="de" href="https://www.nordstjernen.org/index_de.html">
+<link rel="alternate" hreflang="es" href="https://www.nordstjernen.org/index_es.html">
+<link rel="alternate" hreflang="fr" href="https://www.nordstjernen.org/index_fr.html">
+<link rel="alternate" hreflang="hi" href="https://www.nordstjernen.org/index_hi.html">
+<link rel="alternate" hreflang="id" href="https://www.nordstjernen.org/index_id.html">
+<link rel="alternate" hreflang="ja" href="https://www.nordstjernen.org/index_jp.html">
+<link rel="alternate" hreflang="ko" href="https://www.nordstjernen.org/index_ko.html">
+<link rel="alternate" hreflang="mr" href="https://www.nordstjernen.org/index_mr.html">
+<link rel="alternate" hreflang="nb" href="https://www.nordstjernen.org/index_no.html">
+<link rel="alternate" hreflang="pt" href="https://www.nordstjernen.org/index_pt.html">
+<link rel="alternate" hreflang="ru" href="https://www.nordstjernen.org/index_ru.html">
+<link rel="alternate" hreflang="sw" href="https://www.nordstjernen.org/index_sw.html">
+<link rel="alternate" hreflang="ta" href="https://www.nordstjernen.org/index_ta.html">
+<link rel="alternate" hreflang="te" href="https://www.nordstjernen.org/index_te.html">
+<link rel="alternate" hreflang="tr" href="https://www.nordstjernen.org/index_tr.html">
+<link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
+<link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
+<link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <script type="application/ld+json">
 {
@@ -95,11 +117,11 @@
         </div>
 
         <h2 id="northstar">the Northstar browser</h2>
-        <p><a href="northstar-browser/">Northstar</a> is the minimalist sibling of Nordstjernen: a single-window, single-page, single-process desktop browser built from the same clean-room C engine, licensed under the <b>GNU GPL, version 3 or later</b>. It keeps the standards-first engine &mdash; lexbor, quickjs-ng (no JIT), web-text-lib, WAMR, Wuffs &mdash; in about 219,000 lines of original C, with WebExtensions support, while leaving out tabs, per-tab renderer processes, WebGL and WebGPU: the page engine runs on its own thread inside the one browser process. It renders SVG in-engine, decodes WebP and APNG, plays MPEG-1 <code>&lt;video&gt;</code> and, since 1.0.13, streaming video through Media Source Extensions and plain MP4 and WebM files (AV1, VP9 or H.264 with AAC or Opus), prints through the system print dialog, and greets you with a sunny ark comic and a classic Mozilla-style toolbar. It runs on Linux, macOS and Windows &mdash; on Windows from the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a> &mdash; behind a Landlock filesystem sandbox and a default-deny seccomp filter on Linux, which since 1.0.15 also refuses executable memory wherever page content runs. Since 1.0.22 it checks every navigation against Google Safe Browsing, falling back to a local blocklist, and its built-in pages and menus are translated into 40 languages. Since 1.0.23 it runs SVG SMIL animation and follows the Windows display scale.</p>
+        <p><a href="northstar-browser/">Northstar</a> is the minimalist sibling of Nordstjernen, licensed under the <b>GNU GPL, version 3 or later</b>: one window, one page and one process, built from the same clean-room engine in about 219,000 lines of original C. It leaves out tabs, per-tab renderer processes, WebGL and WebGPU, but keeps streaming video, printing, WebExtensions, Google Safe Browsing and a UI in 40 languages, behind a Landlock and seccomp sandbox on Linux. It runs on Linux, macOS and Windows, where it is on the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
         <p><a href="northstar-browser/">Read the full Northstar documentation &raquo;</a> &middot; or see the <a href="#specs">comparison table below</a> for how the three browsers differ.</p>
 
         <h2 id="southstar">the Southstar browser</h2>
-        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> is the Rust version of Nordstjernen. Rather than starting from an empty repository, it started from the working browser: the Nordstjernen C codebase, its full history included, trimmed to the desktop (Linux, Windows, macOS, FreeBSD and NetBSD) and ported to Rust module by module while it kept running. In October 2026 the last of the project&rsquo;s C went, the QuickJS-ng engine included: all of Southstar&rsquo;s own code is now Rust &mdash; about 385,000 lines in some 163 crates &mdash; and C remains only in the system libraries it links. Since 1.0.8 it builds with Cargo alone (<code>cargo xtask</code>) instead of meson, and the WebP, brotli, zstd and deflate decoders and the Public Suffix List that used to come from C libraries are Rust crates too. Page JavaScript runs on <a href="https://github.com/boa-dev/boa">Boa</a>, a JavaScript interpreter written in Rust (no JIT), which passes all 52,133 test262 tests outside <code>test/staging</code>; HTML is parsed by its own Rust parser, text is laid out by a Rust port of Pango (with web fonts shaped and drawn by HarfRust and skrifa, so untrusted font data never reaches HarfBuzz or FreeType), HTTP/2 and TLS (rustls, with post-quantum key exchange) run in Rust, and WebAssembly runs on the wasmi interpreter. Since 1.0.9 a second shell, in plain Java with Swing, drives the same sandboxed renderer without loading any native code into the JVM, and doubles as an embedding library. The current release is Southstar <b>1.0.9</b>, from 14 November 2026: on the <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a> for Windows, on <a href="https://crates.io/crates/southstar">crates.io</a>, and with a portable Linux zip and <code>.deb</code> packages for Debian 13, Debian forky and sid, and Ubuntu 24.04 and 26.04. How the port was done is in <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> is Nordstjernen ported to Rust, module by module, while it kept running: since October 2026 all of its own code is Rust &mdash; about 385,000 lines in some 163 crates &mdash; built with Cargo alone. Page JavaScript runs on <a href="https://github.com/boa-dev/boa">Boa</a>, a Rust interpreter with no JIT that passes all of test262, and HTML parsing, text layout, TLS and WebAssembly are Rust too. Southstar <b>1.0.9</b> is on the <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, on <a href="https://crates.io/crates/southstar">crates.io</a>, and has Linux packages on <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>; how the port was done is in <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
 
         <p>Read more about the <a href="innovations-in-nordstjernen-web-browser.html">innovations in the Nordstjernen web browser</a>.</p>
 

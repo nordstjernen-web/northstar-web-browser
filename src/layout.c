@@ -1718,12 +1718,6 @@ control_pad_spaces(const ns_style *s, ns_css_prop prop)
     return n;
 }
 
-static int
-text_input_leading_spaces(const ns_style *s)
-{
-    return control_pad_spaces(s, NS_CSS_PADDING_LEFT);
-}
-
 #define NS_TEXT_INPUT_MAX_COLUMNS 4096
 
 static GHashTable *g_input_columns_for_layout;
@@ -3039,10 +3033,9 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
             if (!inline_run_at_line_start(ctx->out))
                 g_string_append(ctx->out, "\xc2\xa0\xc2\xa0\xc2\xa0");
             gsize start = ctx->out->len;
+            /* The input's own box applies its CSS padding; approximating it
+             * with spaces here as well put the text twice the padding in. */
             g_string_append(ctx->out, "\xc2\xa0");
-            int leading = text_input_leading_spaces(s);
-            for (int i = 0; i < leading; i++)
-                g_string_append(ctx->out, "\xc2\xa0");
             const char *real_value = ns_input_used_value(n);
             const char *v = real_value;
             gboolean is_placeholder = FALSE;
@@ -13798,7 +13791,7 @@ collect_text_input_columns(const ns_box *b, GHashTable *cols)
         glong shown = text_input_display_cps(b->dom);
         double cell = shown > 0 ? control_char_cell_px(b->style) : 0;
         if (cell > 0) {
-            int overhead = 2 + text_input_leading_spaces(b->style);
+            int overhead = 2;
             double cells = floor(b->content_width / cell) - overhead;
             int fit = cells < 1 ? 1
                     : cells > NS_TEXT_INPUT_MAX_COLUMNS

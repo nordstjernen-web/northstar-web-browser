@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trình duyệt Web Nordstjernen - nhỏ gọn, ổn định, độc lập. Viết bằng C.</title>
-<meta name="description" content="Nordstjernen - một trình duyệt web độc lập được viết từ đầu bằng C. Không thu thập dữ liệu, không JIT.">
+<meta name="description" content="Nordstjernen là một trình duyệt web được viết từ đầu bằng C. Tập trung vào việc hỗ trợ các tiêu chuẩn HTML và CSS. Chạy trên Windows, Mac và Linux, Android và Java.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -28,71 +28,144 @@
 <link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
 <link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="vi">
+<meta property="og:title" content="Trình duyệt Web Nordstjernen">
+<meta property="og:description" content="Một trình duyệt web được viết từ đầu bằng C.">
+<meta property="og:url" content="https://www.nordstjernen.org/index_vi.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23 đang phát một video YouTube">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nordstjernen",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
+  "softwareVersion": "1.0.47",
+  "url": "https://www.nordstjernen.org/",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="frame">
 
-  <div class="header">
+  <a class="skip-link" href="#about">Chuyển đến nội dung</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.gif" width="144" height="50" alt="Xem tốt nhất trên Nordstjernen">
+    </a>
     <div class="brand">
-      <a href="index.html"><img class="logo" src="assets/nordstjernen.svg" alt="Logo Nordstjernen"></a>
-      <span class="title"><a href="index.html">Nordstjernen</a></span>
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Logo Nordstjernen"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
     </div>
-    <div class="tag">nhỏ gọn, ổn định, độc lập &middot; viết từ đầu bằng C &middot; không JIT, không thu thập dữ liệu</div>
-  </div>
+    <p class="tag">Nordstjernen là một trình duyệt web độc lập và độc đáo</p>
+  </header>
 
   <nav class="nav" aria-label="Primary">
     <a href="#about">giới thiệu</a>
+    <a href="news.html">tin tức</a>
     <a href="screenshots.html">ảnh chụp màn hình</a>
-    <a href="#download">tải xuống</a>
+    <a href="download.html">tải xuống</a>
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
     <input type="checkbox" id="nav-more" class="nav-more-toggle">
     <label class="nav-more-btn" for="nav-more">Thêm <span aria-hidden="true">&#9662;</span></label>
     <div class="nav-sec">
-      <a href="#specs">thông số kỹ thuật</a>
+      <a href="specs.html">thông số kỹ thuật</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">phiên bản phát hành</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
-        <a id="about"></a>
-        <h1>Trình duyệt Web Nordstjernen</h1>
-        <p class="lead">Nordstjernen là một trình duyệt web, được viết từ đầu bằng C, tập trung vào việc hỗ trợ các tiêu chuẩn HTML và CSS. Nó chạy trên Windows, Mac và Linux, với bản port Android đang được phát triển. Nordstjernen được xây dựng tại Na Uy.</p>
+        <h1 id="about" style="color:#003366;">Trình duyệt Web Nordstjernen</h1>
+        <p class="lead">Nordstjernen là một trình duyệt web được viết từ đầu bằng C, tập trung vào việc hỗ trợ các tiêu chuẩn HTML và CSS. Trình duyệt chạy trên Windows, macOS và Linux, với các bản dựng cho Android, FreeBSD, NetBSD và JVM. Nordstjernen được phát triển tại Na Uy.</p>
 
-        <div class="shot">
-          <a href="screenshots/screenshot-1-0-47.png"><img src="screenshots/screenshot-1-0-47.png" width="1249" height="822" loading="lazy" alt="Nordstjernen đang hiển thị một trang web"></a>
-          <div class="cap">Nordstjernen đang hiển thị một trang. <a href="screenshots.html">thêm ảnh chụp màn hình &raquo;</a></div>
+
+        <figure class="shot">
+          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 đang phát một video YouTube, bên cạnh là các video đề xuất, phía trên là thanh công cụ cổ điển có nhãn"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 đang phát một video YouTube &mdash; một cửa sổ, một trang, thanh công cụ cổ điển có nhãn. <a href="screenshots.html">thêm ảnh chụp màn hình &raquo;</a></figcaption>
+        </figure>
+
+        <p class="release-line">Đã phát hành Nordstjernen <b>1.0.47</b> &mdash; trình phân tích HTML5 riêng viết bằng Rust an toàn, QuickJS với heap được gia cố, trình xem PDF.js và hoạt ảnh SVG SMIL. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Ghi chú phát hành &raquo;</a></p>
+        <p class="release-line">Đã phát hành Northstar <b>1.0.23</b> &mdash; hoạt ảnh SVG SMIL, hỗ trợ tỷ lệ hiển thị trên Windows và các bản sửa lỗi bảo mật. <a href="northstar-browser/">Giới thiệu Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Ghi chú phát hành &raquo;</a></p>
+        <p class="release-line">Đã phát hành Southstar <b>1.0.9</b> &mdash; giao diện thuần Java, hoạt ảnh SVG SMIL và bản sửa cho mọi phát hiện của một đợt kiểm toán bảo mật. <a href="#southstar">Giới thiệu Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Ghi chú phát hành &raquo;</a></p>
+
+        <div class="features">
+        <p class="feature"><b>Tiêu chuẩn HTML.</b> Hành vi được đối chiếu với văn bản đặc tả, từng phần một, chứ không phải với một trình duyệt khác: 141 mục đặc tả WHATWG HTML được triển khai đầy đủ, 31 mục triển khai một phần và không mục nào bị thiếu. Trình duyệt vượt qua <b>91,5%</b> bộ <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> ở các bài kiểm tra con <code>html/</code>, <code>dom/</code> và <code>url/</code>, cùng 73,2% ở <code>css/</code> (tháng 10 năm 2026) &mdash; xem <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
+        <p class="feature"><b>An toàn.</b> Mỗi tab chạy trong một tiến trình kết xuất riêng được cô lập trong hộp cát &mdash; seccomp + Landlock trên Linux, hồ sơ Seatbelt trên macOS, chính sách giảm thiểu tiến trình trên Windows. Cả bộ máy JavaScript lẫn bộ máy WebAssembly đều không có JIT.</p>
+        <p class="feature"><b>Tối giản.</b> Bộ máy lõi gồm khoảng 268.000 dòng mã C và tệp header của dự án, chưa tính các thư viện đi kèm và tài nguyên được sinh tự động &mdash; đủ nhỏ để một người có thể đọc và kiểm tra toàn bộ từ đầu đến cuối.</p>
+        <p class="feature"><b>Mạnh mẽ.</b> Trình phân tích HTML5 riêng viết bằng Rust an toàn, QuickJS với heap được gia cố, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 và WebGPU, Service Workers và Streams. <code>&lt;video&gt;</code> nội tuyến &mdash; MPEG-1, WebM và MP4 qua bộ giải mã của hệ điều hành &mdash; với HLS, DASH và phụ đề, cùng với SVG có hoạt ảnh SMIL, MathML và trình xem PDF.js.</p>
+        <p class="feature"><b>Tự động hóa.</b> <code>nordstjernen --mcp</code> cho phép một tác tử cục bộ đọc và điều khiển cửa sổ &mdash; tắt cho đến khi được cho phép, chỉ qua loopback, xác thực bằng token &mdash; còn <code>--webdriver</code> cung cấp W3C WebDriver cho Selenium và các framework kiểm thử khác. Bản thân trình duyệt không có trợ lý AI.</p>
+        <p class="feature"><b>In ấn.</b> <code>Ctrl+P</code> phân trang nội dung theo <code>@media print</code>, <code>@page</code> và các điểm ngắt trang, rồi chuyển các trang cho hộp thoại in của chính hệ điều hành. <code>--dump=print:FILE</code> ghi cùng các trang đó ra tệp PDF mà không cần máy in.</p>
+        <p class="feature"><b>Nhanh.</b> web-text-lib, bản fork Pango nằm ngay trong mã nguồn, lưu đệm văn bản đã được định hình giữa các lần dàn trang và giảm 24% thời gian dàn trang trên các trang nhiều bảng. Việc nâng cấp lên HTTP/3 đi qua bộ đệm alt-svc thay vì bị treo chờ hết thời gian kết nối: Acid3 tải xong trong 2,2 giây thay vì 15,5 giây.</p>
+        <p class="feature"><b>Riêng tư.</b> Không thu thập dữ liệu, không gửi yêu cầu kiểm tra cập nhật, và client hints ghi tên Nordstjernen chứ không phải Chrome. Cookie của bên thứ ba bị chặn, tham số theo dõi bị loại khỏi liên kết, và Safe Browsing chỉ gửi cho Google tiền tố băm 4 byte, không bao giờ gửi địa chỉ.</p>
+        <p class="feature"><b>Phần mềm tự do.</b> Từ phiên bản 1.0.28, Nordstjernen được cấp phép kép: bạn có thể sử dụng, sửa đổi và phân phối lại theo <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, phiên bản 3 trở lên</a>, hoặc theo <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>, tùy bạn lựa chọn.</p>
         </div>
 
-        <p><b>Tiêu chuẩn HTML.</b> Hành vi được đo lường theo văn bản đặc tả, từng phần một, chứ không phải theo một trình duyệt khác.</p>
-        <p><b>Bảo mật.</b> Thiết kế một tiến trình cho mỗi tab &mdash; mỗi tab chạy trong tiến trình kết xuất được cô lập riêng của nó (seccomp + Landlock trên Linux), giao tiếp với giao diện qua IPC và framebuffer bộ nhớ chia sẻ. Không JIT.</p>
-        <p><b>Tối giản.</b> Toàn bộ engine là một khối mã C gọn nhẹ &mdash; đủ nhỏ để một người có thể đọc và kiểm toán từ đầu đến cuối.</p>
-        <p>Nordstjernen không có JIT, nên nó an toàn hơn nhiều, mà vẫn có thể đủ nhanh. Nó không kèm theo bất kỳ loại thu thập dữ liệu nào.</p>
+        <h2 id="northstar">trình duyệt Northstar</h2>
+        <p><a href="northstar-browser/">Northstar</a> là người anh em tối giản của Nordstjernen, được cấp phép theo <b>GNU GPL, phiên bản 3 trở lên</b>: một cửa sổ, một trang và một tiến trình, được xây dựng từ cùng bộ máy clean-room với khoảng 219.000 dòng mã C nguyên bản. Northstar lược bỏ tab, tiến trình kết xuất riêng cho từng tab, WebGL và WebGPU, nhưng vẫn giữ video trực tuyến, in ấn, WebExtensions, Google Safe Browsing và giao diện bằng 40 ngôn ngữ, chạy sau hộp cát Landlock và seccomp trên Linux. Trình duyệt chạy trên Linux, macOS và Windows, và trên Windows đã có mặt tại <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
+        <p><a href="northstar-browser/">Đọc toàn bộ tài liệu về Northstar &raquo;</a> &middot; hoặc xem <a href="#specs">bảng so sánh bên dưới</a> để biết ba trình duyệt khác nhau như thế nào.</p>
 
-        <a id="specs"></a>
-        <h2>thông số kỹ thuật</h2>
-        <table class="spec">
-          <tr><th>ngôn ngữ</th><td>C &middot; có thể kiểm toán hoàn toàn</td></tr>
-          <tr><th>html / css</th><td><a href="https://github.com/lexbor/lexbor">lexbor</a> (bộ phân tích, WHATWG URL, bộ chọn)</td></tr>
-          <tr><th>javascript</th><td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> &mdash; trình thông dịch bytecode, không JIT</td></tr>
-          <tr><th>webassembly</th><td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> &mdash; trình thông dịch phía sau <code>WebAssembly</code> JS API</td></tr>
-          <tr><th>hình ảnh</th><td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / GIF / BMP / JPEG / WebP không mất dữ liệu)</td></tr>
-          <tr><th>giao diện</th><td><a href="https://www.gtk.org">GTK 4</a> &middot; tạo hình văn bản Pango &middot; một cửa sổ cho mỗi trang, không có thanh tab</td></tr>
-          <tr><th>mạng</th><td><a href="https://curl.se">libcurl</a> &middot; HTTP/2</td></tr>
-          <tr><th>tăng cường bảo mật</th><td>một tiến trình cho mỗi tab &middot; hộp cát seccomp + Landlock trên Linux &middot; không JIT</td></tr>
-          <tr><th>quyền riêng tư</th><td>không thu thập dữ liệu &middot; cookie phân vùng &middot; HSTS &middot; CSP</td></tr>
-          <tr><th>nền tảng</th><td>linux &middot; windows &middot; macos &middot; android (bản port đang phát triển)</td></tr>
-          <tr><th>giấy phép</th><td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0-or-later</a> / <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT sau 10 năm</td></tr>
+        <h2 id="southstar">trình duyệt Southstar</h2>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> là Nordstjernen được chuyển sang Rust, từng mô-đun một, trong khi vẫn tiếp tục hoạt động: từ tháng 10 năm 2026, toàn bộ mã của chính nó đều là Rust &mdash; khoảng 385.000 dòng trong khoảng 163 crate &mdash; và chỉ cần Cargo để biên dịch. JavaScript của trang chạy trên <a href="https://github.com/boa-dev/boa">Boa</a>, một trình thông dịch Rust không có JIT vượt qua toàn bộ test262, còn phân tích HTML, dàn trang văn bản, TLS và WebAssembly cũng đều viết bằng Rust. Southstar <b>1.0.9</b> có trên <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, trên <a href="https://crates.io/crates/southstar">crates.io</a>, và có các gói Linux trên <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>; quá trình chuyển đổi được mô tả trong <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+
+        <p>Đọc thêm về <a href="innovations-in-nordstjernen-web-browser.html">những đổi mới trong trình duyệt web Nordstjernen</a>.</p>
+
+        <h2 id="specs">thông số kỹ thuật</h2>
+        <p>Ba trình duyệt, một dòng bộ máy clean-room. <b>Nordstjernen</b> là trình duyệt chủ lực nhiều tab; <b>Northstar</b> là phiên bản tối giản một tiến trình theo giấy phép GPL; <b>Southstar</b> là chính trình duyệt đó được viết lại bằng Rust.</p>
+        <p class="scroll-hint">Vuốt bảng sang ngang để xem cả ba trình duyệt.</p>
+        <div class="table-scroll">
+        <table class="spec compare">
+          <caption class="sr-only">Thông số kỹ thuật: so sánh Nordstjernen 1.0.47 với Northstar 1.0.23 và Southstar 1.0.9</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <tr><th scope="row">phiên bản</th>
+              <td><b>1.0.47</b> &mdash; phát hành ngày 14 tháng 11 năm 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">ghi chú phát hành</a></td>
+              <td><b>1.0.23</b> &mdash; phát hành ngày 14 tháng 11 năm 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">ghi chú phát hành</a></td>
+              <td><b>1.0.9</b> &mdash; phát hành ngày 14 tháng 11 năm 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">ghi chú phát hành</a></td></tr>
+          <tr><th scope="row">đặc điểm</th>
+              <td>trình duyệt chủ lực &middot; nhiều cửa sổ, nhiều tab</td>
+              <td>phiên bản tối giản &middot; mỗi cửa sổ một trang, không có tab</td>
+              <td>phiên bản Rust &middot; nhiều cửa sổ, nhiều tab</td></tr>
+          <tr><th scope="row">ngôn ngữ</th>
+              <td>C &middot; ~268 kLOC clean-room &middot; trình phân tích HTML5 và URL bằng Rust an toàn từ 1.0.47 &middot; giao diện GTK&nbsp;4 &middot; liên kết Java/JVM qua JNI &middot; có thể kiểm toán hoàn toàn</td>
+              <td>C &middot; ~219 kLOC nguyên bản &middot; giao diện GTK&nbsp;4 &middot; có thể kiểm toán hoàn toàn</td>
+              <td>Rust &middot; ~385 kLOC trong khoảng 163 crate &middot; biên dịch bằng Cargo &middot; giao diện GTK&nbsp;4, và giao diện Swing thuần Java từ 1.0.9 &middot; C chỉ có trong các thư viện hệ thống mà nó liên kết</td></tr>
+          <tr><th scope="row">kiến trúc</th>
+              <td>một tiến trình cho mỗi tab &mdash; mỗi tab trong tiến trình kết xuất riêng có hộp cát, IPC + ô (tile) bộ nhớ dùng chung</td>
+              <td>một tiến trình &mdash; bộ máy trang chạy trên luồng riêng bên trong tiến trình trình duyệt</td>
+              <td>một tiến trình cho mỗi tab &mdash; mỗi tab trong tiến trình kết xuất riêng có hộp cát, IPC + bộ đệm khung hình dùng chung</td></tr>
+          <tr><th scope="row">javascript</th>
+              <td>bản fork <a href="https://github.com/bellard/quickjs">QuickJS</a> của Fabrice Bellard nằm trong mã nguồn, với heap được gia cố, mặc định từ 1.0.47 &mdash; trình thông dịch bytecode, không JIT, heap nằm trong một vùng địa chỉ dành riêng được rào chắn &middot; Temporal và <code>Intl</code> &middot; có thể chọn bản fork <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> trong mã nguồn bằng <code>-Dquickjs=quickjs-ng</code></td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ tại <code>147d01c</code> &mdash; trình thông dịch bytecode, không JIT &middot; có thể chọn QuickJS gốc bằng <code>-Djs_engine=quickjs</code></td>
+              <td><a href="https://github.com/boa-dev/boa">Boa</a> (bản fork trong mã nguồn) &mdash; trình thông dịch Rust, không JIT &middot; vượt qua toàn bộ 52.133 bài kiểm tra test262 ngoài staging</td></tr>
+          <tr><th scope="row">nền tảng</th>
+              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm và pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm và crates.io</td></tr>
+          <tr><th scope="row">giấy phép</th>
+              <td>cấp phép kép từ 1.0.28, tùy bạn lựa chọn: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 trở lên</a> &mdash; phần mềm tự do &middot; hoặc <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT sau 10 năm, lấy cảm hứng từ <a href="https://fsl.software/">Functional Source License</a></td>
+              <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 trở lên</a> &mdash; phần mềm tự do</td>
+              <td>cùng giấy phép kép như Nordstjernen: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 trở lên</a> hoặc <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/License.md">NSL-1.0</a>, tùy bạn lựa chọn</td></tr>
         </table>
+        </div>
+        <p><a href="specs.html">Thông số kỹ thuật đầy đủ &raquo;</a> &mdash; HTML và CSS, văn bản, hình ảnh, đa phương tiện, in ấn, mạng, tăng cường bảo mật, quyền riêng tư và tiêu chuẩn.</p>
 
-        <a id="download"></a>
-        <h2>tải xuống</h2>
-        <p>Tải Nordstjernen 1.0.47 cho nền tảng của bạn. Tất cả các tệp đều có trên <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">GitHub</a>.</p>
-
+        <h2 id="download">tải xuống</h2>
+        <p>Phiên bản mới nhất: Nordstjernen <b>1.0.47</b>, phát hành ngày 14 tháng 11 năm 2026. Bản cho mọi nền tảng, cùng Northstar và Southstar, đều có trên <a href="download.html">trang tải xuống</a>.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
@@ -100,13 +173,13 @@
           <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_debian13_amd64.deb">nordstjernen_1.0.47_debian13_amd64.deb</a></td></tr>
           <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
           <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
-          <tr><th>Linux (di động)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
+          <tr><th>Linux (bản di động)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
           <tr><th>Mã nguồn</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
-          <tr><th>GitHub</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47</a></td></tr>
         </table>
 
-        <a id="languages"></a>
-        <h2>ngôn ngữ</h2>
+        <p><a class="btn-red" href="download.html">Tải Nordstjernen &raquo;</a></p>
+
+        <h2 id="languages">ngôn ngữ</h2>
         <p class="langs">
           <a href="index.html">English</a> &middot;
           <a href="index_cn.html">中文</a> &middot;
@@ -131,14 +204,15 @@
           <a href="index_no.html">Norsk</a>
         </p>
 
-  </div>
+  </main>
 
-  <div class="footer">
+  <footer class="footer">
+    <div class="badges"><a href="download.html"><img src="assets/nordstjernen-now.gif" width="144" height="50" alt="Nordstjernen Now — tải trình duyệt"></a></div>
     Bản quyền &copy; 2026 dự án Nordstjernen &middot;
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
     <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
     <a href="privacy/">Quyền riêng tư</a>
-  </div>
+  </footer>
 
 </div>
 

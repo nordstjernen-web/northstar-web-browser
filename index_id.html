@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Peramban Web Nordstjernen - kecil, stabil, independen. Ditulis dalam C.</title>
-<meta name="description" content="Nordstjernen - peramban web independen yang ditulis dari awal dalam C. Tanpa telemetri, tanpa JIT.">
+<meta name="description" content="Nordstjernen adalah peramban web yang ditulis dari awal dalam C. Berfokus pada dukungan standar HTML dan CSS. Berjalan di Windows, Mac dan Linux, Android, serta Java.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_id.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -28,71 +28,144 @@
 <link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
 <link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="id">
+<meta property="og:title" content="Peramban Web Nordstjernen">
+<meta property="og:description" content="Peramban web yang ditulis dari awal dalam C.">
+<meta property="og:url" content="https://www.nordstjernen.org/index_id.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23 memutar video YouTube">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nordstjernen",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
+  "softwareVersion": "1.0.47",
+  "url": "https://www.nordstjernen.org/",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="frame">
 
-  <div class="header">
+  <a class="skip-link" href="#about">Langsung ke konten</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.gif" width="144" height="50" alt="Paling baik dilihat di Nordstjernen">
+    </a>
     <div class="brand">
-      <a href="index.html"><img class="logo" src="assets/nordstjernen.svg" alt="Logo Nordstjernen"></a>
-      <span class="title"><a href="index.html">Nordstjernen</a></span>
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Logo Nordstjernen"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
     </div>
-    <div class="tag">kecil, stabil, independen &middot; ditulis dari awal dalam C &middot; tanpa JIT, tanpa telemetri</div>
-  </div>
+    <p class="tag">Nordstjernen adalah peramban web yang independen dan unik</p>
+  </header>
 
   <nav class="nav" aria-label="Primary">
     <a href="#about">tentang</a>
+    <a href="news.html">berita</a>
     <a href="screenshots.html">tangkapan layar</a>
-    <a href="#download">unduh</a>
+    <a href="download.html">unduh</a>
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
     <input type="checkbox" id="nav-more" class="nav-more-toggle">
     <label class="nav-more-btn" for="nav-more">Lainnya <span aria-hidden="true">&#9662;</span></label>
     <div class="nav-sec">
-      <a href="#specs">spesifikasi</a>
+      <a href="specs.html">spesifikasi</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">rilis</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
-        <a id="about"></a>
-        <h1>Peramban Web Nordstjernen</h1>
-        <p class="lead">Nordstjernen adalah peramban web, ditulis dari awal dalam C, berfokus pada dukungan standar HTML dan CSS. Peramban ini berjalan di Windows, Mac, dan Linux, dengan port Android yang sedang dikembangkan. Nordstjernen dibuat di Norwegia.</p>
+        <h1 id="about" style="color:#003366;">Peramban Web Nordstjernen</h1>
+        <p class="lead">Nordstjernen adalah peramban web yang ditulis dari awal dalam C dan berfokus pada dukungan standar HTML dan CSS. Peramban ini berjalan di Windows, macOS, dan Linux, dengan build untuk Android, FreeBSD, NetBSD, dan JVM. Nordstjernen dibuat di Norwegia.</p>
 
-        <div class="shot">
-          <a href="screenshots/screenshot-1-0-47.png"><img src="screenshots/screenshot-1-0-47.png" width="1249" height="822" loading="lazy" alt="Nordstjernen merender halaman web"></a>
-          <div class="cap">Nordstjernen merender sebuah halaman. <a href="screenshots.html">tangkapan layar lainnya &raquo;</a></div>
+
+        <figure class="shot">
+          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 memutar video YouTube, dengan video rekomendasi di sampingnya, di bawah bilah alat klasik berlabel"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 memutar video YouTube &mdash; satu jendela, satu halaman, bilah alat klasik berlabel. <a href="screenshots.html">tangkapan layar lainnya &raquo;</a></figcaption>
+        </figure>
+
+        <p class="release-line">Nordstjernen <b>1.0.47</b> dirilis &mdash; parser HTML5 sendiri dalam Rust yang aman, QuickJS dengan heap yang diperkuat, penampil PDF.js, dan animasi SVG SMIL. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Catatan rilis &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.23</b> dirilis &mdash; animasi SVG SMIL, penskalaan layar Windows, dan perbaikan keamanan. <a href="northstar-browser/">Tentang Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Catatan rilis &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.9</b> dirilis &mdash; shell murni Java, animasi SVG SMIL, dan perbaikan untuk setiap temuan audit keamanan. <a href="#southstar">Tentang Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Catatan rilis &raquo;</a></p>
+
+        <div class="features">
+        <p class="feature"><b>Standar HTML.</b> Perilaku diukur terhadap teks spesifikasi, bagian demi bagian, bukan terhadap peramban lain: 141 baris spesifikasi WHATWG HTML diimplementasikan sepenuhnya, 31 sebagian, dan tidak ada yang absen. Peramban ini lulus <b>91,5%</b> dari <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> untuk subtes <code>html/</code>, <code>dom/</code>, dan <code>url/</code> serta 73,2% subtes <code>css/</code> (Oktober 2026) &mdash; lihat <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
+        <p class="feature"><b>Aman.</b> Setiap tab berjalan dalam proses renderer tersendiri yang berada di dalam sandbox &mdash; seccomp + Landlock di Linux, profil Seatbelt di macOS, kebijakan mitigasi proses di Windows. Baik mesin JavaScript maupun mesin WebAssembly tidak menggunakan JIT.</p>
+        <p class="feature"><b>Minimalis.</b> Mesin intinya berukuran sekitar 268.000 baris kode C proyek beserta header, tidak termasuk pustaka pihak ketiga yang disertakan dan aset yang dihasilkan &mdash; cukup kecil untuk dibaca dan diaudit dari awal hingga akhir oleh satu orang.</p>
+        <p class="feature"><b>Mumpuni.</b> Parser HTML5 sendiri dalam Rust yang aman, QuickJS dengan heap yang diperkuat, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 dan WebGPU, Service Workers, serta Streams. <code>&lt;video&gt;</code> langsung di halaman &mdash; MPEG-1, WebM, dan MP4 melalui dekoder sistem operasi &mdash; dengan HLS, DASH, dan teks terjemahan, ditambah SVG dengan animasi SMIL, MathML, dan penampil PDF.js.</p>
+        <p class="feature"><b>Otomatisasi.</b> <code>nordstjernen --mcp</code> memungkinkan agen lokal membaca dan mengendalikan jendela &mdash; nonaktif hingga diizinkan, hanya melalui loopback, dan diautentikasi dengan token &mdash; sementara <code>--webdriver</code> menyediakan W3C WebDriver untuk Selenium dan kerangka kerja pengujian lainnya. Peramban ini sendiri tidak memiliki asisten AI.</p>
+        <p class="feature"><b>Pencetakan.</b> <code>Ctrl+P</code> membagi halaman menjadi lembar-lembar sesuai <code>@media print</code>, <code>@page</code>, dan pemisah halaman, lalu menyerahkannya ke dialog cetak bawaan sistem operasi. <code>--dump=print:FILE</code> menulis halaman yang sama ke PDF tanpa printer.</p>
+        <p class="feature"><b>Cepat.</b> web-text-lib, fork Pango di dalam pohon sumber, menyimpan cache teks yang telah dibentuk di antara tata letak dan memangkas waktu tata letak sebesar 24% pada halaman yang banyak tabelnya. Peningkatan ke HTTP/3 melewati cache alt-svc alih-alih tertahan hingga batas waktu koneksi: Acid3 dimuat dalam 2,2 detik, bukan 15,5 detik.</p>
+        <p class="feature"><b>Privat.</b> Tanpa telemetri, tanpa ping pembaruan, dan client hints yang menyebut Nordstjernen, bukan Chrome. Cookie pihak ketiga diblokir, parameter pelacakan dihapus dari tautan, dan Safe Browsing hanya mengirim awalan hash 4 bita ke Google, tidak pernah alamatnya.</p>
+        <p class="feature"><b>Perangkat lunak bebas.</b> Sejak 1.0.28, Nordstjernen memiliki lisensi ganda: gunakan, ubah, dan distribusikan ulang di bawah <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, versi 3 atau yang lebih baru</a>, atau di bawah <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>, sesuai pilihan Anda.</p>
         </div>
 
-        <p><b>Standar HTML.</b> Perilaku diukur terhadap teks spesifikasi, bagian demi bagian, bukan terhadap peramban lain.</p>
-        <p><b>Aman.</b> Desain satu proses per tab &mdash; setiap tab berjalan dalam proses perendernya sendiri yang terisolasi (seccomp + Landlock di Linux), berkomunikasi dengan antarmuka melalui IPC dan framebuffer memori bersama. Tanpa JIT.</p>
-        <p><b>Minimalisme.</b> Seluruh mesin merupakan kumpulan kode C yang ringkas &mdash; cukup kecil untuk dibaca dan diaudit satu orang dari awal hingga akhir.</p>
-        <p>Nordstjernen tidak memiliki JIT, sehingga jauh lebih aman, dan tetap bisa cukup cepat. Peramban ini tidak menyertakan telemetri jenis apa pun.</p>
+        <h2 id="northstar">peramban Northstar</h2>
+        <p><a href="northstar-browser/">Northstar</a> adalah saudara minimalis Nordstjernen, dilisensikan di bawah <b>GNU GPL, versi 3 atau yang lebih baru</b>: satu jendela, satu halaman, dan satu proses, dibangun dari mesin clean-room yang sama dalam sekitar 219.000 baris kode C orisinal. Northstar tidak menyertakan tab, proses renderer per tab, WebGL, dan WebGPU, tetapi tetap memiliki pemutaran video streaming, pencetakan, WebExtensions, Google Safe Browsing, dan antarmuka dalam 40 bahasa, di balik sandbox Landlock dan seccomp di Linux. Northstar berjalan di Linux, macOS, dan Windows, dan di Windows tersedia di <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
+        <p><a href="northstar-browser/">Baca dokumentasi lengkap Northstar &raquo;</a> &middot; atau lihat <a href="#specs">tabel perbandingan di bawah</a> untuk mengetahui perbedaan ketiga peramban.</p>
 
-        <a id="specs"></a>
-        <h2>spesifikasi</h2>
-        <table class="spec">
-          <tr><th>bahasa</th><td>C &middot; sepenuhnya dapat diaudit</td></tr>
-          <tr><th>html / css</th><td><a href="https://github.com/lexbor/lexbor">lexbor</a> (parser, WHATWG URL, selektor)</td></tr>
-          <tr><th>javascript</th><td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> &mdash; interpreter bytecode, tanpa JIT</td></tr>
-          <tr><th>webassembly</th><td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> &mdash; interpreter di balik <code>WebAssembly</code> JS API</td></tr>
-          <tr><th>gambar</th><td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / GIF / BMP / JPEG / WebP lossless)</td></tr>
-          <tr><th>ui</th><td><a href="https://www.gtk.org">GTK 4</a> &middot; penataan teks Pango &middot; satu jendela per halaman, tanpa bilah tab</td></tr>
-          <tr><th>jaringan</th><td><a href="https://curl.se">libcurl</a> &middot; HTTP/2</td></tr>
-          <tr><th>pengerasan</th><td>satu proses per tab &middot; kotak pasir seccomp + Landlock di Linux &middot; tanpa JIT</td></tr>
-          <tr><th>privasi</th><td>tanpa telemetri &middot; cookie terpartisi &middot; HSTS &middot; CSP</td></tr>
-          <tr><th>platform</th><td>linux &middot; windows &middot; macos &middot; android (port sedang dikembangkan)</td></tr>
-          <tr><th>lisensi</th><td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0-or-later</a> / <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT setelah 10 tahun</td></tr>
+        <h2 id="southstar">peramban Southstar</h2>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> adalah Nordstjernen yang di-porting ke Rust, modul demi modul, sambil tetap berjalan: sejak Oktober 2026 seluruh kodenya sendiri ditulis dalam Rust &mdash; sekitar 385.000 baris dalam sekitar 163 crate &mdash; dan dibangun hanya dengan Cargo. JavaScript halaman berjalan di <a href="https://github.com/boa-dev/boa">Boa</a>, interpreter Rust tanpa JIT yang lulus seluruh test262, dan penguraian HTML, tata letak teks, TLS, serta WebAssembly juga ditulis dalam Rust. Southstar <b>1.0.9</b> tersedia di <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, di <a href="https://crates.io/crates/southstar">crates.io</a>, dan memiliki paket Linux di <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>; cara porting dilakukan dijelaskan di <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+
+        <p>Baca selengkapnya tentang <a href="innovations-in-nordstjernen-web-browser.html">inovasi dalam peramban web Nordstjernen</a>.</p>
+
+        <h2 id="specs">spesifikasi</h2>
+        <p>Tiga peramban, satu garis keturunan mesin clean-room. <b>Nordstjernen</b> adalah peramban unggulan dengan banyak tab; <b>Northstar</b> adalah edisi minimalis satu proses berlisensi GPL; <b>Southstar</b> adalah peramban yang sama yang ditulis ulang dalam Rust.</p>
+        <p class="scroll-hint">Geser tabel ke samping untuk melihat ketiga peramban.</p>
+        <div class="table-scroll">
+        <table class="spec compare">
+          <caption class="sr-only">Spesifikasi teknis: Nordstjernen 1.0.47 dibandingkan dengan Northstar 1.0.23 dan Southstar 1.0.9</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <tr><th scope="row">versi</th>
+              <td><b>1.0.47</b> &mdash; dirilis 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">catatan rilis</a></td>
+              <td><b>1.0.23</b> &mdash; dirilis 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">catatan rilis</a></td>
+              <td><b>1.0.9</b> &mdash; dirilis 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">catatan rilis</a></td></tr>
+          <tr><th scope="row">karakter</th>
+              <td>peramban unggulan &middot; banyak jendela, banyak tab</td>
+              <td>edisi minimalis &middot; satu halaman per jendela, tanpa tab</td>
+              <td>versi Rust &middot; banyak jendela, banyak tab</td></tr>
+          <tr><th scope="row">bahasa</th>
+              <td>C &middot; ~268 kLOC clean-room &middot; parser HTML5 dan URL dalam Rust yang aman sejak 1.0.47 &middot; shell GTK&nbsp;4 &middot; binding Java/JVM melalui JNI &middot; sepenuhnya dapat diaudit</td>
+              <td>C &middot; ~219 kLOC orisinal &middot; shell GTK&nbsp;4 &middot; sepenuhnya dapat diaudit</td>
+              <td>Rust &middot; ~385 kLOC dalam sekitar 163 crate &middot; dibangun dengan Cargo &middot; shell GTK&nbsp;4, dan shell Swing murni Java sejak 1.0.9 &middot; C hanya ada di pustaka sistem yang ditautkannya</td></tr>
+          <tr><th scope="row">arsitektur</th>
+              <td>satu proses per tab &mdash; setiap tab dalam proses renderer tersendiri di dalam sandbox, IPC + tile memori bersama</td>
+              <td>satu proses &mdash; mesin halaman di thread tersendiri di dalam proses peramban</td>
+              <td>satu proses per tab &mdash; setiap tab dalam proses renderer tersendiri di dalam sandbox, IPC + framebuffer memori bersama</td></tr>
+          <tr><th scope="row">javascript</th>
+              <td>fork <a href="https://github.com/bellard/quickjs">QuickJS</a> karya Fabrice Bellard di dalam pohon sumber dengan heap yang diperkuat, bawaan sejak 1.0.47 &mdash; interpreter bytecode, tanpa JIT, heap-nya berada dalam sangkar rentang alamat yang dicadangkan &middot; Temporal dan <code>Intl</code> &middot; fork <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> di dalam pohon sumber dapat dipilih dengan <code>-Dquickjs=quickjs-ng</code></td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ pada <code>147d01c</code> &mdash; interpreter bytecode, tanpa JIT &middot; QuickJS asli dapat dipilih dengan <code>-Djs_engine=quickjs</code></td>
+              <td><a href="https://github.com/boa-dev/boa">Boa</a> (fork di dalam pohon sumber) &mdash; interpreter Rust, tanpa JIT &middot; seluruh 52.133 tes test262 di luar staging lulus</td></tr>
+          <tr><th scope="row">platform</th>
+              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm dan pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm dan crates.io</td></tr>
+          <tr><th scope="row">lisensi</th>
+              <td>lisensi ganda sejak 1.0.28, sesuai pilihan Anda: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 atau yang lebih baru</a> &mdash; perangkat lunak bebas &middot; atau <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT setelah 10 tahun, terinspirasi oleh <a href="https://fsl.software/">Functional Source License</a></td>
+              <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 atau yang lebih baru</a> &mdash; perangkat lunak bebas</td>
+              <td>lisensi ganda yang sama dengan Nordstjernen: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 atau yang lebih baru</a> atau <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/License.md">NSL-1.0</a>, sesuai pilihan Anda</td></tr>
         </table>
+        </div>
+        <p><a href="specs.html">Spesifikasi lengkap &raquo;</a> &mdash; HTML dan CSS, teks, gambar, media, pencetakan, jaringan, pengerasan, privasi, dan standar.</p>
 
-        <a id="download"></a>
-        <h2>unduh</h2>
-        <p>Unduh Nordstjernen 1.0.47 untuk platform Anda. Semua berkas tersedia di <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">GitHub</a>.</p>
-
+        <h2 id="download">unduh</h2>
+        <p>Rilis terbaru: Nordstjernen <b>1.0.47</b>, dirilis 14 November 2026. Semua platform, Northstar, dan Southstar tersedia di <a href="download.html">halaman unduhan</a>.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
@@ -101,12 +174,12 @@
           <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
           <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
           <tr><th>Linux (portabel)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>Sumber</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
-          <tr><th>GitHub</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47</a></td></tr>
+          <tr><th>Kode sumber</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
         </table>
 
-        <a id="languages"></a>
-        <h2>bahasa</h2>
+        <p><a class="btn-red" href="download.html">Unduh Nordstjernen &raquo;</a></p>
+
+        <h2 id="languages">bahasa</h2>
         <p class="langs">
           <a href="index.html">English</a> &middot;
           <a href="index_cn.html">中文</a> &middot;
@@ -131,14 +204,15 @@
           <a href="index_no.html">Norsk</a>
         </p>
 
-  </div>
+  </main>
 
-  <div class="footer">
+  <footer class="footer">
+    <div class="badges"><a href="download.html"><img src="assets/nordstjernen-now.gif" width="144" height="50" alt="Nordstjernen Now — unduh perambannya"></a></div>
     Hak Cipta &copy; 2026 proyek Nordstjernen &middot;
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
     <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
     <a href="privacy/">Privasi</a>
-  </div>
+  </footer>
 
 </div>
 

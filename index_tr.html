@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nordstjernen Web Tarayıcısı - küçük, kararlı, bağımsız. C ile yazıldı.</title>
-<meta name="description" content="Nordstjernen - C ile sıfırdan yazılmış bağımsız bir web tarayıcısı. Telemetri yok, JIT yok.">
+<meta name="description" content="Nordstjernen, C ile sıfırdan yazılmış bir web tarayıcısıdır. HTML ve CSS standartlarını desteklemeye odaklanır. Windows, Mac ve Linux, Android ve Java üzerinde çalışır.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_tr.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -28,71 +28,144 @@
 <link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
 <link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="tr">
+<meta property="og:title" content="Nordstjernen Web Tarayıcısı">
+<meta property="og:description" content="C ile sıfırdan yazılmış bir web tarayıcısı.">
+<meta property="og:url" content="https://www.nordstjernen.org/index_tr.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23 bir YouTube videosu oynatırken">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nordstjernen",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
+  "softwareVersion": "1.0.47",
+  "url": "https://www.nordstjernen.org/",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="frame">
 
-  <div class="header">
+  <a class="skip-link" href="#about">İçeriğe atla</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.gif" width="144" height="50" alt="En iyi Nordstjernen ile görüntülenir">
+    </a>
     <div class="brand">
-      <a href="index.html"><img class="logo" src="assets/nordstjernen.svg" alt="Nordstjernen logosu"></a>
-      <span class="title"><a href="index.html">Nordstjernen</a></span>
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Nordstjernen logosu"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
     </div>
-    <div class="tag">küçük, kararlı, bağımsız &middot; C ile sıfırdan yazıldı &middot; JIT yok, telemetri yok</div>
-  </div>
+    <p class="tag">Nordstjernen bağımsız ve benzersiz bir web tarayıcısıdır</p>
+  </header>
 
   <nav class="nav" aria-label="Primary">
     <a href="#about">hakkında</a>
+    <a href="news.html">haberler</a>
     <a href="screenshots.html">ekran görüntüleri</a>
-    <a href="#download">indir</a>
+    <a href="download.html">indir</a>
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
     <input type="checkbox" id="nav-more" class="nav-more-toggle">
     <label class="nav-more-btn" for="nav-more">Daha fazla <span aria-hidden="true">&#9662;</span></label>
     <div class="nav-sec">
-      <a href="#specs">özellikler</a>
+      <a href="specs.html">özellikler</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">sürümler</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
-        <a id="about"></a>
-        <h1>Nordstjernen Web Tarayıcısı</h1>
-        <p class="lead">Nordstjernen, C ile sıfırdan yazılmış, HTML ve CSS standartlarını desteklemeye odaklanan bir web tarayıcısıdır. Windows, Mac ve Linux üzerinde çalışır, Android portu üzerinde çalışılmaktadır. Nordstjernen Norveç'te geliştirilmektedir.</p>
+        <h1 id="about" style="color:#003366;">Nordstjernen Web Tarayıcısı</h1>
+        <p class="lead">Nordstjernen, C ile sıfırdan yazılmış, HTML ve CSS standartlarını desteklemeye odaklanan bir web tarayıcısıdır. Windows, macOS ve Linux üzerinde çalışır; Android, FreeBSD, NetBSD ve JVM için de derlemeleri vardır. Nordstjernen Norveç'te geliştirilmektedir.</p>
 
-        <div class="shot">
-          <a href="screenshots/screenshot-1-0-47.png"><img src="screenshots/screenshot-1-0-47.png" width="1249" height="822" loading="lazy" alt="Nordstjernen bir web sayfasını görüntülerken"></a>
-          <div class="cap">Nordstjernen bir sayfayı görüntülerken. <a href="screenshots.html">daha fazla ekran görüntüsü &raquo;</a></div>
+
+        <figure class="shot">
+          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 bir YouTube videosu oynatırken; yanında önerilen videolar, üstünde klasik etiketli araç çubuğu"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 bir YouTube videosu oynatırken &mdash; tek pencere, tek sayfa, klasik etiketli araç çubuğu. <a href="screenshots.html">daha fazla ekran görüntüsü &raquo;</a></figcaption>
+        </figure>
+
+        <p class="release-line">Nordstjernen <b>1.0.47</b> yayımlandı &mdash; güvenli Rust ile yazılmış kendi HTML5 ayrıştırıcısı, yığını sıkılaştırılmış bir QuickJS, PDF.js görüntüleyici ve SVG SMIL animasyonu. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Sürüm notları &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.23</b> yayımlandı &mdash; SVG SMIL animasyonu, Windows ekran ölçeklendirmesi ve güvenlik düzeltmeleri. <a href="northstar-browser/">Northstar hakkında</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Sürüm notları &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.9</b> yayımlandı &mdash; saf Java ile yazılmış bir kabuk, SVG SMIL animasyonu ve bir güvenlik denetiminin tüm bulgularına yönelik düzeltmeler. <a href="#southstar">Southstar hakkında</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Sürüm notları &raquo;</a></p>
+
+        <div class="features">
+        <p class="feature"><b>HTML Standardı.</b> Davranış başka bir tarayıcıya göre değil, bölüm bölüm spesifikasyon metnine göre ölçülür: WHATWG HTML spesifikasyonundaki 141 satır tamamen, 31 satır kısmen uygulanmıştır ve eksik olan yoktur. <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> içindeki <code>html/</code>, <code>dom/</code> ve <code>url/</code> alt testlerinin <b>%91,5</b>'ini ve <code>css/</code> alt testlerinin %73,2'sini geçer (Ekim 2026) &mdash; bkz. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
+        <p class="feature"><b>Güvenli.</b> Her sekme, korumalı alanda çalışan kendi oluşturucu işleminde çalışır &mdash; Linux'ta seccomp + Landlock, macOS'ta bir Seatbelt profili, Windows'ta işlem azaltma ilkeleri. Ne JavaScript ne de WebAssembly motorunda JIT vardır.</p>
+        <p class="feature"><b>Minimalizm.</b> Çekirdek motor, harici kütüphaneler ve üretilmiş dosyalar hariç yaklaşık 268.000 satır proje C kodu ve başlık dosyasından oluşur &mdash; tek bir kişinin baştan sona okuyup denetleyebileceği kadar küçüktür.</p>
+        <p class="feature"><b>Yetenekli.</b> Güvenli Rust ile yazılmış kendi HTML5 ayrıştırıcısı, yığını sıkılaştırılmış bir QuickJS, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 ve WebGPU, Service Workers ve Streams. Satır içi <code>&lt;video&gt;</code> &mdash; MPEG-1, WebM ve işletim sisteminin kod çözücüleri aracılığıyla MP4 &mdash; HLS, DASH ve altyazı desteğiyle; ayrıca SMIL animasyonlu SVG, MathML ve bir PDF.js görüntüleyici.</p>
+        <p class="feature"><b>Otomasyon.</b> <code>nordstjernen --mcp</code>, yerel bir ajanın pencereyi okumasına ve yönetmesine olanak tanır &mdash; izin verilene kadar kapalıdır, yalnızca loopback üzerinden çalışır ve token ile kimlik doğrular &mdash; <code>--webdriver</code> ise Selenium ve diğer test çerçeveleri için W3C WebDriver sunar. Tarayıcının kendisinde yapay zekâ asistanı yoktur.</p>
+        <p class="feature"><b>Yazdırma.</b> <code>Ctrl+P</code>, sayfayı <code>@media print</code>, <code>@page</code> ve sayfa sonlarına göre sayfalara böler ve sayfaları işletim sisteminin kendi yazdırma iletişim kutusuna gönderir. <code>--dump=print:FILE</code> aynı sayfaları yazıcıya gerek kalmadan bir PDF'ye yazar.</p>
+        <p class="feature"><b>Hızlı.</b> Kaynak ağacındaki Pango çatalı web-text-lib, şekillendirilmiş metni yerleşimler arasında önbelleğe alır ve tablo ağırlıklı sayfalarda yerleşim süresini %24 kısaltır. HTTP/3 yükseltmeleri bağlantı zaman aşımında takılıp kalmak yerine alt-svc önbelleği üzerinden yapılır: Acid3, 15,5 yerine 2,2 saniyede yüklenir.</p>
+        <p class="feature"><b>Gizlilik.</b> Telemetri yok, güncelleme sorgusu yok; istemci ipuçları da Chrome'u değil Nordstjernen'i bildirir. Üçüncü taraf çerezler engellenir, bağlantılardaki izleme parametreleri temizlenir ve Safe Browsing, Google'a adresi asla göndermez, yalnızca 4 baytlık bir karma ön eki gönderir.</p>
+        <p class="feature"><b>Özgür yazılım.</b> 1.0.28'den bu yana Nordstjernen çift lisanslıdır: dilediğiniz gibi <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, sürüm 3 veya üzeri</a> ya da <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a> kapsamında kullanabilir, değiştirebilir ve yeniden dağıtabilirsiniz.</p>
         </div>
 
-        <p><b>HTML Standardı.</b> Davranış, başka bir tarayıcıya göre değil, spesifikasyon metnine göre bölüm bölüm ölçülür.</p>
-        <p><b>Güvenli.</b> Sekme başına işlem tasarımı &mdash; her sekme kendi yalıtılmış oluşturucu işleminde çalışır (Linux'ta seccomp + Landlock) ve arayüzle IPC ve paylaşımlı bellek çerçeve arabellekleri üzerinden iletişim kurar. JIT yok.</p>
-        <p><b>Minimalizm.</b> Tüm motor kompakt bir C gövdesidir &mdash; tek bir kişinin baştan sona okuyup denetleyebileceği kadar küçük.</p>
-        <p>Nordstjernen'de JIT yoktur, bu yüzden çok daha güvenlidir ve yine de yeterince hızlı olabilir. Hiçbir türden telemetri içermez.</p>
+        <h2 id="northstar">Northstar tarayıcısı</h2>
+        <p><a href="northstar-browser/">Northstar</a>, Nordstjernen'in <b>GNU GPL, sürüm 3 veya üzeri</b> ile lisanslanan minimalist kardeşidir: tek pencere, tek sayfa ve tek işlem; aynı temiz oda (clean-room) motorundan yaklaşık 219.000 satır özgün C koduyla oluşturulmuştur. Sekmeleri, sekme başına oluşturucu işlemlerini, WebGL ve WebGPU'yu dışarıda bırakır; ancak akışlı video, yazdırma, WebExtensions, Google Safe Browsing ve 40 dilde arayüz sunar ve Linux'ta Landlock ve seccomp korumalı alanında çalışır. Linux, macOS ve Windows üzerinde çalışır; Windows için <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>'da bulunur.</p>
+        <p><a href="northstar-browser/">Northstar belgelerinin tamamını okuyun &raquo;</a> &middot; ya da üç tarayıcının nasıl farklılaştığını görmek için <a href="#specs">aşağıdaki karşılaştırma tablosuna</a> bakın.</p>
 
-        <a id="specs"></a>
-        <h2>özellikler</h2>
-        <table class="spec">
-          <tr><th>dil</th><td>C &middot; tamamen denetlenebilir</td></tr>
-          <tr><th>html / css</th><td><a href="https://github.com/lexbor/lexbor">lexbor</a> (ayrıştırıcı, WHATWG URL, seçiciler)</td></tr>
-          <tr><th>javascript</th><td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> &mdash; bayt kodu yorumlayıcısı, JIT yok</td></tr>
-          <tr><th>webassembly</th><td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> &mdash; <code>WebAssembly</code> JS API'sinin arkasındaki yorumlayıcı</td></tr>
-          <tr><th>görüntüler</th><td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / GIF / BMP / JPEG / WebP kayıpsız)</td></tr>
-          <tr><th>arayüz</th><td><a href="https://www.gtk.org">GTK 4</a> &middot; Pango metin şekillendirme &middot; sayfa başına bir pencere, sekme şeridi yok</td></tr>
-          <tr><th>ağ</th><td><a href="https://curl.se">libcurl</a> &middot; HTTP/2</td></tr>
-          <tr><th>sıkılaştırma</th><td>sekme başına işlem &middot; Linux'ta seccomp + Landlock korumalı alanı &middot; JIT yok</td></tr>
-          <tr><th>gizlilik</th><td>telemetri yok &middot; bölümlenmiş çerezler &middot; HSTS &middot; CSP</td></tr>
-          <tr><th>platformlar</th><td>linux &middot; windows &middot; macos &middot; android (port üzerinde çalışılıyor)</td></tr>
-          <tr><th>lisans</th><td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0-or-later</a> / <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; 10 yıl sonra MIT</td></tr>
+        <h2 id="southstar">Southstar tarayıcısı</h2>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>, çalışmaya devam ederken modül modül Rust'a taşınmış Nordstjernen'dir: Ekim 2026'dan bu yana kendi kodunun tamamı Rust'tır &mdash; yaklaşık 163 crate içinde yaklaşık 385.000 satır &mdash; ve yalnızca Cargo ile derlenir. Sayfa JavaScript'i, test262'nin tamamını geçen ve JIT içermeyen bir Rust yorumlayıcısı olan <a href="https://github.com/boa-dev/boa">Boa</a> üzerinde çalışır; HTML ayrıştırma, metin yerleşimi, TLS ve WebAssembly de Rust ile yazılmıştır. Southstar <b>1.0.9</b>, <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>'da ve <a href="https://crates.io/crates/southstar">crates.io</a>'da bulunur, Linux paketleri ise <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>'dadır; taşımanın nasıl yapıldığı <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a> belgesinde anlatılıyor.</p>
+
+        <p><a href="innovations-in-nordstjernen-web-browser.html">Nordstjernen web tarayıcısındaki yenilikler</a> hakkında daha fazlasını okuyun.</p>
+
+        <h2 id="specs">özellikler</h2>
+        <p>Üç tarayıcı, tek bir temiz oda motor soyu. <b>Nordstjernen</b> çok sekmeli amiral gemisi tarayıcıdır; <b>Northstar</b> GPL lisanslı, tek işlemli minimalist sürümdür; <b>Southstar</b> ise Rust ile yeniden yazılmış aynı tarayıcıdır.</p>
+        <p class="scroll-hint">Üç tarayıcının hepsini görmek için tabloyu yana kaydırın.</p>
+        <div class="table-scroll">
+        <table class="spec compare">
+          <caption class="sr-only">Teknik özellikler: Nordstjernen 1.0.47 ile Northstar 1.0.23 ve Southstar 1.0.9 karşılaştırması</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <tr><th scope="row">sürüm</th>
+              <td><b>1.0.47</b> &mdash; 14 Kasım 2026'da yayımlandı &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">sürüm notları</a></td>
+              <td><b>1.0.23</b> &mdash; 14 Kasım 2026'da yayımlandı &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">sürüm notları</a></td>
+              <td><b>1.0.9</b> &mdash; 14 Kasım 2026'da yayımlandı &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">sürüm notları</a></td></tr>
+          <tr><th scope="row">karakter</th>
+              <td>amiral gemisi tarayıcı &middot; çok pencereli, çok sekmeli</td>
+              <td>minimalist sürüm &middot; pencere başına bir sayfa, sekme yok</td>
+              <td>Rust sürümü &middot; çok pencereli, çok sekmeli</td></tr>
+          <tr><th scope="row">dil</th>
+              <td>C &middot; ~268 kLOC temiz oda kodu &middot; 1.0.47'den bu yana güvenli Rust ile HTML5 ve URL ayrıştırıcıları &middot; GTK&nbsp;4 kabuğu &middot; JNI üzerinden Java/JVM bağlaması &middot; tamamen denetlenebilir</td>
+              <td>C &middot; ~219 kLOC özgün kod &middot; GTK&nbsp;4 kabuğu &middot; tamamen denetlenebilir</td>
+              <td>Rust &middot; yaklaşık 163 crate içinde ~385 kLOC &middot; Cargo ile derlenir &middot; GTK&nbsp;4 kabuğu ve 1.0.9'dan bu yana saf Java Swing kabuğu &middot; C yalnızca bağlandığı sistem kütüphanelerinde</td></tr>
+          <tr><th scope="row">mimari</th>
+              <td>sekme başına işlem &mdash; her sekme korumalı alandaki kendi oluşturucu işleminde, IPC + paylaşılan bellek döşemeleri</td>
+              <td>tek işlem &mdash; sayfa motoru, tarayıcı işlemi içinde kendi iş parçacığında</td>
+              <td>sekme başına işlem &mdash; her sekme korumalı alandaki kendi oluşturucu işleminde, IPC + paylaşılan bellek kare arabellekleri</td></tr>
+          <tr><th scope="row">javascript</th>
+              <td>Fabrice Bellard'ın <a href="https://github.com/bellard/quickjs">QuickJS</a>'inin kaynak ağacındaki, yığını sıkılaştırılmış çatalı; 1.0.47'den bu yana varsayılan &mdash; bayt kodu yorumlayıcısı, JIT yok, yığını ayrılmış bir adres aralığı kafesinde &middot; Temporal ve <code>Intl</code> &middot; kaynak ağacındaki <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> çatalı <code>-Dquickjs=quickjs-ng</code> ile seçilebilir</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+, <code>147d01c</code> sürümünde &mdash; bayt kodu yorumlayıcısı, JIT yok &middot; özgün QuickJS <code>-Djs_engine=quickjs</code> ile seçilebilir</td>
+              <td><a href="https://github.com/boa-dev/boa">Boa</a> (kaynak ağacındaki çatal) &mdash; Rust yorumlayıcısı, JIT yok &middot; staging dışındaki 52.133 test262 testinin tamamı geçer</td></tr>
+          <tr><th scope="row">platformlar</th>
+              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm ve pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm ve crates.io</td></tr>
+          <tr><th scope="row">lisans</th>
+              <td>1.0.28'den bu yana çift lisanslı, tercihinize bağlı olarak: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 veya üzeri</a> &mdash; özgür yazılım &middot; ya da <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; 10 yıl sonra MIT, <a href="https://fsl.software/">Functional Source License</a>'tan esinlenmiştir</td>
+              <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 veya üzeri</a> &mdash; özgür yazılım</td>
+              <td>Nordstjernen ile aynı çift lisans: tercihinize bağlı olarak <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 veya üzeri</a> ya da <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/License.md">NSL-1.0</a></td></tr>
         </table>
+        </div>
+        <p><a href="specs.html">Tüm özellikler &raquo;</a> &mdash; HTML ve CSS, metin, görüntüler, medya, yazdırma, ağ, sıkılaştırma, gizlilik ve standartlar.</p>
 
-        <a id="download"></a>
-        <h2>indir</h2>
-        <p>Platformunuz için Nordstjernen 1.0.47'ü indirin. Tüm dosyalar <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">GitHub</a>'da.</p>
-
+        <h2 id="download">indir</h2>
+        <p>Son sürüm: Nordstjernen <b>1.0.47</b>, 14 Kasım 2026'da yayımlandı. Tüm platformlar, Northstar ve Southstar <a href="download.html">indirme sayfasında</a>.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
@@ -101,12 +174,12 @@
           <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
           <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
           <tr><th>Linux (taşınabilir)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>Kaynak</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
-          <tr><th>GitHub</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47</a></td></tr>
+          <tr><th>Kaynak kodu</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
         </table>
 
-        <a id="languages"></a>
-        <h2>diller</h2>
+        <p><a class="btn-red" href="download.html">Nordstjernen'i indirin &raquo;</a></p>
+
+        <h2 id="languages">diller</h2>
         <p class="langs">
           <a href="index.html">English</a> &middot;
           <a href="index_cn.html">中文</a> &middot;
@@ -131,14 +204,15 @@
           <a href="index_no.html">Norsk</a>
         </p>
 
-  </div>
+  </main>
 
-  <div class="footer">
+  <footer class="footer">
+    <div class="badges"><a href="download.html"><img src="assets/nordstjernen-now.gif" width="144" height="50" alt="Nordstjernen Now — tarayıcıyı indirin"></a></div>
     Copyright &copy; 2026 Nordstjernen projesi &middot;
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
     <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
     <a href="privacy/">Gizlilik</a>
-  </div>
+  </footer>
 
 </div>
 

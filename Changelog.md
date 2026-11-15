@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* Save Page as PDF (`Ctrl+Shift+P`) and the headless `--dump=pdf:` and
+  `--dump=print:` outputs are removed, with the cairo PDF writer behind
+  them. Printing is unchanged; to get a PDF, choose Print to File in the
+  print dialog. `Ctrl+P` with the page focused now prints, as it does
+  everywhere else in the window; it used to open the Save as PDF dialog.
+  An unknown `--dump=` value is now an error instead of being ignored.
 * uchardet is no longer a dependency. A page that declares no charset
   and is not valid UTF-8 is decoded in the default encoding the HTML
   Standard suggests for the user's locale (windows-1251 for Russian,

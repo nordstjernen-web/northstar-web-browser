@@ -79,15 +79,12 @@ ns_engine_img_session *ns_engine_fetch_images_start(
 int  ns_engine_img_session_outstanding(const ns_engine_img_session *s);
 void ns_engine_img_session_close(ns_engine_img_session *s);
 
-/* Open an output file named on the command line (--dump=png:, pdf:,
- * print:, --screenshot=) before the sandbox is set up, so the sandbox need
- * not grant write access to its whole directory; the writers below use
- * the open file when given that path. */
+/* Open an output file named on the command line (--dump=png:,
+ * --screenshot=) before the sandbox is set up, so the sandbox need not
+ * grant write access to its whole directory; the PNG writer uses the open
+ * file when given that path. */
 gboolean ns_engine_preopen_output(const char *path);
 int ns_engine_write_png(const ns_box *root, const char *path);
-int ns_engine_write_pdf(const ns_box *root, const char *path);
-int ns_engine_write_pdf_paged(const ns_box *root, const char *path,
-                              const struct ns_print_setup *setup);
 
 GPtrArray *ns_engine_print_recordings(const ns_box *root,
                                       const struct ns_print_setup *setup);

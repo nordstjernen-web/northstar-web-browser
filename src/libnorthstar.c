@@ -3521,7 +3521,23 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
         ns_js_focus_from_pointer(browser->js, node);
         const char *val = focus ? ns_node_editable_value(focus) : NULL;
         browser->caret_byte = val ? strlen(val) : 0;
+        /* Put the caret at the character boundary nearest the click when
+         * the click is on a text field's value. */
+        glong cp = 0;
+        if (val && focus == ns_js_focused_node(browser->js) &&
+            ns_box_text_field_caret_at(browser->layout, (double)x, (double)y,
+                                       focus, &cp)) {
+            glong n = g_utf8_strlen(val, -1);
+            if (cp < 0) cp = 0;
+            if (cp > n) cp = n;
+            browser->caret_byte =
+                (gsize)(g_utf8_offset_to_pointer(val, cp) - val);
+        }
         browser->sel_anchor_byte = browser->caret_byte;
+        if (focus && val)
+            ns_js_set_control_selection(browser->js, focus,
+                                        browser->sel_anchor_byte,
+                                        browser->caret_byte);
         browser->datalist_suppressed =
             !(focus && ns_node_is_element_named(focus, "input") &&
               ns_element_get_attr(focus, "list") != NULL);
@@ -3814,14 +3830,31 @@ browser_input_replace(ns_browser *b, ns_node *node, gsize del_start,
     b->sel_anchor_byte = b->caret_byte;
     g_string_free(s, TRUE);
     if (b->js) {
+        ns_js_set_control_selection(b->js, node, b->sel_anchor_byte,
+                                    b->caret_byte);
         ns_js_dispatch_event(b->js, node, "input", NULL);
         (void)ns_js_consume_mutated(b->js);
     }
 }
 
-/* Applies an editing key (Backspace, arrows, Enter, text) to a focused control's value. */
+static gboolean browser_edit_key_apply(ns_browser *b, ns_node *node,
+                                       const char *key, int mods);
+
+/* Applies an editing key to a focused control, then mirrors the caret and
+ * selection to the control's selectionStart/End. */
 static gboolean
 browser_edit_key(ns_browser *b, ns_node *node, const char *key, int mods)
+{
+    gboolean handled = browser_edit_key_apply(b, node, key, mods);
+    if (handled && b->js && ns_js_focused_node(b->js) == node)
+        ns_js_set_control_selection(b->js, node, b->sel_anchor_byte,
+                                    b->caret_byte);
+    return handled;
+}
+
+/* Applies an editing key (Backspace, arrows, Enter, text) to a focused control's value. */
+static gboolean
+browser_edit_key_apply(ns_browser *b, ns_node *node, const char *key, int mods)
 {
     gboolean shift = (mods & 1) != 0, ctrl = (mods & 2) != 0;
     if (mods & (4 | 8)) return FALSE;

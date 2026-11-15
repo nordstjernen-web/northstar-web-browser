@@ -3057,12 +3057,14 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
             else if (!real_value) anchor_byte = 0;
             int size = text_input_columns(n);
             glong displayed_chars = 0;
+            glong value_skip_cps = 0;
             if (v && *v && is_password && !is_placeholder) {
                 glong cps = g_utf8_strlen(v, -1);
                 glong skip_cps = focused
                     ? text_input_focused_skip_cps(real_value, caret_byte,
                                                   cps, size)
                     : text_input_align_skip_cps(s, n, cps, size);
+                value_skip_cps = skip_cps;
                 glong shown_cps = cps - skip_cps;
                 if (shown_cps > size) shown_cps = size;
                 for (glong i = 0; i < shown_cps; i++)
@@ -3088,6 +3090,7 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
                         ? text_input_focused_skip_cps(real_value, caret_byte,
                                                       value_cps, size)
                         : text_input_align_skip_cps(s, n, value_cps, size);
+                    value_skip_cps = skip_cps;
                     const char *p = text_input_advance_cps(v, skip_cps);
                     const char *q = text_input_advance_cps(p, size);
                     display_v = p;
@@ -3136,8 +3139,25 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
             }
             for (glong i = 0; i < right_pad; i++)
                 g_string_append(ctx->out, "\xc2\xa0");
+            guint field_idx = ctx->attrs->len;
             emit_text_control(ctx, n, s, start, val_start, disp_end,
                               is_placeholder, focused, anchor_pos, caret_pos);
+            /* emit_text_control appends the field attr first; record where
+             * the value sits in the run so a click can place the caret. */
+            if (field_idx < ctx->attrs->len) {
+                ns_inline_attr *fa =
+                    &g_array_index(ctx->attrs, ns_inline_attr, field_idx);
+                if (fa->dom == n &&
+                    (fa->kind == NS_INLINE_INPUT_FIELD ||
+                     fa->kind == NS_INLINE_INPUT_FIELD_FOCUSED)) {
+                    fa->value_shown = !is_placeholder && real_value &&
+                                      *real_value && disp_end > val_start &&
+                                      val_start >= fa->start;
+                    fa->value_off = val_start - fa->start;
+                    fa->value_len = disp_end - val_start;
+                    fa->value_skip_cps = value_skip_cps;
+                }
+            }
             if (focused && g_datalist_open_for_layout)
                 emit_datalist_suggestions(ctx, n);
         } else if (type && (g_ascii_strcasecmp(type, "submit") == 0 ||
@@ -6611,6 +6631,9 @@ inline_box_clone_range(const ns_box *src, gsize start, gsize end)
             ns_inline_attr copy = *a;
             copy.start = is - start;
             copy.len = ie - is;
+            /* A field cut at its front no longer holds its value where the
+             * offsets say; drop them rather than place a caret wrongly. */
+            if (copy.value_shown && is > a->start) copy.value_shown = FALSE;
             g_array_append_val(out->attrs, copy);
             if (copy.bg_image_src) {
                 ns_box_media *m = ns_box_media_ensure(out);
@@ -16717,6 +16740,59 @@ ns_box_hit_link_range(const ns_box *root, double x, double y)
         }
     }
     return best;
+}
+
+/* Codepoint offset in field's value nearest the point, when the point is on
+ * the field's text run and the field shows its value; FALSE otherwise. */
+gboolean
+ns_box_text_field_caret_at(const ns_box *root, double x, double y,
+                           const ns_node *field, glong *out_cp)
+{
+    if (!root || !field) return FALSE;
+    if (!box_hit_untransform_point(root, &x, &y)) return FALSE;
+    if (root->inline_atomics)
+        for (guint i = 0; i < root->inline_atomics->len; i++) {
+            const ns_inline_atomic *atomic =
+                &g_array_index(root->inline_atomics, ns_inline_atomic, i);
+            if (!atomic->box) continue;
+            double ax, ay;
+            inline_atomic_hit_point(root, atomic,
+                                    x + root->scroll_x,
+                                    y + root->scroll_y, &ax, &ay);
+            if (ns_box_text_field_caret_at(atomic->box, ax, ay, field, out_cp))
+                return TRUE;
+        }
+    if (root->kind == NS_BOX_INLINE && root->attrs && root->text &&
+        x >= root->x && x <= root->x + root->content_width &&
+        y >= root->y && y <= root->y + root->content_height) {
+        gsize tlen = strlen(root->text);
+        for (guint i = 0; i < root->attrs->len; i++) {
+            const ns_inline_attr *r =
+                &g_array_index(root->attrs, ns_inline_attr, i);
+            if (r->dom != field || !r->value_shown ||
+                (r->kind != NS_INLINE_INPUT_FIELD &&
+                 r->kind != NS_INLINE_INPUT_FIELD_FOCUSED))
+                continue;
+            gsize vs = r->start + r->value_off;
+            gsize ve = vs + r->value_len;
+            if (ve > tlen || vs > ve) return FALSE;
+            gsize byte = 0;
+            if (!ns_paint_inline_xy_to_byte(root, x - root->x, y - root->y,
+                                            &byte))
+                return FALSE;
+            if (byte < vs) byte = vs;
+            if (byte > ve) byte = ve;
+            *out_cp = r->value_skip_cps +
+                      g_utf8_strlen(root->text + vs, (gssize)(byte - vs));
+            return TRUE;
+        }
+    }
+    double cx = x + root->scroll_x;
+    double cy = y + root->scroll_y;
+    for (const ns_box *c = root->first_child; c; c = c->next_sibling)
+        if (ns_box_text_field_caret_at(c, cx, cy, field, out_cp))
+            return TRUE;
+    return FALSE;
 }
 
 /* Href under the point, preferring the link element's live href attribute. */

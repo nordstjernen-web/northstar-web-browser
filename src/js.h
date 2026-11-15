@@ -97,6 +97,8 @@ void   ns_js_set_load_delay_cb(ns_js *js, gboolean (*cb)(gpointer), gpointer use
 void   ns_js_set_style_flush_cb(ns_js *js, ns_js_layout_flush_cb cb, gpointer user_data);
 void   ns_js_set_early_inject_src(ns_js *js, const char *src);
 void   ns_js_add_csp_header(ns_js *js, const char *header_value);
+void   ns_js_set_control_selection(ns_js *js, const ns_node *el,
+                                   gsize anchor_byte, gsize caret_byte);
 void   ns_js_set_document_sandbox(ns_js *js, ns_node *doc, const char *csp_header);
 void   ns_js_apply_meta_csp(ns_js *js, const ns_node *doc);
 gboolean ns_js_csp_form_action_allowed(const ns_js *js, const char *action_url);

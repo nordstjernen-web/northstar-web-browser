@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* Clicking in a text field puts the caret where you click. It always
+  went to the end of the value, so mending a typo meant using the arrow
+  keys. This works in password fields and in a field scrolled to show
+  part of a long value. selectionStart, selectionEnd and
+  selectionDirection now follow the caret as you click, type and move
+  it with the keys; they used to stay at 0.
 * Text fields put their text the field's padding in from the border, not
   twice that. The padding was applied by the field's box and again as
   leading spaces, so a search box with 16px of padding started its text

@@ -107,7 +107,7 @@ jobs:
           set -o pipefail
           ./builddir/src/gtk/northstar --headless --dump=text about:start > about.txt
           head -3 about.txt
-          grep -q nordstjernen.org about.txt
+          grep -q 'Search duckduckgo.com' about.txt
 
       - name: Headless JavaScript smoke (engine named, scripts run on it)
         shell: bash

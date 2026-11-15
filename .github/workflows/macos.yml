@@ -124,7 +124,7 @@ jobs:
         run: |
           ./builddir/src/gtk/northstar --headless --dump=text about:start > about.txt
           head -20 about.txt
-          grep -q nordstjernen.org about.txt
+          grep -q 'Search duckduckgo.com' about.txt
 
       - name: Upload build log
         if: always() && hashFiles('build.log') != ''

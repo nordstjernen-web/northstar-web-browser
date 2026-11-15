@@ -113,8 +113,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          ./builddir/src/gtk/northstar --headless --dump=text about:northstar > about-js.txt
-          grep -qxF 'JavaScript (quickjs-ng)' about-js.txt
+          ./builddir/src/gtk/northstar --headless --dump=dom about:northstar > about-js.txt
+          grep -qF '"JavaScript (quickjs-ng)"' about-js.txt
           ./builddir/src/gtk/northstar --headless --dump=text --settle-ms=300 \
             'data:text/html,<p id="a">before</p><script>var a=document.getElementById("a");var n=0;[1,1].sort(function(){n++;return 0});a.textContent="js-dom-ok "+(6*7)+" "+(2n**65n)+" "+structuredClone([1,[2]])[1][0]+" enc="+new TextEncoder().encode("h\u00e9").length+" sortcmp="+n;Promise.resolve().then(function(){a.textContent+=" js-microtask-ok"});setTimeout(function(){a.textContent+=" js-timer-ok"},50);</script>' \
             > js-page.txt

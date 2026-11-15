@@ -1,5 +1,5 @@
 /* Northstar Web Browser — page pipeline: blocking fetch, stylesheet collection, cascade, layout.
- * Also speculative preloads, image fetching and decode, and PNG/PDF/text output of the box tree.
+ * Also speculative preloads, image fetching and decode, and PNG/text output of the box tree.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -8,7 +8,6 @@
 #include "engine.h"
 
 #include <glib/gstdio.h>
-#include <cairo-pdf.h>
 #include <cairo.h>
 #include <math.h>
 #include <stdio.h>
@@ -1563,7 +1562,7 @@ ns_engine_fetch_images(ns_box *root, const char *base_url,
 
 static GHashTable *g_preopened_outputs;  /* path -> FILE* */
 
-/* Opens an output file early (e.g. before sandboxing) for later PNG/PDF writes. */
+/* Opens an output file early (e.g. before sandboxing) for later PNG writes. */
 gboolean
 ns_engine_preopen_output(const char *path)
 {
@@ -1598,16 +1597,6 @@ engine_write_to_file(void *closure, const unsigned char *data,
 {
     return fwrite(data, 1, length, closure) == length
         ? CAIRO_STATUS_SUCCESS : CAIRO_STATUS_WRITE_ERROR;
-}
-
-/* Creates a PDF surface on the pre-opened file for path if any, else by path. */
-static cairo_surface_t *
-engine_pdf_surface_create(const char *path, double w, double h, FILE **out)
-{
-    *out = engine_take_preopened(path);
-    return *out ? cairo_pdf_surface_create_for_stream(engine_write_to_file,
-                                                      *out, w, h)
-                : cairo_pdf_surface_create(path, w, h);
 }
 
 /* Paints the layout to a PNG capped at cairo's 30000 px limit; returns 0 or 2. */
@@ -1653,88 +1642,6 @@ ns_engine_write_png(const ns_box *root, const char *path)
                 cairo_status_to_string(st));
         return 2;
     }
-    return 0;
-}
-
-/* Sets the PDF creator and UTC creation date metadata. */
-static void
-pdf_set_metadata(cairo_surface_t *surf)
-{
-    cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_CREATOR,
-                                   "Northstar Web Browser");
-    time_t now = time(NULL);
-    struct tm tm_utc;
-#if defined(_WIN32)
-    int have_tm = gmtime_s(&tm_utc, &now) == 0;
-#else
-    int have_tm = gmtime_r(&now, &tm_utc) != NULL;
-#endif
-    if (have_tm) {
-        char iso[32];
-        if (strftime(iso, sizeof iso, "%Y-%m-%dT%H:%M:%SZ", &tm_utc) > 0)
-            cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_CREATE_DATE,
-                                           iso);
-    }
-}
-
-/* Paints the layout as a single-page PDF sized to the content; returns 0 or 2. */
-int
-ns_engine_write_pdf(const ns_box *root, const char *path)
-{
-    if (!root || !path) return 2;
-    double w = root->content_width > 0 ? root->content_width : 595.0;
-    double h = root->content_height > 0 ? (root->content_height + 32) : 842.0;
-    FILE *f = NULL;
-    cairo_surface_t *surf = engine_pdf_surface_create(path, w, h, &f);
-    if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
-        cairo_surface_destroy(surf);
-        if (f) fclose(f);
-        fprintf(stderr, "engine: failed to create PDF surface\n");
-        return 2;
-    }
-    pdf_set_metadata(surf);
-    cairo_t *cr = cairo_create(surf);
-    ns_paint(cr, root, NULL);
-    cairo_show_page(cr);
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-    if (f) fclose(f);
-    return 0;
-}
-
-#define NS_PRINT_PT_PER_PX (72.0 / 96.0)
-
-/* Writes a paginated PDF using the print setup's page size and margins. */
-int
-ns_engine_write_pdf_paged(const ns_box *root, const char *path,
-                          const ns_print_setup *setup)
-{
-    if (!root || !path || !setup) return 2;
-    double page_h = setup->height - setup->margin_top - setup->margin_bottom;
-    GArray *offsets = ns_print_page_offsets(root, page_h);
-    FILE *f = NULL;
-    cairo_surface_t *surf = engine_pdf_surface_create(
-        path, setup->width * NS_PRINT_PT_PER_PX,
-        setup->height * NS_PRINT_PT_PER_PX, &f);
-    if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
-        cairo_surface_destroy(surf);
-        if (f) fclose(f);
-        g_array_free(offsets, TRUE);
-        fprintf(stderr, "engine: failed to create PDF surface\n");
-        return 2;
-    }
-    pdf_set_metadata(surf);
-    cairo_t *cr = cairo_create(surf);
-    for (guint i = 0; i < offsets->len; i++) {
-        double top = g_array_index(offsets, double, i);
-        ns_print_draw_page(cr, root, setup, NS_PRINT_PT_PER_PX, top,
-                           ns_print_page_bottom(offsets, i, page_h));
-        cairo_show_page(cr);
-    }
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-    if (f) fclose(f);
-    g_array_free(offsets, TRUE);
     return 0;
 }
 

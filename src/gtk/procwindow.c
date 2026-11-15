@@ -1791,8 +1791,6 @@ static void act_print(GSimpleAction *action, GVariant *parameter,
                       gpointer user_data);
 static void act_save_page(GSimpleAction *action, GVariant *parameter,
                           gpointer user_data);
-static void act_save_pdf(GSimpleAction *action, GVariant *parameter,
-                         gpointer user_data);
 static void act_save_image(GSimpleAction *action, GVariant *parameter,
                            gpointer user_data);
 static void act_fullscreen(GSimpleAction *action, GVariant *parameter,
@@ -1867,8 +1865,6 @@ install_shortcuts(ProcWindow *pw)
                    (const char *[]){ "<Ctrl>p", NULL });
     install_action(pw, "save-page", G_CALLBACK(act_save_page),
                    (const char *[]){ "<Ctrl>s", NULL });
-    install_action(pw, "save-pdf", G_CALLBACK(act_save_pdf),
-                   (const char *[]){ "<Ctrl><Shift>p", NULL });
     install_action(pw, "save-image", G_CALLBACK(act_save_image), NULL);
     install_action(pw, "fullscreen", G_CALLBACK(act_fullscreen),
                    (const char *[]){ "F11", NULL });
@@ -1943,8 +1939,6 @@ build_app_menu_model(void)
     menu_append_accel(page, ns_i18n("Print…"), "win.print", "<Ctrl>p");
     menu_append_accel(page, ns_i18n("Save Page As…"), "win.save-page",
                       "<Ctrl>s");
-    menu_append_accel(page, ns_i18n("Save Page as PDF…"), "win.save-pdf",
-                      "<Ctrl><Shift>p");
     menu_append_accel(page, ns_i18n("Save Page as Image…"),
                       "win.save-image", NULL);
     menu_append_section(menu, page);
@@ -2251,13 +2245,6 @@ act_save_page(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     (void)action; (void)parameter;
     ns_proc_view_save_page(current_view(user_data));
-}
-
-static void
-act_save_pdf(GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-    (void)action; (void)parameter;
-    ns_proc_view_save_pdf(current_view(user_data));
 }
 
 static void

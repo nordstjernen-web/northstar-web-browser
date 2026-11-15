@@ -137,7 +137,7 @@ space.
 
 `headless.c` has two paths. Text, DOM and layout dumps, `--dump=none`,
 `--eval` and `--act` go through `page_session.c` and `libnorthstar.c`, the
-same host the GUI uses. PNG, PDF and print dumps, `--wpt` and
+same host the GUI uses. PNG dumps, `--wpt` and
 `--inspect`/`--inspect-at` drive `engine.c` directly: they parse, lay
 out, run the page's scripts and relayout without a page session.
 `NS_HEADLESS_LEGACY` sends every run down the second path.
@@ -351,12 +351,8 @@ which is what keeps an oversized box from stalling pagination.
 
 `ns_print_draw_page` clips to the sheet's content box, translates by the
 sheet's top offset and replays the same `ns_paint` the screen uses, so
-paper and screen cannot drift apart. `--dump=print:FILE` renders the
-same pagination headless — through `engine.c`, which repeats the print
-relayout itself — to a multi-page PDF with no printer attached, which is
-how `data/render-tests/print-pagination.html` is checked. It is distinct
-from `--dump=pdf:FILE` and the *Save Page as PDF…* menu item, which write
-the page as one long unpaginated sheet.
+paper and screen cannot drift apart. To get a PDF, choose *Print to
+File* in the print dialog.
 
 ## Security-relevant modules
 

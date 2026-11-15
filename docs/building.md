@@ -315,10 +315,10 @@ selects it; headless runs are never supervised by the watchdog.
 |--------|--------|
 | `--url=URL`, or a bare URL or file path | The page to load. |
 | `--dump=text\|dom\|layout\|none` | Print the page text (the default), the DOM, the box tree, or nothing. |
-| `--dump=png:FILE`, `pdf:FILE`, `print:FILE` | Write a screenshot, the page as one long PDF sheet, or the page paginated for print. These also write `FILE-initial.ext`, captured at the first render; the named file follows after `--time-ms`. |
+| `--dump=png:FILE` | Write a screenshot. This also writes `FILE-initial.png`, captured at the first render; the named file follows after `--time-ms`. |
 | `--viewport=W` or `WxH`, `--viewport-height=H` | Viewport size in CSS pixels (default width 1000). |
 | `--settle-ms=N` | Time to let the page settle before output (default 200). |
-| `--time-ms=N` | Page time between the first and final image or PDF capture (default 1000). |
+| `--time-ms=N` | Page time between the first and final screenshot (default 1000). |
 | `--eval=EXPR` | Evaluate JavaScript after settling and print the result. |
 | `--act='ACTION; ACTION'` | Input before output: `click X,Y`, `rightclick X,Y`, `move X,Y` (pointer motion: hover, `:hover`, mouseover/mousemove), `down X,Y` and `up` (press and release, with `move`s between them for a drag), `type TEXT`, `key NAME`, `wait MS`, `eval JS`, `evalfile PATH`, and more. Outside `--dump=png`, a point may be `sel=CSS [dx=N] [dy=N]`: the centre of the first matching element when the action runs. |
 | `--inspect=SELECTOR`, `--inspect-at=X,Y` | Report the layout boxes matching a selector, or at a point. |
@@ -331,24 +331,12 @@ than one expression in a file and use `evalfile`. And `type` inserts
 text without keyboard events, so use `key` when the page's behaviour
 depends on `keydown`.
 
-Two dump modes write PDF and differ in how much they know about paper.
-`--dump=pdf:PATH` writes the page as one long unpaginated sheet, the same
-output as *Save Page as PDF…*. `--dump=print:PATH` runs the print path
-instead — `@media print` matching, `@page` sizing, and the break
-properties cutting the document into sheets — so it is how pagination is
-checked without a printer attached:
-
-```sh
-./builddir/src/gtk/northstar --headless \
-    --dump="print:/tmp/paged.pdf" data/render-tests/print-pagination.html
-```
-
 On Linux the sandbox confines what a headless run can read. A local
 page has to live somewhere Landlock allows: a build run from
 `builddir/` can read its own source tree, so the fixtures under `data/`
 load as files, but a page in `/tmp` or elsewhere in `$HOME` does not —
 serve it over HTTP instead, as `scripts/render-tests.sh` does. The output
-directory of a PNG, PDF or print dump is added to the sandbox
+directory of a PNG dump is added to the sandbox
 automatically.
 
 ## Configuration and environment

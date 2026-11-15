@@ -2026,7 +2026,7 @@ ns_browser_dump_performance(ns_browser *browser)
     return g_string_free(out, FALSE);
 }
 
-/* Waits for images, then renders the page to a PNG or (by .pdf extension) PDF file. */
+/* Waits for images, then renders the page to a PNG file. */
 int
 ns_browser_render_image(ns_browser *browser, const char *path)
 {
@@ -2037,12 +2037,7 @@ ns_browser_render_image(ns_browser *browser, const char *path)
     ns_paint_set_js(browser->js);
     ns_paint_set_anim(browser->anim);
 
-    int rc;
-    gsize len = strlen(path);
-    if (len >= 4 && g_ascii_strcasecmp(path + len - 4, ".pdf") == 0)
-        rc = ns_engine_write_pdf(browser->layout, path);
-    else
-        rc = ns_engine_write_png(browser->layout, path);
+    int rc = ns_engine_write_png(browser->layout, path);
 
     ns_paint_set_anim(NULL);
     ns_paint_set_js(NULL);

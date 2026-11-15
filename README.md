@@ -192,11 +192,11 @@ through libavif when available, and SVG in the engine).
   restarts the browser with its session after a crash or hang;
   `--no-watchdog` turns it off.
 - **UI** — bookmarks, history, downloads, find-in-page, zoom, full
-  screen, printing, save page (`Ctrl+S`), save as PDF or image, page
+  screen, printing, save page (`Ctrl+S`), save as image, page
   source, developer tools with a JS console, settings, private
   browsing (`--private`), and a UI available in 40 languages that
   follows the operating-system language.
-- **Headless mode** — text, DOM, layout, PNG and PDF dumps, scripted
+- **Headless mode** — text, DOM, layout and PNG dumps, scripted
   input and web-platform-tests runs from the command line; see
   [docs/building.md](docs/building.md#headless-mode-scripting--testing).
 

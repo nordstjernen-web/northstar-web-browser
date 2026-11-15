@@ -1,5 +1,5 @@
 /* Northstar Web Browser — headless engine driver: load a URL, run actions/eval, dump the result.
- * Text/DOM/layout/PNG/PDF dumps, box inspection, simulated input and WPT result collection.
+ * Text/DOM/layout/PNG dumps, box inspection, simulated input and WPT result collection.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -23,7 +23,6 @@
 #include "debuglog.h"
 #include "dom.h"
 #include "engine.h"
-#include "print.h"
 #include "render.h"
 #include "forms.h"
 #include "html.h"
@@ -72,18 +71,6 @@ headless_dlog_listener(const ns_dlog_entry *e, gpointer user_data)
     if (!e || !(mask & (1u << e->level))) return;
     fprintf(stderr, "[%s %s] %s\n", ns_dlog_level_name(e->level),
             e->category ? e->category : "", e->message ? e->message : "");
-}
-
-static ns_print_setup g_headless_print_setup;
-
-/* Writes the layout as paged print PDF, plain PDF or PNG depending on the dump kind. */
-static int
-write_capture(const ns_box *root, const char *path, ns_headless_dump kind)
-{
-    if (kind == NS_DUMP_PRINT)
-        return ns_engine_write_pdf_paged(root, path, &g_headless_print_setup);
-    if (kind == NS_DUMP_PDF) return ns_engine_write_pdf(root, path);
-    return ns_engine_write_png(root, path);
 }
 
 static void
@@ -538,8 +525,7 @@ ns_headless_renderer_capable(const ns_headless_opts *opts)
     if (opts->wpt) return FALSE;
     if (opts->inspect && *opts->inspect) return FALSE;
     if (opts->inspect_at && *opts->inspect_at) return FALSE;
-    if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF ||
-            opts->dump == NS_DUMP_PRINT) return FALSE;
+    if (opts->dump == NS_DUMP_PNG) return FALSE;
     return TRUE;
 }
 
@@ -1808,8 +1794,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
     if (!resp) {
         const char *emsg = err ? err->message : "unknown error";
         fprintf(stderr, "headless: fetch failed: %s\n", emsg);
-        if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF ||
-            opts->dump == NS_DUMP_PRINT) {
+        if (opts->dump == NS_DUMP_PNG) {
             resp = g_new0(ns_response, 1);
             resp->body = g_byte_array_new();
             resp->final_url = g_strdup(opts->url ? opts->url : "");
@@ -1824,8 +1809,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         }
     } else if (resp->error) {
         fprintf(stderr, "headless: fetch error: %s\n", resp->error);
-        if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF ||
-            opts->dump == NS_DUMP_PRINT) {
+        if (opts->dump == NS_DUMP_PNG) {
             char *html = ns_build_error_page(
                 resp->final_url ? resp->final_url : opts->url,
                 resp->status, resp->error);
@@ -1846,8 +1830,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
              g_ascii_strncasecmp(resp->content_type, "application/xhtml", 17) == 0);
         gboolean body_useful = resp->body && resp->body->len > 64 && body_is_html;
         if (!body_useful &&
-            (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF ||
-             opts->dump == NS_DUMP_PRINT)) {
+            opts->dump == NS_DUMP_PNG) {
             char *html = ns_build_error_page(
                 resp->final_url ? resp->final_url : opts->url,
                 resp->status, NULL);
@@ -1935,17 +1918,9 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         resp->content_type);
     const char *page_url = resp->final_url ? resp->final_url : opts->url;
 
-    ns_print_setup_default(&g_headless_print_setup);
-    ns_css_set_print_media(opts->dump == NS_DUMP_PRINT);
-
     int vw = opts->viewport_width > 0 ? opts->viewport_width : 1000;
     double vh = opts->viewport_height > 0 ? (double)opts->viewport_height
                                           : (double)vw * 0.75;
-    if (opts->dump == NS_DUMP_PRINT && opts->viewport_width <= 0) {
-        const ns_print_setup *ps = &g_headless_print_setup;
-        vw = (int)(ps->width - ps->margin_left - ps->margin_right);
-        vh = ps->height - ps->margin_top - ps->margin_bottom;
-    }
     ns_css_set_viewport((double)vw, vh);
     ns_css_media_device media_device = {
         .width = vw,
@@ -2101,25 +2076,11 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         ns_engine_dump_layout(layout, 0, out);
         fwrite(out->str, 1, out->len, stdout);
         break;
-    case NS_DUMP_PNG:
-    case NS_DUMP_PDF:
-    case NS_DUMP_PRINT: {
+    case NS_DUMP_PNG: {
         const char *base = resp->final_url ? resp->final_url : opts->url;
         if (!image_cache) image_cache = ns_image_cache_new();
         ns_engine_fetch_images(layout, base, image_cache, js);
         headless_relayout(&flush_ctx);
-        if (opts->dump == NS_DUMP_PRINT) {
-            ns_print_setup_apply_page_rule(&g_headless_print_setup,
-                                           ns_render_page_rule());
-            const ns_print_setup *ps = &g_headless_print_setup;
-            double w = ps->width - ps->margin_left - ps->margin_right;
-            if (w > 0 && opts->viewport_width <= 0 && (int)w != vw) {
-                vw = (int)w;
-                vh = ps->height - ps->margin_top - ps->margin_bottom;
-                ns_css_set_viewport((double)vw, vh);
-                headless_relayout(&flush_ctx);
-            }
-        }
         ns_paint_set_js(js);
 
         int time_ms = opts->time_ms >= 0 ? opts->time_ms : 1000;
@@ -2129,7 +2090,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         headless_tick_smil(&flush_ctx, smil_origin_us);
         ns_paint_set_anim(anim);
         char *initial_path = ns_engine_suffix_before_ext(opts->out_path, "-initial");
-        rc = write_capture(layout, initial_path, opts->dump);
+        rc = ns_engine_write_png(layout, initial_path);
         fprintf(stderr, "[headless] initial render -> %s\n", initial_path);
         g_free(initial_path);
 
@@ -2142,7 +2103,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         ns_anim_tick(anim, (gint64)time_ms * 1000);
         headless_tick_smil(&flush_ctx, smil_origin_us + (gint64)time_ms * 1000);
         ns_paint_set_anim(anim);
-        int rc2 = write_capture(layout, opts->out_path, opts->dump);
+        int rc2 = ns_engine_write_png(layout, opts->out_path);
         fprintf(stderr, "[headless] after %dms -> %s\n", time_ms, opts->out_path);
         if (rc == 0) rc = rc2;
         break;

@@ -2424,14 +2424,11 @@ print_run(NsProcView *v, GPtrArray *pages, const ns_print_setup *setup)
     g_object_unref(op);
 }
 
-typedef struct { NsProcView *view; gboolean pdf; } ExportCtx;
-
 /* Save dialog callback: posts REQ_EXPORT to a temp runtime file to be copied to the choice. */
 static void
 on_save_dialog_done(GObject *src, GAsyncResult *res, gpointer ud)
 {
-    ExportCtx *c = ud;
-    NsProcView *v = c->view;
+    NsProcView *v = ud;
     GError *err = NULL;
     GFile *file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(src), res, &err);
     if (file) {
@@ -2439,9 +2436,8 @@ on_save_dialog_done(GObject *src, GAsyncResult *res, gpointer ud)
         if (dest && v->opened) {
             static int export_counter = 0;
             char *base = g_strdup_printf(
-                "northstar-export-%" G_GINT64_FORMAT "-%d.%s",
-                g_get_monotonic_time(), ++export_counter,
-                c->pdf ? "pdf" : "png");
+                "northstar-export-%" G_GINT64_FORMAT "-%d.png",
+                g_get_monotonic_time(), ++export_counter);
             Req *req = g_new0(Req, 1);
             req->type = REQ_EXPORT;
             req->url = g_build_filename(g_get_user_runtime_dir(), base, NULL);
@@ -2454,30 +2450,24 @@ on_save_dialog_done(GObject *src, GAsyncResult *res, gpointer ud)
     }
     g_clear_error(&err);
     pv_unref(v);
-    g_free(c);
 }
 
-/* Opens a save dialog for exporting the page as PDF or PNG, seeded with the page title. */
+/* Opens a save dialog for exporting the page as a PNG, seeded with the page title. */
 static void
-view_save(NsProcView *v, gboolean pdf)
+view_save_image(NsProcView *v)
 {
     if (!v->opened || !v->area)
         return;
     GtkRoot *root = gtk_widget_get_root(v->area);
     GtkFileDialog *dialog = gtk_file_dialog_new();
-    gtk_file_dialog_set_title(dialog,
-        pdf ? ns_i18n("Save page as PDF")
-                                      : ns_i18n("Save page as PNG"));
+    gtk_file_dialog_set_title(dialog, ns_i18n("Save page as PNG"));
     const char *t = (v->current_title && *v->current_title)
         ? v->current_title : "page";
-    char *name = g_strdup_printf("%s.%s", t, pdf ? "pdf" : "png");
+    char *name = g_strdup_printf("%s.png", t);
     g_strdelimit(name, "/", '_');
     gtk_file_dialog_set_initial_name(dialog, name);
-    ExportCtx *c = g_new0(ExportCtx, 1);
-    c->view = pv_ref(v);
-    c->pdf = pdf;
     gtk_file_dialog_save(dialog, GTK_WINDOW(root), NULL,
-                         on_save_dialog_done, c);
+                         on_save_dialog_done, pv_ref(v));
     g_object_unref(dialog);
     g_free(name);
 }
@@ -2702,25 +2692,17 @@ void
 ns_proc_view_save_page(NsProcView *view)
 { if (view) view_save_page(view); }
 
-void
-ns_proc_view_save_pdf(NsProcView *view)
-{ if (view) view_save(view, TRUE); }
-
 static void
 on_ctx_save_page(GSimpleAction *a, GVariant *p, gpointer ud)
 { (void)a; (void)p; view_save_page(ud); }
 
 void
 ns_proc_view_save_image(NsProcView *view)
-{ if (view) view_save(view, FALSE); }
-
-static void
-on_ctx_save_pdf(GSimpleAction *a, GVariant *p, gpointer ud)
-{ (void)a; (void)p; view_save(ud, TRUE); }
+{ if (view) view_save_image(view); }
 
 static void
 on_ctx_save_png(GSimpleAction *a, GVariant *p, gpointer ud)
-{ (void)a; (void)p; view_save(ud, FALSE); }
+{ (void)a; (void)p; view_save_image(ud); }
 
 static void
 ctx_action_enable(NsProcView *v, const char *name, gboolean on)
@@ -2745,7 +2727,6 @@ ctx_install_actions(NsProcView *v)
         { "copy-sel",    on_ctx_copy_sel,    NULL, NULL, NULL, {0} },
         { "select-all",  on_ctx_select_all,  NULL, NULL, NULL, {0} },
         { "save-page",   on_ctx_save_page,   NULL, NULL, NULL, {0} },
-        { "save-pdf",    on_ctx_save_pdf,   NULL, NULL, NULL, {0} },
         { "save-png",    on_ctx_save_png,    NULL, NULL, NULL, {0} },
     };
     v->ctx_actions = g_simple_action_group_new();
@@ -2834,7 +2815,6 @@ show_context_menu(NsProcView *v, const char *href)
     g_menu_append(page, ns_i18n("Select All"), "ctx.select-all");
     g_menu_append(page, ns_i18n("Copy Page Address"), "ctx.copy-url");
     g_menu_append(page, ns_i18n("Save Page As…"), "ctx.save-page");
-    g_menu_append(page, ns_i18n("Save Page as PDF…"), "ctx.save-pdf");
     g_menu_append(page, ns_i18n("Save Page as Image…"), "ctx.save-png");
     g_menu_append_section(menu, NULL, G_MENU_MODEL(page));
     g_object_unref(page);
@@ -3176,7 +3156,7 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
             request_find(v, (state & GDK_SHIFT_MASK) ? 2 : 1);
             return TRUE;
         case GDK_KEY_p:
-        case GDK_KEY_P:           view_save(v, TRUE); return TRUE;
+        case GDK_KEY_P:           ns_proc_view_print(v); return TRUE;
         case GDK_KEY_s:
         case GDK_KEY_S:           view_save_page(v); return TRUE;
         default: return FALSE;

@@ -159,7 +159,7 @@
   .feature b { color: #003366; }
 
   .shot { margin: 10px 0 26px 0; }
-  .shot a { display: block; }
+  .shot > a { display: block; }
   .shot img { display: block; width: 100%; border: 1px solid #000000; }
   .shot .cap {
     font-size: 13px; color: #666666;
@@ -372,6 +372,7 @@
     table.downloads td:nth-child(2)::before,
     table.downloads td:nth-child(4)::before { content: attr(data-label) ": "; color: #666666; }
     table.downloads td:nth-child(2), table.downloads td:nth-child(4) { font-size: 13px; color: #666666; }
+    table.downloads td.no-size { display: none; }
     table.spec:not(.compare),
     table.spec:not(.compare) tbody,
     table.spec:not(.compare) tr,

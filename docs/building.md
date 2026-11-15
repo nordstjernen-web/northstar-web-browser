@@ -270,9 +270,38 @@ once (`apt install ccache` / `dnf install ccache`). Optionally use the
 | `audio` | `auto` | Enable in-process audio playback (needs SDL2). |
 | `gstreamer` | `auto` | Decode `<video>` through GStreamer decoder plugins. `auto` enables it on Linux when GStreamer (≥ 1.18, with gstreamer-app and gstreamer-video) is present, where it becomes the default video decoder; other platforms need `-Dgstreamer=enabled`. Not a required dependency: without it the native libdav1d/libvpx/OpenH264 backends decode video. |
 | `avif` | `auto` | Decode AVIF through libavif. Disabling drops a full AV1 decoder; AVIF images then fail to decode. |
+| `pdfjs` | `auto` | The PDF viewer, built on PDF.js and embedded at build time. `auto` builds it when PDF.js is available; `enabled` makes PDF.js a required dependency, so the build fails without it; `disabled` leaves the viewer out, and a PDF shows a link to the file. |
+| `pdfjs_dir` | *(empty)* | Directory of an installed PDF.js to use instead of the pinned release, such as Arch's `/usr/share/pdf.js`. See below. |
 | `build_date` | *(configure date)* | Build-date stamp shown in the About dialog. |
 
 Set with `-Dname=value`, e.g. `meson setup builddir -Dwasm=disabled`.
+
+### Where PDF.js comes from
+
+PDF.js is never part of this repository. Without `pdfjs_dir`, meson fetches
+the release pinned in `subprojects/pdfjs-dist.wrap` (by version and
+SHA-256) into the git-ignored `subprojects/pdfjs-dist-<version>/`. With
+`pdfjs_dir`, it uses an installed copy instead, which
+`scripts/check-pdfjs.py` vets at setup: it must hold the library, the
+worker and the three WebAssembly image decoders, in either the pdfjs-dist
+layout (`build/pdf.min.mjs`, `wasm/`) or the generic viewer layout
+distributions install (`build/pdf.mjs`, `web/wasm/`), and be PDF.js 6.5
+or a later 6.x — the range the viewer in `data/js/pdf-viewer.js` is written
+for. A directory that fails the check fails the build, so a distribution
+package cannot silently ship a viewer against an untested PDF.js.
+
+```sh
+meson setup builddir -Dpdfjs=enabled -Dpdfjs_dir=/usr/share/pdf.js   # Arch: pacman -S pdfjs
+```
+
+Debian and Ubuntu's `libjs-pdf` (2.14) is too old; Fedora, MSYS2 and
+Homebrew have no package, so those builds use the pinned release. To move
+the pin, change `directory`, `source_url`, `source_filename` and
+`source_hash` in the wrap and the version in
+`subprojects/packagefiles/pdfjs-dist/meson.build`, delete the old
+`subprojects/pdfjs-dist-*/`, check the new release against the viewer,
+and raise `MIN_VERSION`/`MAX_MAJOR` in `scripts/check-pdfjs.py` if the
+supported range moves.
 
 ## Command line
 

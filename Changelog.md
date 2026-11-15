@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* ReadableStream pulls from its source. The stream never called the
+  source's pull(), ignored the queuing strategy, so a stream fed on
+  demand stopped after its first chunk: PDF.js's text arrived one chunk
+  per page, so find never finished and most text could not be
+  selected. Streams now follow the Streams Standard's model: pull() while
+  the queue is below the highWaterMark or a read is waiting,
+  desiredSize from the strategy's size(), cancel() reaching the source,
+  errors rejecting reads and reader.closed, releaseLock(), a real tee(),
+  pipeTo() that waits for each write, async iteration that cancels on
+  break, and ReadableStream.from().
 * PDF.js can come from an installed copy: `-Dpdfjs_dir=DIR` (for
   example Arch's `/usr/share/pdf.js`) uses it instead of fetching the
   pinned release. Setup checks the directory: it must hold the library,

@@ -123,6 +123,22 @@ See the lexbor section above for the base Apache 2.0 text; the full
 license including the LLVM exceptions is reproduced in
 `src/wamr/LICENSE`.
 
+### PDF.js — Apache License 2.0 (optional, `-Dpdfjs`)
+
+> PDF viewer library. Not in the source tree: the pinned `pdfjs-dist`
+> release is fetched by `subprojects/pdfjs-dist.wrap` at build time and
+> its `pdf.min.mjs`, `pdf.worker.min.mjs` and WebAssembly image decoders
+> are embedded in the binary.
+> <https://github.com/mozilla/pdf.js>
+>
+> Copyright Mozilla Foundation.
+
+Licensed under the Apache License, Version 2.0. See the lexbor section
+above for the text. The embedded WebAssembly decoders carry their own
+licences, shipped in the package's `wasm/` directory: OpenJPEG
+(BSD 2-Clause), the JBIG2 decoder from PDFium (BSD 3-Clause) and qcms
+(MIT).
+
 ### minimp3 — CC0 1.0 (public domain)
 
 > MP3 decoder for in-process audio playback. Vendored as the

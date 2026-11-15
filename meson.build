@@ -236,6 +236,13 @@ if have_avif
   add_project_arguments('-DNS_HAVE_AVIF=1', language: 'c')
 endif
 
+# PDF.js, embedded into the PDF viewer page at build time; see src/pdf.c.
+pdfjs_sub = subproject('pdfjs-dist', required: get_option('pdfjs'))
+have_pdfjs = pdfjs_sub.found()
+if have_pdfjs
+  add_project_arguments('-DNS_HAVE_PDFJS=1', language: 'c')
+endif
+
 # vorbisfile is the ov_* high-level decode API over libvorbis, used by the
 # in-process audio mixer to decode Ogg/Vorbis natively.
 libvorbisfile = dependency('vorbisfile', required: false)
@@ -429,6 +436,7 @@ install_data(
 )
 
 summary({'WebAssembly (WAMR)': have_wasm}, section: 'Features')
+summary({'PDF viewer (PDF.js)': have_pdfjs}, section: 'Features')
 summary({'AV1 video (dav1d)': have_av1}, section: 'Features')
 summary({'VP9 video (libvpx)': have_vp9}, section: 'Features')
 summary({'H.264 video (OpenH264)': have_h264}, section: 'Features')

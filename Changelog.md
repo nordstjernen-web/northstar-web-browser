@@ -4,6 +4,20 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* PDFs open in the browser, in a viewer built on PDF.js: pages render as
+  they scroll into view, with selectable text, links, zoom, find, a
+  password prompt, printing and a download button. A PDF used to be
+  downloaded. The viewer runs under a CSP that sandboxes it: an opaque
+  origin, no network access and nonce-only scripts, so a bug in PDF.js
+  cannot read the site's cookies or storage. PDF.js is fetched at build
+  time (`-Dpdfjs`, on when it can be fetched), never committed. A PDF in
+  an iframe still shows nothing.
+* A `sandbox` directive in a Content-Security-Policy header now applies
+  to the top-level page, not only to frames: without
+  `allow-same-origin` the page gets an opaque origin, an empty cookie, a
+  separate storage partition, and frames that cannot regain the origin.
+* A dedicated worker can import a `blob:` URL its page created, as the
+  File API allows. PDF.js loads its worker this way on a sandboxed page.
 * Save Page as PDF (`Ctrl+Shift+P`) and the headless `--dump=pdf:` and
   `--dump=print:` outputs are removed, with the cairo PDF writer behind
   them. Printing is unchanged; to get a PDF, choose Print to File in the

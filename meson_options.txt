@@ -18,3 +18,5 @@ option('audio', type: 'feature', value: 'auto',
        description: 'Enable in-process audio playback (SDL2 output + minimp3/pl_mpeg decode). Auto-detects SDL2; disable to build without SDL2.')
 option('js_engine', type: 'combo', choices: ['quickjs-ng', 'quickjs'], value: 'quickjs-ng',
        description: 'JavaScript engine: quickjs-ng (default) or the original QuickJS by Fabrice Bellard, each built from its pinned subproject.')
+option('pdfjs', type: 'feature', value: 'auto',
+       description: 'Show PDF documents in a viewer built on PDF.js, run as sandboxed script inside the engine. The pinned pdfjs-dist release is fetched through subprojects/pdfjs-dist.wrap and embedded at build time, never committed. Auto: used when the wrap can be fetched or is already in subprojects/. Without it a PDF shows a notice with a link to the file.')

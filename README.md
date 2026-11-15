@@ -68,8 +68,10 @@ decoders — small enough for one person to read and audit end-to-end. See
 This edition strips Nordstjernen down to a tab-less, single-process
 desktop browser, based on the
 [Nordstjernen project](https://github.com/nordstjernen-web/nordstjernen-sol-browser).
-It deliberately omits tabs, per-tab renderer processes, WebGL, WebGPU,
-an embedded PDF viewer and AI-style web APIs. It does not send telemetry
+It deliberately omits tabs, per-tab renderer processes, WebGL, WebGPU
+and AI-style web APIs. PDFs open in a viewer built on Mozilla's PDF.js,
+run as ordinary page script under a sandboxing policy that gives it an
+opaque origin, so it cannot read the hosting site's cookies or storage. It does not send telemetry
 or update pings; the only service it contacts on its own is Google Safe
 Browsing (see below).
 

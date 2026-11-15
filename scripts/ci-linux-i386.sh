@@ -53,7 +53,7 @@ file "$bin" | grep -q 'ELF 32-bit'
 export NS_ALLOW_ROOT=1
 "$bin" --headless --dump=text about:start > about.txt
 head -3 about.txt
-grep -q nordstjernen.org about.txt
+grep -q 'Search duckduckgo.com' about.txt
 
 "$bin" --headless --dump=text --settle-ms=300 \
     'data:text/html,<p id="a">before</p><script>var a=document.getElementById("a");a.textContent="js-dom-ok "+(6*7)+" "+(2n**65n)+" "+structuredClone([1,[2]])[1][0];setTimeout(function(){a.textContent+=" js-timer-ok"},50);</script>' \

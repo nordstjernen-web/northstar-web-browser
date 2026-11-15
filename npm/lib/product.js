@@ -40,7 +40,6 @@ module.exports = {
       apt: 'libgtk-4-dev', pacman: 'gtk4', brew: 'gtk4', msys: 'gtk4' },
     { module: 'libcurl', minimum: '8.5', apt: 'libcurl4-openssl-dev', pacman: 'curl', brew: 'curl', msys: 'curl' },
     { module: 'libcrypto', apt: 'libssl-dev', pacman: 'openssl', brew: 'openssl@3', msys: 'openssl' },
-    { module: 'uchardet', apt: 'libuchardet-dev', pacman: 'uchardet', brew: 'uchardet', msys: 'uchardet' },
     { module: 'libpsl', apt: 'libpsl-dev', pacman: 'libpsl', brew: 'libpsl', msys: 'libpsl' },
     { module: 'sqlite3', apt: 'libsqlite3-dev', pacman: 'sqlite', brew: 'sqlite', msys: 'sqlite3' },
     { module: 'zlib', apt: 'zlib1g-dev', pacman: 'zlib', brew: 'zlib', msys: 'zlib' },

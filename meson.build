@@ -168,8 +168,6 @@ endif
 libcrypto = dependency('libcrypto')
 libm = cc.find_library('m', required: false)
 
-libuchardet = dependency('uchardet')
-
 libpsl = dependency('libpsl')
 
 sqlite3 = dependency('sqlite3')

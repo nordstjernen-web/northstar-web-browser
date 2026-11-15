@@ -220,7 +220,7 @@ On Debian or Ubuntu, install the required development packages:
 
 ```sh
 sudo apt install build-essential git pkg-config meson ninja-build \
-    libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
+    libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev zlib1g-dev
@@ -296,7 +296,7 @@ build finds one.
 
 **Required system libraries:** GTK 4 (≥ 4.14; ≥ 4.22.1 on Windows),
 GLib (≥ 2.80), Cairo (≥ 1.18), HarfBuzz (≥ 8.3), FriBidi (≥ 1.0.6), fontconfig
-(≥ 2.15), FreeType, libcurl (≥ 8.5), OpenSSL (libcrypto), uchardet,
+(≥ 2.15), FreeType, libcurl (≥ 8.5), OpenSSL (libcrypto),
 libpsl, SQLite and zlib — Ubuntu 24.04, Debian 13 and Fedora 40 meet
 every floor; Ubuntu 22.04 and older cannot build it. The engine lays
 text out through web-text-lib rather than the system Pango; GTK still

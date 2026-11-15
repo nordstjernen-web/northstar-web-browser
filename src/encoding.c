@@ -495,6 +495,62 @@ ns_encoding_utf8(void)
     return &ns_encodings[0];
 }
 
+/* Maps a POSIX locale name ("ru_RU.UTF-8", "zh_TW") to the HTML Standard's
+ * suggested default encoding for that locale. */
+static const char *
+locale_default_label(const char *locale)
+{
+    static const struct { const char *lang; const char *label; } table[] = {
+        { "ar", "windows-1256" }, { "ba", "windows-1251" },
+        { "be", "windows-1251" }, { "bg", "windows-1251" },
+        { "cs", "windows-1250" }, { "el", "ISO-8859-7" },
+        { "et", "windows-1257" }, { "fa", "windows-1256" },
+        { "he", "windows-1255" }, { "hr", "windows-1250" },
+        { "hu", "ISO-8859-2" },   { "ja", "Shift_JIS" },
+        { "kk", "windows-1251" }, { "ko", "EUC-KR" },
+        { "ku", "windows-1254" }, { "ky", "windows-1251" },
+        { "lt", "windows-1257" }, { "lv", "windows-1257" },
+        { "mk", "windows-1251" }, { "pl", "ISO-8859-2" },
+        { "ru", "windows-1251" }, { "sah", "windows-1251" },
+        { "sk", "windows-1250" }, { "sl", "ISO-8859-2" },
+        { "sr", "windows-1251" }, { "tg", "windows-1251" },
+        { "th", "windows-874" },  { "tr", "windows-1254" },
+        { "tt", "windows-1251" }, { "uk", "windows-1251" },
+        { "vi", "windows-1258" },
+    };
+    gsize n = strcspn(locale, "_.@-");
+    if (n == 2 && g_ascii_strncasecmp(locale, "zh", 2) == 0) {
+        const char *region = locale[2] == '_' || locale[2] == '-'
+                             ? locale + 3 : "";
+        return g_ascii_strncasecmp(region, "TW", 2) == 0 ||
+               g_ascii_strncasecmp(region, "HK", 2) == 0 ||
+               g_ascii_strncasecmp(region, "MO", 2) == 0
+               ? "Big5" : "GB18030";
+    }
+    for (gsize i = 0; i < G_N_ELEMENTS(table); i++)
+        if (strlen(table[i].lang) == n &&
+            g_ascii_strncasecmp(locale, table[i].lang, n) == 0)
+            return table[i].label;
+    return "windows-1252";
+}
+
+/* The encoding for a document that declares none and is not UTF-8: the
+ * default the HTML Standard suggests for the user's locale. */
+const ns_encoding *
+ns_encoding_locale_default(void)
+{
+    static const ns_encoding *dflt;
+    static gsize once;
+    if (g_once_init_enter(&once)) {
+        const char *const *names = g_get_language_names();
+        const char *locale = names && names[0] ? names[0] : "C";
+        dflt = ns_encoding_for_label(locale_default_label(locale));
+        if (!dflt) dflt = ns_encoding_for_name("windows-1252");
+        g_once_init_leave(&once, 1);
+    }
+    return dflt;
+}
+
 gboolean
 ns_encoding_is_utf8(const ns_encoding *enc)
 {

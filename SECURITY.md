@@ -193,7 +193,7 @@ disables the suite.
 HTML and URLs: lexbor. Images: Wuffs (PNG/APNG, GIF, BMP, JPEG, WebP).
 ICO is unwrapped in-tree, SVG is rendered in-engine, and AVIF goes to
 libavif (`-Davif=disabled` removes it); there is no other image decoder.
-Fonts: FreeType. Charset: uchardet. XML is parsed in-tree (`src/xml.c`),
+Fonts: FreeType. XML is parsed in-tree (`src/xml.c`),
 with entity expansion capped at 1 MiB. CSS and layout recursion are
 depth-capped, image and video dimensions are clamped before
 multiplication, and blur radii are clamped.

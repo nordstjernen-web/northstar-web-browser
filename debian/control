@@ -16,7 +16,6 @@ Build-Depends:
  libthai-dev,
  libcurl4-openssl-dev (>= 8.5),
  libssl-dev,
- libuchardet-dev,
  libpsl-dev,
  libsqlite3-dev,
  libseccomp-dev [linux-any],

@@ -100,7 +100,7 @@
 <rect class="mod" x="46" y="556" width="380" height="42" rx="8"/>
 <rect class="bar a-engine" x="46" y="556" width="5" height="42" rx="2"/>
 <text class="file" x="60" y="576" text-anchor="start">html.c · html_lexbor.c · xml.c</text>
-<text class="desc" x="60" y="593" text-anchor="start">charset (uchardet) · lexbor parse</text>
+<text class="desc" x="60" y="593" text-anchor="start">charset · lexbor parse</text>
 <line class="arr" x1="400" y1="598" x2="400" y2="608" marker-end="url(#ah)"/>
 <rect class="mod" x="46" y="608" width="380" height="42" rx="8"/>
 <rect class="bar a-engine" x="46" y="608" width="5" height="42" rx="2"/>
@@ -352,20 +352,18 @@
 <text class="chiptext" x="600.0" y="1388" text-anchor="middle">OpenSSL</text>
 <rect class="chip" x="636.8125" y="1368" width="56" height="30" rx="6"/>
 <text class="chiptext" x="664.8125" y="1388" text-anchor="middle">SQLite</text>
-<rect class="chip" x="698.125" y="1368" width="70" height="30" rx="6"/>
-<text class="chiptext" x="733.125" y="1388" text-anchor="middle">uchardet</text>
-<rect class="chip" x="773.4375" y="1368" width="56" height="30" rx="6"/>
-<text class="chiptext" x="801.4375" y="1388" text-anchor="middle">libpsl</text>
-<rect class="chip" x="834.75" y="1368" width="42" height="30" rx="6"/>
-<text class="chiptext" x="855.75" y="1388" text-anchor="middle">zlib</text>
-<rect class="chip" x="882.0625" y="1368" width="42" height="30" rx="6"/>
-<text class="chiptext" x="903.0625" y="1388" text-anchor="middle">SDL2</text>
-<rect class="chip" x="929.375" y="1368" width="84" height="30" rx="6"/>
-<text class="chiptext" x="971.375" y="1388" text-anchor="middle">libseccomp</text>
-<rect class="chip" x="1018.6875" y="1368" width="70" height="30" rx="6"/>
-<text class="chiptext" x="1053.6875" y="1388" text-anchor="middle">libavif*</text>
-<rect class="chip" x="1094.0" y="1368" width="70" height="30" rx="6"/>
-<text class="chiptext" x="1129.0" y="1388" text-anchor="middle">Enchant*</text>
+<rect class="chip" x="698.125" y="1368" width="56" height="30" rx="6"/>
+<text class="chiptext" x="726.125" y="1388" text-anchor="middle">libpsl</text>
+<rect class="chip" x="759.438" y="1368" width="42" height="30" rx="6"/>
+<text class="chiptext" x="780.438" y="1388" text-anchor="middle">zlib</text>
+<rect class="chip" x="806.75" y="1368" width="42" height="30" rx="6"/>
+<text class="chiptext" x="827.75" y="1388" text-anchor="middle">SDL2</text>
+<rect class="chip" x="854.062" y="1368" width="84" height="30" rx="6"/>
+<text class="chiptext" x="896.062" y="1388" text-anchor="middle">libseccomp</text>
+<rect class="chip" x="943.375" y="1368" width="70" height="30" rx="6"/>
+<text class="chiptext" x="978.375" y="1388" text-anchor="middle">libavif*</text>
+<rect class="chip" x="1018.69" y="1368" width="70" height="30" rx="6"/>
+<text class="chiptext" x="1053.69" y="1388" text-anchor="middle">Enchant*</text>
 <text class="lbl" x="1164" y="1358" text-anchor="end">* optional</text>
 <rect class="chip" x="36" y="1404" width="58" height="30" rx="6"/>
 <text class="chiptext" x="65" y="1424" text-anchor="middle">dav1d*</text>

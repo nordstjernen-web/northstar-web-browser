@@ -9,7 +9,6 @@
 
 #include <math.h>
 #include <string.h>
-#include <uchardet.h>
 
 #include <lexbor/core/base.h>
 
@@ -548,7 +547,7 @@ decode_with(const char *encoding, const char *body, gsize len,
     return out;
 }
 
-/* Decodes a document body via BOM, declared charset, UTF-8 check or uchardet sniffing. */
+/* Decodes a document body via BOM, declared charset, UTF-8 check or the locale default. */
 char *
 ns_html_decode_body_full(const char *body, gsize len,
                          const char *content_type, char **charset_out)
@@ -578,19 +577,6 @@ ns_html_decode_body_full(const char *body, gsize len,
     if (enc || g_utf8_validate(body, (gssize)len, NULL))
         return decode_with("UTF-8", body, len, charset_out, "UTF-8");
 
-    const ns_encoding *detected = NULL;
-    uchardet_t det = uchardet_new();
-    if (det) {
-        gsize scan = len < (gsize)1024 * 1024 ? len : (gsize)1024 * 1024;
-        if (uchardet_handle_data(det, body, scan) == 0) {
-            uchardet_data_end(det);
-            detected = ns_encoding_for_label(uchardet_get_charset(det));
-        }
-        uchardet_delete(det);
-    }
-    if (!detected || ns_encoding_is_utf16(detected) ||
-        ns_encoding_is_replacement(detected))
-        detected = ns_encoding_for_name("windows-1252");
-    return decode_with(ns_encoding_name(detected), body, len, charset_out,
-                       ns_encoding_name(detected));
+    const char *fallback = ns_encoding_name(ns_encoding_locale_default());
+    return decode_with(fallback, body, len, charset_out, fallback);
 }

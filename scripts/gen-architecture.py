@@ -114,7 +114,7 @@ arrow(558, 443, 588, 443)
 text(46, 494, "Rendering pipeline", "ptitle")
 stages = [
     ("net.c · cache.c", "libcurl fetch · HSTS · cookies · HTTP cache"),
-    ("html.c · html_lexbor.c · xml.c", "charset (uchardet) · lexbor parse"),
+    ("html.c · html_lexbor.c · xml.c", "charset · lexbor parse"),
     ("dom.c", "node tree + mutation API"),
     ("css*.c · anim.c · font.c", "cascade · media/container queries · @font-face"),
     ("layout.c · mathml.c", "block · inline · flex · grid · table · multicol"),
@@ -199,7 +199,7 @@ text(36, 1218, "lexbor, quickjs-ng: subprojects/*.wrap · Wuffs, pl_mpeg: subpro
 
 group(20, 1238, 1160, 76, "System libraries", "g-ext")
 libs = ["GTK 4", "GLib", "Cairo", "HarfBuzz", "FriBidi", "fontconfig", "FreeType", "libcurl", "OpenSSL",
-        "SQLite", "uchardet", "libpsl", "zlib", "SDL2", "libseccomp", "libavif*", "Enchant*"]
+        "SQLite", "libpsl", "zlib", "SDL2", "libseccomp", "libavif*", "Enchant*"]
 ws = [14 + len(n) * 7 for n in libs]
 gap = (1128 - sum(ws)) / (len(libs) - 1)
 cx = 36

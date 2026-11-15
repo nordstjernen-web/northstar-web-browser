@@ -36,7 +36,6 @@ pkgbase = northstar-browser
 	depends = opusfile
 	depends = sdl2
 	depends = sqlite
-	depends = uchardet
 	depends = zlib
 	optdepends = hunspell: spell checking
 	optdepends = hunspell-en_us: English dictionary for spell checking

@@ -4,7 +4,7 @@ set -eu
 
 apk add --no-cache \
     build-base clang ccache pkgconf meson ninja git python3 \
-    gtk4.0-dev curl-dev openssl-dev uchardet-dev libpsl-dev \
+    gtk4.0-dev curl-dev openssl-dev libpsl-dev \
     harfbuzz-dev fribidi-dev cairo-dev fontconfig-dev freetype-dev \
     sqlite-dev zlib-dev libavif-dev sdl2-dev libseccomp-dev linux-headers \
     dav1d-dev libvpx-dev openh264-dev opus-dev libthai-dev \

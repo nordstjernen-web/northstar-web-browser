@@ -22,6 +22,7 @@ typedef enum {
 const ns_encoding *ns_encoding_for_label(const char *label);
 const ns_encoding *ns_encoding_for_name(const char *name);
 const ns_encoding *ns_encoding_utf8(void);
+const ns_encoding *ns_encoding_locale_default(void);
 const char *ns_encoding_name(const ns_encoding *enc);
 gboolean ns_encoding_is_utf8(const ns_encoding *enc);
 gboolean ns_encoding_is_utf16(const ns_encoding *enc);

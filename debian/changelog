@@ -1,3 +1,14 @@
+northstar (1.0.24+ds-1) unstable; urgency=medium
+
+  * New upstream release: PDFs open in a sandboxed PDF.js viewer that
+    shows real-world documents; <a download> saves its target; text
+    fields place the caret and select text with the mouse; ReadableStream
+    pulls from its source; uchardet is no longer a dependency; frame,
+    SVG and DOM fixes; and faster styling, layout and regular
+    expressions.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Sun, 15 Nov 2026 12:00:00 +0100
+
 northstar (1.0.23+ds-1) unstable; urgency=medium
 
   * New upstream release: security fixes that keep cross-origin frames

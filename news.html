@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>News &middot; Nordstjernen Web Browser</title>
+<meta name="description" content="News from the Nordstjernen project: releases of Nordstjernen, Northstar and Southstar, and articles.">
+<link rel="canonical" href="https://www.nordstjernen.org/news.html">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="en">
+<meta property="og:title" content="Nordstjernen News">
+<meta property="og:description" content="An independent web browser written from scratch in C. No telemetry, no JIT.">
+<meta property="og:url" content="https://www.nordstjernen.org/news.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot.png">
+<meta property="og:image:alt" content="Nordstjernen 1.0.33 showing a Google search for Amsterdam">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="frame">
+
+  <a class="skip-link" href="#news">Skip to content</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.png" width="144" height="50" alt="Best viewed in Nordstjernen">
+    </a>
+    <div class="brand">
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Nordstjernen logo"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
+    </div>
+    <p class="tag">Nordstjernen is an independent, unique web browser</p>
+  </header>
+
+  <nav class="nav" aria-label="Primary">
+    <a href="index.html#about">About</a>
+    <a href="index.html#news">News</a>
+    <a href="screenshots.html">Screenshots</a>
+    <a href="download.html">Download</a>
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
+    <input type="checkbox" id="nav-more" class="nav-more-toggle">
+    <label class="nav-more-btn" for="nav-more">More <span aria-hidden="true">&#9662;</span></label>
+    <div class="nav-sec">
+      <a href="specs.html">Specifications</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
+      <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">Releases</a>
+      <a href="https://discord.gg/4W959nW5vF">Discord</a>
+    </div>
+  </nav>
+
+
+    <h1 id="news">news</h1>
+    <p>Releases and articles from the Nordstjernen project, newest first.</p>
+        <ul class="news">
+        <li><time class="date" datetime="2026-11-14">14&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.47</b> released &mdash; the project&rsquo;s own HTML5 and URL parsers in safe Rust replace lexbor, a heap-hardened fork of Bellard&rsquo;s QuickJS becomes the default engine, a sandboxed PDF.js viewer, SVG SMIL animation, <code>@starting-style</code>, view transitions, interest invokers, <code>light-dark()</code>, Windows display scaling, and fixes from three security reviews.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-14">14&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.23</b> released &mdash; SVG SMIL animation, Windows display scaling, a Google sign-in fix, quickjs-ng updated, and security fixes for frame realms, cross-site frame cookies, the seccomp filter and pointer lock.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-14">14&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.9</b> released &mdash; a pure-Java shell and embedding library over the sandboxed renderer, SVG SMIL animation, Windows display scaling, and fixes for every finding of a November 2026 security audit.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-11">11&nbsp;NOV&nbsp;2026</time> &middot;
+        <b>A New Browser - Software Freedom and the Three Nordstjernen Browsers</b> &mdash; an essay on software freedom and the three Nordstjernen browsers: why a browser must be small enough for its users to read, and why the GPL-only Northstar shows where this should go.
+        <a href="a-new-browser-software-freedom-and-the-three-nordstjernen-browsers.html">Read the article &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-09">9&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.46</b> released &mdash; a W3C WebDriver server (<code>--webdriver</code>), the JavaScript heap partitioned into a reserved address-range cage with compressed and masked pointers, Bellard&rsquo;s newest QuickJS with twelve security patches, and every launch starting on about:start.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.46">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-08">8&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.45</b> released &mdash; a Java browser, a Swing <code>BrowserView</code> and an MCP server for agents on the new <code>org.nordstjernen.browser</code> API, paged PDF printing, the browser on PyPI, frame fixes that bring up Gmail Chat, and security fixes for cross-origin windows, IndexedDB partitioning and canvas teardown.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.45">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-08">8&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.22</b> released &mdash; Google Safe Browsing on by default, the about: pages and the main UI translated into all 40 languages, gradient, canvas and form-control fixes, and a source-wide removal of duplicated helpers and dead code.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.22">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-08">8&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.8</b> released &mdash; a Cargo-only build, WebP, brotli, zstd, deflate and Thai/Lao/Khmer/Myanmar line breaking in Rust instead of C libraries, Google Safe Browsing, an MCP server for local agents, and hardening fixes from the project&rsquo;s first outside contributor.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.8">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-06">6&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.21</b> released &mdash; Save Page As, <code>--ignore-certificate-errors</code> for self-signed home-lab servers, quickjs-ng 0.18 and Wuffs 0.4.0-alpha.12, a build without CMake or a C++ compiler, and security fixes for <code>postMessage</code> origins, <code>Function.caller</code> and <code>MessagePort</code> transfer.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.21">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-06">6&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.7</b> released &mdash; SharedWorker, <code>ElementInternals</code>, CSS anchor positioning, the CSS <code>if()</code> function, <code>&lt;frameset&gt;</code> documents, event retargeting across shadow boundaries, CORS across redirects, and the Microsoft Store.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.7">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-05">5&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.44</b> released &mdash; a security release: private-network blocking, mixed-content upgrades, TLS&nbsp;1.2 as the floor, iframe fetches partitioned by top-level site, sandbox and CSP checks for <code>javascript:</code> links and form navigations, and a capability ledger for downloads, pop-ups, full screen and pointer lock. 1.0.43 added post-quantum X25519MLKEM768 key shares and pointer lock.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.44">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-04">4&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.42</b> released &mdash; a browser-owned SQLite cookie store with stricter SameSite rules, persistent tab sessions, module SharedWorkers, Gmail laid out like Chrome, cheaper <code>:has()</code> and hover restyles, and a bytecode cache sized from physical RAM. 1.0.41 decodes H.264 on the GPU through Media Foundation on Windows.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.42">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen Sol Explorer <b>1.0.40</b> released &mdash; the browser takes the name Nordstjernen Sol Explorer, with shared Web Workers, <code>ElementInternals</code>, real popups with an opener link and cross-tab <code>postMessage</code>, <code>&lt;frame&gt;</code> documents, hardware video decoding through GStreamer, and frame, CORS and cookie security fixes.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.40">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.20</b> released &mdash; video decoded by Media Foundation on Windows and GStreamer on Linux by default, the FontFace API, YouTube and Media Source fixes, and security fixes.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.20">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-01">1&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.6</b> released &mdash; H.264 and AAC through Windows Media Foundation, so MP4 video and YouTube play on Windows.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.6">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.33</b> released &mdash; a built-in MCP server for local agents, <code>text-wrap: balance</code>, seventy more CSS properties, streaming XMLHttpRequest responses, sturdier workers and service workers, a run of table, float and inline layout fixes, and security fixes from a source review.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.33">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
+        Southstar <b>1.0.0</b> released &mdash; the Rust version of the browser reaches 1.0, with packages for Debian 13, Debian forky and sid, and Ubuntu 24.04 and 26.04.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.0">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-18">18&nbsp;OCT&nbsp;2026</time> &middot;
+        Northstar <b>1.0.15</b> released &mdash; no executable memory for the engine, a Landlock fix for <code>~/.Xauthority</code> sessions, opaque <code>file:</code> origins, a live <code>document.cookie</code>, and about 3,800 lines of dead and duplicated code removed.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.15">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-16">16&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.32</b> released &mdash; MP4 with H.264/AAC through the operating system&rsquo;s decoders, smoother video, CSS anchor positioning, scroll-driven animations, the Streams standard, and Temporal, <code>Intl</code> and decorators in the JavaScript engine.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.32">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-16">16&nbsp;OCT&nbsp;2026</time> &middot;
+        Northstar <b>1.0.14</b> released &mdash; video streaming fixes and security fixes from a source-wide review.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.14">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-11">11&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.31</b> released &mdash; WebGPU on by default, smooth 60&nbsp;fps YouTube video, real-time Web Audio, HTML inside SVG <code>foreignObject</code>, XPath 1.0, and range inputs drawn as sliders.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.31">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-11">11&nbsp;OCT&nbsp;2026</time> &middot;
+        Southstar <b>0.9.9</b> released &mdash; the first release of the Rust version, followed by 0.9.10 and 0.9.11.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases">Releases &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-09">9&nbsp;OCT&nbsp;2026</time> &middot;
+        Northstar <b>1.0.13</b> released &mdash; streaming video through Media Source Extensions and plain MP4 files (AV1, VP9 and H.264 with AAC or Opus), video decoding on its own thread, Google Maps, XPath, and much cheaper restyling.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.13">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-08">8&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.30</b> released &mdash; a full WebGPU surface, the common WebGL extensions, YouTube relayout 3&ndash;6&times; faster, WAMR&rsquo;s fast interpreter, and sitebench, a site-by-site comparison against Chrome.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.30">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-05">5&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.29</b> released &mdash; sharp pages on HiDPI screens, smooth tiled scrolling, the clipboard in text fields, Google sign-in and Gmail, text that flows around floats, Chrome-matching fonts on macOS, a security audit, and a <code>.deb</code> for each of Ubuntu 24.04, Ubuntu 26.04 and Debian 13.
+        <a href="release-1-0-29.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.29">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-04">4&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.28</b> released &mdash; dual-licensed under the GNU GPL v3+ or the NSL, a redesigned window and built-in pages, Google&rsquo;s search pages running, and faster style resolution, script parsing and container-query layout.
+        <a href="release-1-0-28.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.28">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-02">2&nbsp;OCT&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.27</b> released &mdash; DuckDuckGo as the default search, History that records, a <code>.deb</code> and a portable Linux zip on every release, frames and workers that follow the HTML event model, and MSE video again.
+        <a href="release-1-0-28.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.27">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-10-02">2&nbsp;OCT&nbsp;2026</time> &middot;
+        Northstar <b>1.0.12</b> released &mdash; an 8&nbsp;MB engine stack so deep pages no longer crash, and a build on Fabrice Bellard&rsquo;s original QuickJS.
+        <a href="northstar-release-1-0-12.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.12">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-27">27&nbsp;SEP&nbsp;2026</time> &middot;
+        Northstar <b>1.0.11</b> released &mdash; Northstar on the <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.11">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-26">26&nbsp;SEP&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.26</b> released &mdash; full grid layout, popovers and dialogs per the HTML standard, a faster cascade, and a round of security fixes.
+        <a href="release-1-0-28.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.26">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-26">26&nbsp;SEP&nbsp;2026</time> &middot;
+        Northstar <b>1.0.10</b> released &mdash; text measurements that outlive relayout, partial repaint, an idle page that stays idle, popovers, grid fixes and canvas security.
+        <a href="northstar-release-1-0-12.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.10">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-20">20&nbsp;SEP&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.25</b> released &mdash; a 40% faster restyle, the classic Northstar toolbar and splash, the full container-query grammar, and transitions and animations on every property.
+        <a href="release-1-0-28.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.25">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-20">20&nbsp;SEP&nbsp;2026</time> &middot;
+        Northstar <b>1.0.9</b> released &mdash; a sunny ark comic on about:start, a Mozilla-style toolbar, address-bar suggestions, and a full-screen notice.
+        <a href="northstar-release-1-0-12.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.9">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-16">16&nbsp;SEP&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.24</b> released &mdash; flexbox and grid rebuilt against the specifications, the page itself scroll-snaps, printing in process-per-tab mode, text selection that behaves, registered custom properties, a JavaScript off switch, and a painted about:start.
+        <a href="release-1-0-24.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.24">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-16">16&nbsp;SEP&nbsp;2026</time> &middot;
+        Northstar <b>1.0.8</b> released &mdash; transitions and animations on every property with a Web Animations API, <code>border-image</code>, the <code>background</code> shorthand parsed layer by layer, <code>position: fixed</code> that stays put, and lexbor 3.0.1.
+        <a href="northstar-release-1-0-8.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.8">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-09-06">6&nbsp;SEP&nbsp;2026</time> &middot;
+        <b>CVE-2026-85046 and Northstar</b> &mdash; the actively exploited Chrome V8 type confusion does not apply to Northstar or Nordstjernen: no V8, no JIT, no elements kind to confuse, no write barrier to skip.
+        <a href="cve-2026-85046-northstar.html">Read the analysis &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-08-08">8&nbsp;AUG&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.23</b> released &mdash; the browser prints, with <code>@media print</code>, <code>@page</code> and page breaks; correct <code>offsetLeft</code>/<code>offsetTop</code>, flexbox static positions, CSS Scroll Snap, and quickjs-ng 0.16.1.
+        <a href="release-1-0-23.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.23">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-08-08">8&nbsp;AUG&nbsp;2026</time> &middot;
+        Northstar <b>1.0.7</b> released &mdash; printing, a rebuilt about:start sky and earth, CSS Scroll Snap, frames that reach their parent, and Linux binaries.
+        <a href="northstar-release-1-0-7.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.7">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-31">31&nbsp;JUL&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.22</b> released &mdash; real-site layout fixes, a rebuilt grid, faster text and regular expressions, a reworked toolbar, and a much more capable Android app.
+        <a href="release-1-0-22.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.22">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-31">31&nbsp;JUL&nbsp;2026</time> &middot;
+        Northstar <b>1.0.6</b> released &mdash; a rebuilt grid, an indexed CSS cascade, faster text through ns-pango, Web Audio that renders, and relative colour syntax.
+        <a href="northstar-release-1-0-6.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.6">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-28">28&nbsp;JUL&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.21</b> released &mdash; Media Queries Level 4, in-engine SVG, HLS and DASH streaming, a redesigned about:start, and honest client hints.
+        <a href="release-1-0-21.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.21">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-28">28&nbsp;JUL&nbsp;2026</time> &middot;
+        Northstar <b>1.0.5</b> released &mdash; in-engine SVG, WebP/APNG, MPEG-1 video playback, and much better HTML, CSS and JavaScript compatibility.
+        <a href="northstar-release-1-0-5.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.5">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-23">23&nbsp;JUL&nbsp;2026</time> &middot;
+        Northstar <b>1.0.4</b> released &mdash; a maintenance release.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.4">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-22">22&nbsp;JUL&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.20</b> released &mdash; WebGL on by default, a blinking caret, site-compatibility and memory-safety work.
+        <a href="release-1-0-20.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.20">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-22">22&nbsp;JUL&nbsp;2026</time> &middot;
+        Northstar <b>1.0.3</b> released &mdash; the GPL-licensed single-process edition: Media Queries Level 4, CSSOM used values, and use-after-free fixes.
+        <a href="northstar-release-1-0-3.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-luna-browser/releases/tag/1.0.3">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-17">17&nbsp;JUL&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.19</b> released &mdash; a big step in web-standards conformance, a new animated about:start splash, and a fresh iOS port.
+        <a href="release-1-0-19.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.19">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-07-06">6&nbsp;JUL&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.18</b> released &mdash; a maintenance release.
+        <a href="release-1-0-18.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.18">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-30">30&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.17</b> released &mdash; a maintenance release.
+        <a href="release-1-0-17.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.17">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-27">27&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.16</b> released &mdash; a maintenance release.
+        <a href="release-1-0-16.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.16">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-25">25&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.15</b> released &mdash; a maintenance release.
+        <a href="release-1-0-15.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.15">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-23">23&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.14</b> released &mdash; a maintenance release.
+        <a href="release-1-0-14.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.14">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-21">21&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.12</b> released &mdash; a maintenance release.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.12">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-19">19&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.11</b> released &mdash; a maintenance release.
+        <a href="release-1-0-11.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.11">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-06-05">5&nbsp;JUN&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.0</b> released &mdash; the first stable release.
+        <a href="release-1-0-0.html">Announcement &raquo;</a> &middot;
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.0">Release notes &raquo;</a></li>
+        </ul>
+
+  </main>
+
+  <footer class="footer">
+    Copyright &copy; 2026 the Nordstjernen project &middot;
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
+    <a href="https://discord.gg/4W959nW5vF">Discord</a>
+  </footer>
+
+</div>
+
+</body>
+</html>

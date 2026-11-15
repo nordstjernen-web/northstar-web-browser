@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nordstjernen ওয়েব ব্রাউজার - ছোট, স্থিতিশীল, স্বাধীন। C দিয়ে লেখা।</title>
-<meta name="description" content="Nordstjernen - C দিয়ে একদম শুরু থেকে লেখা একটি স্বাধীন ওয়েব ব্রাউজার। কোনো টেলিমেট্রি নেই, কোনো JIT নেই।">
+<meta name="description" content="Nordstjernen একটি ওয়েব ব্রাউজার, যা C দিয়ে একদম শুরু থেকে লেখা এবং HTML ও CSS মানদণ্ড সমর্থনের ওপর কেন্দ্রিত। এটি Windows, Mac ও Linux, Android এবং Java-তে চলে।">
 <link rel="canonical" href="https://www.nordstjernen.org/index_bn.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -28,71 +28,144 @@
 <link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
 <link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="bn">
+<meta property="og:title" content="Nordstjernen ওয়েব ব্রাউজার">
+<meta property="og:description" content="C দিয়ে একদম শুরু থেকে লেখা একটি ওয়েব ব্রাউজার।">
+<meta property="og:url" content="https://www.nordstjernen.org/index_bn.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23-এ একটি YouTube ভিডিও চলছে">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nordstjernen",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
+  "softwareVersion": "1.0.47",
+  "url": "https://www.nordstjernen.org/",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="frame">
 
-  <div class="header">
+  <a class="skip-link" href="#about">মূল বিষয়বস্তুতে যান</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.gif" width="144" height="50" alt="Nordstjernen-এ সবচেয়ে ভালো দেখায়">
+    </a>
     <div class="brand">
-      <a href="index.html"><img class="logo" src="assets/nordstjernen.svg" alt="Nordstjernen logo"></a>
-      <span class="title"><a href="index.html">Nordstjernen</a></span>
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Nordstjernen লোগো"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
     </div>
-    <div class="tag">ছোট, স্থিতিশীল, স্বাধীন &middot; C দিয়ে একদম শুরু থেকে লেখা &middot; কোনো JIT নেই, কোনো টেলিমেট্রি নেই</div>
-  </div>
+    <p class="tag">Nordstjernen একটি স্বাধীন, অনন্য ওয়েব ব্রাউজার</p>
+  </header>
 
   <nav class="nav" aria-label="Primary">
     <a href="#about">পরিচিতি</a>
+    <a href="news.html">খবর</a>
     <a href="screenshots.html">স্ক্রিনশট</a>
-    <a href="#download">ডাউনলোড</a>
+    <a href="download.html">ডাউনলোড</a>
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
     <input type="checkbox" id="nav-more" class="nav-more-toggle">
     <label class="nav-more-btn" for="nav-more">আরও <span aria-hidden="true">&#9662;</span></label>
     <div class="nav-sec">
-      <a href="#specs">স্পেসিফিকেশন</a>
+      <a href="specs.html">স্পেসিফিকেশন</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">রিলিজ</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
-        <a id="about"></a>
-        <h1>Nordstjernen ওয়েব ব্রাউজার</h1>
-        <p class="lead">Nordstjernen হলো একটি ওয়েব ব্রাউজার, যা C দিয়ে একদম শুরু থেকে লেখা হয়েছে, এবং HTML ও CSS স্ট্যান্ডার্ড সমর্থনের উপর কেন্দ্রীভূত। এটি Windows, Mac এবং Linux-এ চলে, এবং একটি Android পোর্ট তৈরির কাজ চলছে। Nordstjernen নরওয়েতে তৈরি।</p>
+        <h1 id="about" style="color:#003366;">Nordstjernen ওয়েব ব্রাউজার</h1>
+        <p class="lead">Nordstjernen একটি ওয়েব ব্রাউজার, যা C দিয়ে একদম শুরু থেকে লেখা এবং HTML ও CSS মানদণ্ড সমর্থনের ওপর কেন্দ্রিত। এটি Windows, macOS ও Linux-এ চলে, আর Android, FreeBSD, NetBSD ও JVM-এর জন্যও বিল্ড রয়েছে। Nordstjernen নরওয়েতে তৈরি।</p>
 
-        <div class="shot">
-          <a href="screenshots/screenshot-1-0-47.png"><img src="screenshots/screenshot-1-0-47.png" width="1249" height="822" loading="lazy" alt="Nordstjernen rendering a web page"></a>
-          <div class="cap">Nordstjernen একটি পৃষ্ঠা রেন্ডার করছে। <a href="screenshots.html">আরও স্ক্রিনশট &raquo;</a></div>
+
+        <figure class="shot">
+          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23-এ একটি YouTube ভিডিও চলছে, পাশে প্রস্তাবিত ভিডিওগুলো, ওপরে লেবেলসহ ক্লাসিক টুলবার"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23-এ একটি YouTube ভিডিও চলছে &mdash; একটি উইন্ডো, একটি পৃষ্ঠা, লেবেলসহ ক্লাসিক টুলবার। <a href="screenshots.html">আরও স্ক্রিনশট &raquo;</a></figcaption>
+        </figure>
+
+        <p class="release-line">Nordstjernen <b>1.0.47</b> প্রকাশিত &mdash; নিরাপদ Rust-এ লেখা নিজস্ব HTML5 পার্সার, হিপ-সুরক্ষিত QuickJS, একটি PDF.js ভিউয়ার এবং SVG SMIL অ্যানিমেশন। <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">রিলিজ নোট &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.23</b> প্রকাশিত &mdash; SVG SMIL অ্যানিমেশন, Windows ডিসপ্লে স্কেলিং এবং নিরাপত্তা সংশোধন। <a href="northstar-browser/">Northstar সম্পর্কে</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">রিলিজ নোট &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.9</b> প্রকাশিত &mdash; বিশুদ্ধ-Java শেল, SVG SMIL অ্যানিমেশন এবং একটি নিরাপত্তা অডিটের প্রতিটি ত্রুটির সংশোধন। <a href="#southstar">Southstar সম্পর্কে</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">রিলিজ নোট &raquo;</a></p>
+
+        <div class="features">
+        <p class="feature"><b>HTML মানদণ্ড।</b> আচরণ অন্য কোনো ব্রাউজারের সঙ্গে নয়, বরং অংশ ধরে ধরে স্পেসিফিকেশনের লেখার সঙ্গে মিলিয়ে মাপা হয়: WHATWG HTML স্পেসিফিকেশনের 141টি সারি পুরোপুরি বাস্তবায়িত, 31টি আংশিক, আর বাদ পড়েনি একটিও। এটি <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a>-এর <code>html/</code>, <code>dom/</code> ও <code>url/</code> সাবটেস্টের <b>91.5%</b> এবং <code>css/</code>-এর 73.2% পাস করে (অক্টোবর 2026) &mdash; দেখুন <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>।</p>
+        <p class="feature"><b>নিরাপদ।</b> প্রতিটি ট্যাব নিজস্ব স্যান্ডবক্সড রেন্ডারার প্রসেসে চলে &mdash; Linux-এ seccomp + Landlock, macOS-এ একটি Seatbelt প্রোফাইল, Windows-এ প্রসেস মিটিগেশন পলিসি। JavaScript বা WebAssembly, কোনো ইঞ্জিনেই JIT নেই।</p>
+        <p class="feature"><b>মিনিমালিজম।</b> মূল ইঞ্জিনে প্রকল্পের নিজস্ব C কোড ও হেডার মিলিয়ে প্রায় 268,000 লাইন, অন্তর্ভুক্ত বাইরের লাইব্রেরি ও স্বয়ংক্রিয়ভাবে তৈরি ফাইল বাদে &mdash; এতটাই ছোট যে একজন মানুষ শুরু থেকে শেষ পর্যন্ত পড়ে নিরীক্ষা করতে পারেন।</p>
+        <p class="feature"><b>সক্ষম।</b> নিরাপদ Rust-এ লেখা নিজস্ব HTML5 পার্সার, হিপ-সুরক্ষিত QuickJS, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 ও WebGPU, Service Workers ও Streams। পৃষ্ঠার ভেতরেই <code>&lt;video&gt;</code> &mdash; MPEG-1, WebM, এবং অপারেটিং সিস্টেমের ডিকোডারের মাধ্যমে MP4 &mdash; HLS, DASH ও ক্যাপশনসহ, সঙ্গে SMIL অ্যানিমেশনসহ SVG, MathML এবং একটি PDF.js ভিউয়ার।</p>
+        <p class="feature"><b>অটোমেশন।</b> <code>nordstjernen --mcp</code> একটি লোকাল এজেন্টকে উইন্ডো পড়তে ও চালাতে দেয় &mdash; অনুমতি না দেওয়া পর্যন্ত বন্ধ, শুধু লুপব্যাক, টোকেন দিয়ে প্রমাণীকৃত &mdash; আর <code>--webdriver</code> Selenium ও অন্যান্য টেস্ট ফ্রেমওয়ার্কের জন্য W3C WebDriver চালু করে। ব্রাউজারে নিজে কোনো AI সহকারী নেই।</p>
+        <p class="feature"><b>প্রিন্ট।</b> <code>Ctrl+P</code> <code>@media print</code>, <code>@page</code> ও পেজ ব্রেক মেনে পৃষ্ঠাটিকে পাতায় ভাগ করে এবং পাতাগুলো অপারেটিং সিস্টেমের নিজস্ব প্রিন্ট ডায়ালগে পাঠিয়ে দেয়। <code>--dump=print:FILE</code> প্রিন্টার ছাড়াই একই পাতাগুলো একটি PDF-এ লিখে দেয়।</p>
+        <p class="feature"><b>দ্রুত।</b> web-text-lib, অর্থাৎ ট্রি-র ভেতরের Pango ফর্ক, শেপ করা টেক্সট বিভিন্ন লেআউটের মধ্যে ক্যাশে রাখে এবং টেবিলে ভরা পৃষ্ঠায় লেআউটের সময় 24% কমিয়ে দেয়। HTTP/3 আপগ্রেড কানেক্ট টাইমআউটে আটকে না থেকে alt-svc ক্যাশের মাধ্যমে হয়: Acid3 15.5-এর বদলে 2.2 সেকেন্ডে লোড হয়।</p>
+        <p class="feature"><b>ব্যক্তিগত।</b> কোনো টেলিমেট্রি নেই, কোনো আপডেট পিং নেই, আর client hints-এ Chrome নয়, Nordstjernen-এর নাম থাকে। থার্ড-পার্টি কুকি ব্লক করা থাকে, লিংক থেকে ট্র্যাকিং প্যারামিটার সরিয়ে ফেলা হয়, এবং Safe Browsing Google-কে কেবল 4-বাইটের একটি হ্যাশ প্রিফিক্স পাঠায়, ঠিকানা কখনোই নয়।</p>
+        <p class="feature"><b>মুক্ত সফটওয়্যার।</b> 1.0.28 থেকে Nordstjernen দ্বৈত লাইসেন্সে প্রকাশিত: আপনার পছন্দমতো <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, সংস্করণ 3 বা পরবর্তী</a> অথবা <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>-এর অধীনে এটি ব্যবহার, পরিবর্তন ও পুনর্বিতরণ করুন।</p>
         </div>
 
-        <p><b>HTML স্ট্যান্ডার্ড।</b> আচরণ স্পেসিফিকেশনের পাঠ্যের বিপরীতে, ধারা অনুসারে পরিমাপ করা হয়, অন্য কোনো ব্রাউজারের বিপরীতে নয়।</p>
-        <p><b>নিরাপদ।</b> প্রতি-ট্যাব-প্রতি-প্রসেস ডিজাইন &mdash; প্রতিটি ট্যাব তার নিজস্ব স্যান্ডবক্সড রেন্ডারার প্রসেসে চলে (Linux-এ seccomp + Landlock), IPC এবং শেয়ার্ড-মেমরি ফ্রেমবাফারের মাধ্যমে UI-এর সাথে কথা বলে। কোনো JIT নেই।</p>
-        <p><b>সংক্ষিপ্ততা।</b> পুরো ইঞ্জিনটি C-এর একটি সংক্ষিপ্ত অংশ &mdash; একজন ব্যক্তির পক্ষে শুরু থেকে শেষ পর্যন্ত পড়া এবং নিরীক্ষা করার মতো যথেষ্ট ছোট।</p>
-        <p>Nordstjernen-এ কোনো JIT নেই, তাই এটি অনেক বেশি নিরাপদ, এবং তবুও যথেষ্ট দ্রুত হতে পারে। এটি কোনো ধরনের টেলিমেট্রি সরবরাহ করে না।</p>
+        <h2 id="northstar">Northstar ব্রাউজার</h2>
+        <p><a href="northstar-browser/">Northstar</a> হলো Nordstjernen-এর মিনিমালিস্ট সহোদর, <b>GNU GPL, সংস্করণ 3 বা পরবর্তী</b> লাইসেন্সের অধীনে: একটি উইন্ডো, একটি পৃষ্ঠা ও একটি প্রসেস, একই ক্লিন-রুম ইঞ্জিন থেকে প্রায় 219,000 লাইনের মৌলিক C কোডে তৈরি। এতে ট্যাব, প্রতি-ট্যাব রেন্ডারার প্রসেস, WebGL ও WebGPU নেই, তবে স্ট্রিমিং ভিডিও, প্রিন্টিং, WebExtensions, Google Safe Browsing এবং 40টি ভাষার UI রয়েছে, আর Linux-এ এটি Landlock ও seccomp স্যান্ডবক্সের পেছনে চলে। এটি Linux, macOS ও Windows-এ চলে, আর Windows-এ এটি <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>-এ পাওয়া যায়।</p>
+        <p><a href="northstar-browser/">Northstar-এর পূর্ণ ডকুমেন্টেশন পড়ুন &raquo;</a> &middot; অথবা তিনটি ব্রাউজার কীভাবে আলাদা, তা জানতে <a href="#specs">নিচের তুলনামূলক টেবিল</a> দেখুন।</p>
 
-        <a id="specs"></a>
-        <h2>স্পেসিফিকেশন</h2>
-        <table class="spec">
-          <tr><th>ভাষা</th><td>C &middot; সম্পূর্ণ নিরীক্ষাযোগ্য</td></tr>
-          <tr><th>html / css</th><td><a href="https://github.com/lexbor/lexbor">lexbor</a> (পার্সার, WHATWG URL, সিলেক্টর)</td></tr>
-          <tr><th>javascript</th><td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> &mdash; বাইটকোড ইন্টারপ্রেটার, কোনো JIT নেই</td></tr>
-          <tr><th>webassembly</th><td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> &mdash; <code>WebAssembly</code> JS API-এর পেছনে ইন্টারপ্রেটার</td></tr>
-          <tr><th>ছবি</th><td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / GIF / BMP / JPEG / WebP লসলেস)</td></tr>
-          <tr><th>ui</th><td><a href="https://www.gtk.org">GTK 4</a> &middot; Pango টেক্সট শেপিং &middot; প্রতি পৃষ্ঠায় একটি উইন্ডো, কোনো ট্যাব স্ট্রিপ নেই</td></tr>
-          <tr><th>নেটওয়ার্ক</th><td><a href="https://curl.se">libcurl</a> &middot; HTTP/2</td></tr>
-          <tr><th>হার্ডেনিং</th><td>প্রতি-ট্যাব-প্রতি-প্রসেস &middot; Linux-এ seccomp + Landlock স্যান্ডবক্স &middot; কোনো JIT নেই</td></tr>
-          <tr><th>গোপনীয়তা</th><td>কোনো টেলিমেট্রি নেই &middot; পার্টিশনড কুকি &middot; HSTS &middot; CSP</td></tr>
-          <tr><th>প্ল্যাটফর্ম</th><td>linux &middot; windows &middot; macos &middot; android (পোর্ট তৈরির কাজ চলছে)</td></tr>
-          <tr><th>লাইসেন্স</th><td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0-or-later</a> / <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; ১০ বছর পরে MIT</td></tr>
+        <h2 id="southstar">Southstar ব্রাউজার</h2>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> হলো Rust-এ পোর্ট করা Nordstjernen, যা মডিউল ধরে ধরে রূপান্তর করা হয়েছে, পুরো সময় সচল রেখে: অক্টোবর 2026 থেকে এর নিজস্ব সব কোড Rust-এ &mdash; প্রায় 163টি crate-এ মোটামুটি 385,000 লাইন &mdash; এবং শুধু Cargo দিয়েই বিল্ড হয়। পৃষ্ঠার JavaScript চলে <a href="https://github.com/boa-dev/boa">Boa</a>-তে, যা JIT-বিহীন একটি Rust ইন্টারপ্রেটার এবং পুরো test262 পাস করে; HTML পার্সিং, টেক্সট লেআউট, TLS ও WebAssembly-ও Rust-এ। Southstar <b>1.0.9</b> পাওয়া যায় <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>-এ ও <a href="https://crates.io/crates/southstar">crates.io</a>-তে, আর এর Linux প্যাকেজ রয়েছে <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>-এ; পোর্টটি কীভাবে করা হয়েছে তা <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>-এ লেখা আছে।</p>
+
+        <p><a href="innovations-in-nordstjernen-web-browser.html">Nordstjernen ওয়েব ব্রাউজারের উদ্ভাবনগুলো</a> সম্পর্কে আরও পড়ুন।</p>
+
+        <h2 id="specs">স্পেসিফিকেশন</h2>
+        <p>তিনটি ব্রাউজার, একটিই ক্লিন-রুম ইঞ্জিন-ধারা। <b>Nordstjernen</b> হলো প্রধান মাল্টি-ট্যাব ব্রাউজার; <b>Northstar</b> হলো GPL লাইসেন্সের মিনিমালিস্ট একক-প্রসেস সংস্করণ; <b>Southstar</b> হলো সেই একই ব্রাউজার, Rust-এ নতুন করে লেখা।</p>
+        <p class="scroll-hint">তিনটি ব্রাউজারই দেখতে টেবিলটি পাশে সোয়াইপ করুন।</p>
+        <div class="table-scroll">
+        <table class="spec compare">
+          <caption class="sr-only">প্রযুক্তিগত স্পেসিফিকেশন: Northstar 1.0.23 ও Southstar 1.0.9-এর সঙ্গে Nordstjernen 1.0.47-এর তুলনা</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <tr><th scope="row">সংস্করণ</th>
+              <td><b>1.0.47</b> &mdash; 14 নভেম্বর 2026-এ প্রকাশিত &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">রিলিজ নোট</a></td>
+              <td><b>1.0.23</b> &mdash; 14 নভেম্বর 2026-এ প্রকাশিত &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">রিলিজ নোট</a></td>
+              <td><b>1.0.9</b> &mdash; 14 নভেম্বর 2026-এ প্রকাশিত &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">রিলিজ নোট</a></td></tr>
+          <tr><th scope="row">ধরন</th>
+              <td>প্রধান ব্রাউজার &middot; একাধিক উইন্ডো, একাধিক ট্যাব</td>
+              <td>মিনিমালিস্ট সংস্করণ &middot; প্রতি উইন্ডোতে একটি পৃষ্ঠা, কোনো ট্যাব নেই</td>
+              <td>Rust সংস্করণ &middot; একাধিক উইন্ডো, একাধিক ট্যাব</td></tr>
+          <tr><th scope="row">ভাষা</th>
+              <td>C &middot; ~268 kLOC ক্লিন-রুম &middot; 1.0.47 থেকে HTML5 ও URL পার্সার নিরাপদ Rust-এ &middot; GTK&nbsp;4 শেল &middot; JNI-এর মাধ্যমে Java/JVM বাইন্ডিং &middot; সম্পূর্ণ নিরীক্ষাযোগ্য</td>
+              <td>C &middot; ~219 kLOC মৌলিক কোড &middot; GTK&nbsp;4 শেল &middot; সম্পূর্ণ নিরীক্ষাযোগ্য</td>
+              <td>Rust &middot; প্রায় 163টি crate-এ ~385 kLOC &middot; Cargo দিয়ে বিল্ড &middot; GTK&nbsp;4 শেল, এবং 1.0.9 থেকে একটি বিশুদ্ধ-Java Swing শেল &middot; C কেবল যুক্ত সিস্টেম লাইব্রেরিগুলোতে</td></tr>
+          <tr><th scope="row">আর্কিটেকচার</th>
+              <td>প্রতি ট্যাবে একটি প্রসেস &mdash; প্রতিটি ট্যাব নিজস্ব স্যান্ডবক্সড রেন্ডারার প্রসেসে, IPC + শেয়ার্ড-মেমরি টাইল</td>
+              <td>একক প্রসেস &mdash; পৃষ্ঠার ইঞ্জিন ব্রাউজার প্রসেসের ভেতরে নিজস্ব থ্রেডে</td>
+              <td>প্রতি ট্যাবে একটি প্রসেস &mdash; প্রতিটি ট্যাব নিজস্ব স্যান্ডবক্সড রেন্ডারার প্রসেসে, IPC + শেয়ার্ড-মেমরি ফ্রেমবাফার</td></tr>
+          <tr><th scope="row">JavaScript</th>
+              <td>Fabrice Bellard-এর <a href="https://github.com/bellard/quickjs">QuickJS</a>-এর ট্রি-র ভেতরের, হিপ-সুরক্ষিত ফর্ক, 1.0.47 থেকে ডিফল্ট &mdash; বাইটকোড ইন্টারপ্রেটার, কোনো JIT নেই, এর হিপ একটি সংরক্ষিত অ্যাড্রেস-রেঞ্জের খাঁচায় &middot; Temporal ও <code>Intl</code> &middot; ট্রি-র ভেতরের <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> ফর্ক <code>-Dquickjs=quickjs-ng</code> দিয়ে বেছে নেওয়া যায়</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+, <code>147d01c</code>-এ &mdash; বাইটকোড ইন্টারপ্রেটার, কোনো JIT নেই &middot; মূল QuickJS <code>-Djs_engine=quickjs</code> দিয়ে বেছে নেওয়া যায়</td>
+              <td><a href="https://github.com/boa-dev/boa">Boa</a> (ট্রি-র ভেতরের ফর্ক) &mdash; Rust ইন্টারপ্রেটার, কোনো JIT নেই &middot; staging-এর বাইরের সব 52,133টি test262 টেস্ট পাস করে</td></tr>
+          <tr><th scope="row">প্ল্যাটফর্ম</th>
+              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm ও pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm ও crates.io</td></tr>
+          <tr><th scope="row">লাইসেন্স</th>
+              <td>1.0.28 থেকে দ্বৈত লাইসেন্স, আপনার পছন্দমতো: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 বা পরবর্তী</a> &mdash; মুক্ত সফটওয়্যার &middot; অথবা <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; 10 বছর পর MIT, <a href="https://fsl.software/">Functional Source License</a> দ্বারা অনুপ্রাণিত</td>
+              <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 বা পরবর্তী</a> &mdash; মুক্ত সফটওয়্যার</td>
+              <td>Nordstjernen-এর মতোই দ্বৈত লাইসেন্স: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 বা পরবর্তী</a> অথবা <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/License.md">NSL-1.0</a>, আপনার পছন্দমতো</td></tr>
         </table>
+        </div>
+        <p><a href="specs.html">পূর্ণ স্পেসিফিকেশন &raquo;</a> &mdash; HTML ও CSS, টেক্সট, ছবি, মিডিয়া, প্রিন্টিং, নেটওয়ার্ক, হার্ডেনিং, গোপনীয়তা এবং মানদণ্ড।</p>
 
-        <a id="download"></a>
-        <h2>ডাউনলোড</h2>
-        <p>আপনার প্ল্যাটফর্মের জন্য Nordstjernen 1.0.47 ডাউনলোড করুন। সব ফাইল <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">GitHub</a>-এ আছে।</p>
-
+        <h2 id="download">ডাউনলোড</h2>
+        <p>সর্বশেষ রিলিজ: Nordstjernen <b>1.0.47</b>, 14 নভেম্বর 2026-এ প্রকাশিত। সব প্ল্যাটফর্ম, Northstar ও Southstar পাওয়া যাবে <a href="download.html">ডাউনলোড পৃষ্ঠায়</a>।</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
@@ -101,12 +174,12 @@
           <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
           <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
           <tr><th>Linux (পোর্টেবল)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>সোর্স</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
-          <tr><th>GitHub</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47</a></td></tr>
+          <tr><th>সোর্স কোড</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
         </table>
 
-        <a id="languages"></a>
-        <h2>ভাষা</h2>
+        <p><a class="btn-red" href="download.html">Nordstjernen ডাউনলোড করুন &raquo;</a></p>
+
+        <h2 id="languages">ভাষা</h2>
         <p class="langs">
           <a href="index.html">English</a> &middot;
           <a href="index_cn.html">中文</a> &middot;
@@ -131,14 +204,15 @@
           <a href="index_no.html">Norsk</a>
         </p>
 
-  </div>
+  </main>
 
-  <div class="footer">
-    কপিরাইট &copy; ২০২৬ Nordstjernen প্রকল্প &middot;
-    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
+  <footer class="footer">
+    <div class="badges"><a href="download.html"><img src="assets/nordstjernen-now.gif" width="144" height="50" alt="Nordstjernen এখনই — ব্রাউজারটি ডাউনলোড করুন"></a></div>
+    কপিরাইট &copy; 2026 Nordstjernen প্রকল্প &middot;
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later অথবা NSL-1.0</a> &middot;
     <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
     <a href="privacy/">গোপনীয়তা</a>
-  </div>
+  </footer>
 
 </div>
 

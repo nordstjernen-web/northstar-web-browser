@@ -159,7 +159,7 @@
   .feature b { color: #003366; }
 
   .shot { margin: 10px 0 26px 0; }
-  .shot a { display: block; }
+  .shot > a { display: block; }
   .shot img { display: block; width: 100%; border: 1px solid #000000; }
   .shot .cap {
     font-size: 13px; color: #666666;
@@ -372,6 +372,7 @@
     table.downloads td:nth-child(2)::before,
     table.downloads td:nth-child(4)::before { content: attr(data-label) ": "; color: #666666; }
     table.downloads td:nth-child(2), table.downloads td:nth-child(4) { font-size: 13px; color: #666666; }
+    table.downloads td.no-size { display: none; }
     table.spec:not(.compare),
     table.spec:not(.compare) tbody,
     table.spec:not(.compare) tr,
@@ -459,3 +460,31 @@
     .nav a,
     .nav-more-btn { padding: 0 9px; }
   }
+
+/* ===== RIGHT-TO-LEFT (Arabic, Urdu) =====
+   Mirror the rules above that assume left-to-right text. */
+[dir="rtl"] .feature {
+  border-left: 1px solid #e3e7f0;
+  border-right: 3px solid #006633;
+  border-radius: 4px 0 0 4px;
+}
+[dir="rtl"] table.spec th, [dir="rtl"] table.spec td,
+[dir="rtl"] table.downloads th, [dir="rtl"] table.downloads td {
+  text-align: right;
+  padding-left: 18px;
+  padding-right: 0;
+}
+[dir="rtl"] code, [dir="rtl"] .langs a { unicode-bidi: isolate; }
+@media (max-width: 767px) {
+  [dir="rtl"] .header { text-align: right; }
+  [dir="rtl"] table.spec.compare td { padding-left: 14px; padding-right: 10px; }
+  [dir="rtl"] table.spec.compare th[scope="col"] { padding-left: 0; padding-right: 10px; }
+  [dir="rtl"] table.spec.compare th:first-child {
+    left: auto; right: 0;
+    border-right: 0; border-left: 1px solid #e3e7f0;
+    box-shadow: -6px 0 6px -6px rgba(0,0,0,.25);
+  }
+}
+@media (max-width: 379px) {
+  [dir="rtl"] .header .tag { margin-left: 0; margin-right: 54px; }
+}

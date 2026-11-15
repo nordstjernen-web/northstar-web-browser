@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kivinjari cha Wavuti cha Nordstjernen - kidogo, thabiti, huru. Kimeandikwa kwa C.</title>
-<meta name="description" content="Nordstjernen - kivinjari huru cha wavuti kilichoandikwa kuanzia mwanzo kwa C. Hakuna telemetri, hakuna JIT.">
+<meta name="description" content="Nordstjernen ni kivinjari cha wavuti kilichoandikwa kuanzia mwanzo kwa C. Kinalenga kuunga mkono viwango vya HTML na CSS. Kinaendeshwa kwenye Windows, Mac na Linux, Android na Java.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_sw.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -28,71 +28,144 @@
 <link rel="alternate" hreflang="ur" href="https://www.nordstjernen.org/index_ur.html">
 <link rel="alternate" hreflang="vi" href="https://www.nordstjernen.org/index_vi.html">
 <link rel="alternate" hreflang="x-default" href="https://www.nordstjernen.org/">
+<meta name="theme-color" content="#070d3a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordstjernen">
+<meta property="og:locale" content="sw">
+<meta property="og:title" content="Kivinjari cha Wavuti cha Nordstjernen">
+<meta property="og:description" content="Kivinjari cha wavuti kilichoandikwa kuanzia mwanzo kwa C.">
+<meta property="og:url" content="https://www.nordstjernen.org/index_sw.html">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
+<meta property="og:image:alt" content="Northstar 1.0.23 kikicheza video ya YouTube">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nordstjernen",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
+  "softwareVersion": "1.0.47",
+  "url": "https://www.nordstjernen.org/",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="frame">
 
-  <div class="header">
+  <a class="skip-link" href="#about">Ruka hadi kwenye maudhui</a>
+
+  <header class="header">
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="assets/best-viewed-in-nordstjernen.gif" width="144" height="50" alt="Huonekana vizuri zaidi kwenye Nordstjernen">
+    </a>
     <div class="brand">
-      <a href="index.html"><img class="logo" src="assets/nordstjernen.svg" alt="Nordstjernen logo"></a>
-      <span class="title"><a href="index.html">Nordstjernen</a></span>
+      <a href="."><img class="logo" src="assets/nordstjernen.gif" width="56" height="56" alt="Nembo ya Nordstjernen"></a>
+      <span class="title"><a href=".">Nordstjernen</a></span>
     </div>
-    <div class="tag">kidogo, thabiti, huru &middot; kimeandikwa kuanzia mwanzo kwa C &middot; hakuna JIT, hakuna telemetri</div>
-  </div>
+    <p class="tag">Nordstjernen ni kivinjari cha wavuti huru na cha kipekee</p>
+  </header>
 
   <nav class="nav" aria-label="Primary">
     <a href="#about">kuhusu</a>
+    <a href="news.html">habari</a>
     <a href="screenshots.html">picha za skrini</a>
-    <a href="#download">pakua</a>
+    <a href="download.html">pakua</a>
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
     <input type="checkbox" id="nav-more" class="nav-more-toggle">
     <label class="nav-more-btn" for="nav-more">Zaidi <span aria-hidden="true">&#9662;</span></label>
     <div class="nav-sec">
-      <a href="#specs">vipimo</a>
+      <a href="specs.html">vipimo</a>
+      <a href="northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">matoleo</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
-        <a id="about"></a>
-        <h1>Kivinjari cha Wavuti cha Nordstjernen</h1>
-        <p class="lead">Nordstjernen ni kivinjari cha wavuti, kilichoandikwa kuanzia mwanzo kwa C, kinacholenga kuunga mkono viwango vya HTML na CSS. Kinaendeshwa kwenye Windows, Mac na Linux, huku uhamishaji wa Android ukiendelea. Nordstjernen kinajengwa nchini Norway.</p>
+        <h1 id="about" style="color:#003366;">Kivinjari cha Wavuti cha Nordstjernen</h1>
+        <p class="lead">Nordstjernen ni kivinjari cha wavuti kilichoandikwa kuanzia mwanzo kwa C, kinacholenga kuunga mkono viwango vya HTML na CSS. Kinaendeshwa kwenye Windows, macOS na Linux, na kuna matoleo yake ya Android, FreeBSD, NetBSD na JVM. Nordstjernen kinajengwa nchini Norway.</p>
 
-        <div class="shot">
-          <a href="screenshots/screenshot-1-0-47.png"><img src="screenshots/screenshot-1-0-47.png" width="1249" height="822" loading="lazy" alt="Nordstjernen rendering a web page"></a>
-          <div class="cap">Nordstjernen kikionyesha ukurasa. <a href="screenshots.html">picha zaidi za skrini &raquo;</a></div>
+
+        <figure class="shot">
+          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 kikicheza video ya YouTube, video zinazopendekezwa zikiwa pembeni, chini ya upau wa zana wa kawaida wenye lebo"></a>
+          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 kikicheza video ya YouTube &mdash; dirisha moja, ukurasa mmoja, upau wa zana wa kawaida wenye lebo. <a href="screenshots.html">picha zaidi za skrini &raquo;</a></figcaption>
+        </figure>
+
+        <p class="release-line">Nordstjernen <b>1.0.47</b> kimetolewa &mdash; kichanganuzi chake chenyewe cha HTML5 kwa Rust salama, QuickJS yenye heap iliyoimarishwa, kitazamaji cha PDF.js na uhuishaji wa SVG SMIL. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Maelezo ya toleo &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.23</b> kimetolewa &mdash; uhuishaji wa SVG SMIL, upimaji wa ukubwa wa onyesho kwenye Windows na marekebisho ya usalama. <a href="northstar-browser/">Kuhusu Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Maelezo ya toleo &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.9</b> kimetolewa &mdash; kiolesura cha Java tupu, uhuishaji wa SVG SMIL na marekebisho ya kila dosari iliyobainika katika ukaguzi wa usalama. <a href="#southstar">Kuhusu Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Maelezo ya toleo &raquo;</a></p>
+
+        <div class="features">
+        <p class="feature"><b>Kiwango cha HTML.</b> Tabia ya kivinjari hupimwa dhidi ya maandishi ya vipimo, sehemu kwa sehemu, si dhidi ya kivinjari kingine: vipengele 141 vya vipimo vya WHATWG HTML vimetekelezwa kikamilifu, 31 kwa sehemu, na hakuna kinachokosekana. Kinafaulu <b>91.5%</b> ya <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> katika majaribio madogo ya <code>html/</code>, <code>dom/</code> na <code>url/</code> na 73.2% ya <code>css/</code> (Oktoba 2026) &mdash; tazama <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
+        <p class="feature"><b>Salama.</b> Kila kichupo huendeshwa katika mchakato wake wa uchoraji uliotengwa ndani ya sandbox &mdash; seccomp + Landlock kwenye Linux, wasifu wa Seatbelt kwenye macOS, sera za kupunguza hatari za michakato kwenye Windows. Hakuna JIT katika injini ya JavaScript wala ya WebAssembly.</p>
+        <p class="feature"><b>Udogo.</b> Injini kuu ina takriban mistari 268,000 ya msimbo wa C na faili za vichwa vya mradi wenyewe, bila kuhesabu maktaba za nje zilizojumuishwa na rasilimali zinazozalishwa &mdash; ni ndogo kiasi kwamba mtu mmoja anaweza kuisoma na kuikagua yote mwanzo hadi mwisho.</p>
+        <p class="feature"><b>Uwezo.</b> Kichanganuzi chake chenyewe cha HTML5 kwa Rust salama, QuickJS yenye heap iliyoimarishwa, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 na WebGPU, Service Workers na Streams. <code>&lt;video&gt;</code> ndani ya ukurasa &mdash; MPEG-1, WebM, na MP4 kupitia visimbuzi vya mfumo wa uendeshaji &mdash; pamoja na HLS, DASH na manukuu, pia SVG yenye uhuishaji wa SMIL, MathML na kitazamaji cha PDF.js.</p>
+        <p class="feature"><b>Uendeshaji otomatiki.</b> <code>nordstjernen --mcp</code> huruhusu wakala wa ndani kusoma na kuendesha dirisha &mdash; kimezimwa hadi kiruhusiwe, kupitia loopback pekee, na kwa uthibitishaji wa tokeni &mdash; na <code>--webdriver</code> hutoa W3C WebDriver kwa Selenium na mifumo mingine ya majaribio. Kivinjari chenyewe hakina msaidizi wa AI.</p>
+        <p class="feature"><b>Uchapishaji.</b> <code>Ctrl+P</code> hugawa ukurasa katika kurasa za kuchapisha kwa kufuata <code>@media print</code>, <code>@page</code> na vigawanyo vya kurasa, kisha hukabidhi kurasa hizo kwa kidirisha cha uchapishaji cha mfumo wa uendeshaji wenyewe. <code>--dump=print:FILE</code> huandika kurasa hizo hizo kwenye PDF bila printa.</p>
+        <p class="feature"><b>Kasi.</b> web-text-lib, tawi la Pango lililo ndani ya msimbo wa mradi, huhifadhi kwenye akiba maandishi yaliyokwisha kuundwa kati ya mipangilio na hupunguza muda wa mpangilio kwa 24% kwenye kurasa zenye majedwali mengi. Uboreshaji hadi HTTP/3 hupitia akiba ya alt-svc badala ya kukwama hadi muda wa kuunganisha uishe: Acid3 hupakia kwa sekunde 2.2 badala ya 15.5.</p>
+        <p class="feature"><b>Faragha.</b> Hakuna telemetri, hakuna maombi ya kukagua masasisho, na client hints hutaja Nordstjernen badala ya Chrome. Vidakuzi vya wahusika wengine huzuiwa, vigezo vya ufuatiliaji huondolewa kwenye viungo, na Safe Browsing hutuma kwa Google kiambishi awali cha hashi cha baiti 4 tu, kamwe si anwani yenyewe.</p>
+        <p class="feature"><b>Programu huria.</b> Tangu 1.0.28 Nordstjernen kina leseni mbili: unaweza kukitumia, kukibadilisha na kukisambaza upya chini ya <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, toleo la 3 au la baadaye</a>, au chini ya <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>, kwa chaguo lako.</p>
         </div>
 
-        <p><b>Kiwango cha HTML.</b> Tabia hupimwa dhidi ya maandishi ya kiwango, sehemu kwa sehemu, si dhidi ya kivinjari kingine.</p>
-        <p><b>Salama.</b> Muundo wa mchakato-kwa-kichupo &mdash; kila kichupo huendeshwa katika mchakato wake wa kuonyesha uliotengwa kwa usalama (seccomp + Landlock kwenye Linux), ukiwasiliana na UI kupitia IPC na fremu za kumbukumbu zinazoshirikiwa. Hakuna JIT.</p>
-        <p><b>Unyenyekevu.</b> Injini nzima ni mwili thabiti wa C &mdash; mdogo wa kutosha kwa mtu mmoja kuusoma na kuukagua kuanzia mwanzo hadi mwisho.</p>
-        <p>Nordstjernen haina JIT, kwa hivyo ni salama zaidi, na bado inaweza kuwa haraka vya kutosha. Haisafirishi telemetri ya aina yoyote.</p>
+        <h2 id="northstar">kivinjari cha Northstar</h2>
+        <p><a href="northstar-browser/">Northstar</a> ni ndugu mdogo na sahili wa Nordstjernen, chenye leseni ya <b>GNU GPL, toleo la 3 au la baadaye</b>: dirisha moja, ukurasa mmoja na mchakato mmoja, kimejengwa kutoka injini ile ile ya clean-room kwa takriban mistari 219,000 ya msimbo asilia wa C. Hakina vichupo, michakato ya uchoraji kwa kila kichupo, WebGL wala WebGPU, lakini kina video za kutiririsha, uchapishaji, WebExtensions, Google Safe Browsing na kiolesura katika lugha 40, nyuma ya sandbox ya Landlock na seccomp kwenye Linux. Kinaendeshwa kwenye Linux, macOS na Windows, ambako kinapatikana kwenye <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
+        <p><a href="northstar-browser/">Soma nyaraka kamili za Northstar &raquo;</a> &middot; au tazama <a href="#specs">jedwali la ulinganisho hapa chini</a> kuona jinsi vivinjari hivi vitatu vinavyotofautiana.</p>
 
-        <a id="specs"></a>
-        <h2>vipimo</h2>
-        <table class="spec">
-          <tr><th>lugha</th><td>C &middot; inayoweza kukaguliwa kikamilifu</td></tr>
-          <tr><th>html / css</th><td><a href="https://github.com/lexbor/lexbor">lexbor</a> (parser, WHATWG URL, selectors)</td></tr>
-          <tr><th>javascript</th><td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> &mdash; mkalimani wa bytecode, hakuna JIT</td></tr>
-          <tr><th>webassembly</th><td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> &mdash; mkalimani nyuma ya API ya JS ya <code>WebAssembly</code></td></tr>
-          <tr><th>picha</th><td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / GIF / BMP / JPEG / WebP lossless)</td></tr>
-          <tr><th>ui</th><td><a href="https://www.gtk.org">GTK 4</a> &middot; uundaji wa maandishi wa Pango &middot; dirisha moja kwa kila ukurasa, hakuna ukanda wa vichupo</td></tr>
-          <tr><th>mtandao</th><td><a href="https://curl.se">libcurl</a> &middot; HTTP/2</td></tr>
-          <tr><th>uimarishaji</th><td>mchakato-kwa-kichupo &middot; sandbox ya seccomp + Landlock kwenye Linux &middot; hakuna JIT</td></tr>
-          <tr><th>faragha</th><td>hakuna telemetri &middot; vidakuzi vilivyogawanywa &middot; HSTS &middot; CSP</td></tr>
-          <tr><th>mifumo</th><td>linux &middot; windows &middot; macos &middot; android (uhamishaji unaendelea)</td></tr>
-          <tr><th>leseni</th><td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0-or-later</a> / <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT baada ya miaka 10</td></tr>
+        <h2 id="southstar">kivinjari cha Southstar</h2>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> ni Nordstjernen kilichohamishiwa kwenye Rust, moduli kwa moduli, huku kikiendelea kufanya kazi: tangu Oktoba 2026 msimbo wake wote wenyewe ni Rust &mdash; takriban mistari 385,000 katika crate takriban 163 &mdash; na hujengwa kwa Cargo pekee. JavaScript ya kurasa huendeshwa kwenye <a href="https://github.com/boa-dev/boa">Boa</a>, mkalimani wa Rust usio na JIT unaofaulu test262 yote, na uchanganuzi wa HTML, mpangilio wa maandishi, TLS na WebAssembly pia ni Rust. Southstar <b>1.0.9</b> kinapatikana kwenye <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, kwenye <a href="https://crates.io/crates/southstar">crates.io</a>, na kina vifurushi vya Linux kwenye <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a>; jinsi uhamishaji ulivyofanywa kumeelezwa katika <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+
+        <p>Soma zaidi kuhusu <a href="innovations-in-nordstjernen-web-browser.html">uvumbuzi katika kivinjari cha wavuti cha Nordstjernen</a>.</p>
+
+        <h2 id="specs">vipimo</h2>
+        <p>Vivinjari vitatu, ukoo mmoja wa injini ya clean-room. <b>Nordstjernen</b> ndicho kivinjari kikuu chenye vichupo vingi; <b>Northstar</b> ni toleo sahili la mchakato mmoja lenye leseni ya GPL; <b>Southstar</b> ni kivinjari kile kile kilichoandikwa upya kwa Rust.</p>
+        <p class="scroll-hint">Telezesha jedwali kando ili kuona vivinjari vyote vitatu.</p>
+        <div class="table-scroll">
+        <table class="spec compare">
+          <caption class="sr-only">Vipimo vya kiufundi: Nordstjernen 1.0.47 ikilinganishwa na Northstar 1.0.23 na Southstar 1.0.9</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <tr><th scope="row">toleo</th>
+              <td><b>1.0.47</b> &mdash; kilitolewa 14 Novemba 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">maelezo ya toleo</a></td>
+              <td><b>1.0.23</b> &mdash; kilitolewa 14 Novemba 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">maelezo ya toleo</a></td>
+              <td><b>1.0.9</b> &mdash; kilitolewa 14 Novemba 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">maelezo ya toleo</a></td></tr>
+          <tr><th scope="row">sifa</th>
+              <td>kivinjari kikuu &middot; madirisha mengi, vichupo vingi</td>
+              <td>toleo sahili &middot; ukurasa mmoja kwa kila dirisha, hakuna vichupo</td>
+              <td>toleo la Rust &middot; madirisha mengi, vichupo vingi</td></tr>
+          <tr><th scope="row">lugha</th>
+              <td>C &middot; ~268 kLOC za clean-room &middot; vichanganuzi vya HTML5 na URL kwa Rust salama tangu 1.0.47 &middot; kiolesura cha GTK&nbsp;4 &middot; kiunganishi cha Java/JVM kupitia JNI &middot; kinaweza kukaguliwa kikamilifu</td>
+              <td>C &middot; ~219 kLOC za msimbo asilia &middot; kiolesura cha GTK&nbsp;4 &middot; kinaweza kukaguliwa kikamilifu</td>
+              <td>Rust &middot; ~385 kLOC katika crate takriban 163 &middot; hujengwa kwa Cargo &middot; kiolesura cha GTK&nbsp;4, na kiolesura cha Swing cha Java tupu tangu 1.0.9 &middot; C ipo tu katika maktaba za mfumo kinazounganisha</td></tr>
+          <tr><th scope="row">usanifu</th>
+              <td>mchakato kwa kila kichupo &mdash; kila kichupo katika mchakato wake wa uchoraji ndani ya sandbox, IPC + vigae vya kumbukumbu ya pamoja</td>
+              <td>mchakato mmoja &mdash; injini ya ukurasa kwenye thread yake ndani ya mchakato wa kivinjari</td>
+              <td>mchakato kwa kila kichupo &mdash; kila kichupo katika mchakato wake wa uchoraji ndani ya sandbox, IPC + framebuffer za kumbukumbu ya pamoja</td></tr>
+          <tr><th scope="row">javascript</th>
+              <td>tawi la ndani la <a href="https://github.com/bellard/quickjs">QuickJS</a> ya Fabrice Bellard lenye heap iliyoimarishwa, chaguo-msingi tangu 1.0.47 &mdash; mkalimani wa bytecode, hakuna JIT, heap yake imefungiwa ndani ya safu ya anwani iliyotengwa &middot; Temporal na <code>Intl</code> &middot; tawi la ndani la <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> linaweza kuchaguliwa kwa <code>-Dquickjs=quickjs-ng</code></td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ katika <code>147d01c</code> &mdash; mkalimani wa bytecode, hakuna JIT &middot; QuickJS asilia inaweza kuchaguliwa kwa <code>-Djs_engine=quickjs</code></td>
+              <td><a href="https://github.com/boa-dev/boa">Boa</a> (tawi la ndani) &mdash; mkalimani wa Rust, hakuna JIT &middot; majaribio yote 52,133 ya test262 nje ya staging yanafaulu</td></tr>
+          <tr><th scope="row">mifumo</th>
+              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm na pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm na crates.io</td></tr>
+          <tr><th scope="row">leseni</th>
+              <td>leseni mbili tangu 1.0.28, kwa chaguo lako: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 au la baadaye</a> &mdash; programu huria &middot; au <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT baada ya miaka 10, imehamasishwa na <a href="https://fsl.software/">Functional Source License</a></td>
+              <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 au la baadaye</a> &mdash; programu huria</td>
+              <td>leseni mbili zile zile kama Nordstjernen: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 au la baadaye</a> au <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/License.md">NSL-1.0</a>, kwa chaguo lako</td></tr>
         </table>
+        </div>
+        <p><a href="specs.html">Vipimo kamili &raquo;</a> &mdash; HTML na CSS, maandishi, picha, midia, uchapishaji, mtandao, uimarishaji, faragha na viwango.</p>
 
-        <a id="download"></a>
-        <h2>pakua</h2>
-        <p>Pakua Nordstjernen 1.0.47 kwa jukwaa lako. Faili zote ziko kwenye <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">GitHub</a>.</p>
-
+        <h2 id="download">pakua</h2>
+        <p>Toleo jipya zaidi: Nordstjernen <b>1.0.47</b>, kilitolewa 14 Novemba 2026. Mifumo yote, Northstar na Southstar vinapatikana kwenye <a href="download.html">ukurasa wa kupakua</a>.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
@@ -101,12 +174,12 @@
           <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
           <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
           <tr><th>Linux (inayobebeka)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>Chanzo</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
-          <tr><th>GitHub</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47</a></td></tr>
+          <tr><th>Msimbo chanzo</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
         </table>
 
-        <a id="languages"></a>
-        <h2>lugha</h2>
+        <p><a class="btn-red" href="download.html">Pakua Nordstjernen &raquo;</a></p>
+
+        <h2 id="languages">lugha</h2>
         <p class="langs">
           <a href="index.html">English</a> &middot;
           <a href="index_cn.html">中文</a> &middot;
@@ -131,14 +204,15 @@
           <a href="index_no.html">Norsk</a>
         </p>
 
-  </div>
+  </main>
 
-  <div class="footer">
+  <footer class="footer">
+    <div class="badges"><a href="download.html"><img src="assets/nordstjernen-now.gif" width="144" height="50" alt="Nordstjernen Now — pakua kivinjari"></a></div>
     Hakimiliki &copy; 2026 mradi wa Nordstjernen &middot;
     <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
     <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
     <a href="privacy/">Faragha</a>
-  </div>
+  </footer>
 
 </div>
 

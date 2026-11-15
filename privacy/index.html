@@ -3,51 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy - Nordstjernen</title>
-<meta name="description" content="Nordstjernen privacy policy. The browser has no telemetry and collects no personal data.">
+<title>Privacy Policy &middot; Nordstjernen Web Browser</title>
+<meta name="description" content="Nordstjernen privacy policy. The browser collects nothing: no telemetry, no analytics, no accounts. The only service it contacts on its own is Google Safe Browsing.">
 <link rel="canonical" href="https://www.nordstjernen.org/privacy/">
 <meta name="theme-color" content="#070d3a">
 <link rel="icon" type="image/svg+xml" href="../assets/nordstjernen.svg">
-<link rel="stylesheet" href="privacy.css">
+<link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
+
 <div class="frame">
+
+  <a class="skip-link" href="#privacy">Skip to content</a>
+
   <header class="header">
-    <a class="brand" href="../">
-      <img src="../assets/nordstjernen.svg" alt="">
-      <span><strong>Nordstjernen</strong><span>small, steady, independent</span></span>
+    <a class="bestviewed" href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">
+      <img src="../assets/best-viewed-in-nordstjernen.png" width="144" height="50" alt="Best viewed in Nordstjernen">
     </a>
+    <div class="brand">
+      <a href="../"><img class="logo" src="../assets/nordstjernen.gif" width="56" height="56" alt="Nordstjernen logo"></a>
+      <span class="title"><a href="../">Nordstjernen</a></span>
+    </div>
+    <p class="tag">Nordstjernen is an independent, unique web browser</p>
   </header>
 
-  <nav class="nav" aria-label="main navigation">
-    <a href="../">Home</a>
+  <nav class="nav" aria-label="Primary">
+    <a href="../index.html#about">About</a>
+    <a href="../index.html#news">News</a>
     <a href="../screenshots.html">Screenshots</a>
-    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">Source</a>
+    <a href="../download.html">Download</a>
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser">GitHub</a>
+    <input type="checkbox" id="nav-more" class="nav-more-toggle">
+    <label class="nav-more-btn" for="nav-more">More <span aria-hidden="true">&#9662;</span></label>
+    <div class="nav-sec">
+      <a href="../specs.html">Specifications</a>
+      <a href="../northstar-browser/">Northstar</a>
+      <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
+      <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">Releases</a>
+      <a href="https://discord.gg/4W959nW5vF">Discord</a>
+    </div>
   </nav>
 
   <main class="content">
-    <h1>Privacy Policy</h1>
-    <p class="lead">Nordstjernen does not collect personal data.</p>
-    <p><b>Effective date:</b> June 14, 2026</p>
 
-    <div class="box">
-      <p>Nordstjernen has no telemetry, no analytics, no crash reporting, no accounts, no advertising ID use, and no background service that reports browser activity to the Nordstjernen project.</p>
-    </div>
+    <h1 id="privacy">Nordstjernen Privacy Policy</h1>
 
-    <h2>Local browser data</h2>
-    <p>The browser may store normal browser data on your own device, such as history, cookies, cache, site storage, permissions, and settings. This data stays local unless you choose to send it somewhere.</p>
+    <p><b>Effective date:</b> June 11, 2026</p>
 
-    <h2>Network use</h2>
-    <p>Nordstjernen connects to the sites you visit, the resources those pages load, and the search engine you use. Those sites have their own privacy policies.</p>
+    <h2 id="summary">Summary</h2>
+    <p>Nordstjernen collects nothing. The browser has no telemetry, no crash reporting, no update pinger, no analytics, no accounts, and no "studies" infrastructure. It never phones home — the Nordstjernen project operates no server that the browser talks to. The only third-party service it contacts on its own is Google Safe Browsing, described below.</p>
 
-    <h2>Contact</h2>
-    <p>Questions can be raised in the <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/issues">Nordstjernen issue tracker</a>.</p>
+    <h2 id="data-the-browser-stores-on-your-device">Data the browser stores on your device</h2>
+    <p>Like any web browser, Nordstjernen keeps your browsing data locally so the browser works as you expect: history, bookmarks, cookies and site storage, the page cache, per-site permission decisions (for example camera access), and your settings. This data stays in your user profile directory on your device, is never transmitted to the Nordstjernen project or anyone else, and you can delete it at any time from the browser's settings or by deleting the profile directory.</p>
+
+    <h2 id="network-traffic-the-browser-generates">Network traffic the browser generates</h2>
+    <p>Nordstjernen connects only to the sites you visit: the address you type, the links you click, and the resources those pages reference. Text typed into the search box is sent to your configured search engine (Google by default, changeable in settings). The one background service is Google Safe Browsing, which is on by default and can be switched off in Settings ("Block dangerous sites"). The browser downloads Google's lists of hash prefixes of known phishing and malware addresses, about every 30 minutes, and checks each page against them on your device. Only when an address matches a prefix does it ask Google for the matching full hashes, sending that 4-byte prefix and never the address itself. No cookies or account information go with these requests, but Google sees your IP address, as it would for any connection. Google's own privacy policy covers the data it receives. There are no prefetch services or other third-party services built in.</p>
+
+    <p>Websites you visit receive the information any browser sends them (your IP address, requested URLs, cookies they set) and are governed by their own privacy policies.</p>
+
+    <h2 id="privacy-preference-signals">Privacy preference signals</h2>
+    <p>To help you exercise your rights under laws such as the California Consumer Privacy Act (CCPA/CPRA) and similar US state statutes, Nordstjernen can send a Global Privacy Control signal (the <code>Sec-GPC: 1</code> request header and the <code>navigator.globalPrivacyControl</code> property), which many jurisdictions treat as a legally binding request to opt out of the sale or sharing of your personal information. It can also send the legacy Do Not Track signal (<code>DNT: 1</code> and <code>navigator.doNotTrack</code>). Both signals are off by default, as in other mainstream browsers, and each can be turned on in Settings. Honouring these signals is the responsibility of the websites that receive them.</p>
+
+    <p>By default Nordstjernen blocks third-party cookies, strips common tracking parameters from URLs, upgrades connections to HTTPS, and coarsens script-visible high-resolution timers (such as <code>performance.now()</code>) to limit timing-based fingerprinting and side-channel attacks.</p>
+
+    <h2 id="children">Children</h2>
+    <p>Nordstjernen provides unfiltered access to the web and is not directed at children.</p>
+
+    <h2 id="changes">Changes</h2>
+    <p>Changes to this policy are published at the URL above and recorded in the project's public source repository, which also serves as the verifiable history of this document.</p>
+
+    <h2 id="contact">Contact</h2>
+    <p>Questions about this policy: <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/issues">open an issue on the Nordstjernen source repository</a>, or use the contact details published at <code>https://nordstjernen.org</code>.</p>
+
   </main>
 
   <footer class="footer">
     Copyright &copy; 2026 the Nordstjernen project &middot;
-    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a>
+    <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">GPL-3.0-or-later or NSL-1.0</a> &middot;
+    <a href="https://discord.gg/4W959nW5vF">Discord</a> &middot;
+    <a href="./">Privacy</a>
   </footer>
+
 </div>
+
 </body>
 </html>

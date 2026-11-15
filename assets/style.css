@@ -250,22 +250,15 @@
   .btn-red:active { transform: translateY(1px); }
   .btn-red:focus-visible { outline: 2px solid #000000; outline-offset: 2px; }
 
-  /* OS-detect hero on the download page */
-  .os-hero {
-    margin: 8px 0 26px 0;
-    padding: 22px 20px;
-    border: 2px solid #000000;
-    border-radius: 6px;
-    background: #f4f4f4;
-    text-align: center;
-  }
-  .os-hero .btn-red { font-size: 20px; padding: 14px 34px; }
-  .os-hero .os-note {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 13px;
-    color: #666666;
-    margin: 12px 0 0 0;
-  }
+  /* Download tables: platform, architecture, file, size */
+  p.build { margin: 4px 0 8px 0; color: #444444; }
+  p.build-note { font-size: 13px; color: #666666; margin: 6px 0 18px 0; }
+  table.downloads { border-collapse: collapse; width: 100%; font-size: 15px; margin: 0 0 6px 0; }
+  table.downloads th, table.downloads td { text-align: left; padding: 6px 16px 6px 0; vertical-align: top; border-bottom: 1px solid #eef1f7; }
+  table.downloads th { color: #003366; font-weight: bold; border-bottom: 2px solid #e3e7f0; white-space: nowrap; }
+  table.downloads td:nth-child(3) { overflow-wrap: anywhere; }
+  table.downloads td:nth-child(4) { white-space: nowrap; color: #666666; }
+  table.downloads tbody tr:nth-child(even) td { background: #f7f8fb; }
 
   /* ===== FOOTER ===== */
   .footer {
@@ -368,6 +361,17 @@
       margin-bottom: 2px;
       letter-spacing: 0;
     }
+    /* Download tables: one labelled block per file on phones */
+    table.downloads thead { display: none; }
+    table.downloads, table.downloads tbody, table.downloads tr, table.downloads td { display: block; width: 100%; }
+    table.downloads tr { padding: 8px 0; border-top: 1px solid #dddddd; }
+    table.downloads tbody tr:first-child { border-top: 0; }
+    table.downloads tbody tr:nth-child(even) td { background: none; }
+    table.downloads td { border: 0; padding: 0; }
+    table.downloads td:first-child { font-weight: bold; color: #006633; }
+    table.downloads td:nth-child(2)::before,
+    table.downloads td:nth-child(4)::before { content: attr(data-label) ": "; color: #666666; }
+    table.downloads td:nth-child(2), table.downloads td:nth-child(4) { font-size: 13px; color: #666666; }
     table.spec:not(.compare),
     table.spec:not(.compare) tbody,
     table.spec:not(.compare) tr,

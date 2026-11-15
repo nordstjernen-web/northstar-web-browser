@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.24" date="2026-11-15">
+      <description>
+        <p>Feature release.</p>
+        <ul>
+          <li>PDFs open in the browser, in a sandboxed viewer built on PDF.js that handles compressed pages and embedded fonts; its Download button and links with a download attribute save the file.</li>
+          <li>Text fields put the caret where you click and select text with the mouse.</li>
+          <li>Many fixes for embedded frames: scripts written with document.write() run, load events wait for the frame's stylesheets and layout, and frames in the page's markup are displayed.</li>
+          <li>ReadableStream pulls from its source, and uchardet is no longer a dependency.</li>
+          <li>Faster CSS transitions, positioned layout, box shadows and regular expressions; JetStream 2 and Speedometer 3.1 now complete.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.23" date="2026-11-12">
       <description>
         <p>Security and performance release.</p>

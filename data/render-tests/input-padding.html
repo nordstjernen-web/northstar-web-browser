@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Text input padding</title>
+<!-- Text in each field should start its padding plus a few pixels from the
+     left border, as in a textarea: not twice the padding. -->
+<style>
+body { font: 16px sans-serif; margin: 10px; }
+input, textarea { font: inherit; border: 1px solid #000; display: block;
+                  margin: 6px 0; width: 200px; }
+</style>
+<input value="padding 0" style="padding: 0">
+<input value="padding 8px" style="padding: 0 8px">
+<input value="padding 16px" style="padding: 0 16px">
+<input value="padding 32px" style="padding: 0 32px">
+<input type="search" value="search 16px" style="padding: 0 16px">
+<input value="inline 16px" style="padding: 0 16px; display: inline-block">
+<div style="display: flex"><input value="flex item 16px" style="padding: 0 16px"></div>
+<textarea style="padding: 0 16px">textarea 16px</textarea>

@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* Text fields put their text the field's padding in from the border, not
+  twice that. The padding was applied by the field's box and again as
+  leading spaces, so a search box with 16px of padding started its text
+  about 37px in, and lost that much width on the right.
 * PDFs open in the browser, in a viewer built on PDF.js: pages render as
   they scroll into view, with selectable text, links, zoom, find, a
   password prompt, printing and a download button. A PDF used to be

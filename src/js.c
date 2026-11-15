@@ -38836,6 +38836,38 @@ ns_text_selection_set_state(JSContext *ctx, JSValueConst this_val,
                       JS_NewString(ctx, direction ? direction : "none"));
 }
 
+/* UTF-16 code units in the first byte_len bytes of UTF-8 text s. */
+static uint32_t
+ns_utf16_units_in_prefix(const char *s, gsize byte_len)
+{
+    uint32_t units = 0;
+    const char *end = s + byte_len;
+    for (const char *p = s; p < end && *p; p = g_utf8_next_char(p))
+        units += g_utf8_get_char(p) > 0xFFFF ? 2 : 1;
+    return units;
+}
+
+/* Mirrors the browser's caret and selection anchor in a text control (UTF-8
+ * byte offsets into its value) to selectionStart/End/Direction. */
+void
+ns_js_set_control_selection(ns_js *js, const ns_node *el,
+                            gsize anchor_byte, gsize caret_byte)
+{
+    if (!js || !js->ctx || !el) return;
+    const char *v = ns_node_editable_value(el);
+    gsize len = v ? strlen(v) : 0;
+    if (anchor_byte > len) anchor_byte = len;
+    if (caret_byte > len) caret_byte = len;
+    uint32_t a = v ? ns_utf16_units_in_prefix(v, anchor_byte) : 0;
+    uint32_t c = v ? ns_utf16_units_in_prefix(v, caret_byte) : 0;
+    JSValue w = ns_make_element(js->ctx, el);
+    if (JS_IsObject(w))
+        ns_text_selection_set_state(js->ctx, w, MIN(a, c), MAX(a, c),
+                                    c < a ? "backward"
+                                    : c > a ? "forward" : "none");
+    JS_FreeValue(js->ctx, w);
+}
+
 /* Collapses the selection to the end when a value change altered the value. */
 static void
 ns_text_selection_value_changed(JSContext *ctx, JSValueConst this_val,

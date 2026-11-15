@@ -125,6 +125,9 @@ struct ns_browser {
     const ns_node  *open_select;
     gboolean        datalist_suppressed;
     const ns_node  *press_node;
+    const ns_node  *field_select_node; /* text field a press placed the caret in */
+    int             field_select_unit; /* 0 characters, 1 words, 2 all */
+    gsize           field_word_lo, field_word_hi; /* word a double-click chose */
     int             press_x;
     int             press_y;
     int             press_mods;
@@ -191,6 +194,9 @@ browser_prune_cached_nodes(ns_browser *browser)
     if (!browser || !browser->doc) return;
     if (browser->press_node && !browser_node_alive(browser, browser->press_node))
         browser->press_node = NULL;
+    if (browser->field_select_node &&
+        !browser_node_alive(browser, browser->field_select_node))
+        browser->field_select_node = NULL;
     if (browser->hover_node && !browser_node_alive(browser, browser->hover_node))
         browser->hover_node = NULL;
     if (browser->open_select && !browser_node_alive(browser, browser->open_select))
@@ -2763,11 +2769,163 @@ browser_media_seek_drag(ns_browser *browser, int x)
     return TRUE;
 }
 
+/* Byte offset in a text control's value of codepoint cp of the shown text,
+ * which leaves out the value's carriage returns (a textarea's CRLF). */
+static gsize
+browser_field_cp_to_byte(const char *val, glong cp)
+{
+    const char *p = val;
+    for (glong n = 0; *p && n < cp; p = g_utf8_next_char(p))
+        if (*p != '\r') n++;
+    while (*p == '\r') p++;
+    return (gsize)(p - val);
+}
+
+/* TRUE for a character that belongs to a word for double-click selection. */
+static gboolean
+browser_field_word_char(gunichar c)
+{
+    return g_unichar_isalnum(c) || c == '_' || g_unichar_ismark(c);
+}
+
+/* The word (run of word characters) at byte at of val, or the single other
+ * character there; prefers the character after at, at the end the one before. */
+static void
+browser_field_word_range(const char *val, gsize len, gsize at,
+                         gsize *out_lo, gsize *out_hi)
+{
+    if (at > len) at = len;
+    const char *hit = at < len ? val + at
+                    : at > 0 ? g_utf8_prev_char(val + at) : val;
+    gsize lo = (gsize)(hit - val), hi = lo;
+    if (*hit && browser_field_word_char(g_utf8_get_char(hit))) {
+        while (lo > 0) {
+            const char *prev = g_utf8_prev_char(val + lo);
+            if (!browser_field_word_char(g_utf8_get_char(prev))) break;
+            lo = (gsize)(prev - val);
+        }
+        while (hi < len && browser_field_word_char(g_utf8_get_char(val + hi)))
+            hi = (gsize)(g_utf8_next_char(val + hi) - val);
+    } else if (*hit) {
+        hi = (gsize)(g_utf8_next_char(hit) - val);
+    }
+    *out_lo = lo;
+    *out_hi = hi;
+}
+
+/* Selection actions inside the focused text field: drag, double- and
+ * triple-click, select-all and copy work on its value rather than the page.
+ * Returns TRUE when handled; a copy's text is returned in *out_text. */
+static gboolean
+browser_field_select(ns_browser *browser, int kind, int x, int y,
+                     char **out_text)
+{
+    const ns_node *f = ns_js_focused_node(browser->js);
+    const char *val = f ? ns_node_editable_value(f) : NULL;
+    if (!val) return FALSE;
+    gsize len = strlen(val);
+    if (browser->caret_byte > len) browser->caret_byte = len;
+    if (browser->sel_anchor_byte > len) browser->sel_anchor_byte = len;
+    glong cp = 0;
+    switch (kind) {
+    case 0:     /* drag start: the press already placed the field's caret */
+        return browser->field_select_node == f;
+    case 1:     /* drag or shift-click: move the caret, keep the anchor */
+        if (browser->field_select_node != f) return FALSE;
+        if (browser->press_active && browser->press_prevented) return TRUE;
+        if (browser->field_select_unit == 2) return TRUE;
+        if (!ns_box_text_field_caret_at(browser->layout, (double)x, (double)y,
+                                        f, TRUE, &cp))
+            return TRUE;
+        gsize at = browser_field_cp_to_byte(val, cp);
+        if (browser->field_select_unit == 1) {
+            /* After a double-click a drag grows by whole words and keeps
+             * the word first chosen. */
+            gsize wl, wh;
+            browser_field_word_range(val, len, at, &wl, &wh);
+            gsize lo = MIN(browser->field_word_lo, len);
+            gsize hi = MIN(browser->field_word_hi, len);
+            if (at < lo) {
+                browser->sel_anchor_byte = hi;
+                browser->caret_byte = wl;
+            } else if (at > hi) {
+                browser->sel_anchor_byte = lo;
+                browser->caret_byte = wh;
+            } else {
+                browser->sel_anchor_byte = lo;
+                browser->caret_byte = hi;
+            }
+        } else {
+            browser->caret_byte = at;
+        }
+        break;
+    case 5: {   /* double-click: the word under the pointer */
+        if (!ns_box_text_field_caret_at(browser->layout, (double)x, (double)y,
+                                        f, FALSE, &cp))
+            return FALSE;
+        const char *type = ns_element_get_attr(f, "type");
+        if (type && g_ascii_strcasecmp(type, "password") == 0) {
+            browser->sel_anchor_byte = 0;
+            browser->caret_byte = len;
+            browser->field_select_node = f;
+            browser->field_select_unit = 2;
+            break;
+        }
+        gsize lo, hi;
+        browser_field_word_range(val, len, browser_field_cp_to_byte(val, cp),
+                                 &lo, &hi);
+        browser->sel_anchor_byte = lo;
+        browser->caret_byte = hi;
+        browser->field_select_node = f;
+        browser->field_select_unit = 1;
+        browser->field_word_lo = lo;
+        browser->field_word_hi = hi;
+        break;
+    }
+    case 6:     /* triple-click: the whole value */
+        if (!ns_box_text_field_caret_at(browser->layout, (double)x, (double)y,
+                                        f, FALSE, &cp))
+            return FALSE;
+        browser->sel_anchor_byte = 0;
+        browser->caret_byte = len;
+        browser->field_select_node = f;
+        browser->field_select_unit = 2;
+        break;
+    case 3:     /* select all, while a field has focus */
+        browser->sel_anchor_byte = 0;
+        browser->caret_byte = len;
+        break;
+    case 4: {   /* copy the field's selection, never a password */
+        if (browser->sel_anchor_byte == browser->caret_byte) return FALSE;
+        const char *type = ns_element_get_attr(f, "type");
+        if (type && g_ascii_strcasecmp(type, "password") == 0) return TRUE;
+        gsize lo = MIN(browser->sel_anchor_byte, browser->caret_byte);
+        gsize hi = MAX(browser->sel_anchor_byte, browser->caret_byte);
+        *out_text = g_strndup(val + lo, hi - lo);
+        return TRUE;
+    }
+    default:
+        return FALSE;
+    }
+    ns_selection_clear(&browser->selection);
+    browser_sync_js_selection(browser);
+    ns_js_set_control_selection(browser->js, f, browser->sel_anchor_byte,
+                                browser->caret_byte);
+    browser_relayout(browser);
+    browser->dirty = FALSE;
+    return TRUE;
+}
+
 /* Performs a selection action by kind (anchor, extend, clear, all, copy, word, block). */
 char *
 ns_browser_select(ns_browser *browser, int kind, int x, int y)
 {
     if (!browser || !browser->layout) return NULL;
+    if (browser->js) {
+        char *field_text = NULL;
+        if (browser_field_select(browser, kind, x, y, &field_text))
+            return field_text;
+    }
     gboolean no_select = browser->press_active && browser->press_prevented;
     switch (kind) {
     case 0: if (no_select) return NULL;
@@ -3460,6 +3618,8 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
 
     const ns_node *node = browser_hit_node(browser, x, y);
     browser->media_seek_node = NULL;
+    browser->field_select_node = NULL;
+    browser->field_select_unit = 0;
     browser->press_node = node;
     browser->press_x = x;
     browser->press_y = y;
@@ -3518,22 +3678,29 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
         const ns_node *focus = NULL;
         for (const ns_node *a = node; a; a = a->parent)
             if (ns_node_is_focusable(a)) { focus = a; break; }
+        const ns_node *was_focused = ns_js_focused_node(browser->js);
         ns_js_focus_from_pointer(browser->js, node);
         const char *val = focus ? ns_node_editable_value(focus) : NULL;
+        gsize old_anchor = browser->sel_anchor_byte;
         browser->caret_byte = val ? strlen(val) : 0;
         /* Put the caret at the character boundary nearest the click when
          * the click is on a text field's value. */
         glong cp = 0;
         if (val && focus == ns_js_focused_node(browser->js) &&
             ns_box_text_field_caret_at(browser->layout, (double)x, (double)y,
-                                       focus, &cp)) {
-            glong n = g_utf8_strlen(val, -1);
-            if (cp < 0) cp = 0;
-            if (cp > n) cp = n;
-            browser->caret_byte =
-                (gsize)(g_utf8_offset_to_pointer(val, cp) - val);
+                                       focus, FALSE, &cp)) {
+            browser->caret_byte = browser_field_cp_to_byte(val, cp);
+            if (!browser->press_prevented)
+                browser->field_select_node = focus;
         }
-        browser->sel_anchor_byte = browser->caret_byte;
+        /* Shift-click in the field that already had focus extends its
+         * selection from the old anchor. */
+        if ((mods & 1) && val && focus == was_focused &&
+            browser->field_select_node == focus &&
+            old_anchor <= strlen(val))
+            browser->sel_anchor_byte = old_anchor;
+        else
+            browser->sel_anchor_byte = browser->caret_byte;
         if (focus && val)
             ns_js_set_control_selection(browser->js, focus,
                                         browser->sel_anchor_byte,

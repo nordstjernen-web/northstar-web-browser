@@ -3454,8 +3454,24 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
                 else         { caret_pos = 0; }
             }
         }
+        guint field_idx = ctx->attrs->len;
         emit_text_control(ctx, n, s, start, val_start, disp_end,
                           is_placeholder, focused, anchor_pos, caret_pos);
+        /* As for a single-line field: where the value sits in the run, so a
+         * click can place the caret.  The run shows every codepoint of the
+         * value except carriage returns, with newlines as U+2028. */
+        if (field_idx < ctx->attrs->len) {
+            ns_inline_attr *fa =
+                &g_array_index(ctx->attrs, ns_inline_attr, field_idx);
+            if (fa->dom == n && val_start >= fa->start &&
+                (fa->kind == NS_INLINE_INPUT_FIELD ||
+                 fa->kind == NS_INLINE_INPUT_FIELD_FOCUSED)) {
+                fa->value_shown = any && !is_placeholder;
+                fa->value_off = val_start - fa->start;
+                fa->value_len = disp_end - val_start;
+                fa->value_skip_cps = 0;
+            }
+        }
         return;
     }
 
@@ -16743,10 +16759,13 @@ ns_box_hit_link_range(const ns_box *root, double x, double y)
 }
 
 /* Codepoint offset in field's value nearest the point, when the point is on
- * the field's text run and the field shows its value; FALSE otherwise. */
+ * the field's text run and the field shows its value; FALSE otherwise.
+ * With clamp, a point off the field (a drag that left it) is moved onto the
+ * run first, so it maps to the nearest end of the shown value. */
 gboolean
 ns_box_text_field_caret_at(const ns_box *root, double x, double y,
-                           const ns_node *field, glong *out_cp)
+                           const ns_node *field, gboolean clamp,
+                           glong *out_cp)
 {
     if (!root || !field) return FALSE;
     if (!box_hit_untransform_point(root, &x, &y)) return FALSE;
@@ -16759,13 +16778,20 @@ ns_box_text_field_caret_at(const ns_box *root, double x, double y,
             inline_atomic_hit_point(root, atomic,
                                     x + root->scroll_x,
                                     y + root->scroll_y, &ax, &ay);
-            if (ns_box_text_field_caret_at(atomic->box, ax, ay, field, out_cp))
+            if (ns_box_text_field_caret_at(atomic->box, ax, ay, field, clamp,
+                                           out_cp))
                 return TRUE;
         }
+    /* Only the vertical band is tested: a field sized by CSS is painted
+     * wider than its run's box, and Pango maps an x past the text to the
+     * nearest character anyway. */
+    gboolean inside = y >= root->y && y <= root->y + root->content_height;
     if (root->kind == NS_BOX_INLINE && root->attrs && root->text &&
-        x >= root->x && x <= root->x + root->content_width &&
-        y >= root->y && y <= root->y + root->content_height) {
+        (inside || clamp)) {
         gsize tlen = strlen(root->text);
+        double px = x;
+        double py = CLAMP(y, root->y,
+                          root->y + MAX(root->content_height - 1.0, 0.0));
         for (guint i = 0; i < root->attrs->len; i++) {
             const ns_inline_attr *r =
                 &g_array_index(root->attrs, ns_inline_attr, i);
@@ -16777,7 +16803,7 @@ ns_box_text_field_caret_at(const ns_box *root, double x, double y,
             gsize ve = vs + r->value_len;
             if (ve > tlen || vs > ve) return FALSE;
             gsize byte = 0;
-            if (!ns_paint_inline_xy_to_byte(root, x - root->x, y - root->y,
+            if (!ns_paint_inline_xy_to_byte(root, px - root->x, py - root->y,
                                             &byte))
                 return FALSE;
             if (byte < vs) byte = vs;
@@ -16790,7 +16816,7 @@ ns_box_text_field_caret_at(const ns_box *root, double x, double y,
     double cx = x + root->scroll_x;
     double cy = y + root->scroll_y;
     for (const ns_box *c = root->first_child; c; c = c->next_sibling)
-        if (ns_box_text_field_caret_at(c, cx, cy, field, out_cp))
+        if (ns_box_text_field_caret_at(c, cx, cy, field, clamp, out_cp))
             return TRUE;
     return FALSE;
 }

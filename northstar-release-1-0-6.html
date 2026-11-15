@@ -64,7 +64,7 @@
 
         <h2>highlights</h2>
         <ul class="news">
-          <li><b>Faster text.</b> Text is laid out through <a href="https://github.com/nordstjernen-web/ns-pango">ns-pango</a>, a Pango fork carried as a subproject, which adds the process-wide shaping cache Pango has no place for. Layout time falls 25% on a text-heavy page and 38% on a table-heavy one. Shaping results are unchanged, and verified byte-identical across a corpus covering RTL, bidi, CJK, small-caps and font features.</li>
+          <li><b>Faster text.</b> Text is laid out through ns-pango, a Pango fork carried as a subproject, which adds the process-wide shaping cache Pango has no place for. Layout time falls 25% on a text-heavy page and 38% on a table-heavy one. Shaping results are unchanged, and verified byte-identical across a corpus covering RTL, bidi, CJK, small-caps and font features.</li>
           <li><b>An indexed cascade.</b> The CSS cascade indexes <code>:is()</code> and <code>:where()</code> subjects and stops allocating per selector test. On a page built to exercise this the initial cascade falls 52% and the whole headless run 16%; the css and dom test subset gains 826 subtest passes from tests that previously ran out of time.</li>
           <li><b>Grid, largely rebuilt.</b> Named lines, <code>min-content</code> and <code>max-content</code> tracks, tracks in any length unit, correct intrinsic widths for a grid container, and area-placed items that honour <code>align-items</code>.</li>
           <li><b>Web Audio actually renders.</b> <code>OfflineAudioContext</code> used to resolve a buffer of zeros; oscillators, gain, compressor, biquad, delay, wave shaping and buffer playback are now implemented in the engine.</li>

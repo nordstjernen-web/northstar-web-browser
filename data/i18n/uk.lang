@@ -100,7 +100,7 @@ Dismiss=Закрити
 # --- Start page (about:start) ---
 Search=Шукати
 Search the web=Пошук в інтернеті
-Search (__ND_SEARCH_NAME__):=Пошук (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Пошук __ND_SEARCH_NAME__
 License=Ліцензія
 Privacy=Приватність
 # --- Settings page (about:settings) ---

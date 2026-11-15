@@ -100,7 +100,7 @@ Dismiss=ပယ်ရန်
 # --- Start page (about:start) ---
 Search=ရှာဖွေရန်
 Search the web=ဝဘ်တွင် ရှာဖွေရန်
-Search (__ND_SEARCH_NAME__):=ရှာဖွေရန် (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=ရှာဖွေရန် __ND_SEARCH_NAME__
 License=လိုင်စင်
 Privacy=ကိုယ်ရေးအချက်အလက်
 # --- Settings page (about:settings) ---

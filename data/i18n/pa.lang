@@ -100,7 +100,7 @@ Dismiss=ਖਾਰਜ ਕਰੋ
 # --- Start page (about:start) ---
 Search=ਖੋਜੋ
 Search the web=ਵੈੱਬ 'ਤੇ ਖੋਜੋ
-Search (__ND_SEARCH_NAME__):=ਖੋਜ (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=ਖੋਜ __ND_SEARCH_NAME__
 License=ਲਾਇਸੰਸ
 Privacy=ਪਰਦੇਦਾਰੀ
 # --- Settings page (about:settings) ---

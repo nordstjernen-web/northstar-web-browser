@@ -100,7 +100,7 @@ Dismiss=Închide
 # --- Start page (about:start) ---
 Search=Caută
 Search the web=Caută pe web
-Search (__ND_SEARCH_NAME__):=Caută (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Caută __ND_SEARCH_NAME__
 License=Licență
 Privacy=Confidențialitate
 # --- Settings page (about:settings) ---

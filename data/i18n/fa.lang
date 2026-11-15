@@ -100,7 +100,7 @@ Dismiss=رد کردن
 # --- Start page (about:start) ---
 Search=جستجو
 Search the web=جستجو در وب
-Search (__ND_SEARCH_NAME__):=جستجو (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=جستجو __ND_SEARCH_NAME__
 License=مجوز
 Privacy=حریم خصوصی
 # --- Settings page (about:settings) ---

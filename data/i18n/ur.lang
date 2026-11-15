@@ -100,7 +100,7 @@ Dismiss=برخاست کریں
 # --- Start page (about:start) ---
 Search=تلاش کریں
 Search the web=ویب پر تلاش کریں
-Search (__ND_SEARCH_NAME__):=تلاش (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=تلاش __ND_SEARCH_NAME__
 License=لائسنس
 Privacy=رازداری
 # --- Settings page (about:settings) ---

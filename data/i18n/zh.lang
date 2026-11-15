@@ -100,7 +100,7 @@ Dismiss=关闭
 # --- Start page (about:start) ---
 Search=搜索
 Search the web=搜索网络
-Search (__ND_SEARCH_NAME__):=搜索 (__ND_SEARCH_NAME__)：
+Search __ND_SEARCH_NAME__=搜索 __ND_SEARCH_NAME__
 License=许可证
 Privacy=隐私
 # --- Settings page (about:settings) ---

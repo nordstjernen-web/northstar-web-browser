@@ -100,7 +100,7 @@ Dismiss=Tutup
 # --- Start page (about:start) ---
 Search=Golek
 Search the web=Golek ing web
-Search (__ND_SEARCH_NAME__):=Golek (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Golek __ND_SEARCH_NAME__
 License=Lisensi
 Privacy=Privasi
 # --- Settings page (about:settings) ---

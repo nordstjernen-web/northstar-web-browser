@@ -100,7 +100,7 @@ Dismiss=છોડી દો
 # --- Start page (about:start) ---
 Search=શોધો
 Search the web=વેબ પર શોધો
-Search (__ND_SEARCH_NAME__):=શોધ (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=શોધ __ND_SEARCH_NAME__
 License=લાઇસન્સ
 Privacy=ગોપનીયતા
 # --- Settings page (about:settings) ---

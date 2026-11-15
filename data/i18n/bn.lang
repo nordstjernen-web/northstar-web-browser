@@ -100,7 +100,7 @@ Dismiss=খারিজ করুন
 # --- Start page (about:start) ---
 Search=সার্চ করুন
 Search the web=ওয়েবে সার্চ করুন
-Search (__ND_SEARCH_NAME__):=সার্চ (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=সার্চ __ND_SEARCH_NAME__
 License=লাইসেন্স
 Privacy=গোপনীয়তা
 # --- Settings page (about:settings) ---

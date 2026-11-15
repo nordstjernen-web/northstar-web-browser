@@ -100,7 +100,7 @@ Dismiss=አሰናብት
 # --- Start page (about:start) ---
 Search=ፈልግ
 Search the web=ድሩን ፈልግ
-Search (__ND_SEARCH_NAME__):=ፈልግ (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=ፈልግ __ND_SEARCH_NAME__
 License=ፈቃድ
 Privacy=ግላዊነት
 # --- Settings page (about:settings) ---

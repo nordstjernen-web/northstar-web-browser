@@ -100,7 +100,7 @@ Dismiss=Yọ kúrò
 # --- Start page (about:start) ---
 Search=Ṣàwárí
 Search the web=Ṣàwárí lórí wẹ́ẹ̀bù
-Search (__ND_SEARCH_NAME__):=Ṣàwárí (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Ṣàwárí __ND_SEARCH_NAME__
 License=Ìwé-àṣẹ
 Privacy=Àṣírí
 # --- Settings page (about:settings) ---

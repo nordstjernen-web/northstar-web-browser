@@ -100,7 +100,7 @@ Dismiss=Negeren
 # --- Start page (about:start) ---
 Search=Zoeken
 Search the web=Zoeken op het web
-Search (__ND_SEARCH_NAME__):=Zoeken (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Zoeken __ND_SEARCH_NAME__
 License=Licentie
 Privacy=Privacy
 # --- Settings page (about:settings) ---

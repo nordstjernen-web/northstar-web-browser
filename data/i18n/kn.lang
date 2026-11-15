@@ -100,7 +100,7 @@ Dismiss=ವಜಾಗೊಳಿಸಿ
 # --- Start page (about:start) ---
 Search=ಹುಡುಕಿ
 Search the web=ವೆಬ್‌ನಲ್ಲಿ ಹುಡುಕಿ
-Search (__ND_SEARCH_NAME__):=ಹುಡುಕಿ (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=ಹುಡುಕಿ __ND_SEARCH_NAME__
 License=ಪರವಾನಗಿ
 Privacy=ಗೌಪ್ಯತೆ
 # --- Settings page (about:settings) ---

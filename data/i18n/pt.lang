@@ -100,7 +100,7 @@ Dismiss=Dispensar
 # --- Start page (about:start) ---
 Search=Pesquisar
 Search the web=Pesquisar na web
-Search (__ND_SEARCH_NAME__):=Pesquisar (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Pesquisar __ND_SEARCH_NAME__
 License=Licença
 Privacy=Privacidade
 # --- Settings page (about:settings) ---

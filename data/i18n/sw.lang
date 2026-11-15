@@ -100,7 +100,7 @@ Dismiss=Ondoa
 # --- Start page (about:start) ---
 Search=Tafuta
 Search the web=Tafuta kwenye wavuti
-Search (__ND_SEARCH_NAME__):=Tafuta (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Tafuta __ND_SEARCH_NAME__
 License=Leseni
 Privacy=Faragha
 # --- Settings page (about:settings) ---

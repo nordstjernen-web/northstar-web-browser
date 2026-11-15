@@ -79,6 +79,7 @@ extern void (*ns_node_detach_hook)(ns_node *parent);
 #define NS_NODE_HAS_LISTENERS  (1u << 19)
 #define NS_NODE_CONSTRUCTING_ENTRIES (1u << 20)
 #define NS_NODE_SHEET_DISABLED (1u << 21)
+#define NS_NODE_SANDBOX_OPAQUE (1u << 22) /* document under a CSP sandbox without allow-same-origin */
 
 struct ns_node {
     ns_node_kind kind;

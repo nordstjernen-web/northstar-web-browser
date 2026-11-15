@@ -1880,12 +1880,15 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
     }
 
     /* Only HTML and XML types may reach a parser that runs script: other
-     * text is shown escaped, and an attachment or unsupported type not at all. */
+     * text is shown escaped, and an attachment or unsupported type not at all.
+     * This path applies no CSP, so a PDF gets the download notice rather
+     * than the sandboxed viewer, which needs it. */
     if (resp->body && (doc_kind == NS_DOC_KIND_DOWNLOAD ||
+                       doc_kind == NS_DOC_KIND_PDF ||
                        doc_kind == NS_DOC_KIND_TEXT ||
                        doc_kind == NS_DOC_KIND_JSON)) {
         char *html;
-        if (doc_kind == NS_DOC_KIND_DOWNLOAD) {
+        if (doc_kind == NS_DOC_KIND_DOWNLOAD || doc_kind == NS_DOC_KIND_PDF) {
             html = ns_html_download_document(
                 resp->final_url ? resp->final_url : fetch_url);
         } else {

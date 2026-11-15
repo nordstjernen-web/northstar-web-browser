@@ -79,6 +79,7 @@ typedef enum {
     NS_DOC_KIND_IMAGE,
     NS_DOC_KIND_JSON,
     NS_DOC_KIND_TEXT,
+    NS_DOC_KIND_PDF,
     NS_DOC_KIND_DOWNLOAD,
 } ns_doc_kind;
 

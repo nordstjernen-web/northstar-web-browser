@@ -282,6 +282,9 @@ ns_html_document_kind(const char *url, const char *content_type,
         strcmp(essence, "text/json") == 0 ||
         g_str_has_suffix(essence, "+json"))
         return NS_DOC_KIND_JSON;
+    if (strcmp(essence, "application/pdf") == 0 ||
+        strcmp(essence, "application/x-pdf") == 0)
+        return NS_DOC_KIND_PDF;
     if (g_str_has_prefix(essence, "text/")) return NS_DOC_KIND_TEXT;
     return local ? NS_DOC_KIND_HTML : NS_DOC_KIND_DOWNLOAD;
 }

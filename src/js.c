@@ -130,6 +130,7 @@ struct ns_worker_host {
     char         *base_url;
     char         *name;
     char         *origin;
+    char         *creator_realm;   /* ns_js_caller_origin() of the creating script */
     char         *inline_script;
     gsize         inline_script_len;
     gboolean      is_module;
@@ -523,9 +524,16 @@ ns_sandbox_from_policy_lines(const char *lines)
 static unsigned
 ns_iframe_effective_sandbox(const ns_node *node)
 {
-    unsigned flags = 0;
+    unsigned flags = ~0u;
     gboolean any = FALSE;
     for (const ns_node *p = node; p; p = p->parent) {
+        /* A frame cannot regain the origin its sandboxed top document lost,
+         * even with allow-same-origin. */
+        if (p->kind == NS_NODE_DOCUMENT && (p->flags & NS_NODE_SANDBOX_OPAQUE)) {
+            flags &= ~NS_SANDBOX_ALLOW_SAME_ORIGIN;
+            any = TRUE;
+            continue;
+        }
         if (!ns_node_is_element_named(p, "iframe") &&
             !ns_node_is_element_named(p, "frame"))
             continue;
@@ -533,13 +541,19 @@ ns_iframe_effective_sandbox(const ns_node *node)
         const char *csp_val = ns_element_get_attr(p, "data-nd-csp-sandbox");
         if (!ns_node_is_element_named(p, "iframe")) val = NULL;
         if (!val && !csp_val) continue;
-        unsigned f = ~0u;
-        if (val) f &= ns_sandbox_parse_tokens(val);
-        if (csp_val) f &= ns_sandbox_from_policy_lines(csp_val);
-        if (!any) { flags = f; any = TRUE; }
-        else flags &= f;
+        if (val) flags &= ns_sandbox_parse_tokens(val);
+        if (csp_val) flags &= ns_sandbox_from_policy_lines(csp_val);
+        any = TRUE;
     }
     return any ? (flags | NS_SANDBOX_ACTIVE) : 0;
+}
+
+/* TRUE when the top document's CSP sandbox gives it an opaque origin. */
+static gboolean
+ns_js_document_origin_is_opaque(const ns_js *js)
+{
+    return js && (js->document_sandbox & NS_SANDBOX_ACTIVE) &&
+           !(js->document_sandbox & NS_SANDBOX_ALLOW_SAME_ORIGIN);
 }
 
 /* True when an enclosing sandboxed iframe lacks allow-forms. */
@@ -2893,7 +2907,11 @@ static void
 ns_partition_apply(ns_js *js, const char *new_url)
 {
     if (!js) return;
-    char *origin = ns_url_origin_from(new_url);
+    gboolean opaque = ns_js_document_origin_is_opaque(js);
+    if (opaque && js->partition_key &&
+        g_str_has_prefix(js->partition_key, "opaque://"))
+        return;
+    char *origin = opaque ? NULL : ns_url_origin_from(new_url);
     char *new_key;
     if (origin && *origin) {
         new_key = origin;
@@ -2947,6 +2965,13 @@ ns_storage_load_for(ns_js *js, const char *new_url)
     ns_partition_apply(js, new_url);
     if (js->local_storage_disabled) {
         g_hash_table_remove_all(js->local_storage);
+        return;
+    }
+    if (ns_js_document_origin_is_opaque(js)) {
+        ns_storage_flush(js);
+        g_hash_table_remove_all(js->local_storage);
+        g_clear_pointer(&js->local_storage_origin, g_free);
+        g_clear_pointer(&js->local_storage_path, g_free);
         return;
     }
     char *new_origin = ns_url_origin_from(new_url);
@@ -3501,8 +3526,9 @@ ns_storage_drain_deferred_events(ns_js *js)
             ns_storage_deliver_frames(js, js->current_doc, p.ev, p.src,
                                       p.origin, 0);
         /* Same value ns_js_caller_origin() gives the page's own scripts. */
-        g_autofree char *main_origin = js->current_url
-            ? ns_url_origin_from(js->current_url) : NULL;
+        g_autofree char *main_origin = ns_js_document_origin_is_opaque(js)
+            ? g_strdup_printf("null:document:%p", (void *)js)
+            : js->current_url ? ns_url_origin_from(js->current_url) : NULL;
         if (!main_origin)
             main_origin = g_strdup_printf("null:%p", (void *)js);
         if (p.origin && main_origin &&
@@ -13395,6 +13421,8 @@ ns_js_realm_origin(ns_js *js, JSContext *realm)
     }
     if (ns_js_realm_detached(js, realm))
         return g_strdup_printf("null:detached:%p", (void *)realm);
+    if (ns_js_document_origin_is_opaque(js))
+        return g_strdup_printf("null:document:%p", (void *)js);
     char *o = js->current_url ? ns_url_origin_from(js->current_url) : NULL;
     return o ? o : g_strdup_printf("null:%p", (void *)js);
 }
@@ -13437,6 +13465,7 @@ ns_js_caller_document_url(ns_js *js, JSContext *ctx)
         }
     }
     if (ns_js_realm_detached(js, caller)) return g_strdup("about:blank");
+    if (ns_js_document_origin_is_opaque(js)) return g_strdup("about:blank");
     return g_strdup(js->current_url);
 }
 
@@ -20899,10 +20928,24 @@ ns_js_blob_url_lookup(ns_js *js, JSContext *ctx, const char *url,
     g_mutex_lock(&g_blob_lock);
     ns_blob_entry *e = js->blob_urls
         ? g_hash_table_lookup(js->blob_urls, url) : NULL;
+    /* A dedicated worker shares its creator's blob URL store: it may load a
+     * blob URL the creating document made (the File API's blob URL store
+     * is per agent cluster).  The owner is only touched while it is still
+     * registered, which g_blob_lock keeps stable. */
+    const char *worker_creator = NULL;
+    ns_worker_host *wh = js->worker_host;
+    if (!e && wh && !wh->is_service_worker && wh->creator_realm &&
+        g_atomic_int_get(&wh->owner_alive) && g_blob_js_registry &&
+        g_ptr_array_find(g_blob_js_registry, wh->owner, NULL) &&
+        wh->owner->blob_urls) {
+        e = g_hash_table_lookup(wh->owner->blob_urls, url);
+        if (e) worker_creator = wh->creator_realm;
+    }
     /* Opaque origins all label their blobs "null": tell them apart by the
      * realm that created the blob, unique to each opaque frame. */
     if (e && e->creator && g_str_has_prefix(e->creator, "null:")) {
-        g_autofree char *who = ctx ? ns_js_caller_origin(js, ctx)
+        g_autofree char *who = worker_creator ? g_strdup(worker_creator)
+                             : ctx ? ns_js_caller_origin(js, ctx)
                                    : ns_js_realm_origin(js, js->ctx);
         if (g_strcmp0(who, e->creator) != 0) e = NULL;
     }
@@ -22559,6 +22602,7 @@ ns_worker_host_unref(ns_worker_host *host)
     g_free(host->base_url);
     g_free(host->name);
     g_free(host->origin);
+    g_free(host->creator_realm);
     g_free(host->inline_script);
     g_free(host->scope);
     if (host->csp) ns_csp_free(host->csp);
@@ -24677,6 +24721,7 @@ ns_worker_ctor(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
         host->csp = ns_csp_copy(ns_js_realm_csp(js, rc ? rc : ctx));
     }
     host->origin = ns_url_origin_from(host->base_url);
+    host->creator_realm = ns_js_caller_origin(js, ctx);
     if (!host->origin) host->origin = g_strdup("");
     host->log_cb = js->log_cb;
     host->log_user_data = js->log_user_data;
@@ -24962,7 +25007,9 @@ ns_sw_prepare_document(ns_js *js)
         JS_SetPropertyStr(ctx, container, "_readyResolve", resolvers[0]);
         JS_FreeValue(ctx, resolvers[1]);
 
-        g_autofree char *origin = ns_url_origin_from(js->current_url);
+        /* A sandboxed document has an opaque origin and no registrations. */
+        g_autofree char *origin = ns_js_document_origin_is_opaque(js)
+            ? NULL : ns_url_origin_from(js->current_url);
         GPtrArray *saved = ns_sw_load_persisted(origin);
         for (guint i = 0; i < saved->len; i++) {
             ns_sw_saved *item = g_ptr_array_index(saved, i);
@@ -56184,7 +56231,8 @@ ns_document_get_cookie(JSContext *ctx, JSValueConst this_val)
 {
     ns_js *js = js_from_ctx(ctx);
     if (!js || !ns_document_cookie_caller_allowed(js, ctx, this_val) ||
-        !ns_js_current_url_is_main_origin(js))
+        !ns_js_current_url_is_main_origin(js) ||
+        ns_js_document_origin_is_opaque(js))
         return JS_NewString(ctx, "");
     ns_document_refresh_cookie(js);
     return JS_NewString(ctx, js->cookie_value ? js->cookie_value : "");
@@ -56309,7 +56357,8 @@ ns_document_set_cookie(JSContext *ctx, JSValueConst this_val, JSValueConst val)
 {
     ns_js *js = js_from_ctx(ctx);
     if (!js || !ns_document_cookie_caller_allowed(js, ctx, this_val) ||
-        !ns_js_current_url_is_main_origin(js))
+        !ns_js_current_url_is_main_origin(js) ||
+        ns_js_document_origin_is_opaque(js))
         return JS_UNDEFINED;
     const char *s = JS_ToCString(ctx, val);
     if (!s) return JS_UNDEFINED;
@@ -57830,7 +57879,8 @@ ns_js_install_document(ns_js *js, ns_node *doc, const char *base_url,
     JS_SetPropertyStr(ctx, global, "location", location);
     JS_SetPropertyStr(ctx, document, "location", JS_DupValue(ctx, location));
     {
-        char *origin = ns_url_origin_from(js->current_url);
+        char *origin = ns_js_document_origin_is_opaque(js)
+            ? g_strdup("null") : ns_url_origin_from(js->current_url);
         JS_SetPropertyStr(ctx, global, "origin",
                           JS_NewString(ctx, origin ? origin : ""));
         JS_SetPropertyStr(ctx, global, "isSecureContext",
@@ -61914,6 +61964,11 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
                     resp = NULL;
                 }
             }
+            ns_doc_kind fetched_kind = resp && resp->body && !resp->error
+                ? ns_html_document_kind(abs_url, resp->content_type,
+                                        resp->content_disposition,
+                                        resp->x_content_type_options)
+                : NS_DOC_KIND_HTML;
             if (resp && ns_iframe_framing_blocked(origin, abs_url, resp)) {
                 if (js->log_cb) {
                     char *line = g_strdup_printf(
@@ -61922,18 +61977,15 @@ ns_js_load_iframe_now(ns_js *js, ns_node *iframe)
                     js->log_cb(line, js->log_user_data);
                     g_free(line);
                 }
-            } else if (resp && resp->body && !resp->error &&
-                       ns_html_document_kind(
-                           abs_url, resp->content_type,
-                           resp->content_disposition,
-                           resp->x_content_type_options) ==
-                           NS_DOC_KIND_DOWNLOAD) {
-                /* An attachment or a type that is not a document is never
-                 * rendered in a frame; the frame stays empty. */
+            } else if (fetched_kind == NS_DOC_KIND_DOWNLOAD ||
+                       fetched_kind == NS_DOC_KIND_PDF) {
+                /* An attachment, a PDF or a type that is not a document is
+                 * never rendered in a frame; the frame stays empty. */
                 if (js->log_cb) {
                     char *line = g_strdup_printf(
                         "Not rendering %s in a frame: %s", abs_url,
                         resp->content_disposition ? "sent as an attachment"
+                        : fetched_kind == NS_DOC_KIND_PDF ? "PDF in a frame"
                                                   : "not a document type");
                     js->log_cb(line, js->log_user_data);
                     g_free(line);
@@ -62686,6 +62738,20 @@ ns_js_add_csp_header(ns_js *js, const char *header_value)
         js->csp = parsed;
     }
     g_clear_pointer(&js->fetch_policy, ns_fetch_policy_unref);
+}
+
+/* Applies the response CSP's sandbox directive to the top document. Without
+ * allow-same-origin the document gets an opaque origin: no cookies, an
+ * opaque storage partition, and frames that cannot regain the origin. */
+void
+ns_js_set_document_sandbox(ns_js *js, ns_node *doc, const char *csp_header)
+{
+    if (!js) return;
+    g_autofree char *tokens = ns_csp_header_sandbox_tokens(csp_header);
+    js->document_sandbox = tokens ? ns_sandbox_from_policy_lines(tokens) : 0;
+    if (!ns_js_document_origin_is_opaque(js)) return;
+    if (doc) doc->flags |= NS_NODE_SANDBOX_OPAQUE;
+    ns_storage_load_for(js, js->current_url);
 }
 
 /* Whether the page CSP's form-action allows submitting to action_url. */

@@ -50,6 +50,24 @@ sb_key_h = custom_target(
   build_always_stale: true,
 )
 
+# PDF.js and the viewer script, embedded as C strings for src/pdf.c.
+pdf_viewer_embedded = {}
+if have_pdfjs
+  pdf_viewer_embedded = pdfjs_sub.get_variable('pdfjs_embedded') + {
+    'pdf_viewer_js': files('../data/js/pdf-viewer.js'),
+    'pdf_viewer_css': files('../data/js/pdf-viewer.css'),
+  }
+endif
+pdf_viewer_headers = []
+foreach name, src : pdf_viewer_embedded
+  pdf_viewer_headers += custom_target(
+    name + '.h',
+    input: ['../scripts/embed-text.py', src],
+    output: name + '.h',
+    command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', 'ns_' + name],
+  )
+endforeach
+
 northstar_engine_sources = files(
   'anim.c',
   'bytecode_cache.c',
@@ -121,6 +139,7 @@ northstar_engine_sources = files(
   'netutil.c',
   'content_decode.c',
   'paint.c',
+  'pdf.c',
   'print.c',
   'render.c',
   'safebrowsing.c',

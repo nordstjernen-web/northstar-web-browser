@@ -256,6 +256,7 @@ struct ns_js {
     JSValue       iframe_doc;
     int           iframe_doc_set;
     ns_csp *csp;
+    unsigned document_sandbox;   /* CSP sandbox flags of the top document */
     GHashTable   *doc_csp;
     GHashTable   *frame_posts;
     GHashTable   *frame_initiators;

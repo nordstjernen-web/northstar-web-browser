@@ -5901,9 +5901,7 @@ dom_tree_order_cmp(const ns_node *a, const ns_node *b)
 static gboolean
 box_contains_fixed(const ns_box *b)
 {
-    const ns_style *s = b ? b->style : NULL;
-    return s && (s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-                 s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE]);
+    return b && ns_style_has_transform(b->style);
 }
 
 /* TRUE if clip's overflow clip applies to abs/fixed descendant d per containing blocks. */
@@ -6281,11 +6279,7 @@ collect_3d_quads(const ns_box *b, const ns_mat4 *pm, GArray *quads)
         g_paint_anim ? ns_anim_get_transform(g_paint_anim, b->dom) : NULL;
     ns_css_transform eff;
     eff.n_ops = 0;
-    if (anim_tf ||
-        (b->style && (b->style->values[NS_CSS_TRANSFORM] ||
-                      b->style->values[NS_CSS_TRANSLATE] ||
-                      b->style->values[NS_CSS_ROTATE] ||
-                      b->style->values[NS_CSS_SCALE])))
+    if (anim_tf || ns_style_has_transform(b->style))
         ns_css_style_effective_transform(b->style, anim_tf, &eff);
     if (eff.n_ops > 0) {
         double ox, oy, oz;
@@ -6919,8 +6913,7 @@ box_keeps_negative_descendants(const ns_box *b)
     if (box_opacity(b) < 0.999 || box_establishes_3d(b)) return TRUE;
     if (!s) return FALSE;
     if (blend_mode_operator(s) != CAIRO_OPERATOR_OVER) return TRUE;
-    if (s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-        s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE] ||
+    if (ns_style_has_transform(s) ||
         s->values[NS_CSS_MASK_IMAGE] || s->values[NS_CSS_CLIP_PATH])
         return TRUE;
     if (ns_overflow_keyword_clips(ns_style_keyword(s, NS_CSS_OVERFLOW_X)) ||
@@ -7049,11 +7042,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         g_paint_anim ? ns_anim_get_transform(g_paint_anim, b->dom) : NULL;
     ns_css_transform eff_tf;
     eff_tf.n_ops = 0;
-    if (anim_tf ||
-        (style && (style->values[NS_CSS_TRANSFORM] ||
-                   style->values[NS_CSS_TRANSLATE] ||
-                   style->values[NS_CSS_ROTATE] ||
-                   style->values[NS_CSS_SCALE])))
+    if (anim_tf || ns_style_has_transform(style))
         ns_css_style_effective_transform(style, anim_tf, &eff_tf);
     gboolean has_transform = eff_tf.n_ops > 0;
     if (b == g_paint_tex_root) {

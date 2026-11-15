@@ -4,6 +4,7 @@
  */
 
 #include "trace.h"
+#include "html.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -45,14 +46,7 @@ static void
 trace_append_json_string(GString *out, const char *s)
 {
     g_string_append_c(out, '"');
-    for (const unsigned char *p = (const unsigned char *)s; p && *p; p++) {
-        if (*p == '"' || *p == '\\')
-            g_string_append_printf(out, "\\%c", *p);
-        else if (*p < 0x20)
-            g_string_append_printf(out, "\\u%04x", *p);
-        else
-            g_string_append_c(out, (char)*p);
-    }
+    ns_js_string_escape_append(out, s);
     g_string_append_c(out, '"');
 }
 

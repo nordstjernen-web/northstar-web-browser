@@ -43,9 +43,7 @@ box_has_transform(const ns_box *b, ns_anim *anim, gboolean *three_d)
     const ns_style *s = b->style;
     const ns_css_transform *anim_tf =
         anim && b->dom ? ns_anim_get_transform(anim, b->dom) : NULL;
-    if (!anim_tf &&
-        !(s && (s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-                s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE])))
+    if (!anim_tf && !ns_style_has_transform(s))
         return FALSE;
     ns_css_transform tf;
     tf.n_ops = 0;
@@ -347,9 +345,7 @@ box_local_transform(const ns_box *b, ns_anim *anim, ns_mat4 *m)
     const ns_style *s = b->style;
     const ns_css_transform *anim_tf =
         anim && b->dom ? ns_anim_get_transform(anim, b->dom) : NULL;
-    if (!s || (!anim_tf &&
-               !(s->values[NS_CSS_TRANSFORM] || s->values[NS_CSS_TRANSLATE] ||
-                 s->values[NS_CSS_ROTATE] || s->values[NS_CSS_SCALE])))
+    if (!s || (!anim_tf && !ns_style_has_transform(s)))
         return FALSE;
     ns_css_transform eff;
     eff.n_ops = 0;

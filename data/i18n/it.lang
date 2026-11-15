@@ -100,7 +100,7 @@ Dismiss=Ignora
 # --- Start page (about:start) ---
 Search=Cerca
 Search the web=Cerca nel Web
-Search (__ND_SEARCH_NAME__):=Cerca (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Cerca __ND_SEARCH_NAME__
 License=Licenza
 Privacy=Privacy
 # --- Settings page (about:settings) ---

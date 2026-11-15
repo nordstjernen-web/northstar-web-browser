@@ -100,7 +100,7 @@ Dismiss=Bỏ qua
 # --- Start page (about:start) ---
 Search=Tìm kiếm
 Search the web=Tìm kiếm trên web
-Search (__ND_SEARCH_NAME__):=Tìm kiếm (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Tìm kiếm __ND_SEARCH_NAME__
 License=Giấy phép
 Privacy=Quyền riêng tư
 # --- Settings page (about:settings) ---

@@ -100,7 +100,7 @@ Dismiss=ഒഴിവാക്കുക
 # --- Start page (about:start) ---
 Search=തിരയുക
 Search the web=വെബിൽ തിരയുക
-Search (__ND_SEARCH_NAME__):=തിരയുക (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=തിരയുക __ND_SEARCH_NAME__
 License=ലൈസൻസ്
 Privacy=സ്വകാര്യത
 # --- Settings page (about:settings) ---

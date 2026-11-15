@@ -100,7 +100,7 @@ Dismiss=Tutup
 # --- Start page (about:start) ---
 Search=Paluruh
 Search the web=Paluruh dina wéb
-Search (__ND_SEARCH_NAME__):=Paluruh (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Paluruh __ND_SEARCH_NAME__
 License=Lisénsi
 Privacy=Privasi
 # --- Settings page (about:settings) ---

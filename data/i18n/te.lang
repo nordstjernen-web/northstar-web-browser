@@ -100,7 +100,7 @@ Dismiss=విస్మరించు
 # --- Start page (about:start) ---
 Search=శోధించు
 Search the web=వెబ్‌లో శోధించు
-Search (__ND_SEARCH_NAME__):=శోధించు (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=శోధించు __ND_SEARCH_NAME__
 License=లైసెన్స్
 Privacy=గోప్యత
 # --- Settings page (about:settings) ---

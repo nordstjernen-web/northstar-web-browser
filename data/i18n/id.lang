@@ -100,7 +100,7 @@ Dismiss=Tutup
 # --- Start page (about:start) ---
 Search=Cari
 Search the web=Cari di web
-Search (__ND_SEARCH_NAME__):=Cari (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Cari __ND_SEARCH_NAME__
 License=Lisensi
 Privacy=Privasi
 # --- Settings page (about:settings) ---

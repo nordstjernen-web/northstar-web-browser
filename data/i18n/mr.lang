@@ -100,7 +100,7 @@ Dismiss=डिसमिस करा
 # --- Start page (about:start) ---
 Search=शोधा
 Search the web=वेबवर शोधा
-Search (__ND_SEARCH_NAME__):=शोधा (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=शोधा __ND_SEARCH_NAME__
 License=परवाना
 Privacy=गोपनीयता
 # --- Settings page (about:settings) ---

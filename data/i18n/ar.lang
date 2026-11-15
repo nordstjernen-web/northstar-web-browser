@@ -100,7 +100,7 @@ Dismiss=تجاهل
 # --- Start page (about:start) ---
 Search=بحث
 Search the web=البحث في الويب
-Search (__ND_SEARCH_NAME__):=بحث (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=بحث __ND_SEARCH_NAME__
 License=الترخيص
 Privacy=الخصوصية
 # --- Settings page (about:settings) ---

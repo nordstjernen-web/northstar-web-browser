@@ -100,7 +100,7 @@ Dismiss=닫기
 # --- Start page (about:start) ---
 Search=검색
 Search the web=웹 검색
-Search (__ND_SEARCH_NAME__):=검색 (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=검색 __ND_SEARCH_NAME__
 License=라이선스
 Privacy=개인정보 보호
 # --- Settings page (about:settings) ---

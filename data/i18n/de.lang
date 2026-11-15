@@ -100,7 +100,7 @@ Dismiss=Schließen
 # --- Start page (about:start) ---
 Search=Suchen
 Search the web=Im Web suchen
-Search (__ND_SEARCH_NAME__):=Suche (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Suche __ND_SEARCH_NAME__
 License=Lizenz
 Privacy=Datenschutz
 # --- Settings page (about:settings) ---

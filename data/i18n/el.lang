@@ -100,7 +100,7 @@ Dismiss=Απόρριψη
 # --- Start page (about:start) ---
 Search=Αναζήτηση
 Search the web=Αναζήτηση στο διαδίκτυο
-Search (__ND_SEARCH_NAME__):=Αναζήτηση (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Αναζήτηση __ND_SEARCH_NAME__
 License=Άδεια χρήσης
 Privacy=Απόρρητο
 # --- Settings page (about:settings) ---

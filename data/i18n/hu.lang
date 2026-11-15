@@ -100,7 +100,7 @@ Dismiss=Elvetés
 # --- Start page (about:start) ---
 Search=Keresés
 Search the web=Keresés a weben
-Search (__ND_SEARCH_NAME__):=Keresés (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Keresés __ND_SEARCH_NAME__
 License=Licenc
 Privacy=Adatvédelem
 # --- Settings page (about:settings) ---

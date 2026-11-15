@@ -3312,9 +3312,8 @@ about_diagnostics_html(void)
     ".wrap { margin:0 auto; padding:40px 24px 32px; box-sizing:border-box; }\n" \
     ".links { text-align:center; color:var(--faint); font-size:0.86em;" \
     " line-height:1.7; }\n" \
-    ".links a { display:inline-block; margin:0 8px; }\n" \
-    "@media (max-width:560px) { .wrap { padding:28px 22px; }" \
-    " .links a { margin:0 5px 4px; } }\n"
+    ".links a { white-space:nowrap; }\n" \
+    "@media (max-width:560px) { .wrap { padding:28px 22px; } }\n"
 
 /* Wraps a bundled text file in a styled preformatted HTML page, or a missing note. */
 static char *
@@ -4585,60 +4584,43 @@ static const char k_about_start_template[] =
     "<meta charset=\"utf-8\">"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
     "<meta name=\"color-scheme\" content=\"light dark\">"
-    "<title>{{Home}}</title>"
+    "<title>Northstar</title>"
     "<style>\n" NS_ABOUT_BASE_CSS
-    ".wrap { max-width: 760px; padding-top:34px; }\n"
-    ".head { text-align:center; margin-bottom:18px; }\n"
-    ".mark { display:block; width:58px; height:58px; line-height:58px;"
-    " margin:0 auto 12px; border:1px solid var(--field-line);"
-    " border-radius:14px; background:var(--panel); color:var(--fg);"
-    " font-weight:700; font-size:1.7em; text-align:center; }\n"
+    ".wrap { max-width: 720px; padding-top:34px; text-align:center; }\n"
     ".mark-img { display:block; width:96px; height:96px;"
     " margin:0 auto 12px; border-radius:20px; object-fit:cover; }\n"
-    ".hgroup { display:block; text-align:center; }\n"
-    ".title { font-size: 1.5em; font-weight: 600; line-height:1.2;"
-    " margin:0; }\n"
-    ".tagline { color:var(--muted); font-style: italic; font-size: 0.84em;"
-    " margin:4px auto 0; line-height:1.25; max-width:36em; }\n"
-    ".intro { color:var(--muted); text-align:center; line-height:1.5;"
-    " margin:0 auto 22px; max-width:620px; }\n"
-    ".search { display:flex; gap:10px; max-width:96%; margin:0 auto 18px; }\n"
-    ".search input { flex:1 1 auto; border:1px solid var(--field-line);"
-    " background:var(--field); color:var(--fg); border-radius:10px;"
-    " padding:13px 16px; font:inherit; font-size:1.03em; outline:none; }\n"
-    ".search input:focus { border-color:var(--accent); }\n"
+    ".title { font-size:1.5em; font-weight:600; line-height:1.2;"
+    " margin:0 0 18px; }\n"
+    ".search { display:flex; gap:10px; margin:0 0 18px; }\n"
+    ".search input { flex:1 1 auto; min-width:0;"
+    " border:1px solid var(--field-line); background:var(--field);"
+    " color:var(--fg); border-radius:10px; padding:13px 16px; font:inherit;"
+    " font-size:1.03em; }\n"
+    ".search input:focus { outline:none; border-color:var(--accent);"
+    " box-shadow:0 0 0 1px var(--accent); }\n"
     ".search button { border:0; background:#2d6cf6; color:#fff;"
     " border-radius:10px; padding:13px 22px; font:inherit; font-weight:600;"
     " cursor:pointer; }\n"
     ".search button:hover { background:#2560d8; }\n"
-    "@media (max-width:560px) { .wrap { padding:24px 24px 28px; }"
-    " .head { margin-bottom:18px; }"
-    " .mark { width:48px; height:48px; line-height:48px; font-size:1.4em;"
-    " margin-bottom:10px; }"
+    "@media (max-width:560px) {"
     " .mark-img { width:72px; height:72px; margin-bottom:10px; }"
     " .title { font-size:1.28em; }"
-    " .tagline { display:none; }"
-    " .intro { display:none; }"
-    " .search { flex-direction:column; gap:8px; }"
-    " .search button { width:100%; } }\n"
+    " .search { flex-direction:column; gap:8px; } }\n"
     "</style></head>"
     "<body><main class=\"wrap\">"
-    "<header class=\"head\">__ND_LOGO_MARK__"
-    "<h1 class=\"title\">Nordstjernen Browser</h1>"
-    "</header>"
-    "<form class=\"search\" id=\"dsearch\">"
-    "<input id=\"sq\" name=\"q\" autocomplete=\"off\" autofocus dir=\"auto\""
-    " aria-label=\"{{Search the web}}\""
-    " size=\"__ND_SEARCH_SIZE__\""
-    " placeholder=\"{{Search (__ND_SEARCH_NAME__):}}\">"
+    "__ND_LOGO_MARK__"
+    "<h1 class=\"title\">Northstar</h1>"
+    "<form class=\"search\" id=\"dsearch\" role=\"search\">"
+    "<input id=\"sq\" name=\"q\" type=\"search\" autocomplete=\"off\""
+    " autofocus dir=\"auto\" aria-label=\"{{Search the web}}\""
+    " placeholder=\"{{Search __ND_SEARCH_NAME__}}\">"
     "<button type=\"submit\">{{Search}}</button>"
     "</form>"
-    "<p class=\"links\">"
-    "<a href=\"about:history\">{{History}}</a>"
-    "<a href=\"about:license\">{{License}}</a>"
-    "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a>"
-    "<a href=\"https://nordstjernen.org\">nordstjernen.org</a>"
-    "</p>"
+    "<nav class=\"links\">"
+    "<a href=\"about:history\">{{History}}</a> \xc2\xb7 "
+    "<a href=\"about:settings\">{{Settings}}</a> \xc2\xb7 "
+    "<a href=\"about:northstar\">{{About Northstar Web Browser}}</a>"
+    "</nav>"
     "</main>"
     "<script>\n"
     "var searchUrl='__ND_SEARCH_URL__';\n"
@@ -4731,9 +4713,9 @@ static const char k_about_northstar_template[] =
     "<p class=\"copy\">Northstar Web Browser \xc2\xa9 2026 "
     "Andreas R\xc3\xb8sdal</p>"
     "<p class=\"links\">"
-    "<a href=\"about:start\">\xe2\x86\x90 {{Start}}</a>"
-    "<a href=\"about:license\">{{License}}</a>"
-    "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a>"
+    "<a href=\"about:start\">\xe2\x86\x90 {{Start}}</a> \xc2\xb7 "
+    "<a href=\"about:license\">{{License}}</a> \xc2\xb7 "
+    "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a> \xc2\xb7 "
     "<a href=\"https://nordstjernen.org\">nordstjernen.org</a>"
     "</p>"
     "</main></body></html>";
@@ -4987,20 +4969,6 @@ about_settings_clear(void)
     ns_net_site_storage_clear();
 }
 
-/* Picks a random localized tagline for the start page. */
-static const char *
-about_start_tagline(void)
-{
-    static const char *const taglines[] = {
-        "Northstar Web Browser the unique web browser",
-        "Northstar Web Browser the unique web browser",
-        "Nordstjärnan the unique web browser",
-        "Étoile du Nord the unique web browser",
-        "Nordstern the unique web browser",
-    };
-    return taglines[g_random_int_range(0, G_N_ELEMENTS(taglines))];
-}
-
 /* TRUE if an about: request comes from browser UI, a browser page, or a start-page link. */
 static gboolean
 about_request_from_chrome(const char *top_url, gboolean navigation)
@@ -5088,27 +5056,13 @@ synthesize_about_response(const char *url, const char *top_url,
                                            esc_name);
         g_free(esc_name);
         g_free(with_search);
-        glong ph_len = g_utf8_strlen(search_name, -1) + 10;
-        if (ph_len < 20) ph_len = 20;
-        if (ph_len > 80) ph_len = 80;
-        char *size_val = g_strdup_printf("%ld", ph_len);
-        char *with_size = about_substitute(with_name,
-                                           "__ND_SEARCH_SIZE__",
-                                           size_val);
-        g_free(size_val);
-        g_free(with_name);
-        with_name = with_size;
         g_string_free(esc_engine, TRUE);
         g_free(engine_host);
         char *logo_markup = about_logo_markup();
-        char *with_logo = about_substitute(with_name,
-                                           "__ND_LOGO_MARK__",
-                                           logo_markup);
+        char *body = about_substitute(with_name, "__ND_LOGO_MARK__",
+                                      logo_markup);
         g_free(logo_markup);
         g_free(with_name);
-        char *body = about_substitute(with_logo, "__ND_TAGLINE__",
-                                      about_start_tagline());
-        g_free(with_logo);
         g_byte_array_append(resp->body, (const guint8 *)body,
                             (guint)strlen(body));
         g_free(body);

@@ -100,7 +100,7 @@ Dismiss=Yi watsi
 # --- Start page (about:start) ---
 Search=Bincika
 Search the web=Bincika yanar gizo
-Search (__ND_SEARCH_NAME__):=Bincika (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Bincika __ND_SEARCH_NAME__
 License=Lasisi
 Privacy=Sirri
 # --- Settings page (about:settings) ---

@@ -100,7 +100,7 @@ Dismiss=Kapat
 # --- Start page (about:start) ---
 Search=Ara
 Search the web=Web'de ara
-Search (__ND_SEARCH_NAME__):=Ara (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Ara __ND_SEARCH_NAME__
 License=Lisans
 Privacy=Gizlilik
 # --- Settings page (about:settings) ---

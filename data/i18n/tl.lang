@@ -100,7 +100,7 @@ Dismiss=Isara
 # --- Start page (about:start) ---
 Search=Maghanap
 Search the web=Maghanap sa web
-Search (__ND_SEARCH_NAME__):=Maghanap (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=Maghanap __ND_SEARCH_NAME__
 License=Lisensya
 Privacy=Privacy
 # --- Settings page (about:settings) ---

@@ -100,7 +100,7 @@ Dismiss=閉じる
 # --- Start page (about:start) ---
 Search=検索
 Search the web=ウェブを検索
-Search (__ND_SEARCH_NAME__):=検索 (__ND_SEARCH_NAME__):
+Search __ND_SEARCH_NAME__=検索 __ND_SEARCH_NAME__
 License=ライセンス
 Privacy=プライバシー
 # --- Settings page (about:settings) ---

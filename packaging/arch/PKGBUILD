@@ -35,7 +35,6 @@ depends=(
   opusfile
   sdl2
   sqlite
-  uchardet
   zlib
 )
 makedepends=(git meson python)

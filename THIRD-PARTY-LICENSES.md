@@ -227,22 +227,6 @@ may not be removed from any source distribution.
 Licensed under the GNU Lesser General Public License version 2.1. See the
 LGPL section below for terms and obligations.
 
-### libuchardet — MPL-1.1 / LGPL-2.1+ / GPL-2.0+ (tri-license)
-
-> Charset detection.
-> <https://www.freedesktop.org/wiki/Software/uchardet/>
->
-> Based on Mozilla's universalchardet, originally Copyright (c)
-> 1998-2006 Netscape Communications Corporation and others.
-
-Distributed under the terms of the Mozilla Public License 1.1, the
-GNU Lesser General Public License 2.1, or the GNU General Public
-License 2.0, at your option. The full license texts are available at:
-
-- <https://www.mozilla.org/MPL/1.1/>
-- <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
-- <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>
-
 ### GTK 4, GLib, Pango, gdk-pixbuf — GNU LGPL 2.1 or later
 
 > UI toolkit and core utilities.

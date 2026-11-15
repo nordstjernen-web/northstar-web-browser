@@ -173,7 +173,6 @@ northstar_deps = [
   libquickjs,
   libwuffs,
   libplmpeg,
-  libuchardet,
   liblexbor,
   libwamr,
   sqlite3,

@@ -40,7 +40,7 @@ fi
 
 if [ "$LIBC" = musl ]; then
     LIBC_REQ='- musl libc (Alpine 3.19+ era and later)'
-    RUNTIME_INSTALL='    sudo apk add gtk4.0 libcurl uchardet libavif dav1d libvpx opus libthai \
+    RUNTIME_INSTALL='    sudo apk add gtk4.0 libcurl libavif dav1d libvpx opus libthai \
         libseccomp libpsl sqlite-libs ca-certificates font-dejavu sdl2 # Alpine (musl)'
 else
     # Don't guess the glibc floor — read it from the binary we just built.
@@ -48,11 +48,11 @@ else
         | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sort -t. -k1,1V -k2,2n -u \
         | tail -1 | cut -d_ -f2)
     LIBC_REQ="- glibc ${GLIBC_MIN:-2.38}+ (the build container's generation; check with: ldd --version)"
-    RUNTIME_INSTALL='    sudo apt   install libgtk-4-1 libcurl4 libuchardet0 \
+    RUNTIME_INSTALL='    sudo apt   install libgtk-4-1 libcurl4 \
         libavif16 libpsl5 libseccomp2 libsqlite3-0 libsdl2-2.0-0   # Debian/Ubuntu
-    sudo dnf   install gtk4 libcurl libuchardet \
+    sudo dnf   install gtk4 libcurl \
         libavif libpsl libseccomp sqlite-libs SDL2                 # Fedora/RHEL
-    sudo zypper install libgtk-4-1 libcurl4 libuchardet0 \
+    sudo zypper install libgtk-4-1 libcurl4 \
         libavif16 libpsl5 libseccomp2 libsqlite3-0 libSDL2-2_0-0   # openSUSE'
 fi
 
@@ -91,7 +91,6 @@ against the other C library — pick the matching download.
 ${LIBC_REQ}
 - GTK 4.6+, with gio, gobject, pango, cairo
 - libcurl with a TLS backend; OpenSSL 3 (libcrypto)
-- libuchardet
 - libavif 16 (AVIF images — only in recent distro releases)
 - libpsl, libseccomp, libsqlite3
 - SDL2 (in-process audio playback)

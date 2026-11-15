@@ -43,9 +43,9 @@ cp "$ROOT/LICENSE" "$STAGE/" 2>/dev/null || true
 
 case "$OS" in
     freebsd)
-        RUNTIME='    pkg install gtk4 libcurl uchardet sqlite3 libpsl libavif sdl2' ;;
+        RUNTIME='    pkg install gtk4 libcurl sqlite3 libpsl libavif sdl2' ;;
     netbsd)
-        RUNTIME='    pkgin install gtk4 curl uchardet sqlite3 libpsl libavif SDL2' ;;
+        RUNTIME='    pkgin install gtk4 curl sqlite3 libpsl libavif SDL2' ;;
     *)
         RUNTIME='    install gtk4 and the other runtime libraries with your package manager' ;;
 esac

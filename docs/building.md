@@ -11,7 +11,7 @@ Debian / Ubuntu:
 
 ```sh
 sudo apt install build-essential git pkg-config meson ninja-build \
-    libgtk-4-dev libcurl4-openssl-dev libssl-dev libuchardet-dev \
+    libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
     libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
     zlib1g-dev
@@ -21,7 +21,7 @@ Fedora / RHEL:
 
 ```sh
 sudo dnf install gcc git pkgconf meson ninja-build gtk4-devel \
-    libcurl-devel openssl-devel uchardet-devel harfbuzz-devel \
+    libcurl-devel openssl-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype-devel \
     libpsl-devel sqlite-devel libseccomp-devel SDL2-devel zlib-devel
 ```
@@ -30,7 +30,7 @@ openSUSE:
 
 ```sh
 sudo zypper install gcc git pkgconf meson ninja gtk4-devel \
-    libcurl-devel libopenssl-devel libuchardet-devel harfbuzz-devel \
+    libcurl-devel libopenssl-develel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype2-devel \
     libpsl-devel sqlite3-devel libseccomp-devel libSDL2-devel zlib-devel
 ```
@@ -72,7 +72,7 @@ and `libthai-dev` for Thai word breaking. The build works without them.
 With Homebrew:
 
 ```sh
-brew install meson ninja pkg-config gtk4 curl openssl@3 uchardet libpsl \
+brew install meson ninja pkg-config gtk4 curl openssl@3 libpsl \
     sqlite sdl2 zlib
 ```
 
@@ -86,7 +86,7 @@ Apple clang 21):
 
 ```sh
 sudo port install meson ninja pkgconfig gtk4 +quartz curl openssl3 \
-    uchardet libpsl sqlite3 libsdl2 zlib
+    libpsl sqlite3 libsdl2 zlib
 ```
 
 `+quartz` builds GTK with the native macOS backend; the default `+x11`

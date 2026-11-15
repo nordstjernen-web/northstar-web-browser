@@ -57,7 +57,6 @@ BuildRequires:  pkgconf-pkg-config
 BuildRequires:  pkgconfig(gtk4)
 BuildRequires:  pkgconfig(libcurl)
 BuildRequires:  pkgconfig(libcrypto)
-BuildRequires:  pkgconfig(uchardet)
 BuildRequires:  pkgconfig(libpsl)
 BuildRequires:  pkgconfig(libseccomp)
 BuildRequires:  pkgconfig(libavif)
@@ -66,7 +65,6 @@ BuildRequires:  pkgconfig(sdl2)
 
 Requires:       gtk4
 Requires:       libcurl
-Requires:       uchardet
 
 %description
 Northstar Web Browser is a small free-software web browser written from scratch in

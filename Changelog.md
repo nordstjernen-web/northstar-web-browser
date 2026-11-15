@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.24:
 =======
+* uchardet is no longer a dependency. A page that declares no charset
+  and is not valid UTF-8 is decoded in the default encoding the HTML
+  Standard suggests for the user's locale (windows-1251 for Russian,
+  Shift_JIS for Japanese, windows-1252 for most Western locales), as
+  other browsers do, instead of being guessed from its bytes.
 * Windows wider than 2560 or taller than 1600 device pixels are painted
   in full. The page frame was capped at that size, so on a 4K display
   (3840 px wide at 150%) only the top-left part of the page was drawn

@@ -38,7 +38,6 @@ BuildRequires:  pkgconfig(gstreamer-app-1.0) >= 1.18
 BuildRequires:  pkgconfig(gstreamer-video-1.0) >= 1.18
 BuildRequires:  pkgconfig(sdl2)
 BuildRequires:  pkgconfig(sqlite3)
-BuildRequires:  pkgconfig(uchardet)
 Requires:       hicolor-icon-theme
 Requires(post): update-alternatives
 Requires(postun): update-alternatives

@@ -2500,7 +2500,9 @@
         if (!ZLIB_FORMATS[fmt])
             throw new TypeError("Unsupported compression format: '" + fmt + "'");
         if (typeof zlibCreate !== 'function') {
-            return { transform: function (chunk, ctl) { ctl.enqueue(chunk); } };
+            /* Never hand back the input as if it were (de)compressed. */
+            throw new TypeError("Compression format '" + fmt +
+                                "' is not available in this context");
         }
         var codec = zlibCreate(fmt, decompress);
         return {

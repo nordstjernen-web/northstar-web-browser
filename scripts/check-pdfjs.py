@@ -4,11 +4,12 @@
 
 Usage: check-pdfjs.py DIR
 
-Accepts the pdfjs-dist npm layout (build/pdf.min.mjs, wasm/) and the
-generic viewer layout distributions install (build/pdf.mjs,
-web/wasm/), minified or not. On success prints one "name<TAB>path" line
-per file meson embeds plus "version<TAB>X.Y.Z" and exits 0; otherwise
-prints the reason to stderr and exits 1.
+Accepts the pdfjs-dist npm layout (build/pdf.min.mjs, wasm/,
+standard_fonts/) and the generic viewer layout distributions install
+(build/pdf.mjs, web/wasm/, web/standard_fonts/), minified or not. On
+success prints one "name<TAB>path" line per script and decoder, one
+"font<TAB>path" line per standard font, and "version<TAB>X.Y.Z", and
+exits 0; otherwise prints the reason to stderr and exits 1.
 """
 import os
 import re
@@ -25,6 +26,18 @@ CANDIDATES = {
     "pdfjs_jbig2": ["wasm/jbig2.wasm", "web/wasm/jbig2.wasm"],
     "pdfjs_qcms": ["wasm/qcms_bg.wasm", "web/wasm/qcms_bg.wasm"],
 }
+
+# Glyph data for PDF's standard fonts when a document does not embed them.
+# Only the BSD-licensed Foxit fonts (PDFium) are embedded; PDF.js's
+# Liberation Sans, under GPL-2.0 with a font exception, is left out, and
+# Helvetica/Arial then draw with a system sans-serif font.
+STANDARD_FONT_DIRS = ["standard_fonts", "web/standard_fonts"]
+STANDARD_FONTS = [
+    "FoxitDingbats.pfb", "FoxitFixed.pfb", "FoxitFixedBold.pfb",
+    "FoxitFixedBoldItalic.pfb", "FoxitFixedItalic.pfb", "FoxitSerif.pfb",
+    "FoxitSerifBold.pfb", "FoxitSerifBoldItalic.pfb", "FoxitSerifItalic.pfb",
+    "FoxitSymbol.pfb",
+]
 
 VERSION_RE = re.compile(r"pdfjsVersion\s*=\s*\"?(\d+)\.(\d+)\.(\d+)")
 
@@ -61,6 +74,17 @@ def main(argv):
                 break
         else:
             fail("%s has none of %s" % (root, ", ".join(rels)))
+    font_dir = next((os.path.join(root, *d.split("/"))
+                     for d in STANDARD_FONT_DIRS
+                     if os.path.isdir(os.path.join(root, *d.split("/")))), None)
+    if not font_dir:
+        fail("%s has none of %s" % (root, ", ".join(STANDARD_FONT_DIRS)))
+    fonts = []
+    for name in STANDARD_FONTS:
+        path = os.path.join(font_dir, name)
+        if not os.path.isfile(path):
+            fail("%s lacks the standard font %s" % (font_dir, name))
+        fonts.append(os.path.abspath(path))
     lib = script_version(found["pdfjs_lib"])
     worker = script_version(found["pdfjs_worker"])
     if lib != worker:
@@ -72,6 +96,8 @@ def main(argv):
                 ".".join(map(str, MIN_VERSION)), MAX_MAJOR))
     for name, path in found.items():
         print("%s\t%s" % (name, path))
+    for path in fonts:
+        print("font\t%s" % path)
     print("version\t%s" % ".".join(map(str, lib)))
     return 0
 

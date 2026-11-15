@@ -24340,6 +24340,8 @@ ns_js_free_unstarted(ns_js *js)
     g_free(js);
 }
 
+static void ns_zlib_install(JSRuntime *rt, JSContext *ctx, JSValueConst global);
+
 /* Creates a worker runtime and global scope inheriting the creator's CSP and origin. */
 static ns_js *
 ns_worker_js_new(ns_worker_host *host)
@@ -24446,6 +24448,7 @@ ns_worker_js_new(ns_worker_host *host)
                  ns_window_abort_controller_ctor, 0);
     ns_install_abort_signal_interface(ctx, global);
     ns_idb_install(ctx, global);
+    ns_zlib_install(js->rt, ctx, global);
     ns_js_eval(js, ns_js_polyfills_src,
                sizeof(ns_js_polyfills_src) - 1, "<worker-polyfills>");
     {
@@ -43895,7 +43898,9 @@ ns_element_activation_behavior(JSContext *ctx, const ns_node *act,
         if (ns_iframe_follow_href(ctx, act, href))
             return JS_UNDEFINED;
         if (href && *href && ns_element_get_attr(act, "download") && js->download_cb) {
-            if (!ns_js_has_transient_activation(js)) return JS_UNDEFINED;
+            if (!ns_js_has_transient_activation(js) ||
+                !ns_js_document_allows_downloads(js))
+                return JS_UNDEFINED;
             ns_js_consume_user_activation(js);
             g_autofree char *abs_url = ns_element_anchor_resolved_href(act, js);
             const char *dl = ns_element_get_attr(act, "download");
@@ -51590,6 +51595,20 @@ ns_zlib_finish(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     return ns_zlib_run(ctx, c, (const uint8_t *)"", 0, TRUE);
 }
 
+/* Registers the codec class on rt and binds the native hooks that
+ * CompressionStream/DecompressionStream in data/js/polyfills.js use; every
+ * realm that runs the polyfills needs them, workers included. */
+static void
+ns_zlib_install(JSRuntime *rt, JSContext *ctx, JSValueConst global)
+{
+    ns_new_class_id(&ns_zlib_class_id);
+    if (!JS_IsRegisteredClass(rt, ns_zlib_class_id))
+        JS_NewClass(rt, ns_zlib_class_id, &ns_zlib_class);
+    ns_bind_fn(ctx, global, "__ns_zlib_create", ns_zlib_create, 2);
+    ns_bind_fn(ctx, global, "__ns_zlib_push",   ns_zlib_push,   2);
+    ns_bind_fn(ctx, global, "__ns_zlib_finish", ns_zlib_finish, 1);
+}
+
 /* Defines Symbol.unscopables on proto for the ChildNode/ParentNode mutation methods. */
 static void
 ns_define_element_unscopables(JSContext *ctx, JSValue proto)
@@ -58150,9 +58169,7 @@ ns_js_install_document(ns_js *js, ns_node *doc, const char *base_url,
     }
     ns_bind_ctor(ctx, global, "XMLSerializer", ns_xml_serializer_ctor, 0);
 
-    ns_bind_fn(ctx, global, "__ns_zlib_create", ns_zlib_create, 2);
-    ns_bind_fn(ctx, global, "__ns_zlib_push",   ns_zlib_push,   2);
-    ns_bind_fn(ctx, global, "__ns_zlib_finish", ns_zlib_finish, 1);
+    ns_zlib_install(JS_GetRuntime(ctx), ctx, global);
     ns_bind_fn(ctx, global, "__ndNativeRange",  ns_native_range, 0);
     ns_bind_fn(ctx, global, "__ndRangeContextualFragment",
                ns_range_createContextualFragment, 1);
@@ -62770,6 +62787,15 @@ ns_js_add_csp_header(ns_js *js, const char *header_value)
         js->csp = parsed;
     }
     g_clear_pointer(&js->fetch_policy, ns_fetch_policy_unref);
+}
+
+/* Whether the top document may start downloads: not sandboxed, or sandboxed
+ * with allow-downloads. */
+gboolean
+ns_js_document_allows_downloads(const ns_js *js)
+{
+    return !js || !(js->document_sandbox & NS_SANDBOX_ACTIVE) ||
+           (js->document_sandbox & NS_SANDBOX_ALLOW_DOWNLOADS);
 }
 
 /* Applies the response CSP's sandbox directive to the top document. Without

@@ -13,7 +13,9 @@
 
     class EmbeddedDataFactory {
         async fetch({ kind, filename }) {
-            const el = kind === 'wasmUrl' && byId('wasm:' + filename);
+            const prefix = kind === 'wasmUrl' ? 'wasm:'
+                         : kind === 'standardFontDataUrl' ? 'font:' : null;
+            const el = prefix && byId(prefix + filename);
             if (!el) throw new Error('Not bundled: ' + filename);
             return Uint8Array.fromBase64(el.textContent);
         }
@@ -45,6 +47,7 @@
             BinaryDataFactory: EmbeddedDataFactory,
             useWorkerFetch: false,
             isEvalSupported: false,
+            disableFontFace: true,
             isOffscreenCanvasSupported: false,
             isImageDecoderSupported: false,
             enableXfa: false,

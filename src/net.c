@@ -3229,14 +3229,13 @@ about_diagnostics_html(void)
         "unknown";
 #endif
 
-    GString *s = g_string_new("<div class=\"diag\">");
+    GString *s = g_string_new(NULL);
 
     diag_heading(s, "System");
     char *os = g_get_os_info(G_OS_INFO_KEY_PRETTY_NAME);
     if (!os) os = g_get_os_info(G_OS_INFO_KEY_NAME);
     diag_kv(s, "Operating system", os ? os : platform);
     g_free(os);
-    diag_kv(s, "Platform", platform);
     diag_kv(s, "Architecture", arch);
     char *cores = g_strdup_printf("%u", g_get_num_processors());
     diag_kv(s, "Logical CPUs", cores);
@@ -3267,27 +3266,35 @@ about_diagnostics_html(void)
     diag_kv(s, "Networking", curl_version());
 
     diag_heading(s, "Features");
-    diag_feature(s, "MPEG-1 video", TRUE);
 #ifdef NS_HAVE_AVIF
     diag_feature(s, "AVIF images", TRUE);
 #else
     diag_feature(s, "AVIF images", FALSE);
 #endif
-    diag_feature(s, "SVG images", TRUE);
 #ifdef NS_HAVE_ENCHANT
     diag_feature(s, "Spell checking", TRUE);
 #else
     diag_feature(s, "Spell checking", FALSE);
 #endif
+#if defined(__linux__)
+    {
+        GString *sb = g_string_new(NULL);
 #ifdef NS_HAVE_SECCOMP
-    diag_feature(s, "Seccomp sandbox", TRUE);
-#else
-    diag_feature(s, "Seccomp sandbox", FALSE);
+        g_string_append(sb, "seccomp");
+#endif
+        if (ns_security_sandbox_limits_reads())
+            g_string_append(sb, sb->len ? ", Landlock" : "Landlock");
+        diag_kv(s, "Sandbox", sb->len ? sb->str : "none");
+        g_string_free(sb, TRUE);
+    }
+#elif defined(G_OS_WIN32)
+    diag_kv(s, "Sandbox", ns_env_flag("NS_NO_WIN32_MITIGATIONS")
+                              ? "off (NS_NO_WIN32_MITIGATIONS)"
+                              : "process mitigation policies");
 #endif
 
     diag_safe_browsing(s);
 
-    g_string_append(s, "</div>");
     return g_string_free(s, FALSE);
 }
 
@@ -4641,33 +4648,27 @@ static const char k_about_northstar_template[] =
     "<meta name=\"color-scheme\" content=\"light dark\">"
     "<title>{{About Northstar Web Browser}}</title>"
     "<style>\n" NS_ABOUT_BASE_CSS
-    ".wrap { max-width: 640px; }\n"
-    ".head { text-align:center; margin-bottom:22px; }\n"
+    ".wrap { max-width: 600px; }\n"
+    ".head { text-align:center; }\n"
     ".mark-img { display:block; width:104px; height:104px;"
     " margin:0 auto 16px; border-radius:22px; object-fit:cover; }\n"
-    ".title { font-size: 1.7em; font-weight: 600; line-height:1.15; }\n"
-    ".ver { color:var(--faint); font-size:0.92em; margin-top:5px; }\n"
-    ".intro { color:var(--muted); text-align:center; line-height:1.55;"
-    " margin:0 auto 18px; max-width:560px; }\n"
-    ".intro b { color:var(--fg); }\n"
-    ".license { max-width:560px; margin:24px auto 8px;"
-    " border-top:1px solid var(--line); padding-top:22px; }\n"
-    ".license h2 { font-size:1.02em; font-weight:600; margin:0 0 8px;"
-    " text-align:center; }\n"
-    ".license p { color:var(--muted); line-height:1.55; font-size:0.92em;"
-    " margin:0 auto 10px; text-align:center; }\n"
-    ".license .third { color:var(--faint); font-size:0.86em; }\n"
-    ".docs { list-style:none; margin:16px auto 0; padding:0;"
-    " max-width:400px; }\n"
-    ".docs li { margin:0 0 8px; }\n"
-    ".docs a { font-weight:600; font-size:0.95em; text-decoration:none; }\n"
+    "h1 { font-size:1.7em; font-weight:600; line-height:1.15; margin:0; }\n"
+    ".ver { color:var(--faint); font-size:0.92em; margin:6px 0 18px; }\n"
+    ".head p { color:var(--muted); line-height:1.55; margin:0 0 10px; }\n"
+    ".docs { margin:16px 0 0; font-weight:600; font-size:0.95em; }\n"
+    ".docs a { display:block; margin:4px 0; text-decoration:none; }\n"
     ".docs a:hover { text-decoration:underline; }\n"
-    ".diag { max-width:560px; margin:26px auto 0; text-align:left;"
-    " border-top:1px solid var(--line); padding-top:20px; }\n"
+    ".diag { margin:28px 0 24px; border-top:1px solid var(--line);"
+    " padding-top:14px; }\n"
+    ".diag summary { cursor:pointer; color:var(--muted); font-size:0.92em;"
+    " font-weight:600; padding:4px 0; }\n"
+    ".diag button { float:right; font:inherit; font-size:0.82em;"
+    " border:1px solid var(--field-line); background:var(--field);"
+    " color:var(--fg); border-radius:6px; padding:3px 12px;"
+    " cursor:pointer; }\n"
     ".diag h3 { font-size:0.72em; text-transform:uppercase;"
     " letter-spacing:0.05em; color:var(--faint); font-weight:700;"
     " margin:18px 0 6px; }\n"
-    ".diag h3:first-child { margin-top:0; }\n"
     ".drow { display:flex; justify-content:space-between; gap:18px;"
     " padding:5px 0; border-bottom:1px solid var(--line2);"
     " font-size:0.85em; }\n"
@@ -4676,49 +4677,51 @@ static const char k_about_northstar_template[] =
     " font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace; }\n"
     ".dv.on { color:var(--ok); font-family:inherit; }\n"
     ".dv.off { color:var(--off); font-family:inherit; }\n"
-    ".copy { text-align:center; color:var(--faint); font-size:0.85em;"
-    " margin:26px 0 14px; }\n"
     "@media (max-width:560px) {"
     " .mark-img { width:84px; height:84px; }"
-    " .title { font-size:1.42em; }"
+    " h1 { font-size:1.42em; }"
     " .drow { font-size:0.8em; } }\n"
     "</style></head>"
     "<body><main class=\"wrap\">"
-    "<div class=\"head\">"
+    "<header class=\"head\">"
     "__ND_LOGO_MARK__"
-    "<div class=\"title\">Northstar Web Browser</div>"
-    "<div class=\"ver\">{{Version}} " NS_VERSION "</div>"
-    "<p class=\"intro\">{{A web browser for Windows, Linux and Mac, coded in "
-    "the C programming language, with open source GPL license.}}</p>"
-    "</div>"
-    "<section class=\"license\">"
-    "<h2>{{License}}</h2>"
+    "<h1>Northstar Web Browser</h1>"
+    "<p class=\"ver\">{{Version}} " NS_VERSION " \xc2\xb7 "
+    "<a href=\"https://github.com/nordstjernen-web/northstar-web-browser/"
+    "releases\">{{Release notes}}</a></p>"
+    "<p>{{A small, independent web browser written from scratch in C.}}</p>"
     "<p>{{Northstar Web Browser is free software, distributed under the GNU "
     "General Public License, version 3 or later.}} \xc2\xa9 2026 Andreas "
-    "R\xc3\xb8sdal.</p>"
-    "<p class=\"third\">{{It bundles third-party open-source software under "
-    "the MIT, BSD, Apache\xc2\xa0" "2.0, LGPL, MPL and zlib licenses \xe2"
-    "\x80\x94 including lexbor, QuickJS, Wuffs, GTK\xc2\xa0" "4, Cairo, "
-    "libcurl, OpenSSL, uchardet, libpsl, SQLite and zlib. Each "
-    "component\xe2\x80\x99s copyright notice and full license text is "
-    "reproduced in the notices below.}}</p>"
-    "<ul class=\"docs\">"
-    "<li><a href=\"about:license\">{{GNU General Public License (GPL-3.0)}}"
-    " \xe2\x86\x92</a></li>"
-    "<li><a href=\"about:third-party\">{{Third-party software notices}} \xe2"
-    "\x86\x92</a></li>"
-    "</ul>"
-    "</section>"
+    "R\xc3\xb8sdal</p>"
+    "<p class=\"docs\">"
+    "<a href=\"about:license\">{{GNU General Public License (GPL-3.0)}}"
+    " \xe2\x86\x92</a>"
+    "<a href=\"about:third-party\">{{Third-party software notices}}"
+    " \xe2\x86\x92</a></p>"
+    "</header>"
+    "<details class=\"diag\" id=\"diag\">"
+    "<summary>{{Technical details}}"
+    "<button type=\"button\" id=\"copy\">{{Copy}}</button></summary>"
     "__ND_DIAG__"
-    "<p class=\"copy\">Northstar Web Browser \xc2\xa9 2026 "
-    "Andreas R\xc3\xb8sdal</p>"
-    "<p class=\"links\">"
+    "</details>"
+    "<nav class=\"links\">"
     "<a href=\"about:start\">\xe2\x86\x90 {{Start}}</a> \xc2\xb7 "
-    "<a href=\"about:license\">{{License}}</a> \xc2\xb7 "
     "<a href=\"https://nordstjernen.org/privacy\">{{Privacy}}</a> \xc2\xb7 "
     "<a href=\"https://nordstjernen.org\">nordstjernen.org</a>"
-    "</p>"
-    "</main></body></html>";
+    "</nav>"
+    "</main>"
+    "<script>\n"
+    "document.getElementById('copy').addEventListener('click',function(e){\n"
+    " e.preventDefault();\n"
+    " var lines=[];\n"
+    " document.querySelectorAll('#diag h3, #diag .drow').forEach(function(n){\n"
+    "  if(n.tagName==='H3'){lines.push('');lines.push(n.textContent);return;}\n"
+    "  lines.push(n.querySelector('.dk').textContent+': '+\n"
+    "             n.querySelector('.dv').textContent);});\n"
+    " var b=e.currentTarget;\n"
+    " navigator.clipboard.writeText(lines.join('\\n').trim()).then(function(){\n"
+    "  b.textContent='\\u2713';});});\n"
+    "</script></body></html>";
 
 static const char k_about_settings_html[] =
 "<!doctype html><html lang=\"{{@lang}}\" dir=\"{{@dir}}\"><head><meta charset=\"utf-8\">\n"

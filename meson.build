@@ -296,16 +296,16 @@ if libopusfile.found()
   add_project_arguments('-DNS_HAVE_OPUSFILE=1', language: 'c')
 endif
 # src/media_types.c may advertise an audio type only where the decoder that
-# plays it is built: the SDL2 in-process mixer.
+# plays it is built: the SDL3 in-process mixer.
 if get_option('audio').allowed()
-  sdl2_probe = dependency('sdl2', required: false)
-  if sdl2_probe.found()
+  sdl3_probe = dependency('sdl3', version: '>=3.2.0', required: false)
+  if sdl3_probe.found()
     add_project_arguments('-DNS_AUDIO_PLAYBACK=1', language: 'c')
   endif
-  if sdl2_probe.found() and libvorbisfile.found()
+  if sdl3_probe.found() and libvorbisfile.found()
     add_project_arguments('-DNS_AUDIO_NATIVE_VORBIS=1', language: 'c')
   endif
-  if sdl2_probe.found() and libopusfile.found()
+  if sdl3_probe.found() and libopusfile.found()
     add_project_arguments('-DNS_AUDIO_NATIVE_OPUS=1', language: 'c')
   endif
 endif

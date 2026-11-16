@@ -224,7 +224,7 @@ On Debian or Ubuntu, install the required development packages:
 sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
-    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
+    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl3-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev zlib1g-dev
 meson setup builddir
 meson compile -C builddir
@@ -304,8 +304,8 @@ every floor; Ubuntu 22.04 and older cannot build it. The engine lays
 text out through web-text-lib rather than the system Pango; GTK still
 links the system Pango for its own widgets, and the two coexist because
 every symbol in the fork is renamed. Linux builds also require libseccomp.
-SDL2 provides audio output: it is picked up when present and required
-with `-Daudio=enabled`.
+SDL3 (3.2 or newer) provides audio output: it is picked up when present
+and required with `-Daudio=enabled`.
 
 **Optional** (auto-detected): GStreamer ≥ 1.18 with gst-plugins-base
 (`gstreamer-1.0`, `gstreamer-app-1.0`, `gstreamer-video-1.0`; the

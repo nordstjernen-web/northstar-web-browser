@@ -36,7 +36,7 @@ BuildRequires:  pkgconfig(libavif)
 BuildRequires:  pkgconfig(gstreamer-1.0) >= 1.18
 BuildRequires:  pkgconfig(gstreamer-app-1.0) >= 1.18
 BuildRequires:  pkgconfig(gstreamer-video-1.0) >= 1.18
-BuildRequires:  pkgconfig(sdl2)
+BuildRequires:  pkgconfig(sdl3) >= 3.2.0
 BuildRequires:  pkgconfig(sqlite3)
 Requires:       hicolor-icon-theme
 Requires(post): update-alternatives

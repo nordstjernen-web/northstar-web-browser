@@ -41,7 +41,7 @@ fi
 if [ "$LIBC" = musl ]; then
     LIBC_REQ='- musl libc (Alpine 3.19+ era and later)'
     RUNTIME_INSTALL='    sudo apk add gtk4.0 libcurl libavif dav1d libvpx opus libthai \
-        libseccomp libpsl sqlite-libs ca-certificates font-dejavu sdl2 # Alpine (musl)'
+        libseccomp libpsl sqlite-libs ca-certificates font-dejavu sdl3 # Alpine (musl)'
 else
     # Don't guess the glibc floor — read it from the binary we just built.
     GLIBC_MIN=$(objdump -T "$BUILDDIR/src/gtk/northstar" 2>/dev/null \
@@ -49,11 +49,11 @@ else
         | tail -1 | cut -d_ -f2)
     LIBC_REQ="- glibc ${GLIBC_MIN:-2.38}+ (the build container's generation; check with: ldd --version)"
     RUNTIME_INSTALL='    sudo apt   install libgtk-4-1 libcurl4 \
-        libavif16 libpsl5 libseccomp2 libsqlite3-0 libsdl2-2.0-0   # Debian/Ubuntu
+        libavif16 libpsl5 libseccomp2 libsqlite3-0 libsdl3-0        # Debian/Ubuntu
     sudo dnf   install gtk4 libcurl \
-        libavif libpsl libseccomp sqlite-libs SDL2                 # Fedora/RHEL
+        libavif libpsl libseccomp sqlite-libs SDL3                 # Fedora/RHEL
     sudo zypper install libgtk-4-1 libcurl4 \
-        libavif16 libpsl5 libseccomp2 libsqlite3-0 libSDL2-2_0-0   # openSUSE'
+        libavif16 libpsl5 libseccomp2 libsqlite3-0 libSDL3-0        # openSUSE'
 fi
 
 rm -rf "$STAGE"
@@ -93,7 +93,7 @@ ${LIBC_REQ}
 - libcurl with a TLS backend; OpenSSL 3 (libcrypto)
 - libavif 16 (AVIF images — only in recent distro releases)
 - libpsl, libseccomp, libsqlite3
-- SDL2 (in-process audio playback)
+- SDL3 3.2 or newer (in-process audio playback)
 - fontconfig + a font set; harfbuzz; freetype; libstdc++
 - ca-certificates (TLS trust store)
 - An X11 or Wayland session

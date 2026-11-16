@@ -61,7 +61,7 @@ BuildRequires:  pkgconfig(libpsl)
 BuildRequires:  pkgconfig(libseccomp)
 BuildRequires:  pkgconfig(libavif)
 BuildRequires:  pkgconfig(sqlite3)
-BuildRequires:  pkgconfig(sdl2)
+BuildRequires:  pkgconfig(sdl3) >= 3.2.0
 
 Requires:       gtk4
 Requires:       libcurl

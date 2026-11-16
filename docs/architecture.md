@@ -30,7 +30,7 @@ space.
     │     └─ dav1d / libvpx / OpenH264 worker threads      (av1.c, vp9.c, h264.c)
     ├─ JS worker threads: Web Workers, service workers      (js.c)
     ├─ WebSocket and EventSource threads                    (ws.c, eventsource.c)
-    ├─ audio mixer thread → SDL2                            (src/audio/audio.c)
+    ├─ audio mixer thread → SDL3                            (src/audio/audio.c)
     └─ download threads                                     (procwindow.c)
 
  headless / tooling  (--headless, --dump=, --eval=, --act=, --wpt, …)
@@ -121,7 +121,7 @@ space.
 - **Audio mixer** (`src/audio/audio.c`) — one worker thread per process
   fetches `<audio>` through `net.c` (or takes bytes already in hand: a
   `blob:` URL, a `<video>`'s MP2 track), decodes it into memory and mixes
-  every player into the SDL2 device. Media Source Extensions players are
+  every player into the SDL3 device. Media Source Extensions players are
   streams instead: the media controller decodes AAC or Opus a couple of
   seconds ahead and pushes PCM into a persistent SDL audio stream, whose
   playback cursor sets the stream's clock (a straight line in wall time
@@ -130,7 +130,7 @@ space.
   between seeks); headless runs use a silent
   clock-driven output instead. Each page owns an `NsAudioContext`, and
   `ns_audio_context_status` reports a player's load state, error,
-  duration, position and end synchronously. Without SDL2 the build uses
+  duration, position and end synchronously. Without SDL3 the build uses
   `src/audio/stub.c`, and every player fails as having no device.
 
 ### Headless drivers

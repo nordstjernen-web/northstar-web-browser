@@ -1,4 +1,4 @@
-/* Northstar Web Browser — in-process audio decoding and SDL2 playback on a worker thread.
+/* Northstar Web Browser — in-process audio decoding and SDL3 playback on a worker thread.
  * Decodes MP3, Vorbis, Opus and MPEG-1 audio, mixes up to 16 players; null output when headless.
  * Copyright 2026 Andreas Røsdal
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -11,10 +11,8 @@
 #include "trace.h"
 
 #include <glib.h>
-#include <SDL.h>
-#ifdef main
-#undef main
-#endif
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,11 +105,11 @@ typedef struct {
     double          value;
 } ns_audio_command;
 
-static SDL_AudioDeviceID g_dev;
+static SDL_AudioStream  *g_dev;
 static int               g_dev_ok;
-static SDL_mutex        *g_null_lock;
+static SDL_Mutex        *g_null_lock;
 static SDL_Thread       *g_null_thread;
-static SDL_atomic_t      g_null_quit;
+static SDL_AtomicInt     g_null_quit;
 static ns_audio_player   g_players[NS_AUDIO_MAX_PLAYERS];
 static GAsyncQueue      *g_commands;
 static GThread          *g_worker;
@@ -140,18 +138,18 @@ emit(const char *fmt, ...)
     g_free(line);
 }
 
-/* Locks the SDL audio device, or the null-output mutex when no device opened. */
+/* Locks the SDL device stream, or the null-output mutex when no device opened. */
 static void
 audio_lock(void)
 {
-    if (g_dev_ok) SDL_LockAudioDevice(g_dev);
+    if (g_dev_ok) SDL_LockAudioStream(g_dev);
     else if (g_null_lock) SDL_LockMutex(g_null_lock);
 }
 
 static void
 audio_unlock(void)
 {
-    if (g_dev_ok) SDL_UnlockAudioDevice(g_dev);
+    if (g_dev_ok) SDL_UnlockAudioStream(g_dev);
     else if (g_null_lock) SDL_UnlockMutex(g_null_lock);
 }
 
@@ -191,7 +189,7 @@ player_release(ns_audio_player *p)
 {
     if (!p || !p->used) return;
     free(p->pcm);
-    if (p->converter) SDL_FreeAudioStream(p->converter);
+    if (p->converter) SDL_DestroyAudioStream(p->converter);
     memset(p, 0, sizeof *p);
 }
 
@@ -213,15 +211,11 @@ player_clock_sample(ns_audio_player *p, gint64 now_us, int nframes)
     p->clock_offset_valid = 1;
 }
 
-/* SDL device callback: mixes all playing players into stereo float output with clipping. */
+/* Mixes all playing players into nframes of stereo float output with clipping. */
 static void
-audio_cb(void *userdata, Uint8 *stream, int len)
+audio_mix(float *out, int nframes)
 {
-    (void)userdata;
-    float *out = (float *)(void *)stream;
-    int frame_bytes = (int)(2 * sizeof(float));
-    int nframes = len / frame_bytes;
-    SDL_memset(stream, 0, (size_t)len);
+    memset(out, 0, (size_t)nframes * 2 * sizeof(float));
     gint64 now = g_get_monotonic_time();
     gint64 trace_start = ns_trace_now();
     int playing = 0, starved = 0;
@@ -270,23 +264,43 @@ audio_cb(void *userdata, Uint8 *stream, int len)
     }
 }
 
+#define NS_AUDIO_CHUNK_FRAMES 1024
+
+/* SDL device-stream callback: mixes the frames the device asks for, a chunk at a time. */
+static void SDLCALL
+audio_stream_cb(void *userdata, SDL_AudioStream *stream, int additional_amount,
+                int total_amount)
+{
+    (void)userdata;
+    (void)total_amount;
+    static float chunk[NS_AUDIO_CHUNK_FRAMES * 2];
+    int frame_bytes = (int)(2 * sizeof(float));
+    int frames = (additional_amount + frame_bytes - 1) / frame_bytes;
+    while (frames > 0) {
+        int n = frames < NS_AUDIO_CHUNK_FRAMES ? frames : NS_AUDIO_CHUNK_FRAMES;
+        audio_mix(chunk, n);
+        SDL_PutAudioStreamData(stream, chunk, n * frame_bytes);
+        frames -= n;
+    }
+}
+
 #define NS_AUDIO_NULL_FRAMES 1024
 
-/* Fallback thread that drives audio_cb in real time when no SDL device exists. */
-static int
+/* Fallback thread that drives audio_mix in real time when no SDL device exists. */
+static int SDLCALL
 null_audio_thread(void *arg)
 {
     (void)arg;
-    Uint8 buf[NS_AUDIO_NULL_FRAMES * 2 * sizeof(float)];
-    Uint64 start = SDL_GetTicks64();
+    float buf[NS_AUDIO_NULL_FRAMES * 2];
+    Uint64 start = SDL_GetTicks();
     Uint64 total_frames = 0;
-    while (!SDL_AtomicGet(&g_null_quit)) {
+    while (!SDL_GetAtomicInt(&g_null_quit)) {
         SDL_LockMutex(g_null_lock);
-        audio_cb(NULL, buf, (int)sizeof buf);
+        audio_mix(buf, NS_AUDIO_NULL_FRAMES);
         SDL_UnlockMutex(g_null_lock);
         total_frames += NS_AUDIO_NULL_FRAMES;
         Uint64 target = start + total_frames * 1000u / NS_AUDIO_DEVICE_RATE;
-        Uint64 now = SDL_GetTicks64();
+        Uint64 now = SDL_GetTicks();
         if (target > now) {
             SDL_Delay((Uint32)(target - now));
         } else if (now - target > 1000) {
@@ -303,7 +317,7 @@ null_audio_start(void)
 {
     g_null_lock = SDL_CreateMutex();
     if (!g_null_lock) return;
-    SDL_AtomicSet(&g_null_quit, 0);
+    SDL_SetAtomicInt(&g_null_quit, 0);
     g_null_thread = SDL_CreateThread(null_audio_thread, "ns-null-audio", NULL);
     if (!g_null_thread) {
         SDL_DestroyMutex(g_null_lock);
@@ -316,7 +330,7 @@ static void
 null_audio_stop(void)
 {
     if (!g_null_thread) return;
-    SDL_AtomicSet(&g_null_quit, 1);
+    SDL_SetAtomicInt(&g_null_quit, 1);
     SDL_WaitThread(g_null_thread, NULL);
     g_null_thread = NULL;
     if (g_null_lock) {
@@ -645,6 +659,15 @@ decode_opus(const unsigned char *bytes, size_t n,
 }
 #endif
 
+/* Creates a stream converting float PCM of src_ch channels at src_rate to the device format. */
+static SDL_AudioStream *
+audio_converter_new(int src_ch, int src_rate)
+{
+    SDL_AudioSpec src = { SDL_AUDIO_F32, src_ch, src_rate };
+    SDL_AudioSpec dst = { SDL_AUDIO_F32, 2, NS_AUDIO_DEVICE_RATE };
+    return SDL_CreateAudioStream(&src, &dst);
+}
+
 /* Converts PCM to stereo float at the device rate via SDL_AudioStream; caller frees. */
 static int
 resample_to_device(const float *src, size_t src_frames, int src_rate, int src_ch,
@@ -654,20 +677,18 @@ resample_to_device(const float *src, size_t src_frames, int src_rate, int src_ch
     size_t src_bytes = src_frames * (size_t)src_ch * sizeof(float);
     if (src_bytes > (size_t)INT_MAX) return 0;
 
-    SDL_AudioStream *st = SDL_NewAudioStream(
-        AUDIO_F32SYS, (Uint8)src_ch, src_rate,
-        AUDIO_F32SYS, 2, NS_AUDIO_DEVICE_RATE);
+    SDL_AudioStream *st = audio_converter_new(src_ch, src_rate);
     if (!st) return 0;
-    if (SDL_AudioStreamPut(st, src, (int)src_bytes) < 0) {
-        SDL_FreeAudioStream(st); return 0;
+    if (!SDL_PutAudioStreamData(st, src, (int)src_bytes)) {
+        SDL_DestroyAudioStream(st); return 0;
     }
-    SDL_AudioStreamFlush(st);
-    int avail = SDL_AudioStreamAvailable(st);
-    if (avail <= 0) { SDL_FreeAudioStream(st); return 0; }
+    SDL_FlushAudioStream(st);
+    int avail = SDL_GetAudioStreamAvailable(st);
+    if (avail <= 0) { SDL_DestroyAudioStream(st); return 0; }
     float *buf = malloc((size_t)avail);
-    if (!buf) { SDL_FreeAudioStream(st); return 0; }
-    int got = SDL_AudioStreamGet(st, buf, avail);
-    SDL_FreeAudioStream(st);
+    if (!buf) { SDL_DestroyAudioStream(st); return 0; }
+    int got = SDL_GetAudioStreamData(st, buf, avail);
+    SDL_DestroyAudioStream(st);
     if (got <= 0) { free(buf); return 0; }
 
     *out_pcm = buf;
@@ -1178,18 +1199,15 @@ audio_worker(gpointer data)
 static void
 audio_open_device(void)
 {
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
-        SDL_AudioSpec want, have;
-        SDL_memset(&want, 0, sizeof want);
-        want.freq = NS_AUDIO_DEVICE_RATE;
-        want.format = AUDIO_F32SYS;
-        want.channels = 2;
-        want.samples = 1024;
-        want.callback = audio_cb;
-        g_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+    SDL_SetAppMetadata("Northstar Web Browser", NS_VERSION, "org.northstar.WebBrowser");
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024");
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+        SDL_AudioSpec spec = { SDL_AUDIO_F32, 2, NS_AUDIO_DEVICE_RATE };
+        g_dev = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec,
+                                          audio_stream_cb, NULL);
         if (g_dev) {
             g_dev_ok = 1;
-            SDL_PauseAudioDevice(g_dev, 0);
+            SDL_ResumeAudioStreamDevice(g_dev);
         }
     }
 }
@@ -1441,20 +1459,18 @@ ns_audio_context_open_stream(NsAudioContext *context, const char *token,
         g_atomic_int_get(&context->destroyed))
         return FALSE;
     if (!audio_start()) return FALSE;
-    SDL_AudioStream *converter = SDL_NewAudioStream(
-        AUDIO_F32SYS, (Uint8)channels, rate,
-        AUDIO_F32SYS, 2, NS_AUDIO_DEVICE_RATE);
+    SDL_AudioStream *converter = audio_converter_new(channels, rate);
     if (!converter) return FALSE;
     audio_lock();
     ns_audio_player *p = player_alloc(context, token);
     if (!p) {
         audio_unlock();
-        SDL_FreeAudioStream(converter);
+        SDL_DestroyAudioStream(converter);
         return FALSE;
     }
     p->open_seq = (guint)g_atomic_int_add((gint *)&g_command_seq, 1) + 1;
     free(p->pcm);
-    if (p->converter) SDL_FreeAudioStream(p->converter);
+    if (p->converter) SDL_DestroyAudioStream(p->converter);
     p->pcm = NULL;
     p->frames = 0;
     p->capacity = 0;
@@ -1500,8 +1516,8 @@ ns_audio_context_stream_push(NsAudioContext *context, const char *token,
         return FALSE;
     }
     int bytes = (int)((size_t)frames * (size_t)channels * sizeof(float));
-    gboolean ok = SDL_AudioStreamPut(p->converter, samples, bytes) == 0;
-    int avail = ok ? SDL_AudioStreamAvailable(p->converter) : 0;
+    gboolean ok = SDL_PutAudioStreamData(p->converter, samples, bytes);
+    int avail = ok ? SDL_GetAudioStreamAvailable(p->converter) : 0;
     size_t new_frames = avail > 0 ? (size_t)avail / (2 * sizeof(float)) : 0;
     if (new_frames > 0) {
         stream_drop_played(p);
@@ -1519,8 +1535,8 @@ ns_audio_context_stream_push(NsAudioContext *context, const char *token,
             p->pcm = grown;
             p->capacity = capacity;
         }
-        int got = SDL_AudioStreamGet(p->converter, p->pcm + p->frames * 2,
-                                     (int)(new_frames * 2 * sizeof(float)));
+        int got = SDL_GetAudioStreamData(p->converter, p->pcm + p->frames * 2,
+                                         (int)(new_frames * 2 * sizeof(float)));
         if (got > 0) p->frames += (size_t)got / (2 * sizeof(float));
     }
     audio_unlock();
@@ -1536,7 +1552,7 @@ ns_audio_context_stream_restart(NsAudioContext *context, const char *token,
     audio_lock();
     ns_audio_player *p = player_find(context, token);
     if (p && p->streaming) {
-        if (p->converter) SDL_AudioStreamClear(p->converter);
+        if (p->converter) SDL_ClearAudioStream(p->converter);
         p->frames = 0;
         p->cursor = 0;
         p->clock_floor_valid = 0;
@@ -1586,8 +1602,8 @@ ns_audio_shutdown(void)
     g_worker = NULL;
     null_audio_stop();
     if (g_dev_ok) {
-        SDL_CloseAudioDevice(g_dev);
-        g_dev = 0;
+        SDL_DestroyAudioStream(g_dev);
+        g_dev = NULL;
         g_dev_ok = 0;
     }
     for (int i = 0; i < NS_AUDIO_MAX_PLAYERS; i++)

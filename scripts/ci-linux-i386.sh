@@ -23,7 +23,7 @@ apt-get install -y -qq --no-install-recommends \
     libharfbuzz-dev libfribidi-dev libcairo2-dev \
     libfontconfig-dev libfreetype-dev \
     libpsl-dev libsqlite3-dev \
-    libavif-dev libsdl2-dev libseccomp-dev libenchant-2-dev \
+    libavif-dev libsdl3-dev libseccomp-dev libenchant-2-dev \
     libopusfile-dev libvorbis-dev zlib1g-dev \
     fonts-dejavu-core ca-certificates >/dev/null
 

@@ -56,6 +56,7 @@ jobs:
           cache: true
           install: >-
             git
+            mingw-w64-ucrt-x86_64-binutils
             mingw-w64-ucrt-x86_64-clang
             mingw-w64-ucrt-x86_64-lld
             mingw-w64-ucrt-x86_64-llvm-tools
@@ -74,7 +75,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libpsl
             mingw-w64-ucrt-x86_64-sqlite3
             mingw-w64-ucrt-x86_64-libavif
-            mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-sdl3
             mingw-w64-ucrt-x86_64-opusfile
             mingw-w64-ucrt-x86_64-libvorbis
             mingw-w64-ucrt-x86_64-enchant
@@ -131,6 +132,16 @@ jobs:
         run: |
           test -f builddir/src/gtk/northstar.exe
           ls -l builddir/src/gtk/northstar.exe
+
+      # The release packages (zip, installer, MSIX) are this bundle. Running
+      # it with only the Windows system folders on PATH, as an installed or
+      # Store copy runs, catches a DLL the bundle left out.
+      - name: Bundle the build (pack-windows.sh)
+        run: BUILDDIR=builddir NS_SKIP_ZIP=1 ./scripts/pack-windows.sh
+
+      - name: Bundle starts without MSYS2 on PATH
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-windows-bundle.ps1
 
       - name: Upload northstar binary
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

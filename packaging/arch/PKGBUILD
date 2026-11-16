@@ -33,7 +33,7 @@ depends=(
   openssl
   opus
   opusfile
-  sdl2
+  sdl3
   sqlite
   zlib
 )

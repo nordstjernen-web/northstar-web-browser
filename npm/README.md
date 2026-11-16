@@ -47,7 +47,7 @@ Debian/Ubuntu:
 sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
-    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
+    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl3-dev \
     zlib1g-dev
 ```
 
@@ -55,7 +55,7 @@ macOS ([Homebrew](https://brew.sh), plus `xcode-select --install`):
 
 ```sh
 brew install meson ninja pkg-config gtk4 curl openssl@3 libpsl \
-    sqlite sdl2 zlib
+    sqlite sdl3 zlib
 ```
 
 Windows: install [MSYS2](https://www.msys2.org) in `C:\msys64` (or set

@@ -268,19 +268,18 @@ against the modified copies. On the Windows bundle the libraries are
 shipped alongside the executable as ordinary DLLs that you can replace;
 on Linux distributions they are loaded from the system package manager.
 
-### SDL2 / SDL3 — zlib License
+### SDL3 — zlib License
 
-> Cross-platform audio output (WASAPI / CoreAudio / ALSA) for in-process
-> audio playback.
+> Cross-platform audio output (WASAPI / CoreAudio / PipeWire / PulseAudio /
+> ALSA) for in-process audio playback.
 > <https://www.libsdl.org>
 >
 > Copyright (c) 1997-2026 Sam Lantinga and the SDL contributors.
 
 Licensed under the zlib License. See the zlib section above for the
-full text (same license). Linked into the browser when SDL2 is present
-at build time (meson `audio` feature). Where SDL2 is sdl2-compat, as on
-MSYS2, it forwards to SDL3, and the Windows bundle ships both
-`SDL2.dll` and `SDL3.dll`.
+full text (same license). Linked into the browser when SDL3 is present
+at build time (meson `audio` feature); the Windows bundle ships
+`SDL3.dll`.
 
 ### Cairo — LGPL-2.1 or MPL-1.1
 

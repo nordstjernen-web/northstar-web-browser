@@ -53,7 +53,7 @@ module.exports = {
   ],
 
   optional: [
-    { module: 'sdl2', feature: 'audio playback', apt: 'libsdl2-dev', pacman: 'sdl2', brew: 'sdl2', msys: 'SDL2' },
+    { module: 'sdl3', minimum: '3.2.0', feature: 'audio playback', apt: 'libsdl3-dev', pacman: 'sdl3', brew: 'sdl3', msys: 'sdl3' },
     { module: 'dav1d', minimum: '1.0.0', feature: 'AV1 video', apt: 'libdav1d-dev', pacman: 'dav1d', brew: 'dav1d', msys: 'dav1d' },
     { module: 'vpx', minimum: '1.8.0', feature: 'VP9 video', apt: 'libvpx-dev', pacman: 'libvpx', brew: 'libvpx', msys: 'libvpx' },
     { module: 'openh264', minimum: '2.0.0', feature: 'H.264 video', apt: 'libopenh264-dev', pacman: 'openh264', brew: 'openh264', msys: 'openh264' },

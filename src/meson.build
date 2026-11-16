@@ -292,8 +292,8 @@ endif
 northstar_audio_sources = files('audio/stub.c')
 northstar_audio_deps = []
 northstar_audio_libs = []
-sdl2_dep = dependency('sdl2', required: get_option('audio'))
-if sdl2_dep.found()
+sdl3_dep = dependency('sdl3', version: '>=3.2.0', required: get_option('audio'))
+if sdl3_dep.found()
   libminimp3 = static_library(
     'minimp3',
     files('audio/minimp3_impl.c'),
@@ -303,7 +303,7 @@ if sdl2_dep.found()
   )
 
   northstar_audio_sources = files('audio/audio.c')
-  northstar_audio_deps = [sdl2_dep, libplmpeg]
+  northstar_audio_deps = [sdl3_dep, libplmpeg]
   northstar_audio_libs = [libminimp3]
   if libvorbisfile.found()
     northstar_audio_deps += [libvorbisfile]
@@ -315,7 +315,7 @@ if sdl2_dep.found()
   # the C runtime on Windows, where find_library('m') is a harmless no-op.
   northstar_audio_deps += [cc.find_library('m', required: false)]
 else
-  message('SDL2 not found — in-process audio playback disabled')
+  message('SDL3 not found — in-process audio playback disabled')
 endif
 
 subdir('gtk')

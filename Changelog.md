@@ -5,14 +5,21 @@ Significant changes in each release:
 1.0.25:
 =======
 * Windows: the Microsoft Store (MSIX) package starts again instead of
-  stopping with "Failed loading SDL3 library." MSYS2's SDL2.dll is now
-  sdl2-compat, which loads SDL3.dll at run time rather than linking it,
+  stopping with "Failed loading SDL3 library." MSYS2's SDL2.dll became
+  sdl2-compat, which loads SDL3.dll at start-up rather than linking it,
   so the packaging scripts never saw it and left it out of the bundle.
   A packaged app does not search PATH, so the MSIX could not find it
-  anywhere. The zip and installer could miss it the same way on a
-  machine without MSYS2. The Windows bundle now ships SDL3.dll and its
-  dependencies next to SDL2.dll, and packaging fails if sdl2-compat is
-  present but SDL3.dll is not.
+  anywhere; the zip and installer missed it the same way on a machine
+  without MSYS2. Audio now uses SDL3 directly (below), so SDL3.dll is an
+  ordinary dependency of the browser, and the Windows CI builds the
+  bundle and starts it with only the system folders on PATH.
+* Audio: playback uses SDL3 instead of SDL2. Most current systems already
+  ran SDL2 as sdl2-compat over SDL3, which loaded both libraries in every
+  browser process; now only SDL3 is loaded. Building with audio needs
+  SDL3 3.2 or newer (`libsdl3-dev`, `SDL3-devel`, `sdl3`), which Debian 13,
+  Ubuntu 25.04, Fedora 43, Alpine 3.22, Arch, openSUSE Tumbleweed, Homebrew
+  and MSYS2 provide; older systems build without audio. The volume mixer
+  lists the browser as "Northstar Web Browser".
 
 1.0.24:
 =======

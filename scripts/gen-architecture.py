@@ -152,7 +152,7 @@ threads = [
     ("image.c · video.c", "image decode tasks, MPEG-1 opened"),
     ("js.c", "Web Workers · service workers, own runtimes"),
     ("ws.c · eventsource.c", "WebSocket · EventSource"),
-    ("audio/audio.c", "mixer: minimp3 · pl_mpeg · Ogg → SDL2"),
+    ("audio/audio.c", "mixer: minimp3 · pl_mpeg · Ogg → SDL3"),
     ("procwindow.c", "downloads"),
     ("camera.c", "V4L2 webcam capture (Linux)"),
 ]
@@ -199,7 +199,7 @@ text(36, 1218, "lexbor, quickjs-ng: subprojects/*.wrap · Wuffs, pl_mpeg: subpro
 
 group(20, 1238, 1160, 76, "System libraries", "g-ext")
 libs = ["GTK 4", "GLib", "Cairo", "HarfBuzz", "FriBidi", "fontconfig", "FreeType", "libcurl", "OpenSSL",
-        "SQLite", "libpsl", "zlib", "SDL2", "libseccomp", "libavif*", "Enchant*"]
+        "SQLite", "libpsl", "zlib", "SDL3", "libseccomp", "libavif*", "Enchant*"]
 ws = [14 + len(n) * 7 for n in libs]
 gap = (1128 - sum(ws)) / (len(libs) - 1)
 cx = 36

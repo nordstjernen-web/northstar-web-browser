@@ -20,7 +20,7 @@ Build-Depends:
  libsqlite3-dev,
  libseccomp-dev [linux-any],
  libavif-dev,
- libsdl2-dev,
+ libsdl3-dev (>= 3.2.0),
  libenchant-2-dev,
  libdav1d-dev (>= 1.0.0),
  libvpx-dev (>= 1.8.0),

@@ -13,7 +13,7 @@ Debian / Ubuntu:
 sudo apt install build-essential git pkg-config meson ninja-build \
     libgtk-4-dev libcurl4-openssl-dev libssl-dev \
     libharfbuzz-dev libfribidi-dev libcairo2-dev libfontconfig-dev \
-    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl2-dev \
+    libfreetype-dev libpsl-dev libsqlite3-dev libseccomp-dev libsdl3-dev \
     zlib1g-dev
 ```
 
@@ -23,7 +23,7 @@ Fedora / RHEL:
 sudo dnf install gcc git pkgconf meson ninja-build gtk4-devel \
     libcurl-devel openssl-devel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype-devel \
-    libpsl-devel sqlite-devel libseccomp-devel SDL2-devel zlib-devel
+    libpsl-devel sqlite-devel libseccomp-devel SDL3-devel zlib-devel
 ```
 
 openSUSE:
@@ -32,7 +32,7 @@ openSUSE:
 sudo zypper install gcc git pkgconf meson ninja gtk4-devel \
     libcurl-devel libopenssl-develel harfbuzz-devel \
     fribidi-devel cairo-devel fontconfig-devel freetype2-devel \
-    libpsl-devel sqlite3-devel libseccomp-devel libSDL2-devel zlib-devel
+    libpsl-devel sqlite3-devel libseccomp-devel SDL3-devel zlib-devel
 ```
 
 `libseccomp` is required on Linux — `meson setup` fails without it. On
@@ -73,7 +73,7 @@ With Homebrew:
 
 ```sh
 brew install meson ninja pkg-config gtk4 curl openssl@3 libpsl \
-    sqlite sdl2 zlib
+    sqlite sdl3 zlib
 ```
 
 Export `PKG_CONFIG_PATH="$(brew --prefix curl)/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig"`
@@ -86,7 +86,7 @@ Apple clang 21):
 
 ```sh
 sudo port install meson ninja pkgconfig gtk4 +quartz curl openssl3 \
-    libpsl sqlite3 libsdl2 zlib
+    libpsl sqlite3 sdl3 zlib
 ```
 
 `+quartz` builds GTK with the native macOS backend; the default `+x11`
@@ -267,7 +267,7 @@ once (`apt install ccache` / `dnf install ccache`). Optionally use the
 | Option | Default | Effect |
 |--------|---------|--------|
 | `wasm` | `auto` | Build the WebAssembly JS API over vendored WAMR. `auto` turns it off on 32-bit x86, which WAMR does not support; disable it on other platforms WAMR does not support. |
-| `audio` | `auto` | Enable in-process audio playback (needs SDL2). |
+| `audio` | `auto` | Enable in-process audio playback (needs SDL3 3.2 or newer). |
 | `gstreamer` | `auto` | Decode `<video>` through GStreamer decoder plugins. `auto` enables it on Linux when GStreamer (≥ 1.18, with gstreamer-app and gstreamer-video) is present, where it becomes the default video decoder; other platforms need `-Dgstreamer=enabled`. Not a required dependency: without it the native libdav1d/libvpx/OpenH264 backends decode video. |
 | `avif` | `auto` | Decode AVIF through libavif. Disabling drops a full AV1 decoder; AVIF images then fail to decode. |
 | `pdfjs` | `auto` | The PDF viewer, built on PDF.js and embedded at build time. `auto` builds it when PDF.js is available; `enabled` makes PDF.js a required dependency, so the build fails without it; `disabled` leaves the viewer out, and a PDF shows a link to the file. |
@@ -439,7 +439,7 @@ verified by running the browser.
 | Script | Purpose |
 |--------|---------|
 | `wpt-run.sh`, `wpt-local.sh`, `wpt-fast.sh` | Web-platform-tests runners; see [compliance.md](compliance.md). |
-| `_msys_build.sh`, `_msys_env.sh`, `_msys_eval.sh`, `_msys_act.sh`, `_msys_wpt.sh`, `run-windows.ps1`, `smoke-windows.ps1` | Build, drive and smoke-test the Windows binary. |
+| `_msys_build.sh`, `_msys_env.sh`, `_msys_eval.sh`, `_msys_act.sh`, `_msys_wpt.sh`, `run-windows.ps1`, `smoke-windows.ps1`, `check-windows-bundle.ps1` | Build, drive and smoke-test the Windows binary; `check-windows-bundle.ps1` starts the packaged bundle with only the Windows system folders on PATH. |
 | `pack-linux.sh`, `pack-deb.sh`, `pack-rpm.sh`, `pack-srpm.sh`, `pack-appimage.sh`, `pack-bsd.sh`, `pack-windows.sh`, `pack-windows-installer.sh`, `pack-msix.sh` | Release packaging. |
 | `nightly.sh`, `nightly-distro-build.sh` | Nightly build orchestration. |
 | `check-subprojects.sh` | Fail when a `subprojects/` checkout is not at the revision its `.wrap` pins; the packaging scripts run it first. |

@@ -10,7 +10,7 @@ plain build-from-source instructions see [building.md](building.md).
 
 ```sh
 sudo pacman -S --needed base-devel git meson python gtk4 curl \
-    libpsl sqlite libseccomp libavif dav1d libvpx sdl2 enchant opusfile libvorbis
+    libpsl sqlite libseccomp libavif dav1d libvpx sdl3 enchant opusfile libvorbis
 git clone https://github.com/nordstjernen-web/northstar-web-browser.git
 cd northstar-web-browser
 meson setup builddir && meson compile -C builddir

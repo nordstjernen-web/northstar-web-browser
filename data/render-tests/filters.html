@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS image filters</title>
+<title>CSS image and element filters</title>
 <style>
 body {
   margin: 26px;
@@ -26,8 +26,40 @@ body {
   filter: grayscale(45%) saturate(140%) drop-shadow(currentColor -8px 8px 4px);
   color: #0f766e;
 }
+.boxes {
+  margin-top: 60px;
+  gap: 70px;
+}
+.box {
+  width: 116px;
+  height: 86px;
+  background: linear-gradient(135deg, #4051b5, #7c3aed);
+  color: white;
+}
+.blur {
+  filter: blur(12px);
+}
+.aura {
+  filter: blur(16px);
+  opacity: 0.5;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  transform: rotate(120deg) scale(1.1);
+}
+.gray {
+  filter: grayscale(100%) brightness(120%);
+}
+.clipped {
+  filter: blur(6px);
+  clip-path: circle(40%);
+}
 </style>
 <div class="row">
   <img class="sample shadow" src="img.png" alt="">
   <img class="sample combo" src="wide.png" alt="">
+</div>
+<div class="row boxes">
+  <div class="box blur">blur</div>
+  <div class="box aura"></div>
+  <div class="box gray">grayscale</div>
+  <div class="box clipped"></div>
 </div>

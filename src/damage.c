@@ -13,6 +13,7 @@
 #include "mat4.h"
 #include "dom.h"
 #include "image.h"
+#include "paint.h"
 
 #define NS_DAMAGE_INFLATE 2.0
 #define NS_DAMAGE_FIXED_INFLATE 16.0
@@ -246,6 +247,13 @@ style_shadow_overflow(const ns_style *s)
     return out;
 }
 
+/* Returns how far box-shadows and a filter blur can paint beyond the border box. */
+static double
+style_paint_overflow(const ns_style *s)
+{
+    return MAX(style_shadow_overflow(s), 3.0 * ns_paint_filter_blur_px(s));
+}
+
 /* Accumulates the border-box and paint extent of a subtree, stopping at scrollers. */
 static void
 subtree_extent(const ns_box *b, double dx, double dy, paint_extent *e)
@@ -264,7 +272,7 @@ subtree_extent(const ns_box *b, double dx, double dy, paint_extent *e)
         e->y0 = MIN(e->y0, b->paint_top + dy);
         e->y1 = MAX(e->y1, b->paint_bottom + dy);
     }
-    e->overflow = MAX(e->overflow, style_shadow_overflow(b->style));
+    e->overflow = MAX(e->overflow, style_paint_overflow(b->style));
     if (b->scrolls) return;
     for (const ns_box *c = b->first_child; c; c = c->next_sibling)
         subtree_extent(c, dx, dy, e);
@@ -411,7 +419,7 @@ subtree_visual_extent(const ns_box *b, ns_anim *anim, const ns_mat4 *m,
     }
     double x, y, w, h;
     ns_box_border_rect(b, &x, &y, &w, &h);
-    double pad = style_shadow_overflow(b->style);
+    double pad = style_paint_overflow(b->style);
     if (isfinite(x) && isfinite(y) && isfinite(w) && isfinite(h))
         extent_add_corners(e, &local, x - pad, y - pad, x + w + pad,
                            y + h + pad);

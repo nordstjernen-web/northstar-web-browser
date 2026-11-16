@@ -30,6 +30,7 @@ typedef struct rgba {
 
 static gboolean       g_caret_visible = TRUE;
 static int            g_paint_no_cull;
+static int            g_paint_filter_depth;
 static GPtrArray     *g_paint_deferred_list;
 
 static int            g_paint_defer_depth;
@@ -4436,11 +4437,12 @@ paint_texture_drop_shadows(cairo_t *cr, cairo_surface_t *surf, const ns_box *b,
     }
 }
 
-/* Applies CSS filter color functions in order and a max blur to premultiplied ARGB data. */
-static void
-apply_image_filter(guchar *data, int stride, int w, int h, const char *filter)
+/* Applies CSS filter color functions in order to premultiplied ARGB data; returns the max blur(). */
+static double
+apply_filter_color_ops(guchar *data, int stride, int w, int h,
+                       const char *filter)
 {
-    if (!filter || !*filter) return;
+    if (!filter || !*filter) return 0;
     typedef struct { int op; double amount; } fop;
     fop ops[16];
     int n_ops = 0;
@@ -4470,7 +4472,7 @@ apply_image_filter(guchar *data, int stride, int w, int h, const char *filter)
             n_ops++;
         }
     }
-    if (n_ops == 0 && blur_radius <= 0) return;
+    if (n_ops == 0) return blur_radius;
     for (int y = 0; y < h; y++) {
         guchar *row = data + y * stride;
         for (int x = 0; x < w; x++) {
@@ -4531,11 +4533,69 @@ apply_image_filter(guchar *data, int stride, int w, int h, const char *filter)
             px[2] = (guchar)(r * a * 255.0 + 0.5);
         }
     }
+    return blur_radius;
+}
+
+/* Applies CSS filter color functions in order and a max blur to premultiplied ARGB data. */
+static void
+apply_image_filter(guchar *data, int stride, int w, int h, const char *filter)
+{
+    double blur_radius = apply_filter_color_ops(data, stride, w, h, filter);
     if (blur_radius > 0) {
         int r = (int)(blur_radius + 0.5);
         if (r > 512) r = 512;
         box_blur_argb(data, stride, w, h, r);
     }
+}
+
+/* Approximates a Gaussian blur of standard deviation sigma pixels with three box blurs. */
+static void
+gaussian_blur_argb(guchar *data, int stride, int w, int h, double sigma)
+{
+    if (!(sigma >= 0.5)) return;
+    if (sigma > 512.0) sigma = 512.0;
+    int wl = (int)floor(sqrt(4.0 * sigma * sigma + 1.0));
+    if (wl % 2 == 0) wl--;
+    int wu = wl + 2;
+    int m = (int)lround((12.0 * sigma * sigma - 3.0 * wl * wl - 12.0 * wl - 9.0) /
+                        (-4.0 * wl - 4.0));
+    for (int i = 0; i < 3; i++)
+        box_blur_argb(data, stride, w, h, ((i < m ? wl : wu) - 1) / 2);
+}
+
+/* Returns the largest blur() standard deviation in a filter list, in CSS px. */
+static double
+filter_blur_sigma_px(const char *filter)
+{
+    double sigma = 0;
+    const char *p = filter;
+    while (p && *p) {
+        const char *name = NULL;
+        const char *body = NULL;
+        const char *body_end = NULL;
+        gsize nlen = 0;
+        const char *next =
+            filter_function_next(p, &name, &nlen, &body, &body_end);
+        if (!next) break;
+        if (filter_name_is(name, nlen, "blur")) {
+            char *arg = g_strndup(body, (gsize)(body_end - body));
+            double px = 0;
+            if (parse_filter_length_px(g_strstrip(arg), &px) && px > sigma)
+                sigma = px;
+            g_free(arg);
+        }
+        p = next;
+    }
+    return MIN(sigma, 512.0);
+}
+
+/* Returns the largest blur() standard deviation of a style's filter, in CSS px. */
+double
+ns_paint_filter_blur_px(const ns_style *style)
+{
+    const ns_css_value *v = style ? style->values[NS_CSS_FILTER] : NULL;
+    if (!v || v->kind != NS_CSS_V_KEYWORD || !v->u.keyword) return 0;
+    return filter_blur_sigma_px(v->u.keyword);
 }
 
 /* Clips to the content box radii and basic clip-path shapes; TRUE if clipped. */
@@ -4767,6 +4827,7 @@ paint_video_layer(cairo_t *cr, const ns_box *b, const ns_image *img)
     cairo_get_matrix(cr, &m);
     const ns_style *st = b->style;
     gboolean direct = cairo_get_group_target(cr) == cairo_get_target(cr) &&
+                      g_paint_filter_depth == 0 &&
                       m.xy == 0 && m.yx == 0 && m.xx > 0 && m.yy > 0 &&
                       !(st && st->values[NS_CSS_FILTER]);
     if (!direct || iw <= 0 || ih <= 0 ||
@@ -6156,6 +6217,14 @@ quad_tex_entry_free(gpointer p)
     g_free(e);
 }
 
+/* TRUE if the box has a filter other than none. */
+static gboolean
+box_has_filter(const ns_box *b)
+{
+    const ns_css_value *filter = b->style ? b->style->values[NS_CSS_FILTER] : NULL;
+    return filter && !ns_css_keyword_is(filter, "none");
+}
+
 /* TRUE if a childless box draws nothing outside its border box (no shadow/filter/outline). */
 static gboolean
 box_ink_within_border_box(const ns_box *b)
@@ -6166,8 +6235,7 @@ box_ink_within_border_box(const ns_box *b)
     const ns_css_value *shadow = s->values[NS_CSS_BOX_SHADOW];
     if (shadow && shadow->kind == NS_CSS_V_SHADOW && shadow->u.shadow.n > 0)
         return FALSE;
-    const ns_css_value *filter = s->values[NS_CSS_FILTER];
-    if (filter && !ns_css_keyword_is(filter, "none")) return FALSE;
+    if (box_has_filter(b)) return FALSE;
     const ns_css_value *outline = s->values[NS_CSS_OUTLINE_STYLE];
     if (outline && !ns_css_keyword_is(outline, "none")) return FALSE;
     return TRUE;
@@ -6898,7 +6966,8 @@ box_keeps_negative_descendants(const ns_box *b)
 {
     const ns_style *s = b->style;
     if (box_is_z_ordered(b) && box_has_z_index(b)) return TRUE;
-    if (box_opacity(b) < 0.999 || box_establishes_3d(b)) return TRUE;
+    if (box_opacity(b) < 0.999 || box_establishes_3d(b) || box_has_filter(b))
+        return TRUE;
     if (!s) return FALSE;
     if (blend_mode_operator(s) != CAIRO_OPERATOR_OVER) return TRUE;
     if (ns_style_has_transform(s) ||
@@ -6959,6 +7028,155 @@ negative_z_cmp(gconstpointer va, gconstpointer vb)
     int za = box_z_index(a), zb = box_z_index(b);
     if (za != zb) return za < zb ? -1 : 1;
     return dom_tree_order_cmp(a->dom, b->dom);
+}
+
+/* Returns the filter a box paints through an offscreen layer, or NULL. */
+static const char *
+box_filter_layer_keyword(const ns_box *b)
+{
+    if (!b->style || b == g_paint_tex_root) return NULL;
+    if (b->kind != NS_BOX_BLOCK && b->kind != NS_BOX_TABLE &&
+        b->kind != NS_BOX_TABLE_CAPTION && b->kind != NS_BOX_TABLE_CELL &&
+        b->kind != NS_BOX_SVG)
+        return NULL;
+    const ns_css_value *v = b->style->values[NS_CSS_FILTER];
+    if (!v || v->kind != NS_CSS_V_KEYWORD || !v->u.keyword) return NULL;
+    return filter_has_bitmap_effect(v->u.keyword) ? v->u.keyword : NULL;
+}
+
+/* Widens [x0, x1] to the border boxes of a subtree. */
+static void
+box_ink_extents_x(const ns_box *b, double *x0, double *x1, int depth)
+{
+    double bx, by, bw, bh;
+    ns_box_border_rect(b, &bx, &by, &bw, &bh);
+    if (bw > 0 && isfinite(bx) && isfinite(bw)) {
+        *x0 = MIN(*x0, bx);
+        *x1 = MAX(*x1, bx + bw);
+    }
+    if (depth >= 64) return;
+    for (const ns_box *c = b->first_child; c; c = c->next_sibling)
+        box_ink_extents_x(c, x0, x1, depth + 1);
+}
+
+#define NS_FILTER_LAYER_INK_MARGIN 64.0
+
+typedef enum {
+    FILTER_LAYER_NONE,
+    FILTER_LAYER_OPEN,
+    FILTER_LAYER_INVISIBLE,
+} filter_layer_state;
+
+typedef struct filter_layer {
+    cairo_t         *outer;
+    cairo_t         *cr;
+    cairo_surface_t *surf;
+    double           x, y, k, sigma;
+    const char      *filter;
+} filter_layer;
+
+/* Opens an offscreen layer over a filtered box's ink, at a lower scale for wide blurs. */
+static filter_layer_state
+filter_layer_begin(cairo_t *cr, const ns_box *b, const char *filter,
+                   gboolean transformed, filter_layer *fl)
+{
+    double sigma = filter_blur_sigma_px(filter);
+    double spread = ceil(sigma * 3.0);
+    double cx0, cy0, cx1, cy1;
+    cairo_clip_extents(cr, &cx0, &cy0, &cx1, &cy1);
+    double x0 = cx0, y0 = cy0, x1 = cx1, y1 = cy1;
+    if (!transformed) {
+        double bx, by, bw, bh;
+        ns_box_border_rect(b, &bx, &by, &bw, &bh);
+        x0 = bx;
+        x1 = bx + bw;
+        box_ink_extents_x(b, &x0, &x1, 0);
+        y0 = by;
+        y1 = by + bh;
+        if (b->paint_bottom > b->paint_top) {
+            y0 = MIN(y0, b->paint_top);
+            y1 = MAX(y1, b->paint_bottom);
+        }
+        x0 -= NS_FILTER_LAYER_INK_MARGIN;
+        y0 -= NS_FILTER_LAYER_INK_MARGIN;
+        x1 += NS_FILTER_LAYER_INK_MARGIN;
+        y1 += NS_FILTER_LAYER_INK_MARGIN;
+        if (!isfinite(x0) || !isfinite(y0) || !isfinite(x1) || !isfinite(y1)) {
+            x0 = cx0;
+            y0 = cy0;
+            x1 = cx1;
+            y1 = cy1;
+        }
+    }
+    x0 = MAX(x0, cx0 - spread) - spread;
+    y0 = MAX(y0, cy0 - spread) - spread;
+    x1 = MIN(x1, cx1 + spread) + spread;
+    y1 = MIN(y1, cy1 + spread) + spread;
+    if (x1 - x0 < 1 || y1 - y0 < 1 || x1 < cx0 || x0 > cx1 ||
+        y1 < cy0 || y0 > cy1)
+        return FILTER_LAYER_INVISIBLE;
+    double ux = 1, uy = 0;
+    cairo_user_to_device_distance(cr, &ux, &uy);
+    double k = MAX(hypot(ux, uy), 0.05);
+    if (sigma > 0) k = MIN(k, MAX(8.0 / sigma, 0.05));
+    double maxdim = MAX(x1 - x0, y1 - y0);
+    if (maxdim * k > 4096.0) k = 4096.0 / maxdim;
+    int tw = (int)ceil((x1 - x0) * k);
+    int th = (int)ceil((y1 - y0) * k);
+    if (tw < 1 || th < 1) return FILTER_LAYER_INVISIBLE;
+    cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                       tw, th);
+    if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(surf);
+        return FILTER_LAYER_NONE;
+    }
+    cairo_t *tcr = cairo_create(surf);
+    cairo_scale(tcr, k, k);
+    cairo_translate(tcr, -x0, -y0);
+    g_paint_filter_depth++;
+    *fl = (filter_layer){
+        .outer = cr, .cr = tcr, .surf = surf,
+        .x = x0, .y = y0, .k = k, .sigma = sigma, .filter = filter,
+    };
+    return FILTER_LAYER_OPEN;
+}
+
+/* Drops a filter layer without painting it. */
+static void
+filter_layer_discard(filter_layer *fl)
+{
+    g_paint_filter_depth--;
+    cairo_destroy(fl->cr);
+    cairo_surface_destroy(fl->surf);
+    fl->cr = NULL;
+    fl->surf = NULL;
+}
+
+/* Filters a layer's pixels and composites them onto the outer context. */
+static void
+filter_layer_end(filter_layer *fl)
+{
+    g_paint_filter_depth--;
+    cairo_destroy(fl->cr);
+    fl->cr = NULL;
+    cairo_surface_flush(fl->surf);
+    guchar *data = cairo_image_surface_get_data(fl->surf);
+    int stride = cairo_image_surface_get_stride(fl->surf);
+    int w = cairo_image_surface_get_width(fl->surf);
+    int h = cairo_image_surface_get_height(fl->surf);
+    apply_filter_color_ops(data, stride, w, h, fl->filter);
+    gaussian_blur_argb(data, stride, w, h, fl->sigma * fl->k);
+    cairo_surface_mark_dirty(fl->surf);
+    cairo_t *cr = fl->outer;
+    cairo_save(cr);
+    cairo_translate(cr, fl->x, fl->y);
+    cairo_scale(cr, 1.0 / fl->k, 1.0 / fl->k);
+    cairo_set_source_surface(cr, fl->surf, 0, 0);
+    cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_GOOD);
+    cairo_paint(cr);
+    cairo_restore(cr);
+    cairo_surface_destroy(fl->surf);
+    fl->surf = NULL;
 }
 
 /* Recursive painter: culling, stacking, transforms, opacity/blend groups, clips, scrollbars. */
@@ -7056,6 +7274,19 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         return;
     }
 
+    filter_layer fl = { 0 };
+    const char *filter_kw = box_filter_layer_keyword(b);
+    if (filter_kw) {
+        filter_layer_state fs = filter_layer_begin(cr, b, filter_kw,
+                                                   has_transform, &fl);
+        if (fs == FILTER_LAYER_INVISIBLE) {
+            if (has_sticky)
+                paint_anchor_leave(cr, saved_anchor_dx, saved_anchor_dy);
+            return;
+        }
+        if (fs == FILTER_LAYER_OPEN) g_paint_no_cull++;
+    }
+
     gboolean box_offscreen = FALSE;
     if (!has_transform && !has_sticky && !g_paint_no_cull) {
         const ns_css_value *posv = style ? style->values[NS_CSS_POSITION] : NULL;
@@ -7081,6 +7312,9 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         cairo_clip(cr);
     }
     if (grouped) cairo_push_group(cr);
+    if (fl.cr) cr = fl.cr;
+    cairo_matrix_t box_cm;
+    gboolean have_box_cm = FALSE;
     if (has_transform) {
         cairo_save(cr);
         double bx, by, bw, bh;
@@ -7101,6 +7335,11 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
                            b->dom && b->dom->name ? b->dom->name : "?");
         } else if (fabs(m.m[0] * m.m[5] - m.m[1] * m.m[4]) < 1e-6) {
             cairo_restore(cr);
+            if (fl.cr) {
+                g_paint_no_cull--;
+                cr = fl.outer;
+                filter_layer_discard(&fl);
+            }
             if (grouped)
                 cairo_pattern_destroy(cairo_pop_group(cr));
             if (has_sticky) paint_anchor_leave(cr, saved_anchor_dx, saved_anchor_dy);
@@ -7109,18 +7348,29 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
             cairo_translate(cr, ox, oy);
             cairo_transform(cr, &cm);
             cairo_translate(cr, -ox, -oy);
+            cairo_matrix_t pre, post;
+            cairo_matrix_init_translate(&pre, -ox, -oy);
+            cairo_matrix_init_translate(&post, ox, oy);
+            cairo_matrix_multiply(&box_cm, &pre, &cm);
+            cairo_matrix_multiply(&box_cm, &box_cm, &post);
+            have_box_cm = TRUE;
         }
     }
     gboolean has_path_clip = FALSE;
+    gboolean clip_after_filter = FALSE;
     if ((b->kind == NS_BOX_BLOCK || b->kind == NS_BOX_TABLE ||
          b->kind == NS_BOX_TABLE_CAPTION || b->kind == NS_BOX_TABLE_CELL) &&
         style && style->values[NS_CSS_CLIP_PATH] &&
         style->values[NS_CSS_CLIP_PATH]->kind == NS_CSS_V_KEYWORD &&
         style->values[NS_CSS_CLIP_PATH]->u.keyword &&
         strcmp(style->values[NS_CSS_CLIP_PATH]->u.keyword, "none") != 0) {
-        cairo_save(cr);
-        if (apply_box_content_clip(cr, b)) has_path_clip = TRUE;
-        else                                cairo_restore(cr);
+        if (fl.cr) {
+            clip_after_filter = TRUE;
+        } else {
+            cairo_save(cr);
+            if (apply_box_content_clip(cr, b)) has_path_clip = TRUE;
+            else                                cairo_restore(cr);
+        }
     }
     if (!box_offscreen) {
         double s0 = 0, s1 = 0, s2 = 0, s3 = 0;
@@ -7286,6 +7536,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
     }
     gboolean own_layer_scope = b->parent == NULL || grouped || has_transform ||
                                clip_overflow || has_path_clip ||
+                               box_has_filter(b) ||
                                (b == g_paint_flush_box &&
                                 box_is_stacking_context(b));
     GPtrArray *saved_layer_list = NULL;
@@ -7510,6 +7761,20 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
     }
 
     if (has_transform) cairo_restore(cr);
+    if (fl.cr) {
+        g_paint_no_cull--;
+        cr = fl.outer;
+        if (clip_after_filter) {
+            cairo_save(cr);
+            cairo_matrix_t outer_m;
+            cairo_get_matrix(cr, &outer_m);
+            if (have_box_cm) cairo_transform(cr, &box_cm);
+            apply_box_content_clip(cr, b);
+            cairo_set_matrix(cr, &outer_m);
+        }
+        filter_layer_end(&fl);
+        if (clip_after_filter) cairo_restore(cr);
+    }
 
     if (grouped) {
         cairo_pop_group_to_source(cr);

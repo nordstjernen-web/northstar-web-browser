@@ -2,6 +2,18 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.25:
+=======
+* Windows: the Microsoft Store (MSIX) package starts again instead of
+  stopping with "Failed loading SDL3 library." MSYS2's SDL2.dll is now
+  sdl2-compat, which loads SDL3.dll at run time rather than linking it,
+  so the packaging scripts never saw it and left it out of the bundle.
+  A packaged app does not search PATH, so the MSIX could not find it
+  anywhere. The zip and installer could miss it the same way on a
+  machine without MSYS2. The Windows bundle now ships SDL3.dll and its
+  dependencies next to SDL2.dll, and packaging fails if sdl2-compat is
+  present but SDL3.dll is not.
+
 1.0.24:
 =======
 * The PDF viewer shows real-world PDFs. Nearly every PDF compresses its

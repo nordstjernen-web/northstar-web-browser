@@ -110,9 +110,27 @@ if [ -d "$MINGW_PREFIX/lib/gdk-pixbuf-2.0" ]; then
     cp -r "$MINGW_PREFIX/lib/gdk-pixbuf-2.0" "$APP/lib/"
 fi
 
+# DLLs a bundled DLL opens with LoadLibrary instead of importing, so they
+# never show up in its import table. MSYS2's SDL2.dll is sdl2-compat, a
+# shim that calls LoadLibraryA("SDL3.dll") when SDL starts. A plain-SDL2
+# build has no such string and needs nothing extra. LoadLibrary looks in
+# the exe's folder (app/), and in PATH only for unpackaged processes, so a
+# bundle missing SDL3.dll may still run on a machine with MSYS2 on PATH.
+# The MSIX package never searches PATH and fails with "Failed loading SDL3
+# library."
+runtime_loaded_dlls() {
+    case "$(basename "${1,,}")" in
+        sdl2.dll)
+            if grep -qaF 'SDL3.dll' "$1"; then echo SDL3.dll; fi ;;
+    esac
+}
+
 # Transitively resolve DLL dependencies starting from the exe and every
 # pixbuf loader DLL. objdump reports import names; we look them up in the
 # mingw bin dir and skip anything that resolves to a Windows system DLL.
+# Runtime-loaded DLLs (above) join the same walk so their own imports are
+# bundled too; unlike imports, a missing one is an error rather than a
+# system DLL.
 declare -A seen
 queue=("$APP/$BROWSER_EXE")
 for loader in "$APP"/lib/gdk-pixbuf-2.0/*/loaders/*.dll; do
@@ -123,6 +141,15 @@ while [ "$queue_head" -lt "${#queue[@]}" ]; do
     cur=${queue[$queue_head]}
     queue_head=$((queue_head + 1))
     deps=$(objdump -p "$cur" 2>/dev/null | awk '/DLL Name:/ {print $3}') || true
+    runtime_deps=$(runtime_loaded_dlls "$cur")
+    for dep in $runtime_deps; do
+        if [ -z "${mingw_dlls[${dep,,}]:-}" ]; then
+            printf 'pack-windows: %s loads %s at runtime, but %s/bin has no %s\n' \
+                "$(basename "$cur")" "$dep" "$MINGW_PREFIX" "$dep" >&2
+            exit 1
+        fi
+    done
+    deps="$deps $runtime_deps"
     for dep in $deps; do
         key=${dep,,}
         if [ -n "${seen[$key]:-}" ]; then continue; fi

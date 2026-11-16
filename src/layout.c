@@ -15378,6 +15378,9 @@ compute_paint_bounds(ns_box *b)
         top = -G_MAXDOUBLE;
         bottom = G_MAXDOUBLE;
     }
+    double blur_reach = 3.0 * ns_paint_filter_blur_px(b->style);
+    top -= blur_reach;
+    bottom += blur_reach;
     for (ns_box *c = b->first_child; c; c = c->next_sibling) {
         compute_paint_bounds(c);
         if (c->paint_top < top) top = c->paint_top;

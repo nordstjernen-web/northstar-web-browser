@@ -25,6 +25,7 @@ void ns_paint_set_js(ns_js *js);
 void ns_paint_set_anim(struct ns_anim *anim);
 void ns_paint_set_video_layers(GArray *out);
 void ns_paint_set_caret_visible(gboolean visible);
+double ns_paint_filter_blur_px(const ns_style *style);
 void ns_paint_set_device_viewport(double x0, double y0, double x1, double y1);
 void ns_paint_clear_device_viewport(void);
 

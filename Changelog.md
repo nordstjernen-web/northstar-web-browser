@@ -20,6 +20,16 @@ Significant changes in each release:
   Ubuntu 25.04, Fedora 43, Alpine 3.22, Arch, openSUSE Tumbleweed, Homebrew
   and MSYS2 provide; older systems build without audio. The volume mixer
   lists the browser as "Northstar Web Browser".
+* CSS `filter` applies to ordinary elements, not only images: `blur()`,
+  `grayscale()`, `sepia()`, `invert()`, `brightness()`, `contrast()` and
+  `saturate()` on a div, table or inline SVG now take effect. The element
+  and its descendants paint into an offscreen layer that is filtered and
+  composited back, with `blur()` a Gaussian of the given standard
+  deviation, as the spec defines it, drawn at a lower resolution when the
+  blur is wide. Opacity and `clip-path` apply after the filter, and a
+  filtered element is a stacking context. The blurred, morphing glow
+  behind the logo on c3-lang.org showed as a sharp rotating shape and now
+  renders as a soft moving shadow (#277).
 
 1.0.24:
 =======

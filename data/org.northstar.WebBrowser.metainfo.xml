@@ -59,6 +59,16 @@
   </branding>
 
   <releases>
+    <release version="1.0.25" date="2026-11-16">
+      <description>
+        <p>Feature and bug fix release.</p>
+        <ul>
+          <li>CSS filters such as blur(), grayscale() and brightness() apply to ordinary elements, not only images.</li>
+          <li>Audio plays through SDL3 instead of SDL2, and the volume mixer lists the browser as Northstar Web Browser.</li>
+          <li>The Windows Store package starts again instead of failing to load the SDL3 library.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.24" date="2026-11-15">
       <description>
         <p>Feature release.</p>

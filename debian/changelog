@@ -1,3 +1,12 @@
+northstar (1.0.25+ds-1) unstable; urgency=medium
+
+  * New upstream release: audio plays through SDL3 instead of SDL2, so
+    the build now depends on libsdl3-dev (>= 3.2.0); the Windows MSIX
+    package starts again; and CSS filter, including blur(), applies to
+    ordinary elements, not only images.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Mon, 16 Nov 2026 12:00:00 +0100
+
 northstar (1.0.24+ds-1) unstable; urgency=medium
 
   * New upstream release: PDFs open in a sandboxed PDF.js viewer that

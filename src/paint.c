@@ -4966,7 +4966,7 @@ paint_math(cairo_t *cr, const ns_box *b)
 static void
 paint_image(cairo_t *cr, const ns_box *b)
 {
-    if (ns_node_is_element_named(b->dom, "canvas")) return;
+    if (ns_node_is_tag(b->dom, NS_TAG_CANVAS)) return;
     const ns_image *img = NULL;
     if (b->dom && g_paint_js)
         img = ns_js_image_for_node(g_paint_js, b->dom);
@@ -5309,7 +5309,7 @@ list_item_count(const ns_node *parent)
     int total = 0;
     for (const ns_node *p = parent ? parent->first_child : NULL;
          p; p = p->next_sibling) {
-        if (ns_node_is_element_named(p, "li")) total++;
+        if (ns_node_is_tag(p, NS_TAG_LI)) total++;
     }
     return total;
 }
@@ -5347,7 +5347,7 @@ list_item_number_children(const ns_node *parent, const ns_node *target)
     gboolean reversed = ns_element_get_attr(parent, "reversed") != NULL;
     int current = reversed && !start_attr ? list_item_count(parent) : start;
     for (const ns_node *p = parent->first_child; p; p = p->next_sibling) {
-        if (!ns_node_is_element_named(p, "li")) continue;
+        if (!ns_node_is_tag(p, NS_TAG_LI)) continue;
         const char *val = ns_element_get_attr(p, "value");
         int ordinal = val ? ns_parse_int(val, current, -1000000, 1000000)
                           : current;
@@ -7419,7 +7419,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         if (b->kind == NS_BOX_SVG)
             paint_svg(cr, b);
     }
-    if (ns_node_is_element_named(b->dom, "canvas") && g_paint_js) {
+    if (ns_node_is_tag(b->dom, NS_TAG_CANVAS) && g_paint_js) {
         cairo_surface_t *surf = ns_js_canvas_surface(g_paint_js, b->dom);
         if (surf) {
             int sw = cairo_image_surface_get_width(surf);

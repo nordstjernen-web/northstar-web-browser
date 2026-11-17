@@ -145,7 +145,7 @@ value_is_percent(const ns_css_value *v)
 static gboolean
 box_is_doc_root(const ns_box *b)
 {
-    return b && ns_node_is_element_named(b->dom, "html");
+    return b && ns_node_is_tag(b->dom, NS_TAG_HTML);
 }
 
 static double containing_block_definite_height(const ns_box *box);
@@ -1008,8 +1008,8 @@ is_table_box(const ns_node *n, GHashTable *styles)
 static gboolean
 is_cell_element(const ns_node *n, GHashTable *styles)
 {
-    if (ns_node_is_element_named(n, "td") ||
-        ns_node_is_element_named(n, "th"))
+    if (ns_node_is_tag(n, NS_TAG_TD) ||
+        ns_node_is_tag(n, NS_TAG_TH))
         return TRUE;
     if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
     return style_display_is_table_cell(g_hash_table_lookup(styles, n));
@@ -1018,7 +1018,7 @@ is_cell_element(const ns_node *n, GHashTable *styles)
 static gboolean
 is_table_caption(const ns_node *n, GHashTable *styles)
 {
-    if (ns_node_is_element_named(n, "caption")) return TRUE;
+    if (ns_node_is_tag(n, NS_TAG_CAPTION)) return TRUE;
     if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
     return style_display_is_table_caption(g_hash_table_lookup(styles, n));
 }
@@ -1056,8 +1056,8 @@ typedef enum { ROW_GROUP_BODY, ROW_GROUP_HEADER, ROW_GROUP_FOOTER } row_group_ki
 static row_group_kind
 node_row_group(const ns_node *n, GHashTable *styles)
 {
-    if (ns_node_is_element_named(n, "thead")) return ROW_GROUP_HEADER;
-    if (ns_node_is_element_named(n, "tfoot")) return ROW_GROUP_FOOTER;
+    if (ns_node_is_tag(n, NS_TAG_THEAD)) return ROW_GROUP_HEADER;
+    if (ns_node_is_tag(n, NS_TAG_TFOOT)) return ROW_GROUP_FOOTER;
     const ns_style *s = styles ? g_hash_table_lookup(styles, n) : NULL;
     ns_display d = ns_css_display_of(s);
     if (ns_display_is(d, NS_DISPLAY_INTERNAL_TABLE_HEADER_GROUP))
@@ -1383,7 +1383,7 @@ collect_box_bg_image(ns_box *box, const ns_style *s)
 {
     const ns_css_value *mi = s ? s->values[NS_CSS_LIST_STYLE_IMAGE] : NULL;
     if (mi && mi->kind == NS_CSS_V_URL && mi->u.url &&
-        box->dom && ns_node_is_element_named(box->dom, "li")) {
+        box->dom && ns_node_is_tag(box->dom, NS_TAG_LI)) {
         ns_box_media *m = ns_box_media_ensure(box);
         m->marker_image_src = g_strdup(mi->u.url);
         m->marker_image = collect_peek_image(m->marker_image_src);
@@ -1476,7 +1476,7 @@ collect_table_col_hints(ns_box *table, const ns_node *n, GHashTable *styles)
         const ns_style *group_style = styles ? g_hash_table_lookup(styles, c) : NULL;
         gboolean saw_col = FALSE;
         for (const ns_node *col = c->first_child; col; col = col->next_sibling) {
-            if (!ns_node_is_element_named(col, "col")) continue;
+            if (!ns_node_is_tag(col, NS_TAG_COL)) continue;
             int span = ns_parse_int(ns_element_get_attr(col, "span"), 1, 1, 1000);
             append_table_col_hint(table, col, styles, span, group_style);
             saw_col = TRUE;
@@ -2873,7 +2873,7 @@ emit_datalist_suggestions(collector_ctx *ctx, const ns_node *input)
     char *needle = (cur && *cur) ? g_utf8_casefold(cur, -1) : NULL;
     int shown = 0;
     for (const ns_node *o = dl->first_child; o && shown < 8; o = o->next_sibling) {
-        if (!ns_node_is_element_named(o, "option")) continue;
+        if (!ns_node_is_tag(o, NS_TAG_OPTION)) continue;
         char *val = datalist_option_value(o);
         if (!val || !*val) { g_free(val); continue; }
         gboolean match = TRUE;
@@ -3329,7 +3329,7 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
                     }
                     for (const ns_node *opt = c->first_child;
                          opt && shown < cap; opt = opt->next_sibling) {
-                        if (!ns_node_is_element_named(opt, "option")) continue;
+                        if (!ns_node_is_tag(opt, NS_TAG_OPTION)) continue;
                         emit_listbox_option(ctx, opt, first);
                         first = FALSE;
                         shown++;
@@ -3388,7 +3388,7 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
                         g_string_append(ctx->out, "\xc2\xa0");
                     }
                     for (const ns_node *o = grp->first_child; o; o = o->next_sibling)
-                        if (ns_node_is_element_named(o, "option"))
+                        if (ns_node_is_tag(o, NS_TAG_OPTION))
                             emit_open_select_option(ctx, o);
                 } else {
                     emit_open_select_option(ctx, opts[0]);
@@ -4387,13 +4387,13 @@ choose_img_url(const ns_node *n, const ns_node **img_out, double *density)
     const ns_node *img = n;
     char *url = NULL;
     *density = 1.0;
-    if (ns_node_is_element_named(n, "img") &&
-        ns_node_is_element_named(n->parent, "picture"))
+    if (ns_node_is_tag(n, NS_TAG_IMG) &&
+        ns_node_is_tag(n->parent, NS_TAG_PICTURE))
         n = n->parent;
     if (n->name && strcmp(n->name, "picture") == 0) {
         for (const ns_node *c = n->first_child; c && img == n;
              c = c->next_sibling)
-            if (ns_node_is_element_named(c, "img"))
+            if (ns_node_is_tag(c, NS_TAG_IMG))
                 img = c;
         double source_density = 1.0;
         char *source_url = pick_picture_source_url(n, img != n ? img : NULL,
@@ -5075,9 +5075,9 @@ style_can_be_rendered_legend(const ns_style *s)
 static const ns_node *
 fieldset_rendered_legend_node(const ns_node *n, GHashTable *styles)
 {
-    if (!ns_node_is_element_named(n, "fieldset")) return NULL;
+    if (!ns_node_is_tag(n, NS_TAG_FIELDSET)) return NULL;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
-        if (!ns_node_is_element_named(c, "legend")) continue;
+        if (!ns_node_is_tag(c, NS_TAG_LEGEND)) continue;
         if (style_can_be_rendered_legend(g_hash_table_lookup(styles, c)))
             return c;
     }
@@ -6891,10 +6891,10 @@ box_is_table_hit_internal(const ns_box *box)
     if (!box) return FALSE;
     if (box->kind == NS_BOX_TABLE_ROW) return TRUE;
     const ns_node *dom = box->dom;
-    return ns_node_is_element_named(dom, "tr") ||
-           ns_node_is_element_named(dom, "tbody") ||
-           ns_node_is_element_named(dom, "thead") ||
-           ns_node_is_element_named(dom, "tfoot");
+    return ns_node_is_tag(dom, NS_TAG_TR) ||
+           ns_node_is_tag(dom, NS_TAG_TBODY) ||
+           ns_node_is_tag(dom, NS_TAG_THEAD) ||
+           ns_node_is_tag(dom, NS_TAG_TFOOT);
 }
 
 static gboolean
@@ -7303,7 +7303,7 @@ box_establishes_bfc(const ns_box *b)
     if (ns_display_inner_is(d, NS_DISPLAY_INNER_FLOW_ROOT)) return TRUE;
     if (ns_display_is_flex_container(d) || ns_display_is_grid_container(d))
         return TRUE;
-    if (ns_node_is_element_named(b->dom, "fieldset")) return TRUE;
+    if (ns_node_is_tag(b->dom, NS_TAG_FIELDSET)) return TRUE;
     if (b->is_rendered_legend) return TRUE;
     if (b->parent && (style_is_flex_container(b->parent->style) ||
                       style_is_grid_container(b->parent->style)))
@@ -12798,7 +12798,7 @@ legacy_block_align(const ns_box *c, const ns_style *inherited)
             if (!pt || strcmp(pt, ta) != 0) return NULL;
         }
         if (!p->dom || p->dom->kind != NS_NODE_ELEMENT) continue;
-        if (ns_node_is_element_named(p->dom, "center")) return ta;
+        if (ns_node_is_tag(p->dom, NS_TAG_CENTER)) return ta;
         const char *al = ns_element_get_attr(p->dom, "align");
         if (al && g_ascii_strcasecmp(al, ta) == 0) return ta;
     }
@@ -16918,7 +16918,7 @@ static const ns_node *
 image_map_find(const ns_node *n, const char *name, int depth)
 {
     if (!n || depth >= 512) return NULL;
-    if (ns_node_is_element_named(n, "map")) {
+    if (ns_node_is_tag(n, NS_TAG_MAP)) {
         const char *id = ns_element_get_attr(n, "id");
         const char *nm = ns_element_get_attr(n, "name");
         if ((id && strcmp(id, name) == 0) || (nm && strcmp(nm, name) == 0))
@@ -17061,7 +17061,7 @@ image_map_area_in(const ns_node *n, double x, double y, double width,
     if (!n || depth >= 512) return NULL;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
         if (c->kind != NS_NODE_ELEMENT) continue;
-        if (ns_node_is_element_named(c, "area") &&
+        if (ns_node_is_tag(c, NS_TAG_AREA) &&
             image_map_area_contains(c, x, y, width, height))
             return c;
         const ns_node *m = image_map_area_in(c, x, y, width, height, depth + 1);
@@ -17102,7 +17102,7 @@ ns_box_hit_dom(const ns_box *root, double x, double y)
     if (form_target && (!target || hit_node_refines(form_target, target)))
         target = form_target;
     if (hit && target == hit->dom && hit->kind == NS_BOX_IMAGE &&
-        ns_node_is_element_named(target, "img") &&
+        ns_node_is_tag(target, NS_TAG_IMG) &&
         ns_element_get_attr(target, "usemap")) {
         const ns_node *area = image_map_hit(hit, local_x, local_y);
         if (area) target = area;

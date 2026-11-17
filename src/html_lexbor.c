@@ -97,15 +97,10 @@ lxb_node_convert(lxb_dom_node_t *src)
         ns_node *out = ns_node_new_element(NULL);
         ns_node_set_name_borrow(out, name ? (const char *)name : "unknown");
         lxb_borrow_attributes(el, out);
-        if (src->ns == LXB_NS_SVG) {
+        if (src->ns == LXB_NS_SVG)
             out->flags |= NS_NODE_SVG_NS;
-            ns_element_set_attr(out, "data-nd-ns-uri",
-                                "http://www.w3.org/2000/svg");
-        } else if (src->ns == LXB_NS_MATH) {
-            out->flags |= NS_NODE_FOREIGN_NS;
-            ns_element_set_attr(out, "data-nd-ns-uri",
-                                "http://www.w3.org/1998/Math/MathML");
-        }
+        else if (src->ns == LXB_NS_MATH)
+            out->flags |= NS_NODE_FOREIGN_NS | NS_NODE_MATHML_NS;
         return out;
     }
     case LXB_DOM_NODE_TYPE_TEXT:
@@ -976,7 +971,7 @@ lxb_fragment_sync(ns_html_fragment_parser *stream, lxb_dom_node_t *root)
         for (size_t i = 0; i < open->length; i++) {
             lxb_dom_node_t *node = open->list[i];
             ns_node *out = node ? node->user : NULL;
-            if (out && ns_node_is_element_named(out, "script"))
+            if (out && ns_node_is_tag(out, NS_TAG_SCRIPT))
                 out->flags |= NS_NODE_PARSER_OPEN;
         }
     }

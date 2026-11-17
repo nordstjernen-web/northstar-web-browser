@@ -922,13 +922,13 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
     const ns_box *hit = ns_box_hit_test(layout, x, y);
     const ns_node *dom = ns_box_hit_dom(layout, x, y);
     if (!dom) { fc->focused = NULL; return; }
-    gboolean form_target = ns_node_is_element_named(dom, "button") ||
-                           ns_node_is_element_named(dom, "input") ||
-                           ns_node_is_element_named(dom, "select") ||
-                           ns_node_is_element_named(dom, "textarea");
+    gboolean form_target = ns_node_is_tag(dom, NS_TAG_BUTTON) ||
+                           ns_node_is_tag(dom, NS_TAG_INPUT) ||
+                           ns_node_is_tag(dom, NS_TAG_SELECT) ||
+                           ns_node_is_tag(dom, NS_TAG_TEXTAREA);
     if (!form_target) {
         for (const ns_node *lc = dom; lc; lc = lc->parent) {
-            if (!ns_node_is_element_named(lc, "label")) continue;
+            if (!ns_node_is_tag(lc, NS_TAG_LABEL)) continue;
             const ns_node *tgt = NULL;
             const char *for_id = ns_element_get_attr(lc, "for");
             if (for_id && *for_id && fc->doc)
@@ -996,7 +996,7 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
         headless_submit_form_from(fc, nav, cur);
         return;
     }
-    if (hit && hit->dom && ns_node_is_element_named(hit->dom, "img") && nav) {
+    if (hit && hit->dom && ns_node_is_tag(hit->dom, NS_TAG_IMG) && nav) {
         const char *usemap = ns_element_get_attr(hit->dom, "usemap");
         if (usemap && *usemap && fc->doc) {
             double cx0 = hit->x + hit->margin.left +
@@ -1015,11 +1015,11 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
     }
     if (nav) {
         for (const ns_node *cur = dom; cur; cur = cur->parent) {
-            if (!ns_node_is_element_named(cur, "a")) continue;
+            if (!ns_node_is_tag(cur, NS_TAG_A)) continue;
             const char *href = ns_element_get_attr(cur, "href");
             if (!href || !*href) break;
             char *url;
-            if (hit && hit->dom && ns_node_is_element_named(hit->dom, "img") &&
+            if (hit && hit->dom && ns_node_is_tag(hit->dom, NS_TAG_IMG) &&
                 ns_element_get_attr(hit->dom, "ismap")) {
                 double cx0 = hit->x + hit->margin.left +
                              hit->border.left + hit->padding.left;
@@ -1039,7 +1039,7 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
     for (const ns_node *cur = dom; cur; cur = cur->parent) {
         if (cur->kind == NS_NODE_ELEMENT && cur->name &&
             strcmp(cur->name, "summary") == 0 && cur->parent &&
-            ns_node_is_element_named(cur->parent, "details")) {
+            ns_node_is_tag(cur->parent, NS_TAG_DETAILS)) {
             ns_node *details = (ns_node *)cur->parent;
             gboolean now_open;
             if (ns_element_get_attr(details, "open")) {
@@ -1129,9 +1129,9 @@ headless_seed_drag_data(headless_flush_ctx *fc, ns_js_drag_session *session,
 {
     if (!fc || !session || !source) return;
     const char *raw = NULL;
-    if (ns_node_is_element_named(source, "a"))
+    if (ns_node_is_tag(source, NS_TAG_A))
         raw = ns_element_get_attr(source, "href");
-    else if (ns_node_is_element_named(source, "img"))
+    else if (ns_node_is_tag(source, NS_TAG_IMG))
         raw = ns_element_get_attr(source, "src");
     if (!raw || !*raw) return;
     char *abs = fc->base ? ns_url_resolve(fc->base, raw) : g_strdup(raw);

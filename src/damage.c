@@ -95,8 +95,8 @@ box_has_fixed_background(const ns_box *b)
 static gboolean
 box_is_canvas_root(const ns_box *b)
 {
-    return !b->parent || ns_node_is_element_named(b->dom, "html") ||
-           ns_node_is_element_named(b->dom, "body");
+    return !b->parent || ns_node_is_tag(b->dom, NS_TAG_HTML) ||
+           ns_node_is_tag(b->dom, NS_TAG_BODY);
 }
 
 /* Returns TRUE if img is in the changed set, recording that it was seen in layout. */

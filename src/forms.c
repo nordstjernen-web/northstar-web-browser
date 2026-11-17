@@ -58,8 +58,8 @@ form_option_disabled(const ns_node *option)
     if (ns_element_effectively_disabled(option)) return TRUE;
     int depth = 0;
     for (const ns_node *p = option ? option->parent : NULL; p && depth++ < NS_FORM_MAX_DEPTH; p = p->parent) {
-        if (ns_node_is_element_named(p, "select")) return FALSE;
-        if (ns_node_is_element_named(p, "optgroup") &&
+        if (ns_node_is_tag(p, NS_TAG_SELECT)) return FALSE;
+        if (ns_node_is_tag(p, NS_TAG_OPTGROUP) &&
             ns_element_get_attr(p, "disabled"))
             return TRUE;
     }

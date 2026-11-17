@@ -49,11 +49,11 @@ static const char *
 engine_base_href_walk(const ns_node *n, int depth)
 {
     if (!n || depth >= 512) return NULL;
-    if (ns_node_is_element_named(n, "base")) {
+    if (ns_node_is_tag(n, NS_TAG_BASE)) {
         const char *href = ns_element_get_attr(n, "href");
         if (href && *href) return href;
     }
-    if (ns_node_is_element_named(n, "template")) return NULL;
+    if (ns_node_is_html_tag(n, NS_TAG_TEMPLATE)) return NULL;
     for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
         if (c->kind == NS_NODE_DOCUMENT) continue;
         const char *href = engine_base_href_walk(c, depth + 1);
@@ -468,15 +468,15 @@ preload_collect(const ns_node *n, const char *base, gboolean include_images,
                 GPtrArray *connect_out, GHashTable *connect_seen, int depth)
 {
     if (!n || depth >= 512) return;
-    if (include_images && ns_node_is_element_named(n, "img")) {
+    if (include_images && ns_node_is_tag(n, NS_TAG_IMG)) {
         const char *loading = ns_element_get_attr(n, "loading");
         if (!loading || g_ascii_strcasecmp(loading, "lazy") != 0)
             preload_add(out, seen, base, ns_element_get_attr(n, "src"),
                         NS_FETCH_DEST_DEFAULT);
-    } else if (ns_node_is_element_named(n, "script")) {
+    } else if (ns_node_is_tag(n, NS_TAG_SCRIPT)) {
         preload_add(out, seen, base, ns_element_get_attr(n, "src"),
                     NS_FETCH_DEST_SCRIPT);
-    } else if (ns_node_is_element_named(n, "link")) {
+    } else if (ns_node_is_tag(n, NS_TAG_LINK)) {
         const char *rel = ns_element_get_attr(n, "rel");
         if (rel && (rel_has_token(rel, "preconnect") ||
                     rel_has_token(rel, "dns-prefetch"))) {
@@ -552,10 +552,10 @@ static void
 preload_collect_meta_csp(const ns_node *n, ns_csp **csp, int depth)
 {
     if (!n || depth > 256) return;
-    if (ns_node_is_element_named(n, "iframe") ||
-        ns_node_is_element_named(n, "template"))
+    if (ns_node_is_tag(n, NS_TAG_IFRAME) ||
+        ns_node_is_html_tag(n, NS_TAG_TEMPLATE))
         return;
-    if (ns_node_is_element_named(n, "meta")) {
+    if (ns_node_is_tag(n, NS_TAG_META)) {
         const char *he = ns_element_get_attr(n, "http-equiv");
         if (he && g_ascii_strcasecmp(he, "content-security-policy") == 0)
             preload_add_csp(csp, ns_element_get_attr(n, "content"));
@@ -1252,9 +1252,9 @@ static const char *
 engine_node_frame_base(const ns_node *n, const char *dflt)
 {
     for (const ns_node *p = n ? n->parent : NULL; p; p = p->parent) {
-        if (ns_node_is_element_named(p, "iframe") ||
-            ns_node_is_element_named(p, "frame") ||
-            ns_node_is_element_named(p, "object")) {
+        if (ns_node_is_tag(p, NS_TAG_IFRAME) ||
+            ns_node_is_tag(p, NS_TAG_FRAME) ||
+            ns_node_is_tag(p, NS_TAG_OBJECT)) {
             const char *fu = ns_element_get_attr(p, "data-nd-frame-url");
             if (fu && *fu) return fu;
         }

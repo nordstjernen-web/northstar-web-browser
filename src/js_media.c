@@ -138,7 +138,7 @@ media_player_for(ns_js *js, ns_node *el)
     p->js = js;
     p->el = el;
     g_snprintf(p->token, sizeof p->token, "m%u", ++js->next_audio_token);
-    p->video = ns_node_is_element_named(el, "video");
+    p->video = ns_node_is_tag(el, NS_TAG_VIDEO);
     p->network_state = NETWORK_EMPTY;
     p->ready_state = HAVE_NOTHING;
     p->paused = TRUE;
@@ -587,7 +587,7 @@ media_load(ns_media_player *p)
     gboolean has_source = ns_element_get_attr(p->el, "src") != NULL;
     for (const ns_node *c = p->el->first_child; !has_source && c;
          c = c->next_sibling)
-        has_source = ns_node_is_element_named(c, "source");
+        has_source = ns_node_is_tag(c, NS_TAG_SOURCE);
     if (!has_source) return;
 
     p->network_state = NETWORK_LOADING;
@@ -1298,7 +1298,7 @@ media_consider_element(ns_js *js, ns_node *el)
     gboolean has_source = ns_element_get_attr(el, "src") != NULL;
     for (const ns_node *c = el->first_child; !has_source && c;
          c = c->next_sibling)
-        has_source = ns_node_is_element_named(c, "source");
+        has_source = ns_node_is_tag(c, NS_TAG_SOURCE);
     if (!has_source) return;
     media_load(media_player_for(js, el));
 }
@@ -1801,7 +1801,7 @@ ns_media_controls_get(ns_js *js, const ns_node *el,
     memset(out, 0, sizeof *out);
     out->paused = TRUE;
     out->duration = NAN;
-    out->audible = !ns_node_is_element_named(el, "video");
+    out->audible = !ns_node_is_tag(el, NS_TAG_VIDEO);
     ns_media_player *p = media_player_find(js, el);
     if (!p) return;
     out->paused = p->paused;

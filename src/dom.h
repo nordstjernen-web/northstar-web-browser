@@ -83,7 +83,7 @@ extern void (*ns_node_detach_hook)(ns_node *parent);
 
 #define NS_NODE_JS_ARMED       (1u << 23)
 
-typedef struct ns_node_rare {
+typedef struct ns_node_extra {
     void  *backing;
     void (*backing_free)(void *);
     GHashTable *id_index;
@@ -94,7 +94,7 @@ typedef struct ns_node_rare {
     char *public_id;
     char *system_id;
     int src_line;
-} ns_node_rare;
+} ns_node_extra;
 
 struct ns_node {
     struct ns_node *parent;
@@ -108,7 +108,7 @@ struct ns_node {
     ns_attr *attrs;
     void *class_set;
     void *js_wrapper;
-    ns_node_rare *rare;
+    ns_node_extra *extra;
 
     guint64 attr_bloom;
 
@@ -121,52 +121,52 @@ struct ns_node {
 static inline ns_node *
 ns_node_tpl_content(const ns_node *n)
 {
-    return n->rare ? n->rare->tpl_content : NULL;
+    return n->extra ? n->extra->tpl_content : NULL;
 }
 
 static inline GHashTable *
 ns_node_id_index(const ns_node *n)
 {
-    return n->rare ? n->rare->id_index : NULL;
+    return n->extra ? n->extra->id_index : NULL;
 }
 
 static inline GHashTable *
 ns_node_id_counts(const ns_node *n)
 {
-    return n->rare ? n->rare->id_counts : NULL;
+    return n->extra ? n->extra->id_counts : NULL;
 }
 
 static inline GHashTable *
 ns_node_class_index(const ns_node *n)
 {
-    return n->rare ? n->rare->class_index : NULL;
+    return n->extra ? n->extra->class_index : NULL;
 }
 
 static inline GHashTable *
 ns_node_tag_index(const ns_node *n)
 {
-    return n->rare ? n->rare->tag_index : NULL;
+    return n->extra ? n->extra->tag_index : NULL;
 }
 
 static inline const char *
 ns_node_public_id(const ns_node *n)
 {
-    return n->rare ? n->rare->public_id : NULL;
+    return n->extra ? n->extra->public_id : NULL;
 }
 
 static inline const char *
 ns_node_system_id(const ns_node *n)
 {
-    return n->rare ? n->rare->system_id : NULL;
+    return n->extra ? n->extra->system_id : NULL;
 }
 
 static inline int
 ns_node_src_line(const ns_node *n)
 {
-    return n->rare ? n->rare->src_line : 0;
+    return n->extra ? n->extra->src_line : 0;
 }
 
-ns_node_rare *ns_node_rare_get(ns_node *n);
+ns_node_extra *ns_node_extra_get(ns_node *n);
 void ns_node_arm_invalidator(ns_node *n, ns_node_invalidator invalidate);
 void ns_node_disarm_invalidator(ns_node *n);
 

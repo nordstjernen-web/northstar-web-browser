@@ -275,9 +275,9 @@ ns_dsd_convert(ns_node *n, int depth)
                 ns_element_remove_attr(c, "shadowrootdelegatesfocus");
                 ns_element_remove_attr(c, "shadowrootserializable");
                 ns_element_remove_attr(c, "shadowrootclonable");
-                if (c->tpl_content) {
-                    ns_node *frag = c->tpl_content;
-                    c->tpl_content = NULL;
+                if (ns_node_tpl_content(c)) {
+                    ns_node *frag = ns_node_tpl_content(c);
+                    ns_node_rare_get(c)->tpl_content = NULL;
                     ns_node *ch = frag->first_child;
                     while (ch) {
                         ns_node *next = ch->next_sibling;
@@ -300,8 +300,8 @@ ns_dsd_convert(ns_node *n, int depth)
         }
         ns_dsd_convert(c, depth + 1);
     }
-    if (n->tpl_content)
-        ns_dsd_convert(n->tpl_content, depth + 1);
+    if (ns_node_tpl_content(n))
+        ns_dsd_convert(ns_node_tpl_content(n), depth + 1);
 }
 
 /* Appends all descendant text of n to out (depth-limited). */
@@ -729,7 +729,7 @@ ns_html_assign_script_positions(ns_node *root, const char *input, size_t len)
     guint m = MIN(elems->len, lines->len);
     for (guint k = 0; k < m; k++) {
         ns_node *e = g_ptr_array_index(elems, k);
-        e->src_line = g_array_index(lines, int, k);
+        ns_node_rare_get(e)->src_line = g_array_index(lines, int, k);
     }
     g_ptr_array_free(elems, TRUE);
     g_array_free(lines, TRUE);

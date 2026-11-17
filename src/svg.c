@@ -1213,7 +1213,7 @@ static cairo_pattern_t *
 svg_gradient_pattern(svg_ctx *ctx, const ns_node *g, const svg_state *st,
                      double alpha, double bx, double by, double bw, double bh)
 {
-    gboolean linear = strcmp(g->name, "linearGradient") == 0;
+    gboolean linear = ns_node_is_tag(g, NS_TAG_LINEAR_GRADIENT);
     const char *units = svg_inherited_attr(ctx, g, "gradientUnits");
     gboolean obb = !units || g_ascii_strcasecmp(units, "userSpaceOnUse") != 0;
     double bw_ref = obb ? 1.0 : ctx->vw;
@@ -1301,8 +1301,8 @@ svg_set_paint(svg_ctx *ctx, const svg_paint *paint, const svg_state *st,
 
     const ns_node *g = svg_by_id(ctx, paint->ref);
     if (g && g->name &&
-        (strcmp(g->name, "linearGradient") == 0 ||
-         strcmp(g->name, "radialGradient") == 0)) {
+        (ns_node_is_tag(g, NS_TAG_LINEAR_GRADIENT) ||
+         ns_node_is_tag(g, NS_TAG_RADIAL_GRADIENT))) {
         double bx, by, bx2, by2;
         cairo_path_extents(cr, &bx, &by, &bx2, &by2);
         cairo_pattern_t *pat = svg_gradient_pattern(ctx, g, st, opacity,
@@ -1446,7 +1446,7 @@ svg_mask_surface(svg_ctx *ctx, const ns_node *n, const svg_state *st)
     if (!id) return NULL;
     const ns_node *mask = svg_by_id(ctx, id);
     g_free(id);
-    if (!mask || !mask->name || strcmp(mask->name, "mask") != 0) return NULL;
+    if (!mask || !mask->name || !ns_node_is_tag(mask, NS_TAG_MASK)) return NULL;
     if (ctx->depth >= NS_SVG_MAX_DEPTH) return NULL;
 
     cairo_surface_t *target = cairo_get_target(ctx->cr);
@@ -1528,7 +1528,7 @@ svg_apply_clip(svg_ctx *ctx, const ns_node *n, const svg_state *st)
     if (!id) return;
     const ns_node *clip = svg_by_id(ctx, id);
     g_free(id);
-    if (!clip || !clip->name || strcmp(clip->name, "clipPath") != 0) return;
+    if (!clip || !clip->name || !ns_node_is_tag(clip, NS_TAG_CLIP_PATH)) return;
     if (ctx->depth >= NS_SVG_MAX_DEPTH) return;
 
     ctx->depth++;
@@ -1755,7 +1755,7 @@ svg_marker_ref(svg_ctx *ctx, const ns_node *n, const char *prop)
     if (!id) return NULL;
     const ns_node *m = svg_by_id(ctx, id);
     g_free(id);
-    if (!m || !m->name || strcmp(m->name, "marker") != 0) return NULL;
+    if (!m || !m->name || !ns_node_is_tag(m, NS_TAG_MARKER)) return NULL;
     return m;
 }
 

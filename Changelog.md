@@ -21,6 +21,12 @@ Significant changes in each release:
 * The 305 remaining `strcmp(node->name, "...")` tests against a tag name
   compare the tag id as well, and the tag id is now kept only on
   elements, so a doctype or processing instruction never matches one.
+* The tag table gains the SVG element names the engine checks for:
+  `clipPath`, `feBlend`, `feFlood`, `feGaussianBlur`, `filter`,
+  `foreignObject`, `linearGradient`, `marker`, `mask`, `pattern`,
+  `radialGradient` and `switch`, as in Nordstjernen and Southstar, and
+  the SVG painter's checks for gradients, masks, clip paths and markers
+  compare the tag id.
 
 1.0.25:
 =======

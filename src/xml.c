@@ -524,13 +524,18 @@ xml_apply_namespace(ns_node *el, const char *qname, const char *uri)
         ns_element_set_attr(el, "data-nd-ns-prefix", prefix);
         g_free(prefix);
     }
-    if (uri && *uri)
+    gboolean is_svg = uri && strcmp(uri, XML_NS_SVG) == 0;
+    gboolean is_mathml =
+        uri && strcmp(uri, "http://www.w3.org/1998/Math/MathML") == 0;
+    if (uri && *uri && !is_svg && !is_mathml)
         ns_element_set_attr(el, "data-nd-ns-uri", uri);
     if (uri && strcmp(uri, XML_NS_XHTML) == 0) {
         return;
     }
-    if (uri && strcmp(uri, XML_NS_SVG) == 0)
+    if (is_svg)
         el->flags |= NS_NODE_SVG_NS;
+    else if (is_mathml)
+        el->flags |= NS_NODE_FOREIGN_NS | NS_NODE_MATHML_NS;
     else
         el->flags |= NS_NODE_FOREIGN_NS;
 }

@@ -922,13 +922,13 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
     const ns_box *hit = ns_box_hit_test(layout, x, y);
     const ns_node *dom = ns_box_hit_dom(layout, x, y);
     if (!dom) { fc->focused = NULL; return; }
-    gboolean form_target = ns_node_is_element_named(dom, "button") ||
-                           ns_node_is_element_named(dom, "input") ||
-                           ns_node_is_element_named(dom, "select") ||
-                           ns_node_is_element_named(dom, "textarea");
+    gboolean form_target = ns_node_is_tag(dom, NS_TAG_BUTTON) ||
+                           ns_node_is_tag(dom, NS_TAG_INPUT) ||
+                           ns_node_is_tag(dom, NS_TAG_SELECT) ||
+                           ns_node_is_tag(dom, NS_TAG_TEXTAREA);
     if (!form_target) {
         for (const ns_node *lc = dom; lc; lc = lc->parent) {
-            if (!ns_node_is_element_named(lc, "label")) continue;
+            if (!ns_node_is_tag(lc, NS_TAG_LABEL)) continue;
             const ns_node *tgt = NULL;
             const char *for_id = ns_element_get_attr(lc, "for");
             if (for_id && *for_id && fc->doc)
@@ -940,10 +940,10 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
                 while (!g_queue_is_empty(&q) && !tgt) {
                     const ns_node *d = g_queue_pop_head(&q);
                     if (d->kind == NS_NODE_ELEMENT && d->name &&
-                        (strcmp(d->name, "input") == 0 ||
-                         strcmp(d->name, "select") == 0 ||
-                         strcmp(d->name, "textarea") == 0 ||
-                         strcmp(d->name, "button") == 0))
+                        (ns_node_is_tag(d, NS_TAG_INPUT) ||
+                         ns_node_is_tag(d, NS_TAG_SELECT) ||
+                         ns_node_is_tag(d, NS_TAG_TEXTAREA) ||
+                         ns_node_is_tag(d, NS_TAG_BUTTON)))
                         tgt = d;
                     else
                         for (const ns_node *e = d->first_child; e; e = e->next_sibling)
@@ -996,7 +996,7 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
         headless_submit_form_from(fc, nav, cur);
         return;
     }
-    if (hit && hit->dom && ns_node_is_element_named(hit->dom, "img") && nav) {
+    if (hit && hit->dom && ns_node_is_tag(hit->dom, NS_TAG_IMG) && nav) {
         const char *usemap = ns_element_get_attr(hit->dom, "usemap");
         if (usemap && *usemap && fc->doc) {
             double cx0 = hit->x + hit->margin.left +
@@ -1015,11 +1015,11 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
     }
     if (nav) {
         for (const ns_node *cur = dom; cur; cur = cur->parent) {
-            if (!ns_node_is_element_named(cur, "a")) continue;
+            if (!ns_node_is_tag(cur, NS_TAG_A)) continue;
             const char *href = ns_element_get_attr(cur, "href");
             if (!href || !*href) break;
             char *url;
-            if (hit && hit->dom && ns_node_is_element_named(hit->dom, "img") &&
+            if (hit && hit->dom && ns_node_is_tag(hit->dom, NS_TAG_IMG) &&
                 ns_element_get_attr(hit->dom, "ismap")) {
                 double cx0 = hit->x + hit->margin.left +
                              hit->border.left + hit->padding.left;
@@ -1037,9 +1037,8 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
         }
     }
     for (const ns_node *cur = dom; cur; cur = cur->parent) {
-        if (cur->kind == NS_NODE_ELEMENT && cur->name &&
-            strcmp(cur->name, "summary") == 0 && cur->parent &&
-            ns_node_is_element_named(cur->parent, "details")) {
+        if (cur->kind == NS_NODE_ELEMENT && ns_node_is_tag(cur, NS_TAG_SUMMARY) && cur->parent &&
+            ns_node_is_tag(cur->parent, NS_TAG_DETAILS)) {
             ns_node *details = (ns_node *)cur->parent;
             gboolean now_open;
             if (ns_element_get_attr(details, "open")) {
@@ -1053,8 +1052,7 @@ headless_click(headless_flush_ctx *fc, headless_nav_capture *nav,
             }
             return;
         }
-        if (!fc->js && cur->kind == NS_NODE_ELEMENT && cur->name &&
-            strcmp(cur->name, "input") == 0) {
+        if (!fc->js && cur->kind == NS_NODE_ELEMENT && ns_node_is_tag(cur, NS_TAG_INPUT)) {
             const char *type = ns_element_get_attr(cur, "type");
             if (type && g_ascii_strcasecmp(type, "checkbox") == 0) {
                 ns_element_set_attr((ns_node *)cur, "data-nd-checked",
@@ -1098,11 +1096,11 @@ headless_drag_source_at(ns_box *layout, double x, double y)
         if (p->kind != NS_NODE_ELEMENT || !p->name) continue;
         if (headless_attr_true(p, "draggable")) return p;
         if (headless_attr_false(p, "draggable")) continue;
-        if (strcmp(p->name, "a") == 0) {
+        if (ns_node_is_tag(p, NS_TAG_A)) {
             const char *href = ns_element_get_attr(p, "href");
             if (href && *href) return p;
         }
-        if (strcmp(p->name, "img") == 0) {
+        if (ns_node_is_tag(p, NS_TAG_IMG)) {
             const char *src = ns_element_get_attr(p, "src");
             if (src && *src) return p;
         }
@@ -1129,9 +1127,9 @@ headless_seed_drag_data(headless_flush_ctx *fc, ns_js_drag_session *session,
 {
     if (!fc || !session || !source) return;
     const char *raw = NULL;
-    if (ns_node_is_element_named(source, "a"))
+    if (ns_node_is_tag(source, NS_TAG_A))
         raw = ns_element_get_attr(source, "href");
-    else if (ns_node_is_element_named(source, "img"))
+    else if (ns_node_is_tag(source, NS_TAG_IMG))
         raw = ns_element_get_attr(source, "src");
     if (!raw || !*raw) return;
     char *abs = fc->base ? ns_url_resolve(fc->base, raw) : g_strdup(raw);
@@ -1299,7 +1297,7 @@ headless_key(headless_flush_ctx *fc, headless_nav_capture *nav,
     gsize lo = MIN(fc->caret, fc->anchor);
     gsize hi = MAX(fc->caret, fc->anchor);
     gboolean has_sel = lo != hi;
-    gboolean multiline = (t->name && strcmp(t->name, "textarea") == 0) ||
+    gboolean multiline = (ns_node_is_tag(t, NS_TAG_TEXTAREA)) ||
                          ns_node_is_contenteditable_host(t);
     gboolean key_prevented = FALSE;
     if (fc->js) {
@@ -1347,7 +1345,7 @@ headless_key(headless_flush_ctx *fc, headless_nav_capture *nav,
         g_ascii_strcasecmp(name, "Return") == 0) {
         if (multiline)
             headless_edit_replace(fc, lo, hi, "\n");
-        else if (!key_prevented && t->name && strcmp(t->name, "input") == 0)
+        else if (!key_prevented && ns_node_is_tag(t, NS_TAG_INPUT))
             headless_submit_form_from(fc, nav, t);
         return;
     }
@@ -1386,7 +1384,7 @@ headless_key(headless_flush_ctx *fc, headless_nav_capture *nav,
     if (g_ascii_strcasecmp(name, "Home") == 0) { fc->caret = 0; fc->anchor = 0; return; }
     if (g_ascii_strcasecmp(name, "End") == 0)  { fc->caret = clen; fc->anchor = clen; return; }
     if (g_ascii_strcasecmp(name, "Up") == 0 || g_ascii_strcasecmp(name, "Down") == 0) {
-        const char *itype = t->name && strcmp(t->name, "input") == 0
+        const char *itype = ns_node_is_tag(t, NS_TAG_INPUT)
             ? ns_element_get_attr(t, "type") : NULL;
         if (itype && g_ascii_strcasecmp(itype, "number") == 0) {
             const char *sv = ns_element_get_attr(t, "step");

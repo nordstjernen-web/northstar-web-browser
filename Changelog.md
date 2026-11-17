@@ -11,6 +11,16 @@ Significant changes in each release:
   doctype's public and system ids. The per-node pointer to the
   JavaScript wrapper's invalidation function becomes a flag bit. Pages
   parse and render the same; node memory falls by 44%.
+* Elements know their tag as an id (`NS_TAG_DIV`, ...) from
+  `src/tag_names.h`, the table Nordstjernen's parser uses, set wherever
+  the name is. The 414 checks of an element's name against a literal tag
+  name compare the id instead of the string, and checks for `<template>`
+  also require the HTML namespace. SVG and MathML elements no longer carry
+  their namespace as a hidden attribute: MathML gets its own flag bit next
+  to SVG's, and only elements in other namespaces keep the URI.
+* The 305 remaining `strcmp(node->name, "...")` tests against a tag name
+  compare the tag id as well, and the tag id is now kept only on
+  elements, so a doctype or processing instruction never matches one.
 
 1.0.25:
 =======

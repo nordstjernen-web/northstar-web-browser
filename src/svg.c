@@ -1144,8 +1144,7 @@ svg_stops_owner(svg_ctx *ctx, const ns_node *n)
     const ns_node *cur = n;
     for (int i = 0; cur && i < NS_SVG_MAX_HREF_CHAIN; i++) {
         for (const ns_node *c = cur->first_child; c; c = c->next_sibling)
-            if (c->kind == NS_NODE_ELEMENT && c->name &&
-                strcmp(c->name, "stop") == 0)
+            if (c->kind == NS_NODE_ELEMENT && ns_node_is_tag(c, NS_TAG_STOP))
                 return cur;
         cur = svg_href_target(ctx, cur);
     }
@@ -1159,7 +1158,7 @@ svg_add_stops(svg_ctx *ctx, cairo_pattern_t *pat, const ns_node *owner,
 {
     double last = 0.0;
     for (const ns_node *c = owner->first_child; c; c = c->next_sibling) {
-        if (c->kind != NS_NODE_ELEMENT || !c->name || strcmp(c->name, "stop") != 0)
+        if (c->kind != NS_NODE_ELEMENT || !c->name || !ns_node_is_tag(c, NS_TAG_STOP))
             continue;
         const char *os = svg_prop(ctx, c, "offset");
         double off = os ? svg_length_str(os, 1.0, st->font_size, 0.0) : 0.0;
@@ -1417,7 +1416,7 @@ svg_clip_path_children(svg_ctx *ctx, const ns_node *clip, const svg_state *st)
 {
     for (const ns_node *c = clip->first_child; c; c = c->next_sibling) {
         if (c->kind != NS_NODE_ELEMENT || !c->name) continue;
-        if (strcmp(c->name, "use") == 0) {
+        if (ns_node_is_tag(c, NS_TAG_USE)) {
             const ns_node *t = svg_href_target(ctx, c);
             if (t && ctx->depth < NS_SVG_MAX_DEPTH) {
                 ctx->depth++;
@@ -2006,7 +2005,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
             const ns_node *outer_owner = ctx->hit ? ctx->hit->owner : NULL;
             if (ctx->hit && !outer_owner) ctx->hit->owner = n;
             ctx->depth++;
-            if (t->name && strcmp(t->name, "symbol") == 0) {
+            if (ns_node_is_tag(t, NS_TAG_SYMBOL)) {
                 double w = svg_attr_length(n, "width", ctx->vw, st.font_size, ctx->vw);
                 double h = svg_attr_length(n, "height", ctx->vh, st.font_size, ctx->vh);
                 cairo_rectangle(cr, 0, 0, w, h);
@@ -2071,8 +2070,7 @@ svg_render_element(svg_ctx *ctx, const ns_node *n, const svg_state *parent)
 static gboolean
 ns_svg_node_is_root(const ns_node *n)
 {
-    return n && n->kind == NS_NODE_ELEMENT && n->name &&
-           strcmp(n->name, "svg") == 0;
+    return n && n->kind == NS_NODE_ELEMENT && ns_node_is_tag(n, NS_TAG_SVG);
 }
 
 /* Computes intrinsic width/height/ratio from absolute width, height and viewBox, as the

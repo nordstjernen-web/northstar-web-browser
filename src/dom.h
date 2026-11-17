@@ -8,6 +8,8 @@
 
 #include <glib.h>
 
+#include "tag_names.h"
+
 G_BEGIN_DECLS
 
 typedef enum ns_node_kind {
@@ -82,6 +84,7 @@ extern void (*ns_node_detach_hook)(ns_node *parent);
 #define NS_NODE_SANDBOX_OPAQUE (1u << 22) /* document under a CSP sandbox without allow-same-origin */
 
 #define NS_NODE_JS_ARMED       (1u << 23)
+#define NS_NODE_MATHML_NS      (1u << 24)
 
 typedef struct ns_node_extra {
     void  *backing;
@@ -115,8 +118,22 @@ struct ns_node {
     guint32 text_len;
     guint32 attr_gen;
     guint32 flags;
-    ns_node_kind kind;
+    ns_node_kind kind : 8;
+    guint16 tag;
 };
+
+static inline gboolean
+ns_node_is_tag(const ns_node *n, ns_tag tag)
+{
+    return n && n->kind == NS_NODE_ELEMENT && n->tag == tag;
+}
+
+static inline gboolean
+ns_node_is_html_tag(const ns_node *n, ns_tag tag)
+{
+    return ns_node_is_tag(n, tag) &&
+           !(n->flags & (NS_NODE_SVG_NS | NS_NODE_FOREIGN_NS));
+}
 
 static inline ns_node *
 ns_node_tpl_content(const ns_node *n)
@@ -167,6 +184,9 @@ ns_node_src_line(const ns_node *n)
 }
 
 ns_node_extra *ns_node_extra_get(ns_node *n);
+ns_tag ns_tag_lookup(const char *name);
+const char *ns_tag_name(ns_tag tag);
+const char *ns_element_namespace_uri(const ns_node *n);
 void ns_node_arm_invalidator(ns_node *n, ns_node_invalidator invalidate);
 void ns_node_disarm_invalidator(ns_node *n);
 

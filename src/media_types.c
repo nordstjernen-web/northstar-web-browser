@@ -228,10 +228,10 @@ ns_media_select_source(const ns_node *element)
     if (!element) return NULL;
     const char *src = ns_element_get_attr(element, "src");
     if (src) return *src ? src : NULL;
-    ns_media_element kind = ns_node_is_element_named(element, "audio")
+    ns_media_element kind = ns_node_is_tag(element, NS_TAG_AUDIO)
         ? NS_MEDIA_ELEMENT_AUDIO : NS_MEDIA_ELEMENT_VIDEO;
     for (const ns_node *c = element->first_child; c; c = c->next_sibling) {
-        if (!ns_node_is_element_named(c, "source")) continue;
+        if (!ns_node_is_tag(c, NS_TAG_SOURCE)) continue;
         const char *csrc = ns_element_get_attr(c, "src");
         if (!csrc || !*csrc) continue;
         const char *type = ns_element_get_attr(c, "type");

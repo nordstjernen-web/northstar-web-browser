@@ -2,6 +2,16 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.26:
+=======
+* A DOM node takes 112 bytes instead of 200. Fields that almost no node
+  uses move into a part allocated the first time a node needs one: a
+  document's id, class and tag indexes, id counts and parser string
+  buffer; a `<template>`'s content; a `<script>`'s source line; and a
+  doctype's public and system ids. The per-node pointer to the
+  JavaScript wrapper's invalidation function becomes a flag bit. Pages
+  parse and render the same; node memory falls by 44%.
+
 1.0.25:
 =======
 * Windows: the Microsoft Store (MSIX) package starts again instead of

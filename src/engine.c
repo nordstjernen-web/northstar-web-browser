@@ -67,7 +67,7 @@ static const char *
 engine_document_base_href(const ns_node *doc)
 {
     if (!doc) return NULL;
-    if (!doc->tag_index) return engine_base_href_walk(doc, 0);
+    if (!ns_node_tag_index(doc)) return engine_base_href_walk(doc, 0);
     GPtrArray *bases = ns_doc_tag_index_lookup(doc, "base");
     for (guint i = 0; bases && i < bases->len; i++) {
         const char *href =

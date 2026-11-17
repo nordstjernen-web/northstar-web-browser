@@ -18,6 +18,9 @@ Significant changes in each release:
   also require the HTML namespace. SVG and MathML elements no longer carry
   their namespace as a hidden attribute: MathML gets its own flag bit next
   to SVG's, and only elements in other namespaces keep the URI.
+* The 305 remaining `strcmp(node->name, "...")` tests against a tag name
+  compare the tag id as well, and the tag id is now kept only on
+  elements, so a doctype or processing instruction never matches one.
 
 1.0.25:
 =======

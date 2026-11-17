@@ -2344,7 +2344,7 @@ ns_ctx_drawimage_source(JSContext *ctx, JSValueConst src, int *out_w, int *out_h
     if (!n || !n->name) return NULL;
     ns_js *js = js_from_ctx(ctx);
     if (!js) return NULL;
-    if (strcmp(n->name, "canvas") == 0) {
+    if (ns_node_is_tag(n, NS_TAG_CANVAS)) {
         if (js->canvas_states) {
             ns_canvas_state *st = g_hash_table_lookup(js->canvas_states, n);
             if (st && st->surf) {
@@ -2361,18 +2361,18 @@ ns_ctx_drawimage_source(JSContext *ctx, JSValueConst src, int *out_w, int *out_h
     if (js->layout_root) {
         const ns_box *b = ns_box_find_by_dom(js->layout_root, n);
         if (b && b->media) {
-            if (strcmp(n->name, "img") == 0 && b->media->image) {
+            if (ns_node_is_tag(n, NS_TAG_IMG) && b->media->image) {
                 const ns_image *im = (const ns_image *)b->media->image;
                 if (im->texture) { tex = im->texture; source = im; }
             }
         }
     }
-    if (!tex && strcmp(n->name, "video") == 0) {
+    if (!tex && ns_node_is_tag(n, NS_TAG_VIDEO)) {
         const ns_image *im = ns_media_video_image(js, n);
         if (im && im->texture) { tex = im->texture; source = im; }
     }
     ns_image *im_cache = NULL;
-    if (!tex && strcmp(n->name, "img") == 0) {
+    if (!tex && ns_node_is_tag(n, NS_TAG_IMG)) {
         const ns_image *im = ns_js_image_for_node(js, n);
         if (im && im->texture) {
             tex = im->texture;

@@ -444,8 +444,8 @@ root_axis_overflow_hidden(const ns_box *b, ns_css_prop axis)
 {
     if (!b) return FALSE;
     if (b->dom && b->dom->name &&
-        (strcmp(b->dom->name, "html") == 0 ||
-         strcmp(b->dom->name, "body") == 0) &&
+        (ns_node_is_tag(b->dom, NS_TAG_HTML) ||
+         ns_node_is_tag(b->dom, NS_TAG_BODY)) &&
         box_axis_overflow_hidden(b, axis))
         return TRUE;
     for (const ns_box *c = b->first_child; c; c = c->next_sibling)
@@ -4044,7 +4044,7 @@ browser_edit_key_apply(ns_browser *b, ns_node *node, const char *key, int mods)
     gsize sel_hi = b->sel_anchor_byte < b->caret_byte ? b->caret_byte
                                                       : b->sel_anchor_byte;
     gboolean has_sel = sel_lo != sel_hi;
-    gboolean multiline = (node->name && strcmp(node->name, "textarea") == 0) ||
+    gboolean multiline = (ns_node_is_tag(node, NS_TAG_TEXTAREA)) ||
                          ns_node_is_contenteditable_host(node);
 
     if (ctrl) {

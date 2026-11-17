@@ -426,7 +426,7 @@ static ns_node *
 find_meta_property(ns_node *n, const char *prop, int depth)
 {
     if (!n || depth >= 512) return NULL;
-    if (n->kind == NS_NODE_ELEMENT && n->name && strcmp(n->name, "meta") == 0) {
+    if (n->kind == NS_NODE_ELEMENT && ns_node_is_tag(n, NS_TAG_META)) {
         const char *p = ns_element_get_attr(n, "property");
         if (!p) p = ns_element_get_attr(n, "name");
         const char *c = ns_element_get_attr(n, "content");
@@ -454,8 +454,7 @@ static char *
 jsonld_videoobject_url(const ns_node *n, const char *key, int depth)
 {
     if (!n || depth >= 512) return NULL;
-    if (n->kind == NS_NODE_ELEMENT && n->name &&
-        strcmp(n->name, "script") == 0) {
+    if (n->kind == NS_NODE_ELEMENT && ns_node_is_tag(n, NS_TAG_SCRIPT)) {
         const char *type = ns_element_get_attr(n, "type");
         if (type && g_ascii_strcasecmp(type, "application/ld+json") == 0) {
             g_autofree char *text = script_text(n);

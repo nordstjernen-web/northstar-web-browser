@@ -4387,6 +4387,10 @@ choose_img_url(const ns_node *n, const ns_node **img_out, double *density)
     const ns_node *img = n;
     char *url = NULL;
     *density = 1.0;
+    if (!n) {
+        if (img_out) *img_out = NULL;
+        return NULL;
+    }
     if (ns_node_is_tag(n, NS_TAG_IMG) &&
         ns_node_is_tag(n->parent, NS_TAG_PICTURE))
         n = n->parent;

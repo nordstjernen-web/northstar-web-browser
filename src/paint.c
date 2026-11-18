@@ -3109,6 +3109,15 @@ ns_paint_drop_box_cache(ns_box *box)
     }
 }
 
+/* Ellipsize mode for a block: a line ends at the left under direction: rtl,
+ * so the text is cut there. */
+int
+ns_paint_ellipsize_mode(const ns_style *style)
+{
+    return style && keyword_is(style->values[NS_CSS_DIRECTION], "rtl")
+        ? NS_PANGO_ELLIPSIZE_START : NS_PANGO_ELLIPSIZE_END;
+}
+
 /* Creates an inline box's base layout: font, wrap, indent, ellipsis, line-clamp, i18n. */
 static NsPangoLayout *
 paint_inline_layout_new(const ns_box *b, const ns_style *s,
@@ -3130,12 +3139,12 @@ paint_inline_layout_new(const ns_box *b, const ns_style *s,
             ns_pango_layout_set_indent(layout, (int)(ti * NS_PANGO_SCALE));
     }
     if (keyword_is(s ? s->values[NS_CSS_TEXT_OVERFLOW] : NULL, "ellipsis"))
-        ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+        ns_pango_layout_set_ellipsize(layout, ns_paint_ellipsize_mode(s));
     {
         const ns_css_value *lc = s ? s->values[NS_CSS_LINE_CLAMP] : NULL;
         if (lc && lc->kind == NS_CSS_V_LENGTH && lc->u.length.v >= 1) {
             ns_pango_layout_set_height(layout, -(int)lc->u.length.v);
-            ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+            ns_pango_layout_set_ellipsize(layout, ns_paint_ellipsize_mode(s));
         }
     }
     ns_pango_layout_set_text(layout, b->text, -1);

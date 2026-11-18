@@ -6323,12 +6323,14 @@ inline_layout(ns_box *box, double content_width, const ns_style *parent_style)
         if (ti > 0) ns_pango_layout_set_indent(layout, (int)(ti * NS_PANGO_SCALE));
     }
     if (ellip)
-        ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+        ns_pango_layout_set_ellipsize(layout,
+                                      ns_paint_ellipsize_mode(parent_style));
     {
         const ns_css_value *lc = parent_style ? parent_style->values[NS_CSS_LINE_CLAMP] : NULL;
         if (lc && lc->kind == NS_CSS_V_LENGTH && lc->u.length.v >= 1) {
             ns_pango_layout_set_height(layout, -(int)lc->u.length.v);
-            ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+            ns_pango_layout_set_ellipsize(layout,
+                                      ns_paint_ellipsize_mode(parent_style));
         }
     }
     inline_layout_atomics_prepare(box, parent_style);
@@ -6520,7 +6522,8 @@ inline_box_form_hit(const ns_box *box, double local_x, double local_y,
     }
     if (keyword_is(parent_style ? parent_style->values[NS_CSS_TEXT_OVERFLOW] : NULL,
                    "ellipsis"))
-        ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+        ns_pango_layout_set_ellipsize(layout,
+                                      ns_paint_ellipsize_mode(parent_style));
     ns_pango_layout_set_text(layout, box->text, -1);
     inline_layout_apply_attrs(layout, box, parent_style);
     ns_paint_apply_text_align(layout, parent_style);

@@ -70,6 +70,7 @@ double ns_paint_normal_line_height_px(const ns_style *style);
 void ns_paint_apply_css_line_spacing(NsPangoLayout *layout,
                                      const ns_style *style);
 
+int      ns_paint_ellipsize_mode(const ns_style *style);
 gboolean ns_paint_li_is_inside(const ns_style *li_style);
 void     ns_paint_list_ordinals_begin(void);
 void     ns_paint_list_ordinals_end(void);

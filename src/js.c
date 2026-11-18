@@ -264,6 +264,8 @@ static void ns_sw_post_fetch_request(ns_worker_host *host, guint id,
                                      const char *const *headers,
                                      const guint8 *body, gsize body_len);
 static void ns_sw_persist_registration(ns_worker_host *host);
+static ns_worker_host *ns_worker_host_ref(ns_worker_host *host);
+static void ns_worker_host_unref(ns_worker_host *host);
 static JSValue ns_sw_unregister(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv);
 static void ns_js_flush_document_write(ns_js *js);
@@ -9189,6 +9191,8 @@ typedef struct ns_js_fetch_state {
     guint8        *fb_body;
     gsize          fb_body_len;
     char         **fb_headers;
+    ns_worker_host *sw_host;       /* service worker the request was posted to */
+    gboolean       awaiting_sw;    /* that worker has not answered yet */
 } ns_js_fetch_state;
 
 /* Frees a fetch state, detaching its abort listener and settling handles. */
@@ -9230,6 +9234,7 @@ ns_js_fetch_state_free(ns_js_fetch_state *st)
     g_free(st->fb_content_type);
     g_free(st->fb_body);
     g_strfreev(st->fb_headers);
+    if (st->sw_host) ns_worker_host_unref(st->sw_host);
     g_free(st);
 }
 
@@ -10159,6 +10164,8 @@ ns_js_fetch_for(JSContext *ctx, JSValueConst frame_url, int argc,
             st->fb_body_len = body_len;
         }
         st->fb_headers = g_strdupv((char **)extras->pdata);
+        st->sw_host = ns_worker_host_ref(sw);
+        st->awaiting_sw = TRUE;
         ns_sw_post_fetch_request(sw, st->id, send_url, use_method,
                                  (const char *const *)extras->pdata,
                                  (const guint8 *)body, body_len);
@@ -21920,11 +21927,14 @@ ns_js_ws_log_exception(JSContext *ctx, const char *type)
     JS_FreeValue(ctx, ex);
 }
 
-/* Calls the on<type> handler then matching _listeners entries; consumes event. */
+/* Calls the on<type> handler then matching _listeners entries; consumes event.
+ * Holds its own reference to the receiver: a handler may drop the last one
+ * (EventSource.close() releases the object's self-pin). */
 static void
-ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_v,
+ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_arg,
                   const char *on_name, JSValue event)
 {
+    JSValue this_v = JS_DupValue(ctx, this_arg);
     JSValue cb = JS_GetPropertyStr(ctx, this_v, on_name);
     if (JS_IsFunction(ctx, cb)) {
         JSValueConst args[1] = { event };
@@ -21968,6 +21978,7 @@ ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_v,
         JS_FreeValue(ctx, listeners);
     }
     JS_FreeValue(ctx, event);
+    JS_FreeValue(ctx, this_v);
 }
 
 /* Builds a plain trusted, non-bubbling event object with the standard Event methods. */
@@ -22401,11 +22412,17 @@ ns_js_es_on_open(gpointer user_data)
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    /* A handler that calls close() releases the self-pin; without this
+     * reference the wrapper would be finalized, and s freed with it, while
+     * the callback is still running. */
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
-    JS_SetPropertyStr(ctx, s->wrapper, "readyState", JS_NewInt32(ctx, 1));
-    ns_js_ws_dispatch(ctx, s->wrapper, "onopen", ns_js_ws_event(ctx, "open"));
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_push(js, &bg);
+    JS_SetPropertyStr(ctx, self, "readyState", JS_NewInt32(ctx, 1));
+    ns_js_ws_dispatch(ctx, self, "onopen", ns_js_ws_event(ctx, "open"));
+    ns_js_budget_pop(js, &bg);
+    JS_FreeValue(ctx, self);
 }
 
 /* Dispatches an SSE event named by the event field (default message) with data and id. */
@@ -22416,8 +22433,10 @@ ns_js_es_on_message(const char *event, const char *data, const char *last_id,
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
+    ns_js_budget_push(js, &bg);
     const char *type = (event && *event) ? event : "message";
     JSValue ev = ns_js_ws_event(ctx, type);
     JS_SetPropertyStr(ctx, ev, "data", JS_NewString(ctx, data ? data : ""));
@@ -22426,9 +22445,10 @@ ns_js_es_on_message(const char *event, const char *data, const char *last_id,
     JS_SetPropertyStr(ctx, ev, "origin",
                       JS_NewString(ctx, s->origin ? s->origin : ""));
     char *on_name = g_strconcat("on", type, NULL);
-    ns_js_ws_dispatch(ctx, s->wrapper, on_name, ev);
+    ns_js_ws_dispatch(ctx, self, on_name, ev);
     g_free(on_name);
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_pop(js, &bg);
+    JS_FreeValue(ctx, self);
 }
 
 /* Fires error; fatal errors set CLOSED and drop the self-pin, others reset to CONNECTING. */
@@ -22438,15 +22458,18 @@ ns_js_es_on_error(gboolean fatal, gpointer user_data)
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
-    JS_SetPropertyStr(ctx, s->wrapper, "readyState", JS_NewInt32(ctx, fatal ? 2 : 0));
-    ns_js_ws_dispatch(ctx, s->wrapper, "onerror", ns_js_ws_event(ctx, "error"));
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_push(js, &bg);
+    JS_SetPropertyStr(ctx, self, "readyState", JS_NewInt32(ctx, fatal ? 2 : 0));
+    ns_js_ws_dispatch(ctx, self, "onerror", ns_js_ws_event(ctx, "error"));
+    ns_js_budget_pop(js, &bg);
     if (fatal && s->pinned) {
         s->pinned = FALSE;
         JS_FreeValue(ctx, s->wrapper);
     }
+    JS_FreeValue(ctx, self);
 }
 
 /* EventSource.close(): sets CLOSED, stops the stream and releases the self-pin. */
@@ -23945,7 +23968,14 @@ ns_sw_fetch_result_on_owner(gpointer data)
     }
     ns_js_fetch_state *st = g_hash_table_lookup(js->fetch_states_by_id,
                                                 GUINT_TO_POINTER(res->id));
+    /* The id comes from the worker's script.  Only the worker the request
+     * was posted to may answer it, and only once: each answer below hands
+     * the state to a delivery that frees it, and the table also holds
+     * fetches that were never routed to a worker. */
+    if (st && (!st->awaiting_sw || st->sw_host != host))
+        st = NULL;
     if (st) {
+        st->awaiting_sw = FALSE;
         if (res->outcome == 1) {
             ns_response *resp = g_new0(ns_response, 1);
             resp->status = res->status > 0 ? res->status : 200;
@@ -31225,6 +31255,27 @@ ns_throw_not_a_node(JSContext *ctx, JSValueConst v, const char *what)
     return JS_ThrowTypeError(ctx, "%s is not an object / Node", what);
 }
 
+/* The disconnect steps of a node about to be moved (a custom element's
+ * disconnectedCallback, popover events) run page script after the insertion
+ * was validated and before the node is linked.  That script can reshape the
+ * tree, so what the linking relies on is checked again: node is still not an
+ * inclusive ancestor of parent, and ref, when given, is still parent's child. */
+static gboolean
+ns_insert_still_valid(const ns_node *parent, const ns_node *node,
+                      const ns_node *ref)
+{
+    if (ns_node_ancestor_or_self(parent, node)) return FALSE;
+    if (ref && (ref->parent != parent || ref == node)) return FALSE;
+    return TRUE;
+}
+
+static JSValue
+ns_throw_tree_changed(JSContext *ctx)
+{
+    return ns_throw_dom_exception(ctx, "HierarchyRequestError", 3,
+        "the tree was changed while the node was being inserted");
+}
+
 /* appendChild(): validates, moves fragment children or the node, upgrades CEs, runs scripts. */
 static JSValue
 ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -31246,16 +31297,22 @@ ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
         if (_j) ns_js_record_fragment_emptied(_j, child);
         GPtrArray *moved = g_ptr_array_new();
         ns_node *batch_prev = parent->last_child;
-        ns_node *c = child->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        /* Each child leaves the fragment as it is moved, so the next one
+         * is always the fragment's first child; a child that script moved
+         * elsewhere meanwhile is simply no longer there to take. */
+        while ((c = child->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != child) {
+                if (child->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (_j) g_hash_table_remove(_j->orphan_nodes, c);
             ns_node_append_child(parent, c);
             if (_j) ns_js_index_child_change(_j, parent, c, NULL);
             g_ptr_array_add(moved, c);
-            c = next;
         }
         if (_j && moved->len > 0) {
             ns_node *lead = g_ptr_array_index(moved, 0);
@@ -31281,8 +31338,10 @@ ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
         return JS_DupValue(ctx, argv[0]);
     }
     if (_j) {
-        if (child->parent) ns_node_iters_pre_remove(_j, child);
         ns_ce_disconnect_subtree(_j, child);
+        if (!ns_insert_still_valid(parent, child, NULL))
+            return ns_throw_tree_changed(ctx);
+        if (child->parent) ns_node_iters_pre_remove(_j, child);
         ns_js_record_move_removal(_j, child);
         g_hash_table_remove(_j->orphan_nodes, child);
     }
@@ -31538,10 +31597,14 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
         ns_node *batch_prev = has_ref ? ref->prev_sibling : parent->last_child;
         ns_node *batch_next = has_ref ? ref : NULL;
         GPtrArray *added = g_ptr_array_new();
-        ns_node *c = newc->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        while ((c = newc->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != newc) {
+                if (newc->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (!ref || ref->parent != parent) {
                 if (_j) g_hash_table_remove(_j->orphan_nodes, c);
@@ -31551,7 +31614,6 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
             }
             if (_j) ns_js_index_child_change(_j, parent, c, NULL);
             g_ptr_array_add(added, c);
-            c = next;
         }
         if (_j && added->len > 0) {
             ns_css_mark_children_restyle(parent);
@@ -31570,6 +31632,8 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
     }
     if (_j) {
         ns_ce_disconnect_subtree(_j, newc);
+        if (!ns_insert_still_valid(parent, newc, NULL))
+            return ns_throw_tree_changed(ctx);
         ns_js_record_move_removal(_j, newc);
     }
     if (!ref || ref->parent != parent) {
@@ -31697,10 +31761,14 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
             g_hash_table_add(_j->orphan_nodes, oldc);
             ns_js_record_child_change(_j, parent, NULL, oldc, o_prev, o_next);
         }
-        ns_node *c = newc->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        while ((c = newc->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != newc) {
+                if (newc->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (!reference || reference->parent != parent) {
                 if (_j) g_hash_table_remove(_j->orphan_nodes, c);
@@ -31710,7 +31778,6 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
             }
             if (_j) ns_js_record_child_change(_j, parent, c, NULL,
                                               c->prev_sibling, c->next_sibling);
-            c = next;
         }
         if (_j) {
             ns_js_note_layout_target(_j, parent);
@@ -31723,8 +31790,12 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
     }
 
     if (_j) {
-        if (newc->parent) ns_node_iters_pre_remove(_j, newc);
         ns_ce_disconnect_subtree(_j, newc);
+        /* newc is spliced in below through oldc's sibling links: oldc must
+         * still be parent's child after the callback. */
+        if (!ns_insert_still_valid(parent, newc, oldc))
+            return ns_throw_tree_changed(ctx);
+        if (newc->parent) ns_node_iters_pre_remove(_j, newc);
         ns_js_record_move_removal(_j, newc);
     }
     if (newc->parent) ns_node_remove(newc);
@@ -35917,6 +35988,7 @@ ns_offset_parent_origin_from(JSContext *ctx, JSValueConst this_val,
     if (own && ns_css_keyword_is(own->values[NS_CSS_POSITION], "fixed"))
         return;
     for (const ns_node *p = n->parent; p; p = p->parent) {
+        if (ns_node_is_embedded_document(p)) return;
         if (p->kind != NS_NODE_ELEMENT) continue;
         if (!ns_offset_parent_candidate(js, p)) continue;
         if (ns_offset_parent_is_static_root(js, p)) return;
@@ -35942,6 +36014,9 @@ ns_element_get_offsetParent(JSContext *ctx, JSValueConst this_val)
         return JS_NULL;
     const ns_node *fallback = NULL;
     for (const ns_node *p = n->parent; p; p = p->parent) {
+        /* A frame's document hangs under its <iframe> element: the
+         * embedder's elements are never a frame element's offsetParent. */
+        if (ns_node_is_embedded_document(p)) break;
         if (p->kind != NS_NODE_ELEMENT) continue;
         if (!fallback) fallback = p;
         if (ns_offset_parent_candidate(js, p))
@@ -37407,7 +37482,11 @@ ns_element_get_shadow_host(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root || !root->parent) return JS_UNDEFINED;
+    /* The accessor is an own property of each shadow root wrapper, but
+     * script can call it on any node: only a shadow root has a host. */
+    if (!ns_node_is_shadow_root(root) || !root->parent ||
+        root->parent->kind != NS_NODE_ELEMENT)
+        return JS_UNDEFINED;
     return ns_make_element(ctx, root->parent);
 }
 
@@ -37418,7 +37497,7 @@ ns_element_get_shadow_mode(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root) return JS_UNDEFINED;
+    if (!ns_node_is_shadow_root(root)) return JS_UNDEFINED;
     const char *mode = ns_element_get_attr(root, NS_SHADOW_ATTR);
     return JS_NewString(ctx, mode ? mode : "open");
 }
@@ -37430,7 +37509,7 @@ ns_element_get_shadow_flag(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root) return JS_FALSE;
+    if (!ns_node_is_shadow_root(root)) return JS_FALSE;
     const char *attr = magic == 0 ? "data-nd-shadow-delegates"
                      : magic == 1 ? "data-nd-shadow-serializable"
                                   : "data-nd-shadow-clonable";
@@ -37445,10 +37524,15 @@ ns_shadow_root_get_active_element(JSContext *ctx, JSValueConst this_val,
     (void)argc; (void)argv;
     ns_js *js = js_from_ctx(ctx);
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!js || !root || !js->current_doc || !js->focused_node)
+    if (!js || !ns_node_is_shadow_root(root) || !js->current_doc ||
+        !js->focused_node)
         return JS_NULL;
     if (!ns_node_ancestor_or_self(root, js->current_doc) ||
         !ns_node_ancestor_or_self(js->focused_node, root))
+        return JS_NULL;
+    /* Focus inside a frame nested below this root belongs to the frame's
+     * document, not to this tree. */
+    if (ns_node_document_root(js->focused_node) != ns_node_document_root(root))
         return JS_NULL;
     return ns_make_element(ctx, js->focused_node);
 }
@@ -37461,6 +37545,7 @@ ns_collect_style_sheets(JSContext *ctx, const ns_node *root,
 {
     if (!node || depth >= 512) return;
     if (node != root && ns_node_is_shadow_root(node)) return;
+    if (node != root && ns_node_is_embedded_document(node)) return;
     if (ns_node_is_tag(node, NS_TAG_STYLE)) {
         JSValue wrapper = ns_make_element(ctx, node);
         JSValue sheet = JS_GetPropertyStr(ctx, wrapper, "sheet");
@@ -37493,7 +37578,9 @@ ns_shadow_root_get_style_sheets(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
     (void)argc; (void)argv;
-    return ns_style_sheet_list(ctx, ns_unwrap_element(this_val));
+    const ns_node *root = ns_unwrap_element(this_val);
+    if (!ns_node_is_shadow_root(root)) return JS_NewArray(ctx);
+    return ns_style_sheet_list(ctx, root);
 }
 
 /* Defines a read-only boolean shadow-root flag accessor on the wrapper. */
@@ -39294,6 +39381,8 @@ ns_fieldset_collect_listed(const ns_node *scan, JSContext *ctx, JSValue arr,
     };
     if (!scan || depth >= 512) return;
     for (const ns_node *c = scan->first_child; c; c = c->next_sibling) {
+        /* Not the document of a frame below the fieldset, nor a shadow tree. */
+        if (ns_dom_hidden_child(c)) continue;
         if (ns_node_name_is_any_of(c, controls))
             JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, c));
         ns_fieldset_collect_listed(c, ctx, arr, idx, depth + 1);
@@ -39406,7 +39495,10 @@ ns_live_build(JSContext *ctx, ns_live_back *b)
     return arr;
 }
 
-/* Returns the live collection's cached array, rebuilt when the DOM generation changed. */
+/* Returns the live collection's cached array, rebuilt when the DOM generation
+ * changed.  The result is a new reference the caller must free: callers walk
+ * the array while calling into script, and a nested snapshot of the same
+ * collection replaces (and releases) the cached one. */
 static JSValue
 ns_live_snapshot(JSContext *ctx, ns_live_back *b)
 {
@@ -39414,12 +39506,14 @@ ns_live_snapshot(JSContext *ctx, ns_live_back *b)
     guint64 gen = js ? js->dom_gen : 0;
     if (!b->has_cache || b->cache_gen != gen ||
         b->kind == NS_LIVE_ATTRIBUTES) {
-        if (b->has_cache) JS_FreeValue(ctx, b->cache);
-        b->cache = ns_live_build(ctx, b);
+        JSValue fresh = ns_live_build(ctx, b);
+        JSValue old = b->has_cache ? b->cache : JS_UNDEFINED;
+        b->cache = fresh;
         b->cache_gen = gen;
         b->has_cache = TRUE;
+        JS_FreeValue(ctx, old);
     }
-    return b->cache;
+    return JS_DupValue(ctx, b->cache);
 }
 
 /* Whether s has no ASCII uppercase letters. */
@@ -39525,6 +39619,7 @@ ns_live_get_own(JSContext *ctx, JSPropertyDescriptor *desc,
             }
         }
     }
+    JS_FreeValue(ctx, snap);
     JS_FreeCString(ctx, name);
     return ret;
 }
@@ -39618,6 +39713,7 @@ ns_live_get_own_names(JSContext *ctx, JSPropertyEnum **ptab, uint32_t *plen,
         }
         JS_FreeValue(ctx, proto);
     }
+    JS_FreeValue(ctx, snap);
     uint32_t named_count = named ? named->len : 0;
     uint32_t total = len + named_count;
     if (total == 0) {
@@ -39659,8 +39755,10 @@ ns_live_item(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv
     if (JS_ToInt32(ctx, &idx, argv[0])) return JS_NULL;
     JSValue snap = ns_live_snapshot(ctx, b);
     uint32_t len = ns_js_array_length(ctx, snap);
-    if (idx < 0 || (uint32_t)idx >= len) return JS_NULL;
-    return JS_GetPropertyUint32(ctx, snap, (uint32_t)idx);
+    JSValue item = (idx < 0 || (uint32_t)idx >= len)
+        ? JS_NULL : JS_GetPropertyUint32(ctx, snap, (uint32_t)idx);
+    JS_FreeValue(ctx, snap);
+    return item;
 }
 
 /* Collection.namedItem(): first member matching by id or name, or null. */
@@ -39675,6 +39773,7 @@ ns_live_namedItem(JSContext *ctx, JSValueConst this_val, int argc,
     JSValue snap = ns_live_snapshot(ctx, b);
     uint32_t len = ns_js_array_length(ctx, snap);
     JSValue r = ns_live_named(ctx, b, snap, len, name);
+    JS_FreeValue(ctx, snap);
     JS_FreeCString(ctx, name);
     return JS_IsUndefined(r) ? JS_NULL : r;
 }
@@ -39720,6 +39819,7 @@ ns_live_delete_property(JSContext *ctx, JSValueConst obj, JSAtom prop)
         JSValue found = ns_live_named(ctx, b, snap, len, name);
         if (!JS_IsUndefined(found)) { JS_FreeValue(ctx, found); ret = 0; }
     }
+    JS_FreeValue(ctx, snap);
     JS_FreeCString(ctx, name);
     return ret;
 }
@@ -39742,6 +39842,7 @@ ns_live_define_own_property(JSContext *ctx, JSValueConst this_obj, JSAtom prop,
                 uint32_t len = ns_js_array_length(ctx, snap);
                 JSValue found = ns_live_named(ctx, b, snap, len, name);
                 if (!JS_IsUndefined(found)) { JS_FreeValue(ctx, found); reject = 1; }
+                JS_FreeValue(ctx, snap);
             }
             JS_FreeCString(ctx, name);
             if (reject) {
@@ -39767,7 +39868,9 @@ ns_live_length_get(JSContext *ctx, JSValueConst this_val,
     ns_live_back *b = JS_GetOpaque(this_val, ns_live_class_id);
     if (!b) return JS_ThrowTypeError(ctx, "Illegal invocation");
     JSValue snap = ns_live_snapshot(ctx, b);
-    return JS_NewInt64(ctx, ns_js_array_length(ctx, snap));
+    uint32_t len = ns_js_array_length(ctx, snap);
+    JS_FreeValue(ctx, snap);
+    return JS_NewInt64(ctx, len);
 }
 
 /* Releases the live collection's owner, cached snapshot and parameters. */
@@ -40393,18 +40496,21 @@ ns_radio_node_list_get_value(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     ns_live_back *b = JS_GetOpaque(this_val, ns_live_class_id);
-    JSValue snap = b ? ns_live_snapshot(ctx, b) : this_val;
+    JSValue snap = b ? ns_live_snapshot(ctx, b) : JS_DupValue(ctx, this_val);
     uint32_t n = ns_js_array_length(ctx, snap);
     for (uint32_t i = 0; i < n; i++) {
         JSValue item = JS_GetPropertyUint32(ctx, snap, i);
         const ns_node *el = ns_unwrap_element(item);
         if (ns_node_is_radio_input(el) && ns_input_is_checked(el)) {
             const char *value = ns_element_get_attr(el, "value");
+            JSValue result = JS_NewString(ctx, value ? value : "on");
             JS_FreeValue(ctx, item);
-            return JS_NewString(ctx, value ? value : "on");
+            JS_FreeValue(ctx, snap);
+            return result;
         }
         JS_FreeValue(ctx, item);
     }
+    JS_FreeValue(ctx, snap);
     return JS_NewString(ctx, "");
 }
 
@@ -40417,7 +40523,7 @@ ns_radio_node_list_set_value(JSContext *ctx, JSValueConst this_val,
     const char *wanted = JS_ToCString(ctx, argv[0]);
     if (!wanted) return JS_UNDEFINED;
     ns_live_back *b = JS_GetOpaque(this_val, ns_live_class_id);
-    JSValue snap = b ? ns_live_snapshot(ctx, b) : this_val;
+    JSValue snap = b ? ns_live_snapshot(ctx, b) : JS_DupValue(ctx, this_val);
     uint32_t n = ns_js_array_length(ctx, snap);
     ns_node *chosen = NULL;
     for (uint32_t i = 0; i < n; i++) {
@@ -40441,6 +40547,7 @@ ns_radio_node_list_set_value(JSContext *ctx, JSValueConst this_val,
         }
         ns_js_set_checkedness(js, chosen, TRUE);
     }
+    JS_FreeValue(ctx, snap);
     JS_FreeCString(ctx, wanted);
     return JS_UNDEFINED;
 }
@@ -40454,7 +40561,7 @@ ns_form_elements_named_lookup(JSContext *ctx, JSValueConst this_val,
     JSValue first = JS_NULL;
     uint32_t count = 0;
     ns_live_back *b = JS_GetOpaque(this_val, ns_live_class_id);
-    JSValue snap = b ? ns_live_snapshot(ctx, b) : this_val;
+    JSValue snap = b ? ns_live_snapshot(ctx, b) : JS_DupValue(ctx, this_val);
     uint32_t n = ns_js_array_length(ctx, snap);
     for (uint32_t i = 0; i < n; i++) {
         JSValue item = JS_GetPropertyUint32(ctx, snap, i);
@@ -40477,6 +40584,7 @@ ns_form_elements_named_lookup(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, item);
         }
     }
+    JS_FreeValue(ctx, snap);
     if (count > 1) {
         ns_node *first_node = (ns_node *)ns_unwrap_element(first);
         const ns_node *form = ns_form_owner(first_node, NULL);
@@ -40514,7 +40622,7 @@ ns_form_controls(JSContext *ctx, JSValueConst form, const ns_node *form_node)
     if (!JS_IsUndefined(cached)) return cached;
     JSValue elements = ns_element_get_form_elements(ctx, form);
     ns_live_back *b = JS_GetOpaque(elements, ns_live_class_id);
-    JSValue controls = b ? JS_DupValue(ctx, ns_live_snapshot(ctx, b))
+    JSValue controls = b ? ns_live_snapshot(ctx, b)
                          : JS_DupValue(ctx, elements);
     JS_FreeValue(ctx, elements);
     ns_qcache_put(js, form_node, 'f', "", controls);
@@ -43498,6 +43606,11 @@ ns_js_request_submit_form(JSContext *ctx, const ns_node *form,
     if (!form || !js) return JS_UNDEFINED;
     if (!ns_js_node_in_page(js, form))
         return JS_UNDEFINED;
+    /* The submitter supplies formaction, formmethod and formtarget: one
+     * from another document (a frame's button) must not steer this form. */
+    if (submitter && submitter != form &&
+        ns_node_document_root(submitter) != ns_node_document_root(form))
+        return JS_UNDEFINED;
     if (!ns_js_form_validation_allows_submit(ctx, form, submitter))
         return JS_UNDEFINED;
     gboolean submit_prevented = FALSE;
@@ -45301,6 +45414,7 @@ ns_first_descendant_named_rec(ns_node *root, const char *name, int depth)
 {
     if (!root || depth >= 512) return NULL;
     for (ns_node *c = root->first_child; c; c = c->next_sibling) {
+        if (ns_dom_hidden_child(c)) continue;
         if (c->kind == NS_NODE_ELEMENT && c->name &&
             g_ascii_strcasecmp(c->name, name) == 0)
             return c;
@@ -45323,6 +45437,7 @@ ns_collect_descendants_named_rec(ns_node *root, const char *name,
 {
     if (!root || depth >= 512) return;
     for (ns_node *c = root->first_child; c; c = c->next_sibling) {
+        if (ns_dom_hidden_child(c)) continue;
         if (c->kind == NS_NODE_ELEMENT && c->name &&
             g_ascii_strcasecmp(c->name, name) == 0)
             g_ptr_array_add(out, c);
@@ -50157,16 +50272,44 @@ ns_ce_pending_array_free(gpointer p)
     g_ptr_array_free(a, TRUE);
 }
 
-/* Document a CustomElementRegistry belongs to via its window, else the main document. */
-static const ns_node *
-ns_ce_registry_document(JSContext *ctx, JSValueConst win)
+/* Whether win is the global object of the page's own (main) realm. */
+static gboolean
+ns_ce_window_is_main(ns_js *js, JSValueConst win)
+{
+    JSContext *main_ctx = js ? (js->main_realm_ctx ? js->main_realm_ctx : js->ctx)
+                             : NULL;
+    return main_ctx && ns_js_window_realm(js, win) == main_ctx;
+}
+
+/* Document a CustomElementRegistry belongs to.  data[0] is the registry's
+ * window and data[1] the document it was bound to when it was made: a
+ * frame's registry never reads its window's script-writable `document`,
+ * and never falls back to the page's document.  Returns FALSE when the
+ * registry has no document any more (its frame's document is gone). */
+static gboolean
+ns_ce_registry_document(JSContext *ctx, JSValue *data, const ns_node **out)
 {
     ns_js *js = js_from_ctx(ctx);
-    JSValue doc = JS_IsObject(win) ? JS_GetPropertyStr(ctx, win, "document")
-                                   : JS_UNDEFINED;
-    const ns_node *node = JS_IsObject(doc) ? ns_unwrap_element(doc) : NULL;
-    JS_FreeValue(ctx, doc);
-    return node ? node : (js ? js->main_document : NULL);
+    *out = NULL;
+    if (!js) return FALSE;
+    if (JS_IsObject(data[1])) {
+        const ns_node *node = ns_unwrap_element(data[1]);
+        if (!node || node->kind != NS_NODE_DOCUMENT) return FALSE;
+        *out = node;
+        return TRUE;
+    }
+    if (!ns_ce_window_is_main(js, data[0])) return FALSE;
+    *out = js->main_document;
+    return TRUE;
+}
+
+/* Throws for a registry whose document is gone. */
+static JSValue
+ns_ce_throw_no_document(JSContext *ctx)
+{
+    return ns_throw_dom_exception(ctx, "InvalidStateError", 11,
+                                  "customElements: the registry's document "
+                                  "is no longer available");
 }
 
 /* Owner document of node: nearest document ancestor, wrapper __ndOwnerDoc, or current doc. */
@@ -50726,9 +50869,16 @@ ns_ce_define_in(JSContext *ctx, const ns_node *def_doc, int argc,
     }
 
     if (js->ce_pending) {
-        GPtrArray *waiters = g_hash_table_lookup(js->ce_pending, key);
-        if (waiters) {
-            for (guint i = 0; i < waiters->len; i++) {
+        /* Take the waiters out of the table before resolving any of them.
+         * Resolving a promise with the class reads its `then` property,
+         * which can be a getter that calls define() for this name again;
+         * that call must not find, resolve and free the same list. */
+        gpointer stolen_key = NULL, stolen_value = NULL;
+        if (g_hash_table_steal_extended(js->ce_pending, key,
+                                        &stolen_key, &stolen_value)) {
+            GPtrArray *waiters = stolen_value;
+            g_free(stolen_key);
+            for (guint i = 0; waiters && i < waiters->len; i++) {
                 JSValue *fn = g_ptr_array_index(waiters, i);
                 if (fn) {
                     JSValue arg = JS_DupValue(ctx, argv[1]);
@@ -50741,8 +50891,7 @@ ns_ce_define_in(JSContext *ctx, const ns_node *def_doc, int argc,
                     g_free(fn);
                 }
             }
-            g_ptr_array_set_size(waiters, 0);
-            g_hash_table_remove(js->ce_pending, key);
+            if (waiters) g_ptr_array_free(waiters, TRUE);
         }
     }
 
@@ -50757,8 +50906,10 @@ ns_ce_define(JSContext *ctx, JSValueConst this_val, int argc,
              JSValueConst *argv, int magic, JSValue *data)
 {
     (void)this_val; (void)magic;
-    return ns_ce_define_in(ctx, ns_ce_registry_document(ctx, data[0]),
-                           argc, argv);
+    const ns_node *reg_doc = NULL;
+    if (!ns_ce_registry_document(ctx, data, &reg_doc))
+        return ns_ce_throw_no_document(ctx);
+    return ns_ce_define_in(ctx, reg_doc, argc, argv);
 }
 
 /* customElements.get(name) for the registry's document. */
@@ -50771,8 +50922,9 @@ ns_ce_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv,
     const char *raw = JS_ToCString(ctx, argv[0]);
     if (!raw) return JS_EXCEPTION;
     ns_js *js = js_from_ctx(ctx);
-    JSValue r = ns_ce_lookup_klass(js, raw,
-                                   ns_ce_registry_document(ctx, data[0]));
+    const ns_node *reg_doc = NULL;
+    JSValue r = ns_ce_registry_document(ctx, data, &reg_doc)
+        ? ns_ce_lookup_klass(js, raw, reg_doc) : JS_UNDEFINED;
     JS_FreeCString(ctx, raw);
     return r;
 }
@@ -50811,9 +50963,23 @@ ns_ce_whenDefined(JSContext *ctx, JSValueConst this_val,
         return promise;
     }
     ns_js *js = js_from_ctx(ctx);
+    const ns_node *reg_doc = NULL;
+    if (!ns_ce_registry_document(ctx, data, &reg_doc)) {
+        JS_FreeCString(ctx, raw);
+        JSValue err = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, err, "message",
+            JS_NewString(ctx, "The registry's document is no longer available"),
+            JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        JSValue rr = JS_Call(ctx, resolving[1], JS_UNDEFINED, 1,
+                             (JSValueConst[]){ err });
+        JS_FreeValue(ctx, rr);
+        JS_FreeValue(ctx, err);
+        JS_FreeValue(ctx, resolving[0]);
+        JS_FreeValue(ctx, resolving[1]);
+        return promise;
+    }
     char *name = g_ascii_strdown(raw, -1);
     JS_FreeCString(ctx, raw);
-    const ns_node *reg_doc = ns_ce_registry_document(ctx, data[0]);
     JSValue existing = ns_ce_lookup_klass(js, name, reg_doc);
     char *pending_key = ns_ce_key(js, name, reg_doc);
     if (JS_IsObject(existing)) {
@@ -50841,18 +51007,32 @@ ns_ce_whenDefined(JSContext *ctx, JSValueConst this_val,
     return promise;
 }
 
-/* Builds a CustomElementRegistry object whose methods are bound to window win. */
+/* Builds a CustomElementRegistry object whose methods are bound to window
+ * win and, for a frame's window, to the document that window has now.  The
+ * frame bootstrap makes the registry before any script of the frame runs,
+ * so this is the frame's real document; what script later stores in
+ * window.document does not move the registry to another document. */
 static JSValue
 ns_ce_make_registry(JSContext *ctx, JSValueConst win)
 {
     JSValue registry = JS_NewObject(ctx);
-    JSValueConst data[1] = { win };
+    JSValue doc = JS_UNDEFINED;
+    if (JS_IsObject(win) && !ns_ce_window_is_main(js_from_ctx(ctx), win)) {
+        doc = JS_GetPropertyStr(ctx, win, "document");
+        const ns_node *node = JS_IsObject(doc) ? ns_unwrap_element(doc) : NULL;
+        if (!node || node->kind != NS_NODE_DOCUMENT) {
+            JS_FreeValue(ctx, doc);
+            doc = JS_UNDEFINED;
+        }
+    }
+    JSValueConst data[2] = { win, doc };
     JS_SetPropertyStr(ctx, registry, "define",
-        JS_NewCFunctionData(ctx, ns_ce_define, 3, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_define, 3, 0, 2, data));
     JS_SetPropertyStr(ctx, registry, "get",
-        JS_NewCFunctionData(ctx, ns_ce_get, 1, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_get, 1, 0, 2, data));
     JS_SetPropertyStr(ctx, registry, "whenDefined",
-        JS_NewCFunctionData(ctx, ns_ce_whenDefined, 1, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_whenDefined, 1, 0, 2, data));
+    JS_FreeValue(ctx, doc);
     ns_bind_fn(ctx, registry, "upgrade", ns_ce_upgrade, 1);
     ns_bind_fn(ctx, registry, "getName", ns_ce_getName, 1);
     return registry;
@@ -56549,20 +56729,44 @@ ns_document_get_compatMode(JSContext *ctx, JSValueConst this_val)
     return JS_NewString(ctx, "CSS1Compat");
 }
 
+/* A document.write stream.  Feeding it runs the scripts it inserts, and
+ * those can call document.close() or document.open(), which finish or drop
+ * every stream.  A stream that a caller is still feeding is therefore marked
+ * busy: it is not finished or freed under that caller, only flagged, and the
+ * caller acts on the flag when it is done. */
 typedef struct ns_document_write_state {
     ns_node *script;
     ns_node *parent;
     ns_node *ref;
     ns_html_fragment_parser *parser;
+    int busy;                 /* callers currently feeding this stream */
+    gboolean close_pending;   /* finish asked for while busy */
+    gboolean detached;        /* dropped from the list while busy */
 } ns_document_write_state;
 
+/* List free function: frees the stream, or only detaches it while busy. */
 static void
 ns_document_write_state_free(gpointer data)
 {
     ns_document_write_state *state = data;
     if (!state) return;
+    if (state->busy > 0) {
+        state->detached = TRUE;
+        return;
+    }
     ns_html_fragment_parser_free(state->parser);
     g_free(state);
+}
+
+/* Ends a caller's use of a stream; TRUE if the stream is still usable.  A
+ * stream dropped from the list meanwhile is freed with its last user. */
+static gboolean
+ns_document_write_state_release(ns_document_write_state *state)
+{
+    if (state->busy > 0) state->busy--;
+    if (!state->detached) return TRUE;
+    if (state->busy == 0) ns_document_write_state_free(state);
+    return FALSE;
 }
 
 /* Insertion point for document.write: after the running script, else end of body. */
@@ -56708,9 +56912,10 @@ ns_document_write_insert_output(ns_js *js, ns_document_write_state *state)
         JS_FreeValue(js->ctx, document);
         JS_FreeValue(js->ctx, global);
         ns_js_note_layout_unscoped(js, G_STRFUNC);
-        ns_ce_upgrade_subtree_all(js, state->parent);
+        ns_node *parent = state->parent;
+        ns_ce_upgrade_subtree_all(js, parent);
         js->throw_on_dynamic_markup--;
-        ns_js_run_inserted_scripts(js, state->parent);
+        ns_js_run_inserted_scripts(js, parent);
     } else {
         js->throw_on_dynamic_markup--;
     }
@@ -56722,7 +56927,7 @@ static gboolean
 ns_document_write_process(ns_js *js, ns_document_write_state *state,
                           const char *input, gsize len, gboolean finish)
 {
-    if (!js || !state) return FALSE;
+    if (!js || !state || state->detached) return FALSE;
     gboolean ok = finish
         ? ns_html_fragment_parser_finish(state->parser)
         : ns_html_fragment_parser_write(state->parser, input, len);
@@ -56730,12 +56935,20 @@ ns_document_write_process(ns_js *js, ns_document_write_state *state,
     return ok;
 }
 
-/* Finishes a document.write state's parser, inserts the rest and drops the state. */
+/* Finishes a document.write state's parser, inserts the rest and drops the
+ * state.  A state some caller is still feeding is only flagged; that caller
+ * finishes it. */
 static void
 ns_document_write_finish_state(ns_js *js, ns_document_write_state *state)
 {
     if (!js || !state || !js->document_write_states) return;
+    if (state->busy > 0) {
+        state->close_pending = TRUE;
+        return;
+    }
+    state->busy++;
     ns_document_write_process(js, state, NULL, 0, TRUE);
+    if (!ns_document_write_state_release(state)) return;
     for (guint i = 0; i < js->document_write_states->len; i++) {
         if (g_ptr_array_index(js->document_write_states, i) == state) {
             g_ptr_array_remove_index(js->document_write_states, i);
@@ -56808,12 +57021,23 @@ ns_document_close(JSContext *ctx, JSValueConst this_val,
                                       "document.close during parser-created "
                                       "element construction");
     if (js) {
-        while (js->document_write_states &&
-               js->document_write_states->len > 0) {
-            ns_document_write_state *state =
-                g_ptr_array_index(js->document_write_states,
-                                  js->document_write_states->len - 1);
-            ns_document_write_finish_state(js, state);
+        /* Finish the newest stream nobody is feeding until none is left;
+         * streams in use (this call may come from a script that such a
+         * stream has just inserted) are flagged for their user to finish. */
+        for (;;) {
+            ns_document_write_state *idle = NULL;
+            GPtrArray *states = js->document_write_states;
+            for (guint i = states ? states->len : 0; i > 0; i--) {
+                ns_document_write_state *state =
+                    g_ptr_array_index(states, i - 1);
+                if (state->busy > 0) {
+                    state->close_pending = TRUE;
+                } else if (!idle) {
+                    idle = state;
+                }
+            }
+            if (!idle) break;
+            ns_document_write_finish_state(js, idle);
         }
         js->document_write_parser_open = FALSE;
     }
@@ -56841,6 +57065,9 @@ ns_document_write_common(JSContext *ctx, int argc, JSValueConst *argv,
     if (!state)
         state = ns_document_write_state_new(js, js->current_script);
     if (!state) return JS_UNDEFINED;
+    /* Converting an argument and running the scripts a write inserts both
+     * run page script, which may call document.close() or document.open(). */
+    state->busy++;
     for (int i = 0; i < argc; i++) {
         const char *s = JS_ToCString(ctx, argv[i]);
         if (!s) continue;
@@ -56848,8 +57075,13 @@ ns_document_write_common(JSContext *ctx, int argc, JSValueConst *argv,
         JS_FreeCString(ctx, s);
     }
     if (newline) ns_document_write_process(js, state, "\n", 1, FALSE);
-    if (!js->current_script && !js->document_write_parser_open)
+    if (!ns_document_write_state_release(state)) return JS_UNDEFINED;
+    if (state->busy == 0 &&
+        (state->close_pending ||
+         (!js->current_script && !js->document_write_parser_open))) {
+        state->close_pending = FALSE;
         ns_document_write_finish_state(js, state);
+    }
     return JS_UNDEFINED;
 }
 
@@ -60018,6 +60250,7 @@ ns_document_write_consume_parser_tail(ns_js *js, ns_node *script,
     ns_document_write_state *state =
         ns_document_write_state_find(js, script);
     if (!state || !tails) return;
+    state->busy++;
     for (guint i = 0; i < tails->len; i++) {
         ns_parser_tail *tail = g_ptr_array_index(tails, i);
         if (tail->parent != state->parent) continue;
@@ -60048,6 +60281,7 @@ ns_document_write_consume_parser_tail(ns_js *js, ns_node *script,
         }
         break;
     }
+    if (!ns_document_write_state_release(state)) return;
     ns_document_write_finish_state(js, state);
 }
 

@@ -52,9 +52,37 @@ static void
 render_feed_animations(const ns_render_ctx *c, GHashTable *styles)
 {
     if (!c->anim) return;
-    for (guint i = 0; i < c->n_sheets; i++)
-        if (c->sheets[i]) ns_anim_load_from_stylesheet(c->anim, c->sheets[i]);
+    ns_anim_load_from_stylesheets(c->anim, c->sheets, c->n_sheets);
     ns_anim_observe_all(c->anim, styles, g_get_monotonic_time());
+}
+
+#define NS_FONT_REQUEST_REPEAT_US G_USEC_PER_SEC
+
+/* Whether the @font-face sources of these same stylesheets, for this same
+ * document, were requested less than a second ago.  The window is short so
+ * that a failed fetch is still retried. */
+static gboolean
+render_font_requests_current(const ns_render_ctx *c)
+{
+    static __thread guint64 issued_sig;
+    static __thread gint64 issued_us;
+    guint64 sig = 1469598103934665603ULL ^ c->n_sheets;
+    for (guint i = 0; i < c->n_sheets; i++) {
+        sig ^= c->sheets[i] ? c->sheets[i]->serial : 0;
+        sig *= 1099511628211ULL;
+    }
+    sig ^= (guint64)(guintptr)c->doc;
+    sig *= 1099511628211ULL;
+    sig ^= g_str_hash(c->base_url ? c->base_url : "");
+    sig *= 1099511628211ULL;
+    sig ^= (guint64)(guintptr)c->js;
+    gint64 now = g_get_monotonic_time();
+    if (issued_us && sig == issued_sig &&
+        now - issued_us < NS_FONT_REQUEST_REPEAT_US)
+        return TRUE;
+    issued_sig = sig;
+    issued_us = now;
+    return FALSE;
 }
 
 /* Requests @font-face sources allowed by fetch policy from the font loader. */
@@ -62,6 +90,7 @@ static void
 render_request_fonts(const ns_render_ctx *c)
 {
     if (!ns_font_available()) return;
+    if (render_font_requests_current(c)) return;
     ns_fetch_policy *policy = ns_js_fetch_policy(c->js, NULL);
     for (guint i = 0; i < c->n_sheets; i++) {
         const ns_css_stylesheet *sh = c->sheets[i];

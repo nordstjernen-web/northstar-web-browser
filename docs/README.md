@@ -1,7 +1,7 @@
 # Northstar Web Browser documentation
 
 Developer documentation for the **Northstar Web Browser** (open-source GPL
-edition) — a minimalist browser written from scratch in C with GTK 4 and
+edition) — a minimalist browser written in C with GTK 4 and
 libcurl, carrying no upstream browser engine.
 
 ## Contents

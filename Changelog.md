@@ -13,6 +13,9 @@ Significant changes in each release:
   `accent-color` otherwise; with `appearance: none` the element's own
   background is the track. Speedometer 3.1 shows its progress as a white
   line under the test frame.
+* The README says the project was started in 2026, and the README,
+  package descriptions, man page, AppStream metainfo and `about:` page
+  say "written in C" instead of "written from scratch in C".
 * A DOM node takes 112 bytes instead of 200. Fields that almost no node
   uses move into a part allocated the first time a node needs one: a
   document's id, class and tag indexes, id counts and parser string

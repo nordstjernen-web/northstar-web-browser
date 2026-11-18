@@ -67,7 +67,7 @@ Requires:       gtk4
 Requires:       libcurl
 
 %description
-Northstar Web Browser is a small free-software web browser written from scratch in
+Northstar Web Browser is a small free-software web browser written in
 C with GTK 4 and libcurl. The HTML parser, CSS engine, layout, paint
 and JavaScript glue contain no third-party browser engine. SVG images
 are rendered in-engine. Licensed GPL-3.0-or-later.

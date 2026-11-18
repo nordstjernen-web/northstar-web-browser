@@ -4689,7 +4689,7 @@ static const char k_about_northstar_template[] =
     "<p class=\"ver\">{{Version}} " NS_VERSION " \xc2\xb7 "
     "<a href=\"https://github.com/nordstjernen-web/northstar-web-browser/"
     "releases\">{{Release notes}}</a></p>"
-    "<p>{{A small, independent web browser written from scratch in C.}}</p>"
+    "<p>{{A small, independent web browser written in C.}}</p>"
     "<p>{{Northstar Web Browser is free software, distributed under the GNU "
     "General Public License, version 3 or later.}} \xc2\xa9 2026 Andreas "
     "R\xc3\xb8sdal</p>"

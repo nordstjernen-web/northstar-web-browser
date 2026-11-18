@@ -33386,12 +33386,27 @@ incr_note_loose_has_anchor(const ns_css_simple *c, gboolean identity,
 
 static gboolean incr_collect_has_anchors_selector(const ns_css_selector *sel,
                                                   int depth, gboolean identity,
-                                                  const char *subject_key);
+                                                  const char *subject_key,
+                                                  const ns_css_simple *outer);
 
-/* Collects keys for compounds bearing :has(), recursing into nested selectors. */
+/* Whether a compound names its element by id, class, attribute or type. */
+static gboolean
+incr_simple_has_own_key(const ns_css_simple *c)
+{
+    return c && ((c->id && *c->id) ||
+                 (c->classes && c->classes->len > 0) ||
+                 (c->attrs && c->attrs->len > 0) ||
+                 (c->type && *c->type && strcmp(c->type, "*") != 0));
+}
+
+/* Collects keys for compounds bearing :has(), recursing into nested selectors.
+ * outer is the compound this one is an argument of, inside :is(), :where() or
+ * :not(), when both describe the same element: a :has() with no key of its
+ * own, as in `.a:not(:has(.b))`, is then anchored by the outer compound's. */
 static gboolean
 incr_collect_has_anchors_simple(const ns_css_simple *c, int depth,
-                                gboolean identity, const char *subject_key)
+                                gboolean identity, const char *subject_key,
+                                const ns_css_simple *outer)
 {
     if (!c || depth > 6) return FALSE;
     gboolean found = FALSE;
@@ -33401,9 +33416,11 @@ incr_collect_has_anchors_simple(const ns_css_simple *c, int depth,
             if (incr_has_group_uses_siblings(
                     g_ptr_array_index(c->has_groups, gi)))
                 g_has_sibling_args = TRUE;
-        if (!incr_add_positive_compound_deps(
-                identity ? g_has_self_keys : g_has_cq_keys,
-                identity ? g_has_self_attrs : g_has_cq_attrs, c, depth))
+        GHashTable *keys = identity ? g_has_self_keys : g_has_cq_keys;
+        GPtrArray *attrs = identity ? g_has_self_attrs : g_has_cq_attrs;
+        if (!incr_add_positive_compound_deps(keys, attrs, c, depth) &&
+            !(outer &&
+              incr_add_positive_compound_deps(keys, attrs, outer, depth)))
             incr_note_loose_has_anchor(c, identity, subject_key);
     }
     if (c->pseudos)
@@ -33414,8 +33431,9 @@ incr_collect_has_anchors_simple(const ns_css_simple *c, int depth,
             for (guint gi = 0; gi < p->of_group->len; gi++)
                 found |= incr_collect_has_anchors_selector(
                     g_ptr_array_index(p->of_group, gi), depth + 1, FALSE,
-                    NULL);
+                    NULL, NULL);
         }
+    const ns_css_simple *shared = incr_simple_has_own_key(c) ? c : outer;
     GPtrArray *groups[2] = { c->matches_any, c->matches_none };
     for (guint g = 0; g < G_N_ELEMENTS(groups); g++) {
         if (!groups[g]) continue;
@@ -33424,15 +33442,18 @@ incr_collect_has_anchors_simple(const ns_css_simple *c, int depth,
             for (guint si = 0; group && si < group->len; si++)
                 found |= incr_collect_has_anchors_selector(
                     g_ptr_array_index(group, si), depth + 1, identity,
-                    subject_key);
+                    subject_key, shared);
         }
     }
     return found;
 }
 
+/* Only the last compound of a nested selector describes the element the
+ * enclosing compound does; the ones before it describe other elements. */
 static gboolean
 incr_collect_has_anchors_selector(const ns_css_selector *sel, int depth,
-                                  gboolean identity, const char *subject_key)
+                                  gboolean identity, const char *subject_key,
+                                  const ns_css_simple *outer)
 {
     if (!sel || !sel->compounds || depth > 6) return FALSE;
     gboolean found = FALSE;
@@ -33440,7 +33461,7 @@ incr_collect_has_anchors_selector(const ns_css_selector *sel, int depth,
     for (guint i = 0; i < sel->compounds->len; i++)
         found |= incr_collect_has_anchors_simple(
             g_ptr_array_index(sel->compounds, i), depth,
-            identity && i == last, subject_key);
+            identity && i == last, subject_key, i == last ? outer : NULL);
     return found;
 }
 
@@ -33458,7 +33479,8 @@ incr_collect_has_cq_keys(const ns_css_stylesheet *sh)
             if (!incr_selector_uses_has(sel, 0)) continue;
             char *subject_key = incr_desc_subject_key(
                 g_ptr_array_index(sel->compounds, sel->compounds->len - 1));
-            if (!incr_collect_has_anchors_selector(sel, 0, TRUE, subject_key))
+            if (!incr_collect_has_anchors_selector(sel, 0, TRUE, subject_key,
+                                                   NULL))
                 g_has_cq_loose = TRUE;
             g_free(subject_key);
         }

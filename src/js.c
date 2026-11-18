@@ -50828,9 +50828,16 @@ ns_ce_define_in(JSContext *ctx, const ns_node *def_doc, int argc,
     }
 
     if (js->ce_pending) {
-        GPtrArray *waiters = g_hash_table_lookup(js->ce_pending, key);
-        if (waiters) {
-            for (guint i = 0; i < waiters->len; i++) {
+        /* Take the waiters out of the table before resolving any of them.
+         * Resolving a promise with the class reads its `then` property,
+         * which can be a getter that calls define() for this name again;
+         * that call must not find, resolve and free the same list. */
+        gpointer stolen_key = NULL, stolen_value = NULL;
+        if (g_hash_table_steal_extended(js->ce_pending, key,
+                                        &stolen_key, &stolen_value)) {
+            GPtrArray *waiters = stolen_value;
+            g_free(stolen_key);
+            for (guint i = 0; waiters && i < waiters->len; i++) {
                 JSValue *fn = g_ptr_array_index(waiters, i);
                 if (fn) {
                     JSValue arg = JS_DupValue(ctx, argv[1]);
@@ -50843,8 +50850,7 @@ ns_ce_define_in(JSContext *ctx, const ns_node *def_doc, int argc,
                     g_free(fn);
                 }
             }
-            g_ptr_array_set_size(waiters, 0);
-            g_hash_table_remove(js->ce_pending, key);
+            if (waiters) g_ptr_array_free(waiters, TRUE);
         }
     }
 

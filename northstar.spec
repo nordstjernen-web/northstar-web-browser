@@ -11,7 +11,7 @@
 Name:           northstar
 Version:        1.0.25
 Release:        0
-Summary:        Small GTK web browser written from scratch in C
+Summary:        Small GTK web browser written in C
 License:        GPL-3.0-or-later
 Group:          Productivity/Networking/Web/Browsers
 URL:            https://nordstjernen.org
@@ -47,7 +47,7 @@ Recommends:     gstreamer-plugins-bad
 Recommends:     gstreamer-plugins-libav
 
 %description
-Northstar Web Browser is a clean-room web browser written from scratch in C, with a
+Northstar Web Browser is a clean-room web browser written in C, with a
 GTK 4 user interface and a libcurl network stack. It is built to be small,
 secure, and readable by a single person end to end.
 

@@ -8,7 +8,7 @@ Files-Excluded:
  data/render-tests/realworld-wikipedia*.html
 Comment:
  Northstar Web Browser is the GPL edition of the Nordstjernen
- project. The browser engine is original C written from scratch; it is not
+ project. The browser engine is original C; it is not
  a fork of Gecko, WebKit, or Blink.
  .
  The orig tarball is repacked (+ds): it adds the lexbor and quickjs-ng

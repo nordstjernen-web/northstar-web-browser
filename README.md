@@ -4,7 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/nordstjernen-web/northstar-web-browser?style=flat-square)](https://github.com/nordstjernen-web/northstar-web-browser/releases/latest)
 [![Best viewed in Northstar Browser](docs/best-viewed-in-northstar-badge.svg)](https://nordstjernen.org)
 
-Northstar Web Browser is a minimalist web browser written from scratch in C. Its
+Northstar Web Browser is a minimalist web browser written in C, started in 2026. Its
 engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS, Windows and the BSDs are also supported.
@@ -269,7 +269,7 @@ a pin is moved.
 
 ## Dependencies
 
-Northstar Web Browser's engine is written from scratch — it contains no forked
+Northstar Web Browser's engine is its own — it contains no forked
 browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 [Nordstjernen project](https://github.com/nordstjernen-web/nordstjernen-sol-browser).
 

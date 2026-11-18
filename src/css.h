@@ -915,6 +915,7 @@ typedef enum ns_css_pseudo_element {
     NS_CSS_PE_BACKDROP,
     NS_CSS_PE_PLACEHOLDER,
     NS_CSS_PE_FILE_SELECTOR_BUTTON,
+    NS_CSS_PE_PROGRESS_VALUE,
 } ns_css_pseudo_element;
 
 typedef struct ns_css_selector {
@@ -1154,6 +1155,7 @@ typedef struct ns_style {
     struct ns_style *marker;
     struct ns_style *backdrop;
     struct ns_style *file_selector_button;
+    struct ns_style *progress_value;
     guint64 share_id;
     int   ref;
     guint32 mutation_gen;

@@ -2595,6 +2595,16 @@ parse_float_attr(const ns_node *n, const char *attr, double *out)
     return ns_html_parse_float(ns_element_get_attr(n, attr), out);
 }
 
+/* Fill colour of a <meter> for its quality: optimum, suboptimum, worse. */
+void
+ns_meter_quality_rgb(int quality, guint8 rgb[3])
+{
+    static const guint8 colors[3][3] = {
+        { 0x2e, 0x9d, 0x54 }, { 0xd0, 0xa4, 0x1f }, { 0xc4, 0x43, 0x3c },
+    };
+    memcpy(rgb, colors[quality == 0 ? 0 : quality == 1 ? 1 : 2], 3);
+}
+
 /* Computes progress state per HTML: max defaults to 1; frac -1 if indeterminate. */
 ns_progress_state
 ns_progress_state_for(const ns_node *n)
@@ -2999,9 +3009,9 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
         if (is_meter) {
             ns_meter_state st = ns_meter_state_for(n);
             frac = st.frac;
-            if (st.quality == 0) { r = 0x2e; g = 0x9d; b = 0x54; }
-            else if (st.quality == 1) { r = 0xd0; g = 0xa4; b = 0x1f; }
-            else { r = 0xc4; g = 0x43; b = 0x3c; }
+            guint8 rgb[3];
+            ns_meter_quality_rgb(st.quality, rgb);
+            r = rgb[0]; g = rgb[1]; b = rgb[2];
             alpha = 255;
         } else {
             ns_progress_state st = ns_progress_state_for(n);

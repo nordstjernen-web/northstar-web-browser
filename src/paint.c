@@ -1483,6 +1483,53 @@ paint_border_image(cairo_t *cr, const ns_box *b,
     return TRUE;
 }
 
+/* Draws the bar of a <progress> or <meter> that is a block box, inside (x, y, w, h). */
+static void
+paint_block_gauge(cairo_t *cr, const ns_box *b, double x, double y, double w,
+                  double h, corner_radii radii)
+{
+    const ns_node *n = b->kind == NS_BOX_BLOCK ? b->dom : NULL;
+    if (!n || n->kind != NS_NODE_ELEMENT || !n->name || w <= 0 || h <= 0) return;
+    gboolean is_progress = strcmp(n->name, "progress") == 0;
+    if (!is_progress && strcmp(n->name, "meter") != 0) return;
+    const ns_style *s = b->style;
+    gboolean native = !(s && keyword_is(s->values[NS_CSS_APPEARANCE], "none"));
+    const ns_css_value *ac = s ? s->values[NS_CSS_ACCENT_COLOR] : NULL;
+    rgba fill = rgba_of(ac && ac->kind == NS_CSS_V_COLOR ? ac : NULL,
+                        0.13, 0.36, 0.80, 1);
+    double frac;
+    if (is_progress) {
+        frac = ns_progress_state_for(n).frac;
+        const ns_css_value *value_bg = s && s->progress_value
+            ? s->progress_value->values[NS_CSS_BACKGROUND_COLOR] : NULL;
+        if (value_bg && value_bg->kind == NS_CSS_V_COLOR)
+            fill = rgba_of(value_bg, fill.r, fill.g, fill.b, fill.a);
+    } else {
+        ns_meter_state st = ns_meter_state_for(n);
+        guint8 rgb[3];
+        ns_meter_quality_rgb(st.quality, rgb);
+        frac = st.frac;
+        fill = (rgba){ rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, 1 };
+    }
+    if (frac > 1) frac = 1;
+    if (native)
+        for (int i = 0; i < 4; i++) radii.x[i] = radii.y[i] = h / 2.0;
+    cairo_save(cr);
+    rounded_rect_path(cr, x, y, w, h, radii);
+    if (native) {
+        cairo_set_source_rgb(cr, 0.88, 0.88, 0.90);
+        cairo_fill_preserve(cr);
+    }
+    cairo_clip(cr);
+    set_source_rgba(cr, fill);
+    if (frac >= 0)
+        cairo_rectangle(cr, x, y, w * frac, h);
+    else if (native)
+        cairo_rectangle(cr, x + w * 0.325, y, w * 0.35, h);
+    cairo_fill(cr);
+    cairo_restore(cr);
+}
+
 /* Paints a block's decorations: shadows, background layers, mask, borders and outline. */
 static void
 paint_block(cairo_t *cr, const ns_box *b)
@@ -1638,6 +1685,11 @@ paint_block(cairo_t *cr, const ns_box *b)
             lpos_x, lpos_y, lpos_w, lpos_h,
             lclip_x, lclip_y, lclip_w, lclip_h, radii);
     }
+
+    paint_block_gauge(cr, b,
+        border_x + b->border.left, border_y + b->border.top,
+        border_w - b->border.left - b->border.right,
+        border_h - b->border.top - b->border.bottom, radii);
 
     if (s && s->values[NS_CSS_BOX_SHADOW] &&
         s->values[NS_CSS_BOX_SHADOW]->kind == NS_CSS_V_SHADOW) {

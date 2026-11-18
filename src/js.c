@@ -21920,11 +21920,14 @@ ns_js_ws_log_exception(JSContext *ctx, const char *type)
     JS_FreeValue(ctx, ex);
 }
 
-/* Calls the on<type> handler then matching _listeners entries; consumes event. */
+/* Calls the on<type> handler then matching _listeners entries; consumes event.
+ * Holds its own reference to the receiver: a handler may drop the last one
+ * (EventSource.close() releases the object's self-pin). */
 static void
-ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_v,
+ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_arg,
                   const char *on_name, JSValue event)
 {
+    JSValue this_v = JS_DupValue(ctx, this_arg);
     JSValue cb = JS_GetPropertyStr(ctx, this_v, on_name);
     if (JS_IsFunction(ctx, cb)) {
         JSValueConst args[1] = { event };
@@ -21968,6 +21971,7 @@ ns_js_ws_dispatch(JSContext *ctx, JSValueConst this_v,
         JS_FreeValue(ctx, listeners);
     }
     JS_FreeValue(ctx, event);
+    JS_FreeValue(ctx, this_v);
 }
 
 /* Builds a plain trusted, non-bubbling event object with the standard Event methods. */
@@ -22401,11 +22405,17 @@ ns_js_es_on_open(gpointer user_data)
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    /* A handler that calls close() releases the self-pin; without this
+     * reference the wrapper would be finalized, and s freed with it, while
+     * the callback is still running. */
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
-    JS_SetPropertyStr(ctx, s->wrapper, "readyState", JS_NewInt32(ctx, 1));
-    ns_js_ws_dispatch(ctx, s->wrapper, "onopen", ns_js_ws_event(ctx, "open"));
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_push(js, &bg);
+    JS_SetPropertyStr(ctx, self, "readyState", JS_NewInt32(ctx, 1));
+    ns_js_ws_dispatch(ctx, self, "onopen", ns_js_ws_event(ctx, "open"));
+    ns_js_budget_pop(js, &bg);
+    JS_FreeValue(ctx, self);
 }
 
 /* Dispatches an SSE event named by the event field (default message) with data and id. */
@@ -22416,8 +22426,10 @@ ns_js_es_on_message(const char *event, const char *data, const char *last_id,
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
+    ns_js_budget_push(js, &bg);
     const char *type = (event && *event) ? event : "message";
     JSValue ev = ns_js_ws_event(ctx, type);
     JS_SetPropertyStr(ctx, ev, "data", JS_NewString(ctx, data ? data : ""));
@@ -22426,9 +22438,10 @@ ns_js_es_on_message(const char *event, const char *data, const char *last_id,
     JS_SetPropertyStr(ctx, ev, "origin",
                       JS_NewString(ctx, s->origin ? s->origin : ""));
     char *on_name = g_strconcat("on", type, NULL);
-    ns_js_ws_dispatch(ctx, s->wrapper, on_name, ev);
+    ns_js_ws_dispatch(ctx, self, on_name, ev);
     g_free(on_name);
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_pop(js, &bg);
+    JS_FreeValue(ctx, self);
 }
 
 /* Fires error; fatal errors set CLOSED and drop the self-pin, others reset to CONNECTING. */
@@ -22438,15 +22451,18 @@ ns_js_es_on_error(gboolean fatal, gpointer user_data)
     ns_js_es *s = user_data;
     if (!s || !s->ctx) return;
     JSContext *ctx = s->ctx;
+    ns_js *js = s->js;
+    JSValue self = JS_DupValue(ctx, s->wrapper);
     ns_budget_guard bg = {0};
-    ns_js_budget_push(s->js, &bg);
-    JS_SetPropertyStr(ctx, s->wrapper, "readyState", JS_NewInt32(ctx, fatal ? 2 : 0));
-    ns_js_ws_dispatch(ctx, s->wrapper, "onerror", ns_js_ws_event(ctx, "error"));
-    ns_js_budget_pop(s->js, &bg);
+    ns_js_budget_push(js, &bg);
+    JS_SetPropertyStr(ctx, self, "readyState", JS_NewInt32(ctx, fatal ? 2 : 0));
+    ns_js_ws_dispatch(ctx, self, "onerror", ns_js_ws_event(ctx, "error"));
+    ns_js_budget_pop(js, &bg);
     if (fatal && s->pinned) {
         s->pinned = FALSE;
         JS_FreeValue(ctx, s->wrapper);
     }
+    JS_FreeValue(ctx, self);
 }
 
 /* EventSource.close(): sets CLOSED, stops the stream and releases the self-pin. */

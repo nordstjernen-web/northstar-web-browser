@@ -39310,6 +39310,8 @@ ns_fieldset_collect_listed(const ns_node *scan, JSContext *ctx, JSValue arr,
     };
     if (!scan || depth >= 512) return;
     for (const ns_node *c = scan->first_child; c; c = c->next_sibling) {
+        /* Not the document of a frame below the fieldset, nor a shadow tree. */
+        if (ns_dom_hidden_child(c)) continue;
         if (ns_node_name_is_any_of(c, controls))
             JS_SetPropertyUint32(ctx, arr, (*idx)++, ns_make_element(ctx, c));
         ns_fieldset_collect_listed(c, ctx, arr, idx, depth + 1);
@@ -45322,6 +45324,7 @@ ns_first_descendant_named_rec(ns_node *root, const char *name, int depth)
 {
     if (!root || depth >= 512) return NULL;
     for (ns_node *c = root->first_child; c; c = c->next_sibling) {
+        if (ns_dom_hidden_child(c)) continue;
         if (c->kind == NS_NODE_ELEMENT && c->name &&
             g_ascii_strcasecmp(c->name, name) == 0)
             return c;
@@ -45344,6 +45347,7 @@ ns_collect_descendants_named_rec(ns_node *root, const char *name,
 {
     if (!root || depth >= 512) return;
     for (ns_node *c = root->first_child; c; c = c->next_sibling) {
+        if (ns_dom_hidden_child(c)) continue;
         if (c->kind == NS_NODE_ELEMENT && c->name &&
             g_ascii_strcasecmp(c->name, name) == 0)
             g_ptr_array_add(out, c);

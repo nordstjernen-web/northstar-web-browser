@@ -3109,6 +3109,15 @@ ns_paint_drop_box_cache(ns_box *box)
     }
 }
 
+/* Ellipsize mode for a block: a line ends at the left under direction: rtl,
+ * so the text is cut there. */
+int
+ns_paint_ellipsize_mode(const ns_style *style)
+{
+    return style && keyword_is(style->values[NS_CSS_DIRECTION], "rtl")
+        ? NS_PANGO_ELLIPSIZE_START : NS_PANGO_ELLIPSIZE_END;
+}
+
 /* Creates an inline box's base layout: font, wrap, indent, ellipsis, line-clamp, i18n. */
 static NsPangoLayout *
 paint_inline_layout_new(const ns_box *b, const ns_style *s,
@@ -3130,12 +3139,12 @@ paint_inline_layout_new(const ns_box *b, const ns_style *s,
             ns_pango_layout_set_indent(layout, (int)(ti * NS_PANGO_SCALE));
     }
     if (keyword_is(s ? s->values[NS_CSS_TEXT_OVERFLOW] : NULL, "ellipsis"))
-        ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+        ns_pango_layout_set_ellipsize(layout, ns_paint_ellipsize_mode(s));
     {
         const ns_css_value *lc = s ? s->values[NS_CSS_LINE_CLAMP] : NULL;
         if (lc && lc->kind == NS_CSS_V_LENGTH && lc->u.length.v >= 1) {
             ns_pango_layout_set_height(layout, -(int)lc->u.length.v);
-            ns_pango_layout_set_ellipsize(layout, NS_PANGO_ELLIPSIZE_END);
+            ns_pango_layout_set_ellipsize(layout, ns_paint_ellipsize_mode(s));
         }
     }
     ns_pango_layout_set_text(layout, b->text, -1);
@@ -7109,6 +7118,126 @@ box_ink_extents_x(const ns_box *b, double *x0, double *x1, int depth)
 
 #define NS_FILTER_LAYER_INK_MARGIN 64.0
 
+#define NS_PAINT_GROUP_INK_MARGIN 64.0
+#define NS_PAINT_GROUP_INK_BUDGET 512
+
+/* Vertical extent [*y0, *y1] that a subtree paints into at rest, in the
+ * coordinates of the group box that contains it.  A subtree that paints
+ * nothing (a degenerate transform) returns an empty extent, *y0 > *y1.
+ * FALSE when the extent cannot be bounded here: a box shadow or filter, a
+ * running animated transform, a 3D context, a fixed or sticky descendant, a
+ * transform that mixes x into y, or more boxes than the budget. */
+static gboolean
+box_resting_ink_y(const ns_box *b, const ns_box *group, int *budget, int depth,
+                  double *y0, double *y1)
+{
+    if (--*budget < 0 || depth >= 64) return FALSE;
+    const ns_style *st = b->style;
+    if (st) {
+        const ns_css_value *shadow = st->values[NS_CSS_BOX_SHADOW];
+        if (shadow && shadow->kind == NS_CSS_V_SHADOW && shadow->u.shadow.n > 0)
+            return FALSE;
+    }
+    if (box_has_filter(b)) return FALSE;
+    if (g_paint_anim && b->dom &&
+        ns_anim_get_transform(g_paint_anim, b->dom) != NULL)
+        return FALSE;
+    if (b != group) {
+        const ns_css_value *pv = st ? st->values[NS_CSS_POSITION] : NULL;
+        if (pv && pv->kind == NS_CSS_V_KEYWORD && pv->u.keyword &&
+            (strcmp(pv->u.keyword, "fixed") == 0 ||
+             strcmp(pv->u.keyword, "sticky") == 0))
+            return FALSE;
+        if (box_establishes_3d(b)) return FALSE;
+    }
+    double bx, by, bw, bh;
+    ns_box_border_rect(b, &bx, &by, &bw, &bh);
+    if (!isfinite(bx) || !isfinite(by) || !isfinite(bw) || !isfinite(bh))
+        return FALSE;
+    double top = MIN(by, b->y);
+    double bottom = by + bh + MAX(b->margin.bottom, 0);
+    if (b->paint_bottom > b->paint_top && b->paint_top > -G_MAXDOUBLE / 2 &&
+        b->paint_bottom < G_MAXDOUBLE / 2) {
+        top = MIN(top, b->paint_top);
+        bottom = MAX(bottom, b->paint_bottom);
+    }
+    for (const ns_box *c = b->first_child; c; c = c->next_sibling) {
+        double c0, c1;
+        if (!box_resting_ink_y(c, group, budget, depth + 1, &c0, &c1))
+            return FALSE;
+        if (c0 > c1) continue;
+        top = MIN(top, c0);
+        bottom = MAX(bottom, c1);
+    }
+    for (guint i = 0; b->inline_atomics && i < b->inline_atomics->len; i++) {
+        const ns_inline_atomic *atomic =
+            &g_array_index(b->inline_atomics, ns_inline_atomic, i);
+        const ns_box *ab = atomic->box;
+        double a0, a1;
+        if (!ab) continue;
+        if (!box_resting_ink_y(ab, group, budget, depth + 1, &a0, &a1))
+            return FALSE;
+        if (a0 > a1) continue;
+        double dy = b->y + atomic->owner_offset_y - ab->y;
+        double rel = isfinite(atomic->relative_y) ? atomic->relative_y : 0;
+        top = MIN(top, a0 + dy + MIN(rel, 0));
+        bottom = MAX(bottom, a1 + dy + MAX(rel, 0));
+    }
+    if (b != group && st &&
+        (st->values[NS_CSS_TRANSFORM] || st->values[NS_CSS_TRANSLATE] ||
+         st->values[NS_CSS_ROTATE] || st->values[NS_CSS_SCALE])) {
+        ns_css_transform tf;
+        tf.n_ops = 0;
+        ns_css_style_effective_transform(st, NULL, &tf);
+        if (tf.n_ops > 0) {
+            ns_mat4 m;
+            ns_css_transform_to_mat4(&tf, bw, bh, &m);
+            double ox, oy, oz;
+            box_transform_origin(b, bx, by, bw, bh, NS_CSS_TRANSFORM_ORIGIN,
+                                 &ox, &oy, &oz);
+            for (int i = 0; i < 16; i++)
+                if (!isfinite(m.m[i])) return FALSE;
+            if (!isfinite(oy)) return FALSE;
+            if (m.m[12] != 0 || m.m[13] != 0 || m.m[15] != 1) return FALSE;
+            if (fabs(m.m[0] * m.m[5] - m.m[1] * m.m[4]) < 1e-6) {
+                *y0 = 1;
+                *y1 = 0;
+                return TRUE;
+            }
+            /* y' = m4 * x + m5 * y + m7 about the origin: only a transform
+             * that keeps x out of y maps a vertical extent to one. */
+            if (fabs(m.m[4]) > 1e-9) return FALSE;
+            double t0 = oy + m.m[5] * (top - oy) + m.m[7];
+            double t1 = oy + m.m[5] * (bottom - oy) + m.m[7];
+            top = MIN(t0, t1);
+            bottom = MAX(t0, t1);
+        }
+    }
+    *y0 = top;
+    *y1 = bottom;
+    return TRUE;
+}
+
+/* Clips cr to the rows an opacity, blend or mask group can paint into, so
+ * the group cairo pushes is that tall and not as tall as the whole clip.
+ * TRUE if a clip was set (the caller restores). */
+static gboolean
+paint_group_clip(cairo_t *cr, const ns_box *b)
+{
+    int budget = NS_PAINT_GROUP_INK_BUDGET;
+    double y0, y1;
+    if (!box_resting_ink_y(b, b, &budget, 0, &y0, &y1)) return FALSE;
+    if (!isfinite(y0) || !isfinite(y1) || !(y1 > y0)) return FALSE;
+    double cx0, cy0, cx1, cy1;
+    cairo_clip_extents(cr, &cx0, &cy0, &cx1, &cy1);
+    if (!isfinite(cx0) || !isfinite(cx1) || !(cx1 > cx0)) return FALSE;
+    cairo_save(cr);
+    cairo_rectangle(cr, cx0, y0 - NS_PAINT_GROUP_INK_MARGIN, cx1 - cx0,
+                    y1 - y0 + 2 * NS_PAINT_GROUP_INK_MARGIN);
+    cairo_clip(cr);
+    return TRUE;
+}
+
 typedef enum {
     FILTER_LAYER_NONE,
     FILTER_LAYER_OPEN,
@@ -7358,6 +7487,8 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         cairo_save(cr);
         cairo_rectangle(cr, gx, gy, gw, gh);
         cairo_clip(cr);
+    } else if (grouped && !has_transform && !has_sticky && !filter_kw) {
+        group_clipped = paint_group_clip(cr, b);
     }
     if (grouped) cairo_push_group(cr);
     if (fl.cr) cr = fl.cr;

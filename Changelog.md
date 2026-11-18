@@ -4,6 +4,24 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Backported from Nordstjernen Sol:
+  - A WebSocket opens only on a 101 response; a transfer that ended
+    without any HTTP status no longer dispatched `open`.
+  - `crypto.subtle.importKey()` rejects SPKI and PKCS#8 key data that is
+    followed by extra bytes.
+  - `text-overflow: ellipsis` and line clamping cut the line end, not the
+    line start, in a block with `direction: rtl`.
+  - A single-line text input shows its spelling marks only while it has
+    focus.
+  - The loading hourglass cursor follows the Windows display scaling.
+  - Scripts that run in a frame's realm go through the bytecode cache,
+    and `performance.memory` measures the heap at most every two seconds.
+  - A relayout no longer copies every `@keyframes` rule again or
+    re-requests every `@font-face` source when the stylesheets are
+    unchanged.
+  - An opacity, blend or mask group with children is clipped to the rows
+    it paints into, so repainting many small translucent boxes no longer
+    composites a group the size of the viewport for each.
 * A `<progress>` or `<meter>` that is a block box (`display: block`,
   absolutely positioned, a flex or grid item) draws its bar. Only the
   inline form drew one, so such an element showed its background and no

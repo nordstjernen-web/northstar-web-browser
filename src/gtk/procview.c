@@ -256,6 +256,7 @@ struct NsProcView {
     gboolean    loading;
     gboolean    busy_cursor;
     GdkCursor  *hourglass_cursor;
+    double      hourglass_scale;
 
     int         load_seq, render_seq, link_seq, click_seq, viewport_seq;
     int         key_seq, select_seq, hover_seq;
@@ -315,11 +316,13 @@ hourglass_caps_path(cairo_t *cr, double ox, double oy)
     cairo_line_to(cr, 22.3 + ox, 25.8 + oy);
 }
 
-/* Renders the 32x32 hourglass cursor image into a new GdkTexture; NULL on failure. */
+#define NS_HOURGLASS_SIZE 32
+
+/* Renders the hourglass cursor image, 32 px times scale, into a new GdkTexture; NULL on failure. */
 static GdkTexture *
-hourglass_texture(void)
+hourglass_texture(double scale)
 {
-    const int size = 32;
+    const int size = (int)lround(NS_HOURGLASS_SIZE * scale);
     cairo_surface_t *surface =
         cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
     if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
@@ -328,6 +331,7 @@ hourglass_texture(void)
     }
 
     cairo_t *cr = cairo_create(surface);
+    cairo_scale(cr, scale, scale);
     cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
     cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
@@ -407,18 +411,43 @@ hourglass_texture(void)
     return texture;
 }
 
-/* Lazily builds and caches the hourglass cursor, falling back to the themed "wait" cursor. */
+/* Scale to draw a texture cursor at.  GDK on Windows turns a texture cursor
+ * into an HCURSOR pixel for pixel, while named cursors come from the system
+ * at the display scale; other platforms' compositors scale the texture. */
+static double
+texture_cursor_scale(NsProcView *v)
+{
+#ifdef G_OS_WIN32
+    GtkNative *native = v->area ? gtk_widget_get_native(v->area) : NULL;
+    GdkSurface *surface = native ? gtk_native_get_surface(native) : NULL;
+    double s = surface ? gdk_surface_get_scale(surface) : 0.0;
+    if (!(s > 0.0) && v->area)
+        s = gtk_widget_get_scale_factor(v->area);
+    if (!(s >= 1.0 && s <= 8.0)) s = 1.0;
+    return s * ns_ui_scale();
+#else
+    (void)v;
+    return 1.0;
+#endif
+}
+
+/* Lazily builds and caches the hourglass cursor for the current scale,
+ * falling back to the themed "wait" cursor. */
 static GdkCursor *
 busy_hourglass_cursor(NsProcView *v)
 {
-    if (v->hourglass_cursor)
+    double scale = texture_cursor_scale(v);
+    if (v->hourglass_cursor && v->hourglass_scale == scale)
         return v->hourglass_cursor;
+    g_clear_object(&v->hourglass_cursor);
+    v->hourglass_scale = scale;
 
-    GdkTexture *texture = hourglass_texture();
+    GdkTexture *texture = hourglass_texture(scale);
     if (texture) {
         GdkCursor *fallback = gdk_cursor_new_from_name("wait", NULL);
+        int hotspot = (int)lround(NS_HOURGLASS_SIZE * scale / 2.0);
         v->hourglass_cursor =
-            gdk_cursor_new_from_texture(texture, 16, 16, fallback);
+            gdk_cursor_new_from_texture(texture, hotspot, hotspot, fallback);
         if (fallback)
             g_object_unref(fallback);
         g_object_unref(texture);

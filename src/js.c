@@ -58909,27 +58909,55 @@ ns_js_profile_enabled(void)
     return cached == 1;
 }
 
+/* Evaluates cached bytecode in ctx for scripts of 1 KiB or more, looked up
+ * under the page top_url; FALSE on cache miss. */
+static gboolean
+ns_js_eval_bytecode_cached_in(JSContext *ctx, const char *top_url,
+                              const char *name, const char *src, gsize len,
+                              JSValue *out_value, gboolean *out_compiled)
+{
+    if (out_compiled) *out_compiled = FALSE;
+    if (len < 1024) return FALSE;
+    gsize bc_len = 0;
+    guint8 *bc = ns_bytecode_cache_get(top_url, name, src, len, &bc_len);
+    if (!bc) return FALSE;
+    JSValue fn = JS_ReadObject(ctx, bc, bc_len, JS_READ_OBJ_BYTECODE);
+    g_free(bc);
+    if (JS_IsException(fn)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    *out_value = JS_EvalFunction(ctx, fn);
+    if (out_compiled) *out_compiled = TRUE;
+    return TRUE;
+}
+
 /* Evaluates cached bytecode for scripts of 1 KiB or more; FALSE on cache miss. */
 static gboolean
 ns_js_eval_bytecode_cached(ns_js *js, const char *name, const char *src,
                            gsize len, JSValue *out_value,
                            gboolean *out_compiled)
 {
-    if (out_compiled) *out_compiled = FALSE;
-    if (len < 1024) return FALSE;
-    gsize bc_len = 0;
-    guint8 *bc = ns_bytecode_cache_get(js->current_url, name, src, len,
-                                       &bc_len);
-    if (!bc) return FALSE;
-    JSValue fn = JS_ReadObject(js->ctx, bc, bc_len, JS_READ_OBJ_BYTECODE);
-    g_free(bc);
-    if (JS_IsException(fn)) {
-        JS_FreeValue(js->ctx, JS_GetException(js->ctx));
-        return FALSE;
+    return ns_js_eval_bytecode_cached_in(js->ctx, js->current_url, name, src,
+                                         len, out_value, out_compiled);
+}
+
+/* Serializes script bytecode compiled in ctx into the cache, under the page
+ * top_url, for sources of 1 KiB or more. */
+static void
+ns_js_bytecode_cache_store_in(JSContext *ctx, const char *top_url,
+                              JSValue fn_obj, const char *name,
+                              const char *src, gsize len)
+{
+    if (len < 1024) return;
+    size_t bc_size = 0;
+    uint8_t *bc = JS_WriteObject(ctx, &bc_size, fn_obj, JS_WRITE_OBJ_BYTECODE);
+    if (!bc || bc_size == 0) {
+        if (bc) js_free(ctx, bc);
+        return;
     }
-    *out_value = JS_EvalFunction(js->ctx, fn);
-    if (out_compiled) *out_compiled = TRUE;
-    return TRUE;
+    ns_bytecode_cache_put(top_url, name, src, len, bc, bc_size);
+    js_free(ctx, bc);
 }
 
 /* Serializes compiled script bytecode into the cache for sources of 1 KiB or more. */
@@ -58937,16 +58965,45 @@ static void
 ns_js_bytecode_cache_store(ns_js *js, JSValue fn_obj, const char *name,
                            const char *src, gsize len)
 {
-    if (len < 1024) return;
-    size_t bc_size = 0;
-    uint8_t *bc = JS_WriteObject(js->ctx, &bc_size, fn_obj,
-                                 JS_WRITE_OBJ_BYTECODE);
-    if (!bc || bc_size == 0) {
-        if (bc) js_free(js->ctx, bc);
-        return;
+    ns_js_bytecode_cache_store_in(js->ctx, js->current_url, fn_obj, name,
+                                  src, len);
+}
+
+/* Evaluates a classic script in a frame's realm through the bytecode cache,
+ * under the same key a script of the main realm gets: the page URL, the
+ * script's name and its source. */
+static JSValue
+ns_js_eval_realm_classic(JSContext *realm, const char *top_url,
+                         const char *source, gsize length, const char *origin)
+{
+    gboolean profile = ns_js_profile_enabled();
+    gint64 t0 = profile ? g_get_monotonic_time() : 0;
+    JSValue value = JS_UNDEFINED;
+    gboolean cache_hit = FALSE;
+    if (!(ns_js_eval_bytecode_cached_in(realm, top_url, origin, source, length,
+                                        &value, &cache_hit) && cache_hit)) {
+        JSValue global = JS_GetGlobalObject(realm);
+        JSEvalOptions opts = {
+            .version = JS_EVAL_OPTIONS_VERSION,
+            .eval_flags = JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY,
+            .filename = origin,
+            .line_num = 1,
+        };
+        JSValue fn = JS_EvalThis2(realm, global, source, length, &opts);
+        JS_FreeValue(realm, global);
+        if (JS_IsException(fn)) {
+            value = fn;
+        } else {
+            ns_js_bytecode_cache_store_in(realm, top_url, fn, origin, source,
+                                          length);
+            value = JS_EvalFunction(realm, fn);
+        }
     }
-    ns_bytecode_cache_put(js->current_url, name, src, len, bc, bc_size);
-    js_free(js->ctx, bc);
+    if (profile)
+        g_printerr("[profile] js eval     %6.1fms  %zub  %s[frame] %s\n",
+                   (g_get_monotonic_time() - t0) / 1000.0, (size_t)length,
+                   cache_hit ? "[bc] " : "", origin);
+    return value;
 }
 
 /* String form of an exception, or "Script error." if conversion fails; caller frees. */
@@ -59959,9 +60016,9 @@ ns_js_eval_script_source(ns_js *js, ns_node *script, const char *source,
         g_autofree char *copy = g_strndup(source ? source : "", length);
         js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
         js->eval_depth++;
-        JSValue value = JS_Eval(realm, copy, length,
-                                origin ? origin : "inline",
-                                JS_EVAL_TYPE_GLOBAL);
+        JSValue value = ns_js_eval_realm_classic(realm, previous_url, copy,
+                                                 length,
+                                                 origin ? origin : "inline");
         js->eval_depth--;
         js->eval_deadline_us = 0;
         if (js->eval_depth == 0) {

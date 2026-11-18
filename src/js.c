@@ -56668,20 +56668,44 @@ ns_document_get_compatMode(JSContext *ctx, JSValueConst this_val)
     return JS_NewString(ctx, "CSS1Compat");
 }
 
+/* A document.write stream.  Feeding it runs the scripts it inserts, and
+ * those can call document.close() or document.open(), which finish or drop
+ * every stream.  A stream that a caller is still feeding is therefore marked
+ * busy: it is not finished or freed under that caller, only flagged, and the
+ * caller acts on the flag when it is done. */
 typedef struct ns_document_write_state {
     ns_node *script;
     ns_node *parent;
     ns_node *ref;
     ns_html_fragment_parser *parser;
+    int busy;                 /* callers currently feeding this stream */
+    gboolean close_pending;   /* finish asked for while busy */
+    gboolean detached;        /* dropped from the list while busy */
 } ns_document_write_state;
 
+/* List free function: frees the stream, or only detaches it while busy. */
 static void
 ns_document_write_state_free(gpointer data)
 {
     ns_document_write_state *state = data;
     if (!state) return;
+    if (state->busy > 0) {
+        state->detached = TRUE;
+        return;
+    }
     ns_html_fragment_parser_free(state->parser);
     g_free(state);
+}
+
+/* Ends a caller's use of a stream; TRUE if the stream is still usable.  A
+ * stream dropped from the list meanwhile is freed with its last user. */
+static gboolean
+ns_document_write_state_release(ns_document_write_state *state)
+{
+    if (state->busy > 0) state->busy--;
+    if (!state->detached) return TRUE;
+    if (state->busy == 0) ns_document_write_state_free(state);
+    return FALSE;
 }
 
 /* Insertion point for document.write: after the running script, else end of body. */
@@ -56827,9 +56851,10 @@ ns_document_write_insert_output(ns_js *js, ns_document_write_state *state)
         JS_FreeValue(js->ctx, document);
         JS_FreeValue(js->ctx, global);
         ns_js_note_layout_unscoped(js, G_STRFUNC);
-        ns_ce_upgrade_subtree_all(js, state->parent);
+        ns_node *parent = state->parent;
+        ns_ce_upgrade_subtree_all(js, parent);
         js->throw_on_dynamic_markup--;
-        ns_js_run_inserted_scripts(js, state->parent);
+        ns_js_run_inserted_scripts(js, parent);
     } else {
         js->throw_on_dynamic_markup--;
     }
@@ -56841,7 +56866,7 @@ static gboolean
 ns_document_write_process(ns_js *js, ns_document_write_state *state,
                           const char *input, gsize len, gboolean finish)
 {
-    if (!js || !state) return FALSE;
+    if (!js || !state || state->detached) return FALSE;
     gboolean ok = finish
         ? ns_html_fragment_parser_finish(state->parser)
         : ns_html_fragment_parser_write(state->parser, input, len);
@@ -56849,12 +56874,20 @@ ns_document_write_process(ns_js *js, ns_document_write_state *state,
     return ok;
 }
 
-/* Finishes a document.write state's parser, inserts the rest and drops the state. */
+/* Finishes a document.write state's parser, inserts the rest and drops the
+ * state.  A state some caller is still feeding is only flagged; that caller
+ * finishes it. */
 static void
 ns_document_write_finish_state(ns_js *js, ns_document_write_state *state)
 {
     if (!js || !state || !js->document_write_states) return;
+    if (state->busy > 0) {
+        state->close_pending = TRUE;
+        return;
+    }
+    state->busy++;
     ns_document_write_process(js, state, NULL, 0, TRUE);
+    if (!ns_document_write_state_release(state)) return;
     for (guint i = 0; i < js->document_write_states->len; i++) {
         if (g_ptr_array_index(js->document_write_states, i) == state) {
             g_ptr_array_remove_index(js->document_write_states, i);
@@ -56927,12 +56960,23 @@ ns_document_close(JSContext *ctx, JSValueConst this_val,
                                       "document.close during parser-created "
                                       "element construction");
     if (js) {
-        while (js->document_write_states &&
-               js->document_write_states->len > 0) {
-            ns_document_write_state *state =
-                g_ptr_array_index(js->document_write_states,
-                                  js->document_write_states->len - 1);
-            ns_document_write_finish_state(js, state);
+        /* Finish the newest stream nobody is feeding until none is left;
+         * streams in use (this call may come from a script that such a
+         * stream has just inserted) are flagged for their user to finish. */
+        for (;;) {
+            ns_document_write_state *idle = NULL;
+            GPtrArray *states = js->document_write_states;
+            for (guint i = states ? states->len : 0; i > 0; i--) {
+                ns_document_write_state *state =
+                    g_ptr_array_index(states, i - 1);
+                if (state->busy > 0) {
+                    state->close_pending = TRUE;
+                } else if (!idle) {
+                    idle = state;
+                }
+            }
+            if (!idle) break;
+            ns_document_write_finish_state(js, idle);
         }
         js->document_write_parser_open = FALSE;
     }
@@ -56960,6 +57004,9 @@ ns_document_write_common(JSContext *ctx, int argc, JSValueConst *argv,
     if (!state)
         state = ns_document_write_state_new(js, js->current_script);
     if (!state) return JS_UNDEFINED;
+    /* Converting an argument and running the scripts a write inserts both
+     * run page script, which may call document.close() or document.open(). */
+    state->busy++;
     for (int i = 0; i < argc; i++) {
         const char *s = JS_ToCString(ctx, argv[i]);
         if (!s) continue;
@@ -56967,8 +57014,13 @@ ns_document_write_common(JSContext *ctx, int argc, JSValueConst *argv,
         JS_FreeCString(ctx, s);
     }
     if (newline) ns_document_write_process(js, state, "\n", 1, FALSE);
-    if (!js->current_script && !js->document_write_parser_open)
+    if (!ns_document_write_state_release(state)) return JS_UNDEFINED;
+    if (state->busy == 0 &&
+        (state->close_pending ||
+         (!js->current_script && !js->document_write_parser_open))) {
+        state->close_pending = FALSE;
         ns_document_write_finish_state(js, state);
+    }
     return JS_UNDEFINED;
 }
 
@@ -60137,6 +60189,7 @@ ns_document_write_consume_parser_tail(ns_js *js, ns_node *script,
     ns_document_write_state *state =
         ns_document_write_state_find(js, script);
     if (!state || !tails) return;
+    state->busy++;
     for (guint i = 0; i < tails->len; i++) {
         ns_parser_tail *tail = g_ptr_array_index(tails, i);
         if (tail->parent != state->parent) continue;
@@ -60167,6 +60220,7 @@ ns_document_write_consume_parser_tail(ns_js *js, ns_node *script,
         }
         break;
     }
+    if (!ns_document_write_state_release(state)) return;
     ns_document_write_finish_state(js, state);
 }
 

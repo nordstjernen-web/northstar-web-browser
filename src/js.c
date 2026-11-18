@@ -43514,6 +43514,11 @@ ns_js_request_submit_form(JSContext *ctx, const ns_node *form,
     if (!form || !js) return JS_UNDEFINED;
     if (!ns_js_node_in_page(js, form))
         return JS_UNDEFINED;
+    /* The submitter supplies formaction, formmethod and formtarget: one
+     * from another document (a frame's button) must not steer this form. */
+    if (submitter && submitter != form &&
+        ns_node_document_root(submitter) != ns_node_document_root(form))
+        return JS_UNDEFINED;
     if (!ns_js_form_validation_allows_submit(ctx, form, submitter))
         return JS_UNDEFINED;
     gboolean submit_prevented = FALSE;

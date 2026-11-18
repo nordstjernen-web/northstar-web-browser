@@ -2793,12 +2793,18 @@ ns_form_owner(const ns_node *control, const ns_node *doc)
     const ns_node *root = ns_node_root(control);
     gboolean connected = root && root->kind == NS_NODE_DOCUMENT &&
                          !(root->flags & NS_NODE_FRAGMENT);
+    /* A frame's document hangs under its <iframe> element.  Both lookups
+     * stay inside the control's own tree: a control in a frame is never
+     * owned by a form of the embedding page, whether the form is named by
+     * id or merely encloses the <iframe>. */
     if (form_id && connected) {
         if (*form_id) {
             const ns_node *tree_root = control;
             while (tree_root->parent &&
                    !(tree_root->kind == NS_NODE_ELEMENT &&
-                     ns_element_get_attr(tree_root, "data-nd-shadow-root") != NULL)) {
+                     ns_element_get_attr(tree_root, "data-nd-shadow-root") != NULL) &&
+                   !(tree_root->kind == NS_NODE_DOCUMENT &&
+                     !(tree_root->flags & NS_NODE_FRAGMENT))) {
                 tree_root = tree_root->parent;
             }
             ns_node *owner = ns_node_find_by_id(tree_root, form_id);
@@ -2811,6 +2817,7 @@ ns_form_owner(const ns_node *control, const ns_node *doc)
         if (p->kind == NS_NODE_ELEMENT &&
             ns_element_get_attr(p, "data-nd-shadow-root") != NULL)
             break;
+        if (ns_node_is_embedded_document(p)) break;
         if (ns_node_is_tag(p, NS_TAG_FORM)) return p;
     }
     return NULL;

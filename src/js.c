@@ -31255,6 +31255,27 @@ ns_throw_not_a_node(JSContext *ctx, JSValueConst v, const char *what)
     return JS_ThrowTypeError(ctx, "%s is not an object / Node", what);
 }
 
+/* The disconnect steps of a node about to be moved (a custom element's
+ * disconnectedCallback, popover events) run page script after the insertion
+ * was validated and before the node is linked.  That script can reshape the
+ * tree, so what the linking relies on is checked again: node is still not an
+ * inclusive ancestor of parent, and ref, when given, is still parent's child. */
+static gboolean
+ns_insert_still_valid(const ns_node *parent, const ns_node *node,
+                      const ns_node *ref)
+{
+    if (ns_node_ancestor_or_self(parent, node)) return FALSE;
+    if (ref && (ref->parent != parent || ref == node)) return FALSE;
+    return TRUE;
+}
+
+static JSValue
+ns_throw_tree_changed(JSContext *ctx)
+{
+    return ns_throw_dom_exception(ctx, "HierarchyRequestError", 3,
+        "the tree was changed while the node was being inserted");
+}
+
 /* appendChild(): validates, moves fragment children or the node, upgrades CEs, runs scripts. */
 static JSValue
 ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -31276,16 +31297,22 @@ ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
         if (_j) ns_js_record_fragment_emptied(_j, child);
         GPtrArray *moved = g_ptr_array_new();
         ns_node *batch_prev = parent->last_child;
-        ns_node *c = child->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        /* Each child leaves the fragment as it is moved, so the next one
+         * is always the fragment's first child; a child that script moved
+         * elsewhere meanwhile is simply no longer there to take. */
+        while ((c = child->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != child) {
+                if (child->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (_j) g_hash_table_remove(_j->orphan_nodes, c);
             ns_node_append_child(parent, c);
             if (_j) ns_js_index_child_change(_j, parent, c, NULL);
             g_ptr_array_add(moved, c);
-            c = next;
         }
         if (_j && moved->len > 0) {
             ns_node *lead = g_ptr_array_index(moved, 0);
@@ -31311,8 +31338,10 @@ ns_element_appendChild(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
         return JS_DupValue(ctx, argv[0]);
     }
     if (_j) {
-        if (child->parent) ns_node_iters_pre_remove(_j, child);
         ns_ce_disconnect_subtree(_j, child);
+        if (!ns_insert_still_valid(parent, child, NULL))
+            return ns_throw_tree_changed(ctx);
+        if (child->parent) ns_node_iters_pre_remove(_j, child);
         ns_js_record_move_removal(_j, child);
         g_hash_table_remove(_j->orphan_nodes, child);
     }
@@ -31568,10 +31597,14 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
         ns_node *batch_prev = has_ref ? ref->prev_sibling : parent->last_child;
         ns_node *batch_next = has_ref ? ref : NULL;
         GPtrArray *added = g_ptr_array_new();
-        ns_node *c = newc->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        while ((c = newc->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != newc) {
+                if (newc->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (!ref || ref->parent != parent) {
                 if (_j) g_hash_table_remove(_j->orphan_nodes, c);
@@ -31581,7 +31614,6 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
             }
             if (_j) ns_js_index_child_change(_j, parent, c, NULL);
             g_ptr_array_add(added, c);
-            c = next;
         }
         if (_j && added->len > 0) {
             ns_css_mark_children_restyle(parent);
@@ -31600,6 +31632,8 @@ ns_element_insertBefore(JSContext *ctx, JSValueConst this_val,
     }
     if (_j) {
         ns_ce_disconnect_subtree(_j, newc);
+        if (!ns_insert_still_valid(parent, newc, NULL))
+            return ns_throw_tree_changed(ctx);
         ns_js_record_move_removal(_j, newc);
     }
     if (!ref || ref->parent != parent) {
@@ -31727,10 +31761,14 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
             g_hash_table_add(_j->orphan_nodes, oldc);
             ns_js_record_child_change(_j, parent, NULL, oldc, o_prev, o_next);
         }
-        ns_node *c = newc->first_child;
-        while (c) {
-            ns_node *next = c->next_sibling;
+        ns_node *c;
+        while ((c = newc->first_child) != NULL) {
             if (_j) ns_ce_disconnect_subtree(_j, c);
+            if (c->parent != newc) {
+                if (newc->first_child == c) break;
+                continue;
+            }
+            if (!ns_insert_still_valid(parent, c, NULL)) break;
             ns_node_remove(c);
             if (!reference || reference->parent != parent) {
                 if (_j) g_hash_table_remove(_j->orphan_nodes, c);
@@ -31740,7 +31778,6 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
             }
             if (_j) ns_js_record_child_change(_j, parent, c, NULL,
                                               c->prev_sibling, c->next_sibling);
-            c = next;
         }
         if (_j) {
             ns_js_note_layout_target(_j, parent);
@@ -31753,8 +31790,12 @@ ns_element_replaceChild(JSContext *ctx, JSValueConst this_val,
     }
 
     if (_j) {
-        if (newc->parent) ns_node_iters_pre_remove(_j, newc);
         ns_ce_disconnect_subtree(_j, newc);
+        /* newc is spliced in below through oldc's sibling links: oldc must
+         * still be parent's child after the callback. */
+        if (!ns_insert_still_valid(parent, newc, oldc))
+            return ns_throw_tree_changed(ctx);
+        if (newc->parent) ns_node_iters_pre_remove(_j, newc);
         ns_js_record_move_removal(_j, newc);
     }
     if (newc->parent) ns_node_remove(newc);

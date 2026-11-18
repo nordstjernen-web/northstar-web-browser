@@ -799,6 +799,8 @@ browser_restyle_impl(ns_browser *b, GPtrArray *targets)
         restyle_map_pseudo(old_to_new, os->backdrop, ns->backdrop);
         restyle_map_pseudo(old_to_new, os->file_selector_button,
                            ns->file_selector_button);
+        restyle_map_pseudo(old_to_new, os->progress_value,
+                           ns->progress_value);
     }
     guint changed = g_hash_table_size(old_to_new);
     ns_layout_restyle_plan *plan = ok

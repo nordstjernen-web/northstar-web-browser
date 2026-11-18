@@ -16676,6 +16676,9 @@ ns_pseudo_substyle(const ns_style *s, const char *pseudo)
     if (strcmp(pseudo, "backdrop") == 0)     return s->backdrop;
     if (strcmp(pseudo, "file-selector-button") == 0)
         return s->file_selector_button;
+    if (strcmp(pseudo, "-webkit-progress-value") == 0 ||
+        strcmp(pseudo, "-moz-progress-bar") == 0)
+        return s->progress_value;
     return NULL;
 }
 
@@ -16977,7 +16980,7 @@ ns_cssom_pseudo_supported(const char *name, int colon_count)
     };
     static const char *const modern[] = {
         "selection", "marker", "placeholder", "backdrop",
-        "file-selector-button",
+        "file-selector-button", "-webkit-progress-value", "-moz-progress-bar",
     };
     for (gsize i = 0; i < G_N_ELEMENTS(legacy); i++)
         if (strcmp(name, legacy[i]) == 0) return TRUE;

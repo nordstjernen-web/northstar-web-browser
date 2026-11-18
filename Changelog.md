@@ -4,6 +4,15 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* A `<progress>` or `<meter>` that is a block box (`display: block`,
+  absolutely positioned, a flex or grid item) draws its bar. Only the
+  inline form drew one, so such an element showed its background and no
+  value. The filled part takes its colour from `::-webkit-progress-value`
+  or `::-moz-progress-bar` when the page sets one, which are now parsed
+  as a pseudo-element and readable through `getComputedStyle`, and from
+  `accent-color` otherwise; with `appearance: none` the element's own
+  background is the track. Speedometer 3.1 shows its progress as a white
+  line under the test frame.
 * A DOM node takes 112 bytes instead of 200. Fields that almost no node
   uses move into a part allocated the first time a node needs one: a
   document's id, class and tag indexes, id counts and parser string

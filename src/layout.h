@@ -293,6 +293,7 @@ typedef struct ns_meter_state {
 
 ns_progress_state ns_progress_state_for(const ns_node *n);
 ns_meter_state    ns_meter_state_for(const ns_node *n);
+void              ns_meter_quality_rgb(int quality, guint8 rgb[3]);
 
 typedef struct ns_layout_restyle_plan ns_layout_restyle_plan;
 ns_layout_restyle_plan *ns_layout_restyle_plan_new(ns_box *root,

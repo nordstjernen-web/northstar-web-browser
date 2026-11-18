@@ -35917,6 +35917,7 @@ ns_offset_parent_origin_from(JSContext *ctx, JSValueConst this_val,
     if (own && ns_css_keyword_is(own->values[NS_CSS_POSITION], "fixed"))
         return;
     for (const ns_node *p = n->parent; p; p = p->parent) {
+        if (ns_node_is_embedded_document(p)) return;
         if (p->kind != NS_NODE_ELEMENT) continue;
         if (!ns_offset_parent_candidate(js, p)) continue;
         if (ns_offset_parent_is_static_root(js, p)) return;
@@ -35942,6 +35943,9 @@ ns_element_get_offsetParent(JSContext *ctx, JSValueConst this_val)
         return JS_NULL;
     const ns_node *fallback = NULL;
     for (const ns_node *p = n->parent; p; p = p->parent) {
+        /* A frame's document hangs under its <iframe> element: the
+         * embedder's elements are never a frame element's offsetParent. */
+        if (ns_node_is_embedded_document(p)) break;
         if (p->kind != NS_NODE_ELEMENT) continue;
         if (!fallback) fallback = p;
         if (ns_offset_parent_candidate(js, p))

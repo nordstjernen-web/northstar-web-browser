@@ -4,6 +4,19 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Gmail: the compose window opens and a message can be sent.
+  - A script preload (`<link rel="preload" as="script">`) is checked
+    against the Content Security Policy as a script: its nonce counts and
+    `'strict-dynamic'` allows one that script created. Gmail's lazily
+    loaded modules were all blocked.
+  - A `visibility: visible` descendant of a `visibility: hidden` box is
+    painted. The compose window was invisible apart from its toolbar.
+  - A `position: fixed` box inside a scroll container is painted in the
+    stacking context of its nearest positioned ancestor outside that
+    container, not below it.
+  - A `:has()` with no id, class, attribute or type of its own, nested
+    in `:not()`, `:is()` or `:where()`, no longer turns incremental
+    restyle off for the whole page.
 * Backported from Nordstjernen Sol:
   - A WebSocket opens only on a 101 response; a transfer that ended
     without any HTTP status no longer dispatched `open`.

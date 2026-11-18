@@ -2858,7 +2858,10 @@ emit_text_control(collector_ctx *ctx, const ns_node *n, const ns_style *s,
     gboolean disabled = ns_element_get_attr(n, "disabled") != NULL;
     emit_control_text_style(ctx->attrs, s, start, ctx->out->len, val_start,
                             disp_end, is_placeholder, disabled);
+    /* A single-line input shows its spelling marks only while it has
+     * focus; a textarea keeps them. */
     if (!is_placeholder && disp_end > val_start && !disabled &&
+        (focused || ns_node_is_tag(n, NS_TAG_TEXTAREA)) &&
         ns_node_spellcheck_used(n)) {
         ns_inline_attr sc = { .kind = NS_INLINE_SPELLCHECK,
                               .start = val_start,

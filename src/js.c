@@ -264,6 +264,8 @@ static void ns_sw_post_fetch_request(ns_worker_host *host, guint id,
                                      const char *const *headers,
                                      const guint8 *body, gsize body_len);
 static void ns_sw_persist_registration(ns_worker_host *host);
+static ns_worker_host *ns_worker_host_ref(ns_worker_host *host);
+static void ns_worker_host_unref(ns_worker_host *host);
 static JSValue ns_sw_unregister(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv);
 static void ns_js_flush_document_write(ns_js *js);
@@ -9189,6 +9191,8 @@ typedef struct ns_js_fetch_state {
     guint8        *fb_body;
     gsize          fb_body_len;
     char         **fb_headers;
+    ns_worker_host *sw_host;       /* service worker the request was posted to */
+    gboolean       awaiting_sw;    /* that worker has not answered yet */
 } ns_js_fetch_state;
 
 /* Frees a fetch state, detaching its abort listener and settling handles. */
@@ -9230,6 +9234,7 @@ ns_js_fetch_state_free(ns_js_fetch_state *st)
     g_free(st->fb_content_type);
     g_free(st->fb_body);
     g_strfreev(st->fb_headers);
+    if (st->sw_host) ns_worker_host_unref(st->sw_host);
     g_free(st);
 }
 
@@ -10159,6 +10164,8 @@ ns_js_fetch_for(JSContext *ctx, JSValueConst frame_url, int argc,
             st->fb_body_len = body_len;
         }
         st->fb_headers = g_strdupv((char **)extras->pdata);
+        st->sw_host = ns_worker_host_ref(sw);
+        st->awaiting_sw = TRUE;
         ns_sw_post_fetch_request(sw, st->id, send_url, use_method,
                                  (const char *const *)extras->pdata,
                                  (const guint8 *)body, body_len);
@@ -23961,7 +23968,14 @@ ns_sw_fetch_result_on_owner(gpointer data)
     }
     ns_js_fetch_state *st = g_hash_table_lookup(js->fetch_states_by_id,
                                                 GUINT_TO_POINTER(res->id));
+    /* The id comes from the worker's script.  Only the worker the request
+     * was posted to may answer it, and only once: each answer below hands
+     * the state to a delivery that frees it, and the table also holds
+     * fetches that were never routed to a worker. */
+    if (st && (!st->awaiting_sw || st->sw_host != host))
+        st = NULL;
     if (st) {
+        st->awaiting_sw = FALSE;
         if (res->outcome == 1) {
             ns_response *resp = g_new0(ns_response, 1);
             resp->status = res->status > 0 ? res->status : 200;

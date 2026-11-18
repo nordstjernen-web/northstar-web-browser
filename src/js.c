@@ -37411,7 +37411,11 @@ ns_element_get_shadow_host(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root || !root->parent) return JS_UNDEFINED;
+    /* The accessor is an own property of each shadow root wrapper, but
+     * script can call it on any node: only a shadow root has a host. */
+    if (!ns_node_is_shadow_root(root) || !root->parent ||
+        root->parent->kind != NS_NODE_ELEMENT)
+        return JS_UNDEFINED;
     return ns_make_element(ctx, root->parent);
 }
 
@@ -37422,7 +37426,7 @@ ns_element_get_shadow_mode(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root) return JS_UNDEFINED;
+    if (!ns_node_is_shadow_root(root)) return JS_UNDEFINED;
     const char *mode = ns_element_get_attr(root, NS_SHADOW_ATTR);
     return JS_NewString(ctx, mode ? mode : "open");
 }
@@ -37434,7 +37438,7 @@ ns_element_get_shadow_flag(JSContext *ctx, JSValueConst this_val,
 {
     (void)argc; (void)argv;
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!root) return JS_FALSE;
+    if (!ns_node_is_shadow_root(root)) return JS_FALSE;
     const char *attr = magic == 0 ? "data-nd-shadow-delegates"
                      : magic == 1 ? "data-nd-shadow-serializable"
                                   : "data-nd-shadow-clonable";
@@ -37449,10 +37453,15 @@ ns_shadow_root_get_active_element(JSContext *ctx, JSValueConst this_val,
     (void)argc; (void)argv;
     ns_js *js = js_from_ctx(ctx);
     const ns_node *root = ns_unwrap_element(this_val);
-    if (!js || !root || !js->current_doc || !js->focused_node)
+    if (!js || !ns_node_is_shadow_root(root) || !js->current_doc ||
+        !js->focused_node)
         return JS_NULL;
     if (!ns_node_ancestor_or_self(root, js->current_doc) ||
         !ns_node_ancestor_or_self(js->focused_node, root))
+        return JS_NULL;
+    /* Focus inside a frame nested below this root belongs to the frame's
+     * document, not to this tree. */
+    if (ns_node_document_root(js->focused_node) != ns_node_document_root(root))
         return JS_NULL;
     return ns_make_element(ctx, js->focused_node);
 }
@@ -37465,6 +37474,7 @@ ns_collect_style_sheets(JSContext *ctx, const ns_node *root,
 {
     if (!node || depth >= 512) return;
     if (node != root && ns_node_is_shadow_root(node)) return;
+    if (node != root && ns_node_is_embedded_document(node)) return;
     if (ns_node_is_tag(node, NS_TAG_STYLE)) {
         JSValue wrapper = ns_make_element(ctx, node);
         JSValue sheet = JS_GetPropertyStr(ctx, wrapper, "sheet");
@@ -37497,7 +37507,9 @@ ns_shadow_root_get_style_sheets(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
     (void)argc; (void)argv;
-    return ns_style_sheet_list(ctx, ns_unwrap_element(this_val));
+    const ns_node *root = ns_unwrap_element(this_val);
+    if (!ns_node_is_shadow_root(root)) return JS_NewArray(ctx);
+    return ns_style_sheet_list(ctx, root);
 }
 
 /* Defines a read-only boolean shadow-root flag accessor on the wrapper. */

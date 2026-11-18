@@ -50182,16 +50182,44 @@ ns_ce_pending_array_free(gpointer p)
     g_ptr_array_free(a, TRUE);
 }
 
-/* Document a CustomElementRegistry belongs to via its window, else the main document. */
-static const ns_node *
-ns_ce_registry_document(JSContext *ctx, JSValueConst win)
+/* Whether win is the global object of the page's own (main) realm. */
+static gboolean
+ns_ce_window_is_main(ns_js *js, JSValueConst win)
+{
+    JSContext *main_ctx = js ? (js->main_realm_ctx ? js->main_realm_ctx : js->ctx)
+                             : NULL;
+    return main_ctx && ns_js_window_realm(js, win) == main_ctx;
+}
+
+/* Document a CustomElementRegistry belongs to.  data[0] is the registry's
+ * window and data[1] the document it was bound to when it was made: a
+ * frame's registry never reads its window's script-writable `document`,
+ * and never falls back to the page's document.  Returns FALSE when the
+ * registry has no document any more (its frame's document is gone). */
+static gboolean
+ns_ce_registry_document(JSContext *ctx, JSValue *data, const ns_node **out)
 {
     ns_js *js = js_from_ctx(ctx);
-    JSValue doc = JS_IsObject(win) ? JS_GetPropertyStr(ctx, win, "document")
-                                   : JS_UNDEFINED;
-    const ns_node *node = JS_IsObject(doc) ? ns_unwrap_element(doc) : NULL;
-    JS_FreeValue(ctx, doc);
-    return node ? node : (js ? js->main_document : NULL);
+    *out = NULL;
+    if (!js) return FALSE;
+    if (JS_IsObject(data[1])) {
+        const ns_node *node = ns_unwrap_element(data[1]);
+        if (!node || node->kind != NS_NODE_DOCUMENT) return FALSE;
+        *out = node;
+        return TRUE;
+    }
+    if (!ns_ce_window_is_main(js, data[0])) return FALSE;
+    *out = js->main_document;
+    return TRUE;
+}
+
+/* Throws for a registry whose document is gone. */
+static JSValue
+ns_ce_throw_no_document(JSContext *ctx)
+{
+    return ns_throw_dom_exception(ctx, "InvalidStateError", 11,
+                                  "customElements: the registry's document "
+                                  "is no longer available");
 }
 
 /* Owner document of node: nearest document ancestor, wrapper __ndOwnerDoc, or current doc. */
@@ -50782,8 +50810,10 @@ ns_ce_define(JSContext *ctx, JSValueConst this_val, int argc,
              JSValueConst *argv, int magic, JSValue *data)
 {
     (void)this_val; (void)magic;
-    return ns_ce_define_in(ctx, ns_ce_registry_document(ctx, data[0]),
-                           argc, argv);
+    const ns_node *reg_doc = NULL;
+    if (!ns_ce_registry_document(ctx, data, &reg_doc))
+        return ns_ce_throw_no_document(ctx);
+    return ns_ce_define_in(ctx, reg_doc, argc, argv);
 }
 
 /* customElements.get(name) for the registry's document. */
@@ -50796,8 +50826,9 @@ ns_ce_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv,
     const char *raw = JS_ToCString(ctx, argv[0]);
     if (!raw) return JS_EXCEPTION;
     ns_js *js = js_from_ctx(ctx);
-    JSValue r = ns_ce_lookup_klass(js, raw,
-                                   ns_ce_registry_document(ctx, data[0]));
+    const ns_node *reg_doc = NULL;
+    JSValue r = ns_ce_registry_document(ctx, data, &reg_doc)
+        ? ns_ce_lookup_klass(js, raw, reg_doc) : JS_UNDEFINED;
     JS_FreeCString(ctx, raw);
     return r;
 }
@@ -50836,9 +50867,23 @@ ns_ce_whenDefined(JSContext *ctx, JSValueConst this_val,
         return promise;
     }
     ns_js *js = js_from_ctx(ctx);
+    const ns_node *reg_doc = NULL;
+    if (!ns_ce_registry_document(ctx, data, &reg_doc)) {
+        JS_FreeCString(ctx, raw);
+        JSValue err = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, err, "message",
+            JS_NewString(ctx, "The registry's document is no longer available"),
+            JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        JSValue rr = JS_Call(ctx, resolving[1], JS_UNDEFINED, 1,
+                             (JSValueConst[]){ err });
+        JS_FreeValue(ctx, rr);
+        JS_FreeValue(ctx, err);
+        JS_FreeValue(ctx, resolving[0]);
+        JS_FreeValue(ctx, resolving[1]);
+        return promise;
+    }
     char *name = g_ascii_strdown(raw, -1);
     JS_FreeCString(ctx, raw);
-    const ns_node *reg_doc = ns_ce_registry_document(ctx, data[0]);
     JSValue existing = ns_ce_lookup_klass(js, name, reg_doc);
     char *pending_key = ns_ce_key(js, name, reg_doc);
     if (JS_IsObject(existing)) {
@@ -50866,18 +50911,32 @@ ns_ce_whenDefined(JSContext *ctx, JSValueConst this_val,
     return promise;
 }
 
-/* Builds a CustomElementRegistry object whose methods are bound to window win. */
+/* Builds a CustomElementRegistry object whose methods are bound to window
+ * win and, for a frame's window, to the document that window has now.  The
+ * frame bootstrap makes the registry before any script of the frame runs,
+ * so this is the frame's real document; what script later stores in
+ * window.document does not move the registry to another document. */
 static JSValue
 ns_ce_make_registry(JSContext *ctx, JSValueConst win)
 {
     JSValue registry = JS_NewObject(ctx);
-    JSValueConst data[1] = { win };
+    JSValue doc = JS_UNDEFINED;
+    if (JS_IsObject(win) && !ns_ce_window_is_main(js_from_ctx(ctx), win)) {
+        doc = JS_GetPropertyStr(ctx, win, "document");
+        const ns_node *node = JS_IsObject(doc) ? ns_unwrap_element(doc) : NULL;
+        if (!node || node->kind != NS_NODE_DOCUMENT) {
+            JS_FreeValue(ctx, doc);
+            doc = JS_UNDEFINED;
+        }
+    }
+    JSValueConst data[2] = { win, doc };
     JS_SetPropertyStr(ctx, registry, "define",
-        JS_NewCFunctionData(ctx, ns_ce_define, 3, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_define, 3, 0, 2, data));
     JS_SetPropertyStr(ctx, registry, "get",
-        JS_NewCFunctionData(ctx, ns_ce_get, 1, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_get, 1, 0, 2, data));
     JS_SetPropertyStr(ctx, registry, "whenDefined",
-        JS_NewCFunctionData(ctx, ns_ce_whenDefined, 1, 0, 1, data));
+        JS_NewCFunctionData(ctx, ns_ce_whenDefined, 1, 0, 2, data));
+    JS_FreeValue(ctx, doc);
     ns_bind_fn(ctx, registry, "upgrade", ns_ce_upgrade, 1);
     ns_bind_fn(ctx, registry, "getName", ns_ce_getName, 1);
     return registry;

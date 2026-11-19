@@ -44,16 +44,35 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install build dependencies
+        # A stalled package mirror used to hang this step until the job's
+        # 30-minute limit. Give each download a timeout, bound each attempt,
+        # and try again before failing.
+        timeout-minutes: 15
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            ccache gcc pkg-config meson ninja-build \
-            libgtk-4-dev libcurl4-openssl-dev libssl-dev \
-            libharfbuzz-dev libfribidi-dev libcairo2-dev \
-            libfontconfig-dev libfreetype-dev \
-            libpsl-dev libsqlite3-dev \
-            libavif-dev libsdl3-dev libseccomp-dev libenchant-2-dev \
-            libopusfile-dev libvorbis-dev ca-certificates
+          apt_get() {
+            sudo timeout -k 10 "$1" apt-get \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30 \
+              -o DPkg::Lock::Timeout=120 \
+              "${@:2}"
+          }
+          for attempt in 1 2 3; do
+            if apt_get 120 update && apt_get 240 install -y \
+                ccache gcc pkg-config meson ninja-build \
+                libgtk-4-dev libcurl4-openssl-dev libssl-dev \
+                libharfbuzz-dev libfribidi-dev libcairo2-dev \
+                libfontconfig-dev libfreetype-dev \
+                libpsl-dev libsqlite3-dev \
+                libavif-dev libsdl3-dev libseccomp-dev libenchant-2-dev \
+                libopusfile-dev libvorbis-dev ca-certificates; then
+              exit 0
+            fi
+            echo "::warning::apt-get attempt $attempt failed or timed out"
+            sudo dpkg --configure -a || true
+            sleep 10
+          done
+          exit 1
 
       - name: Restore ccache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

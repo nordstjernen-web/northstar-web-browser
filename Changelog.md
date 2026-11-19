@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* A positioned inline element is the containing block of its absolutely
+  positioned descendants. Its box was looked up and not found, and the
+  page was used instead, so a "stretched link" (`position: absolute;
+  inset: 0` inside a `position: relative` span) covered the whole page:
+  on Google's results every click and hover went to a YouTube video.
 * Dependencies: the optional original QuickJS (`-Djs_engine=quickjs`)
   moves to master `e585640`, 125 commits after `3d5e064` (Bellard has
   tagged no release since 2026-06-04): explicit resource management

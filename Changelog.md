@@ -26,6 +26,10 @@ Significant changes in each release:
   well; the page's requests then ran through the frame's script and were
   judged as coming from the frame. Gmail's sync requests failed that way
   ("Oops... the system encountered a problem (#2014)").
+* A `round()` with a step of a pixel or less, nested in `calc()`,
+  resolves its percentage against the containing block instead of the
+  viewport. Google Search's header row ran past the right edge and hid
+  the account and apps buttons.
 * Gmail inbox:
   - `<table>`, `<tr>`, `<td>` and `<th>` follow their computed display:
     a cell with `display: none` takes no column, and `tr { display:

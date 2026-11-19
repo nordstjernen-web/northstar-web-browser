@@ -6,7 +6,7 @@ This document maps the Northstar Web Browser codebase: the process and thread mo
 the page-load pipeline, and which source file owns which job. It describes
 the **minimalist GPL edition**, which is single-process and hand-written
 (no forked browser engine). For the security posture of each layer see
-[`../SECURITY.md`](../SECURITY.md).
+[`security-model.md`](security-model.md).
 
 ## Process model
 
@@ -208,7 +208,7 @@ run of table-internal siblings.
 Each top-level document gets its own QuickJS runtime, created when the
 document is loaded and freed when the page is left — or kept suspended in
 the back/forward cache. Frames get a realm inside their parent page's
-runtime, not a runtime of their own (see [`../SECURITY.md`](../SECURITY.md)). Dedicated workers, service workers and the
+runtime, not a runtime of their own (see [`security-model.md`](security-model.md)). Dedicated workers, service workers and the
 WebExtension host each run in a separate runtime.
 
 The DOM/JS bridge invalidates opaque node pointers on free and
@@ -236,7 +236,7 @@ microphone request resolves with a silent track.
 | Compiled-script bytecode | `bytecode_cache.c` |
 
 On-disk state lives under the XDG config/data/cache directories with
-owner-only permissions. See [`../SECURITY.md`](../SECURITY.md) for the
+owner-only permissions. See [`security-model.md`](security-model.md) for the
 partitioning and permission model.
 
 ## Images

@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Docs: SECURITY.md is now a short reporting FAQ shared by the three
+  browsers of the project (Nordstjernen Sol, Northstar and Southstar).
+  The threat model, sandbox and known gaps move unchanged to
+  `docs/security-model.md`.
 * WebGL 1 and WebGL 2: `canvas.getContext("webgl")` and `"webgl2"` draw
   through the system's OpenGL driver, ported from Nordstjernen Sol. See
   `docs/webgl.md`.

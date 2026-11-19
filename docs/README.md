@@ -41,7 +41,8 @@ root [README](../README.md).
 ## Related documents at the repository root
 
 - **[../README.md](../README.md)** — product overview and feature list.
-- **[../SECURITY.md](../SECURITY.md)** — threat model, sandbox posture
+- **[../SECURITY.md](../SECURITY.md)** — how to report a vulnerability
+- **[security-model.md](security-model.md)** — threat model, sandbox posture
   (per run mode), origin isolation, known gaps, and the reporting contact.
 - **[../Changelog.md](../Changelog.md)** — user-visible changes per
   release.

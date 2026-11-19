@@ -51,7 +51,7 @@ to other processes, in both GUI and headless/tooling modes. On macOS a
 sandbox profile confines writes, and on Windows the process runs with
 mitigation policies. There is no JIT. Frames, workers and extensions are
 held to their own origin and Content-Security-Policy. See
-[SECURITY.md](SECURITY.md) for the exact per-mode posture and the known
+[docs/security-model.md](docs/security-model.md) for the exact per-mode posture and the known
 gaps.
 
 **Minimalism:** one page per window, one browser process. The GTK shell

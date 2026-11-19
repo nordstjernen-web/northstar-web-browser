@@ -2,7 +2,6 @@
 # master after v3.0.1 (no newer release), pinned to its commit for its
 # memory-safety fixes.
 url = https://github.com/lexbor/lexbor.git
-revision = 145872a2e5d6c22d923afcd3c386a21e59f9a0e2
+revision = e609d9446f7adf06c67b89dcdc4a7c39430f0bd8
 depth = 1
-diff_files = lexbor-named-charref-bound.patch
 patch_directory = lexbor

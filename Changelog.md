@@ -17,6 +17,15 @@ Significant changes in each release:
   within five seconds of each click or key press. A WebGL film that starts
   its video from an animation frame after its start button was pressed
   played no video.
+* Dependencies: lexbor moves to master `e609d94` (still no release after
+  v3.0.1) for upstream's run of memory-safety fixes: use-after-free and
+  leaks on allocation failure in document and fragment parsing,
+  out-of-bounds writes in named character references and in foreign
+  element attributes, use-after-free of destroyed stylesheets and of
+  removed `<style>` elements' rules, URLSearchParams sort and parsing,
+  GB18030 and ISO-2022-JP decoding and encoding, and quadratic time in
+  Punycode. Upstream now carries the named character reference fix, so
+  `lexbor-named-charref-bound.patch` is dropped.
 * Windows: a page asking for a WebGL context no longer crashes the
   browser. libepoxy calls WGL and GL through per-thread tables once GTK's
   own renderer has made a GL context current, and the engine thread's

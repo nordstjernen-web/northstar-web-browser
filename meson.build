@@ -296,6 +296,10 @@ if webgl_feature.allowed()
     cxx_runtime = cc.find_library(cxx_runtime_name, required: false)
     if cxx_runtime.found()
       webgl_deps += cxx_runtime
+    elif host_machine.system() != 'darwin' and cc.has_link_argument('-l:libstdc++.so.6')
+      # No C++ compiler installed, so no libstdc++.so development link:
+      # name the runtime library itself.
+      webgl_deps += declare_dependency(link_args: ['-l:libstdc++.so.6'])
     endif
     if host_machine.system() == 'darwin'
       webgl_deps += dependency('appleframeworks', modules: ['OpenGL'])

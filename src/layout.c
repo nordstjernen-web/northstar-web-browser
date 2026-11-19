@@ -6300,10 +6300,18 @@ inline_layout(ns_box *box, double content_width, const ns_style *parent_style)
     }
 
     if (box->inline_atomics) {
+        /* Percentages and shrink-to-fit resolve against the containing
+         * block, not the line narrowed by floats: Wikipedia's footer puts
+         * a width: 65% inline-block beside a 35% float, and resolving it
+         * against what the float left made it 65% of 65%. */
+        double atomic_cb_w = content_width;
+        if (box->parent && box->parent->kind == NS_BOX_BLOCK &&
+            box->parent->content_width > atomic_cb_w)
+            atomic_cb_w = box->parent->content_width;
         for (guint i = 0; i < box->inline_atomics->len; i++) {
             ns_box *ab = g_array_index(box->inline_atomics, ns_inline_atomic, i).box;
             if (ab && !(g_abs_ph_set && g_hash_table_contains(g_abs_ph_set, ab)))
-                layout_box(ab, content_width, parent_style);
+                layout_box(ab, atomic_cb_w, parent_style);
         }
     }
 

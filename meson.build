@@ -289,7 +289,13 @@ if webgl_feature.allowed()
   have_webgl = epoxy.found() and have_gl_backend and have_glslang
   if have_webgl
     webgl_deps = [epoxy, declare_dependency(compile_args: glslang_cflags),
-                  glslang_lib, glslang_limits, dependency('threads')]
+                  glslang_lib, glslang_limits]
+    # glslang uses threads. Not on Windows: the threads dependency puts
+    # -pthread on the link line, which clang there does not use and, under
+    # --werror with LTO, rejects (-Wunused-command-line-argument).
+    if host_machine.system() != 'windows'
+      webgl_deps += dependency('threads')
+    endif
     # glslang is C++ behind a C interface; a static glslang needs the C++
     # runtime named on the link line of this C program.
     cxx_runtime_name = host_machine.system() == 'darwin' ? 'c++' : 'stdc++'

@@ -187,6 +187,7 @@ run of table-internal siblings.
 | QuickJS binding, DOM/JS bridge, events, CSSOM, fetch/XHR, storage, most Web APIs | `js.c`, `js_internal.h` |
 | Compatibility shims over the public QuickJS API, which also map the quickjs-ng API onto the original QuickJS | `quickjs_compat.c` |
 | Canvas 2D, `Path2D`, `ImageBitmap`, `DOMMatrix` | `js_canvas.c` |
+| WebGL 1 / 2, its offscreen GL context and shader validation (see [webgl.md](webgl.md)) | `webgl.c`, `glctx.c`, `glsl_validate.c` |
 | `Temporal` | `js_date.c`, `datetime.c` |
 | `Intl` (ECMA-402, without ICU) | `js_intl.c` |
 | `performance` and `PerformanceObserver` | `js_perf.c` |

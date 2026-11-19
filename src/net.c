@@ -4790,6 +4790,8 @@ static const char k_about_settings_html[] =
 "{{Load images}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"javascript_enabled\">"
 "{{Enable JavaScript}}</label>"
+"<label class=\"toggle\"><input type=\"checkbox\" id=\"webgl_enabled\">"
+"{{Enable WebGL (3D graphics; turning it on takes effect after a restart)}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"local_storage_enabled\">"
 "{{Enable local storage}}</label>"
 "<label class=\"toggle\"><input type=\"checkbox\" id=\"cache_enabled\">"
@@ -4829,6 +4831,7 @@ static const char k_about_settings_html[] =
 "$('cookie_policy').value=''+(c.cookie_policy||0);"
 "['do_not_track','global_privacy_control','strip_tracking_params',"
 "'https_first','safe_browsing','images_enabled','javascript_enabled',"
+"'webgl_enabled',"
 "'local_storage_enabled','cache_enabled'].forEach(function(k){$(k).checked=!!c[k];});});}\n"
 "function bv(id){return $(id).checked?'1':'0';}\n"
 "function save(){var se=$('search_pick').value;"
@@ -4842,6 +4845,7 @@ static const char k_about_settings_html[] =
 "https_first:bv('https_first'),safe_browsing:bv('safe_browsing'),"
 "images_enabled:bv('images_enabled'),"
 "javascript_enabled:bv('javascript_enabled'),"
+"webgl_enabled:bv('webgl_enabled'),"
 "local_storage_enabled:bv('local_storage_enabled'),"
 "cache_enabled:bv('cache_enabled')})}).then(function(){"
 "$('status').textContent='{{js:Saved.}}';$('status').className='ok';"
@@ -4885,6 +4889,7 @@ about_settings_json(void)
         "\"strip_tracking_params\":%s,\"https_first\":%s,"
         "\"safe_browsing\":%s,"
         "\"images_enabled\":%s,\"javascript_enabled\":%s,"
+        "\"webgl_enabled\":%s,"
         "\"local_storage_enabled\":%s,\"cache_enabled\":%s}",
         home, eng, c ? (int)c->cookie_policy : 1,
         (c && c->do_not_track) ? "true" : "false",
@@ -4894,6 +4899,7 @@ about_settings_json(void)
         (c && c->safe_browsing) ? "true" : "false",
         (c && c->images_enabled) ? "true" : "false",
         (c && c->javascript_enabled) ? "true" : "false",
+        (c && c->webgl_enabled) ? "true" : "false",
         (c && c->local_storage_enabled) ? "true" : "false",
         (c && c->cache_enabled) ? "true" : "false");
     g_free(home);
@@ -4949,6 +4955,8 @@ about_settings_save(const char *form)
         c->images_enabled = atoi(v) != 0;
     if ((v = g_hash_table_lookup(q, "javascript_enabled")))
         c->javascript_enabled = atoi(v) != 0;
+    if ((v = g_hash_table_lookup(q, "webgl_enabled")))
+        c->webgl_enabled = atoi(v) != 0;
     if ((v = g_hash_table_lookup(q, "local_storage_enabled")))
         c->local_storage_enabled = atoi(v) != 0;
     if ((v = g_hash_table_lookup(q, "cache_enabled")))

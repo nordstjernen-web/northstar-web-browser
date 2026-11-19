@@ -315,8 +315,12 @@ transitively through a library Northstar Web Browser does link. When a build bun
 them, their notices apply:
 
 - **libepoxy** — MIT License, © 2013-2014 Intel Corporation. OpenGL
-  function-pointer management, pulled in transitively by GTK's GL
-  renderer; Northstar Web Browser links nothing against it directly.
+  function-pointer management, used by GTK's GL renderer and, when WebGL
+  is built (meson `webgl` feature), linked directly for `src/webgl.c`.
+- **glslang** — BSD 3-Clause, BSD 2-Clause, MIT and Apache 2.0 (with
+  GPL-compatible terms for the bundled preprocessor), © The Khronos Group
+  and contributors. The GLSL front end that validates every WebGL shader
+  (`src/glsl_validate.c`); linked only when WebGL is built.
 - **Fontconfig** — MIT-style license, © Keith Packard and contributors.
 - **FreeType** — FreeType License (BSD-style with credit clause) or GNU
   GPL 2.0, at your option, © The FreeType Project.

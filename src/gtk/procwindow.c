@@ -813,7 +813,7 @@ static gpointer
 download_worker(gpointer ud)
 {
     NsDownload *d = ud;
-    ns_security_deny_exec_memory(FALSE);
+    ns_security_deny_exec_memory(FALSE, FALSE);
     GError *err = NULL;
     ns_response *resp = ns_net_fetch_blocking(d->url, NULL, &err);
     if (resp && resp->final_url && !download_url_allowed(resp->final_url)) {

@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGL smoke test</title>
+<canvas id="c" width="64" height="64"></canvas>
+<pre id="out"></pre>
+<script>
+/* Draws an orange rectangle over the left half of a blue canvas with
+ * WebGL 1, checks a WebGL 2 context compiles a GLSL ES 3.00 shader, and
+ * reports what it read back. The CI smoke step greps the result lines. */
+var out = document.getElementById("out");
+function log(s) { out.textContent += s + "\n"; }
+function compile(gl, type, src) {
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+}
+try {
+  var gl = document.getElementById("c").getContext("webgl");
+  if (!gl) {
+    log("webgl1 unavailable");
+  } else {
+    var p = gl.createProgram();
+    gl.attachShader(p, compile(gl, gl.VERTEX_SHADER,
+      "attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }"));
+    gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER,
+      "precision mediump float; uniform vec4 u;" +
+      "void main() { gl_FragColor = u; }"));
+    gl.linkProgram(p);
+    gl.useProgram(p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER,
+                  new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+                  gl.STATIC_DRAW);
+    var a = gl.getAttribLocation(p, "a");
+    gl.enableVertexAttribArray(a);
+    gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform4f(gl.getUniformLocation(p, "u"), 1, 0.5, 0, 1);
+    gl.clearColor(0, 0, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.viewport(0, 0, 32, 64);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    var px = new Uint8Array(4);
+    gl.readPixels(5, 5, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    log("webgl1 left=" + Array.from(px).join(","));
+    gl.readPixels(50, 5, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    log("webgl1 right=" + Array.from(px).join(","));
+    /* GLSL ES 1.00 has no while loops: the validator must refuse this
+     * before the driver sees it. */
+    log("webgl1 rejects-while=" + (compile(gl, gl.FRAGMENT_SHADER,
+      "void main() { while (true) {} }") === null));
+    log("webgl1 error=" + gl.getError());
+  }
+  var gl2 = document.createElement("canvas").getContext("webgl2");
+  if (!gl2) {
+    log("webgl2 unavailable");
+  } else {
+    log("webgl2 es300=" + (compile(gl2, gl2.FRAGMENT_SHADER,
+      "#version 300 es\nprecision highp float; out vec4 o;" +
+      "void main() { o = vec4(1.); }") !== null));
+    log("webgl2 error=" + gl2.getError());
+  }
+} catch (e) {
+  log("exception " + e);
+}
+</script>

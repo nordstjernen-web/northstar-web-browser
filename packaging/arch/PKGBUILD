@@ -20,10 +20,12 @@ depends=(
   gstreamer
   glib2
   glibc
+  glslang
   gtk4
   harfbuzz
   hicolor-icon-theme
   libavif
+  libepoxy
   libgcc
   libpsl
   libseccomp
@@ -86,6 +88,7 @@ build() {
   arch-meson "$_srcdir" build \
     -Daudio=enabled \
     -Davif=enabled \
+    -Dwebgl=enabled \
     -Dav1=enabled \
     -Dvp9=enabled \
     -Dh264=disabled \

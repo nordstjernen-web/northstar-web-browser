@@ -9,6 +9,7 @@ apk add --no-cache \
     sqlite-dev zlib-dev libavif-dev sdl3-dev libseccomp-dev linux-headers \
     dav1d-dev libvpx-dev openh264-dev opus-dev libthai-dev \
     opusfile-dev libvorbis-dev enchant2-dev \
+    libepoxy-dev glslang-dev \
     fontconfig font-dejavu ca-certificates file
 
 git config --global --add safe.directory '*'

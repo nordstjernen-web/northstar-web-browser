@@ -25,6 +25,7 @@ apt-get install -y -qq --no-install-recommends \
     libpsl-dev libsqlite3-dev \
     libavif-dev libsdl3-dev libseccomp-dev libenchant-2-dev \
     libopusfile-dev libvorbis-dev zlib1g-dev \
+    libepoxy-dev glslang-dev \
     fonts-dejavu-core ca-certificates >/dev/null
 
 # The checkout is owned by the runner user, not root.

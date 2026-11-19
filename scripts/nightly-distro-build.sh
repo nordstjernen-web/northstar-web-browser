@@ -20,7 +20,8 @@ install_apt() {
         build-essential clang pkg-config meson ninja-build git zip unzip curl \
         dpkg-dev patchelf ca-certificates \
         libgtk-4-dev libcurl4-openssl-dev libssl-dev libpsl-dev \
-        libsqlite3-dev libseccomp-dev libavif-dev libsdl3-dev
+        libsqlite3-dev libseccomp-dev libavif-dev libsdl3-dev \
+        libepoxy-dev glslang-dev
     apt-get install -y --no-install-recommends \
         libfontconfig-dev libpango1.0-dev || true
 }
@@ -44,7 +45,8 @@ install_zypper() {
         gcc clang pkgconf-pkg-config meson ninja git zip unzip curl \
         rpm-build patchelf ca-certificates \
         gtk4-devel libcurl-devel libopenssl-develel libpsl-devel \
-        sqlite3-devel libseccomp-devel libavif-devel SDL3-devel
+        sqlite3-devel libseccomp-devel libavif-devel SDL3-devel \
+        libepoxy-devel glslang-devel
     zypper --non-interactive --gpg-auto-import-keys install --no-recommends \
         fontconfig-devel pango-devel || true
 }
@@ -55,7 +57,8 @@ install_apk() {
         build-base clang pkgconf meson ninja git zip alpine-sdk \
         linux-headers gtk4.0-dev curl-dev openssl-dev libpsl-dev sqlite-dev \
         harfbuzz-dev fribidi-dev cairo-dev fontconfig-dev freetype-dev zlib-dev \
-        libseccomp-dev libavif-dev sdl3-dev dav1d-dev libvpx-dev opus-dev
+        libseccomp-dev libavif-dev sdl3-dev dav1d-dev libvpx-dev opus-dev \
+        libepoxy-dev glslang-dev
     apk add --no-cache \
         libthai-dev || true
 }

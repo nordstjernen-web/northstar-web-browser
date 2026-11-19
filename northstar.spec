@@ -33,6 +33,8 @@ BuildRequires:  pkgconfig(libcurl) >= 8.5
 BuildRequires:  pkgconfig(libpsl)
 BuildRequires:  pkgconfig(libseccomp)
 BuildRequires:  pkgconfig(libavif)
+BuildRequires:  pkgconfig(epoxy)
+BuildRequires:  glslang-devel
 BuildRequires:  pkgconfig(gstreamer-1.0) >= 1.18
 BuildRequires:  pkgconfig(gstreamer-app-1.0) >= 1.18
 BuildRequires:  pkgconfig(gstreamer-video-1.0) >= 1.18

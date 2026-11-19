@@ -62,6 +62,7 @@ typedef struct ns_config {
     gboolean images_enabled;
     gboolean autoplay_enabled;
     gboolean javascript_enabled;
+    gboolean webgl_enabled;
     gboolean local_storage_enabled;
     gboolean cache_enabled;
     gboolean tls_allow_insecure_override;

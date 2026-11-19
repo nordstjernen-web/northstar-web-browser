@@ -65,7 +65,8 @@ jobs:
                 libfontconfig-dev libfreetype-dev \
                 libpsl-dev libsqlite3-dev \
                 libavif-dev libsdl3-dev libseccomp-dev libenchant-2-dev \
-                libopusfile-dev libvorbis-dev ca-certificates; then
+                libopusfile-dev libvorbis-dev libepoxy-dev glslang-dev \
+                libegl1 libgl1-mesa-dri ca-certificates; then
               exit 0
             fi
             echo "::warning::apt-get attempt $attempt failed or timed out"
@@ -152,6 +153,28 @@ jobs:
           grep -q 'js-dom-ok 42 36893488147419103232 2 enc=3 sortcmp=1' js-page.txt
           grep -q 'js-microtask-ok' js-page.txt
           grep -q 'js-timer-ok' js-page.txt
+
+      - name: Headless WebGL smoke (Mesa software rendering, under the sandbox)
+        shell: bash
+        run: |
+          set -o pipefail
+          # The runner has no GPU: Mesa's llvmpipe draws. The page reads its
+          # own pixels back, so this covers context creation, the shader
+          # validator, a draw and readback, for WebGL 1 and 2.
+          ./builddir/src/gtk/northstar --headless --dump=text --settle-ms=500 \
+            data/fixtures/webgl.html > webgl.txt
+          cat webgl.txt
+          grep -qx 'webgl1 left=255,128,0,255' webgl.txt
+          grep -qx 'webgl1 right=0,0,255,255' webgl.txt
+          grep -qx 'webgl1 rejects-while=true' webgl.txt
+          grep -qx 'webgl1 error=0' webgl.txt
+          grep -qx 'webgl2 es300=true' webgl.txt
+          grep -qx 'webgl2 error=0' webgl.txt
+          # Off for the run: no context, by either name.
+          NS_NO_WEBGL=1 ./builddir/src/gtk/northstar --headless --dump=text \
+            --settle-ms=300 data/fixtures/webgl.html > webgl-off.txt
+          grep -qx 'webgl1 unavailable' webgl-off.txt
+          grep -qx 'webgl2 unavailable' webgl-off.txt
 
       - name: Headless baseline smoke (./scripts/dev.sh smoke)
         run: ./scripts/dev.sh smoke

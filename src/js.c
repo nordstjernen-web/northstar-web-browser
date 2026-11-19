@@ -56,6 +56,7 @@
 #include "forms.h"
 #include "security.h"
 #include "wasm.h"
+#include "webgl.h"
 #include "mainctx.h"
 #include "webcrypto.h"
 #include "ws.h"
@@ -4066,6 +4067,7 @@ ns_invalidate_wrapper(ns_node *n)
 {
     if (!n) return;
     ns_js *js = ns_active_js();
+    ns_webgl_node_freed(n);
     ns_mut_scrub_node(js, n);
     ns_attr_detach_owner(js, n);
     ns_attribute_map_release_owner(js, n);
@@ -18701,6 +18703,13 @@ ns_target_make_event(JSContext *ctx, JSValueConst target, const char *type)
     JS_SetPropertyStr(ctx, ev, "_is_trusted", JS_TRUE);
     ns_bind_fn(ctx, ev, "stopImmediatePropagation", ns_event_stop_immediate, 0);
     return ev;
+}
+
+/* ns_target_make_event for other files (WebGL context-lost events). */
+JSValue
+ns_js_realm_event(JSContext *ctx, JSValueConst target, const char *type)
+{
+    return ns_target_make_event(ctx, target, type);
 }
 
 typedef struct {
@@ -44838,13 +44847,18 @@ ns_element_toDataURL(JSContext *ctx, JSValueConst this_val,
     (void)argc; (void)argv;
     const ns_node *el = ns_unwrap_element(this_val);
     if (!el || !js_from_ctx(ctx)) return JS_NewString(ctx, "data:,");
-    ns_canvas_state *st = ns_canvas_state_for(js_from_ctx(ctx), el);
-    if (!st || !st->surf) return JS_NewString(ctx, "data:,");
-    if (!st->origin_clean)
-        return ns_throw_security_error(ctx,
-            "Tainted canvases may not be exported.");
+    /* A WebGL canvas exports its drawing buffer; it is never tainted. */
+    cairo_surface_t *surf = ns_webgl_canvas_surface(el);
+    if (!surf) {
+        ns_canvas_state *st = ns_canvas_state_for(js_from_ctx(ctx), el);
+        if (!st || !st->surf) return JS_NewString(ctx, "data:,");
+        if (!st->origin_clean)
+            return ns_throw_security_error(ctx,
+                "Tainted canvases may not be exported.");
+        surf = st->surf;
+    }
     GByteArray *buf = g_byte_array_new();
-    cairo_status_t s = cairo_surface_write_to_png_stream(st->surf,
+    cairo_status_t s = cairo_surface_write_to_png_stream(surf,
         ns_canvas_png_write, buf);
     if (s != CAIRO_STATUS_SUCCESS) {
         g_byte_array_free(buf, TRUE);
@@ -44866,14 +44880,16 @@ ns_element_toBlob(JSContext *ctx, JSValueConst this_val,
 {
     if (argc < 1 || !JS_IsFunction(ctx, argv[0])) return JS_UNDEFINED;
     const ns_node *el = ns_unwrap_element(this_val);
-    ns_canvas_state *st = el && js_from_ctx(ctx)
+    cairo_surface_t *gl_surf = el ? ns_webgl_canvas_surface(el) : NULL;
+    ns_canvas_state *st = !gl_surf && el && js_from_ctx(ctx)
         ? ns_canvas_state_for(js_from_ctx(ctx), el) : NULL;
     if (st && !st->origin_clean)
         return ns_throw_security_error(ctx,
             "Tainted canvases may not be exported.");
     JSValue cb = JS_DupValue(ctx, argv[0]);
     JSValue blob = JS_NULL;
-    if (st) blob = ns_canvas_blob_from_surface(ctx, st->surf);
+    if (gl_surf) blob = ns_canvas_blob_from_surface(ctx, gl_surf);
+    else if (st) blob = ns_canvas_blob_from_surface(ctx, st->surf);
     JSValueConst cb_args[1] = { blob };
     JSValue r = JS_Call(ctx, cb, JS_UNDEFINED, 1, cb_args);
     if (JS_IsException(r)) JS_FreeValue(ctx, JS_GetException(ctx));
@@ -54095,6 +54111,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
     JS_FreeValue(ctx, crypto_obj);
 
     ns_wasm_install(ctx, global);
+    ns_webgl_install(ctx, global);
 
     JSValue local_obj = JS_NewObjectClass(ctx, ns_storage_class_id);
     JS_SetOpaque(local_obj, js->local_storage);

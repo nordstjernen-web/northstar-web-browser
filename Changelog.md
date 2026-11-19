@@ -4,6 +4,22 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* WebGL 1 and WebGL 2: `canvas.getContext("webgl")` and `"webgl2"` draw
+  through the system's OpenGL driver, ported from Nordstjernen Sol. See
+  `docs/webgl.md`.
+  - Every shader is validated by the Khronos glslang front end before it
+    reaches the driver, the GL context is created with robust buffer
+    access or not at all, and pixel, buffer and index ranges are
+    bounds-checked.
+  - The driver runs inside the browser process. While WebGL is enabled
+    the Linux content-thread seccomp filter no longer refuses executable
+    mappings and `memfd_create` on the engine thread, which a GPU driver
+    needs; with WebGL off it is as strict as before.
+  - *Enable WebGL* on `about:settings` (`webgl_enabled`) and `NS_NO_WEBGL`
+    turn it off; `-Dwebgl=disabled` builds without it. Building it needs
+    libepoxy and glslang.
+  - WebGL 2 is not available on macOS, whose OpenGL cannot compile its
+    shaders.
 * Gmail: the compose window opens and a message can be sent.
   - A script preload (`<link rel="preload" as="script">`) is checked
     against the Content Security Policy as a script: its nonce counts and

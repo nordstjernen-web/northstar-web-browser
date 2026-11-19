@@ -470,6 +470,21 @@ void ns_canvas_register_path2d_class(JSRuntime *rt);
 void ns_make_interface_object(JSContext *ctx, JSValueConst global,
                               const char *name, JSValueConst proto);
 
+/* Helpers the WebGL binding (src/webgl.c) shares with the canvas code. */
+enum {
+    NS_HK_ACTIVEINFO,
+    NS_HK_PRECISION,
+};
+JSValue ns_hidden_new(JSContext *realm, int kind, JSValueConst proto);
+gboolean ns_hidden_is(JSValueConst v, int kind);
+JSValue ns_hget(JSContext *ctx, JSValueConst obj, const char *name);
+void ns_hset(JSContext *ctx, JSValueConst obj, const char *name, JSValue val);
+JSContext *ns_canvas_realm(JSContext *ctx, const ns_node *el);
+JSValue ns_api_proto(JSContext *realm, const char *iface);
+JSValue ns_api_interface(JSContext *ctx, JSValueConst global, const char *name,
+                         JSValue ctor, const char *parent);
+JSValue ns_js_realm_event(JSContext *ctx, JSValueConst target, const char *type);
+
 void ns_bind_fn_if_not_callable(JSContext *ctx, JSValueConst obj, const char *name,
                                 JSCFunction *fn, int argc);
 gboolean ns_js_get_bool_prop(JSContext *ctx, JSValueConst obj, const char *key,

@@ -15117,10 +15117,21 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
 
         ns_box *paint_parent = cb;
         if (e.fixed && !cb_dom) {
+            /* A fixed box is painted in the stacking context it belongs
+             * to, so it hangs under a positioned ancestor.  The nearest
+             * one may be inside a scroll container, which would clip it;
+             * then the next one out is tried.  Left under the viewport,
+             * the box was painted below any z-indexed ancestor: a fixed
+             * toolbar inside a z-indexed dialog disappeared behind it. */
             const ns_node *anc_dom = abs_entry_cb_dom(&e, styles);
-            ns_box *anc = anc_dom ? g_hash_table_lookup(box_map, anc_dom) : NULL;
-            if (anc && box_can_host_fixed(anc))
-                paint_parent = anc;
+            for (int hops = 0; anc_dom && hops < 64; hops++) {
+                ns_box *anc = g_hash_table_lookup(box_map, anc_dom);
+                if (anc && box_can_host_fixed(anc)) {
+                    paint_parent = anc;
+                    break;
+                }
+                anc_dom = find_abs_containing_block_dom(anc_dom, styles);
+            }
         }
 
         int pp_depth = 0;

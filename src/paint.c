@@ -5832,20 +5832,61 @@ paint_marker(cairo_t *cr, const ns_box *b)
     }
 }
 
-/* TRUE if visibility is hidden/collapse or content-visibility is hidden. */
+/* TRUE if content-visibility is hidden: the box's whole subtree is skipped. */
+static gboolean
+box_content_hidden(const ns_box *b)
+{
+    const ns_style *s = b ? b->style : NULL;
+    const ns_css_value *cv = s ? s->values[NS_CSS_CONTENT_VISIBILITY] : NULL;
+    return cv && cv->kind == NS_CSS_V_KEYWORD && cv->u.keyword &&
+           strcmp(cv->u.keyword, "hidden") == 0;
+}
+
+/* TRUE if the box itself is not painted: visibility is hidden or collapse,
+ * or content-visibility is hidden.  A box without a style of its own (an
+ * anonymous box) takes its visibility from its nearest styled ancestor. */
 static gboolean
 box_is_hidden(const ns_box *b)
 {
-    const ns_style *s = b ? b->style : NULL;
-    if (!s) return FALSE;
-    const ns_css_value *v = s->values[NS_CSS_VISIBILITY];
-    if (v && v->kind == NS_CSS_V_KEYWORD && v->u.keyword &&
-        (strcmp(v->u.keyword, "hidden") == 0 ||
-         strcmp(v->u.keyword, "collapse") == 0))
-        return TRUE;
-    const ns_css_value *cv = s->values[NS_CSS_CONTENT_VISIBILITY];
-    return cv && cv->kind == NS_CSS_V_KEYWORD && cv->u.keyword &&
-           strcmp(cv->u.keyword, "hidden") == 0;
+    if (box_content_hidden(b)) return TRUE;
+    for (; b; b = b->parent) {
+        const ns_style *s = b->style;
+        if (!s) continue;
+        const ns_css_value *v = s->values[NS_CSS_VISIBILITY];
+        return v && v->kind == NS_CSS_V_KEYWORD && v->u.keyword &&
+               (strcmp(v->u.keyword, "hidden") == 0 ||
+                strcmp(v->u.keyword, "collapse") == 0);
+    }
+    return FALSE;
+}
+
+/* Whether some descendant is painted although this box is not: visibility
+ * is inherited, and a descendant may set it back to visible (CSS 2 11.2). */
+static gboolean
+box_has_visible_descendant(const ns_box *b, int depth)
+{
+    if (depth >= 512) return TRUE;
+    for (const ns_box *c = b->first_child; c; c = c->next_sibling) {
+        if (box_content_hidden(c)) continue;
+        if (!box_is_hidden(c) || box_has_visible_descendant(c, depth + 1))
+            return TRUE;
+    }
+    for (guint i = 0; b->inline_atomics && i < b->inline_atomics->len; i++) {
+        const ns_box *ab = g_array_index(b->inline_atomics,
+                                         ns_inline_atomic, i).box;
+        if (!ab || box_content_hidden(ab)) continue;
+        if (!box_is_hidden(ab) || box_has_visible_descendant(ab, depth + 1))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* TRUE if neither the box nor anything below it is painted. */
+static gboolean
+box_hides_subtree(const ns_box *b)
+{
+    if (box_content_hidden(b)) return TRUE;
+    return box_is_hidden(b) && !box_has_visible_descendant(b, 0);
 }
 
 /* Effective opacity from a running animation or the style, clamped to 0..1. */
@@ -6352,11 +6393,13 @@ box_has_own_decor(const ns_box *b)
 static gboolean
 box_subtree_paints(const ns_box *b)
 {
-    if (box_is_hidden(b)) return FALSE;
-    if (b->kind == NS_BOX_IMAGE || b->kind == NS_BOX_VIDEO ||
-        b->kind == NS_BOX_INLINE || b->kind == NS_BOX_TEXT)
+    if (box_hides_subtree(b)) return FALSE;
+    gboolean self_hidden = box_is_hidden(b);
+    if (!self_hidden &&
+        (b->kind == NS_BOX_IMAGE || b->kind == NS_BOX_VIDEO ||
+         b->kind == NS_BOX_INLINE || b->kind == NS_BOX_TEXT))
         return TRUE;
-    if (box_has_own_decor(b)) return TRUE;
+    if (!self_hidden && box_has_own_decor(b)) return TRUE;
     for (const ns_box *c = b->first_child; c; c = c->next_sibling)
         if (box_subtree_paints(c)) return TRUE;
     return FALSE;
@@ -6385,7 +6428,7 @@ box_transform_origin(const ns_box *b, double bx, double by, double bw,
 static void
 collect_3d_quads(const ns_box *b, const ns_mat4 *pm, GArray *quads)
 {
-    if (box_is_hidden(b) || b == g_paint_skip_box) return;
+    if (box_hides_subtree(b) || b == g_paint_skip_box) return;
     double bx, by, bw, bh;
     ns_box_border_rect(b, &bx, &by, &bw, &bh);
     ns_mat4 m = *pm;
@@ -7053,7 +7096,7 @@ static void
 collect_negative_z(const ns_box *b, GPtrArray *out)
 {
     for (const ns_box *c = b->first_child; c; c = c->next_sibling) {
-        if (box_is_hidden(c)) continue;
+        if (box_hides_subtree(c)) continue;
         if (g_paint_hoisted && g_hash_table_contains(g_paint_hoisted, c))
             continue;
         if (box_is_z_ordered(c) && box_z_index(c) < 0) {
@@ -7361,7 +7404,11 @@ static void
 paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
 {
     if (!b) return;
-    if (box_is_hidden(b)) return;
+    /* A hidden box skips only its own painting (background, borders,
+     * text, canvas, scrollbars); its children are still walked when one
+     * of them is visible. */
+    if (box_hides_subtree(b)) return;
+    gboolean self_hidden = box_is_hidden(b);
     ns_dbg_paint_probe(cr, b);
     if (box_clip_hides(b)) return;
     if (b == g_paint_skip_box) return;
@@ -7551,7 +7598,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
             else                                cairo_restore(cr);
         }
     }
-    if (!box_offscreen) {
+    if (!box_offscreen && !self_hidden) {
         double s0 = 0, s1 = 0, s2 = 0, s3 = 0;
         if (g_dbg_paint_x >= 0)
             cairo_clip_extents(cr, &s0, &s1, &s2, &s3);
@@ -7598,7 +7645,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         if (b->kind == NS_BOX_SVG)
             paint_svg(cr, b);
     }
-    if (ns_node_is_tag(b->dom, NS_TAG_CANVAS) && g_paint_js) {
+    if (!self_hidden && ns_node_is_tag(b->dom, NS_TAG_CANVAS) && g_paint_js) {
         cairo_surface_t *surf = ns_js_canvas_surface(g_paint_js, b->dom);
         if (surf) {
             int sw = cairo_image_surface_get_width(surf);
@@ -7796,7 +7843,7 @@ paint_walk(cairo_t *cr, const ns_box *b, const char *highlight)
         }
         g_strfreev(ct);
     }
-    if (clip_overflow && b->scrolls && !sb_hidden &&
+    if (clip_overflow && b->scrolls && !sb_hidden && !self_hidden &&
         (b->scroll_max_x > 0 || b->scroll_max_y > 0)) {
         double px = b->x + b->margin.left + b->border.left;
         double py = b->y + b->margin.top  + b->border.top;

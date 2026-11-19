@@ -60527,9 +60527,20 @@ ns_js_load_link_element(ns_js *js, ns_node *n, const char *origin)
     }
     gboolean loaded = FALSE;
     const ns_csp *link_csp = ns_js_csp_for_node(js, n);
-    if (link_csp && !ns_csp_allows(link_csp,
-                                   is_script ? NS_CSP_SCRIPT : NS_CSP_STYLE,
-                                   abs_url, origin)) {
+    /* A script preload is judged as the script it stands for: the link's
+     * nonce counts, and under 'strict-dynamic' a link that script created
+     * is allowed where one the parser inserted is not.  Checked by host
+     * list alone, every preload fails under a nonce and 'strict-dynamic'
+     * policy, and a page that preloads each module before running it
+     * (Gmail does) sees all of its lazy modules fail. */
+    gboolean link_allowed = !link_csp ||
+        (is_script
+            ? ns_csp_allows_with_nonce(
+                  link_csp, NS_CSP_SCRIPT, abs_url, origin,
+                  ns_element_get_attr(n, "nonce"),
+                  !(n->flags & NS_NODE_NOT_PARSER_INSERTED))
+            : ns_csp_allows(link_csp, NS_CSP_STYLE, abs_url, origin));
+    if (!link_allowed) {
         if (js->log_cb) {
             char *line = g_strdup_printf("CSP blocked: %s %s",
                                          is_script ? "script" : "stylesheet",

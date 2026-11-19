@@ -17620,6 +17620,202 @@ stamp_declaration_order(GArray *decls, const ns_css_rule *capture,
 }
 
 /* Parses declarations until '}', expanding shorthands; var()/attr() values are deferred. */
+/* -webkit-linear-gradient() and its siblings, still accepted by every
+ * engine, use the legacy direction syntax: a side or corner names where the
+ * gradient starts ("top" is today's "to bottom"), an angle is measured from
+ * east, counter-clockwise, and a radial gradient takes its position and its
+ * shape and size as separate leading arguments.  They are rewritten to the
+ * standard functions here, before any property parses them. */
+static gboolean
+legacy_gradient_is_side(const char *w)
+{
+    return g_ascii_strcasecmp(w, "left") == 0 || g_ascii_strcasecmp(w, "right") == 0 ||
+           g_ascii_strcasecmp(w, "top") == 0 || g_ascii_strcasecmp(w, "bottom") == 0;
+}
+
+static const char *
+legacy_gradient_opposite(const char *w)
+{
+    if (g_ascii_strcasecmp(w, "left") == 0) return "right";
+    if (g_ascii_strcasecmp(w, "right") == 0) return "left";
+    if (g_ascii_strcasecmp(w, "top") == 0) return "bottom";
+    return "top";
+}
+
+/* The standard first argument for a legacy linear one, or NULL when the
+ * argument is a colour stop (no direction given). */
+static char *
+legacy_linear_direction(const char *arg)
+{
+    char **words = g_strsplit_set(arg, " \t\n\r\f", -1);
+    const char *w[3] = {0};
+    int n = 0;
+    gboolean all_sides = TRUE;
+    for (int i = 0; words[i]; i++) {
+        if (!*words[i]) continue;
+        if (n < 3) w[n] = words[i];
+        n++;
+        if (!legacy_gradient_is_side(words[i])) all_sides = FALSE;
+    }
+    char *out = NULL;
+    if (n >= 1 && n <= 2 && all_sides) {
+        out = n == 1 ? g_strdup_printf("to %s", legacy_gradient_opposite(w[0]))
+                     : g_strdup_printf("to %s %s", legacy_gradient_opposite(w[0]),
+                                       legacy_gradient_opposite(w[1]));
+    } else if (n == 1) {
+        char *endp = NULL;
+        double v = g_ascii_strtod(w[0], &endp);
+        double deg = NAN;
+        if (endp && endp != w[0]) {
+            if (g_ascii_strcasecmp(endp, "deg") == 0) deg = v;
+            else if (g_ascii_strcasecmp(endp, "rad") == 0) deg = v * 180.0 / G_PI;
+            else if (g_ascii_strcasecmp(endp, "grad") == 0) deg = v * 0.9;
+            else if (g_ascii_strcasecmp(endp, "turn") == 0) deg = v * 360.0;
+            else if (!*endp && v == 0) deg = 0;
+        }
+        if (!isnan(deg)) {
+            char buf[G_ASCII_DTOSTR_BUF_SIZE];
+            g_ascii_formatd(buf, sizeof buf, "%.6g", 90.0 - deg);
+            out = g_strdup_printf("%sdeg", buf);
+        }
+    }
+    g_strfreev(words);
+    return out;
+}
+
+static gboolean
+legacy_radial_shape_word(const char *w)
+{
+    static const char *const words[] = {
+        "circle", "ellipse", "closest-side", "closest-corner", "farthest-side",
+        "farthest-corner", "contain", "cover",
+    };
+    for (gsize i = 0; i < G_N_ELEMENTS(words); i++)
+        if (g_ascii_strcasecmp(w, words[i]) == 0) return TRUE;
+    return FALSE;
+}
+
+static gboolean
+legacy_radial_position_word(const char *w)
+{
+    if (legacy_gradient_is_side(w) || g_ascii_strcasecmp(w, "center") == 0) return TRUE;
+    char *endp = NULL;
+    g_ascii_strtod(w, &endp);
+    return endp && endp != w;
+}
+
+/* Classifies a legacy radial argument: 1 position, 2 shape/size, 0 neither. */
+static int
+legacy_radial_arg_kind(const char *arg)
+{
+    char **words = g_strsplit_set(arg, " \t\n\r\f", -1);
+    int kind = -1;
+    for (int i = 0; words[i]; i++) {
+        if (!*words[i]) continue;
+        int k = legacy_radial_shape_word(words[i]) ? 2
+              : legacy_radial_position_word(words[i]) ? 1 : 0;
+        if (kind < 0) kind = k;
+        else if (kind != k) kind = 0;
+    }
+    g_strfreev(words);
+    return kind < 0 ? 0 : kind;
+}
+
+static char *
+legacy_radial_shape(const char *arg)
+{
+    GString *out = g_string_new(NULL);
+    char **words = g_strsplit_set(arg, " \t\n\r\f", -1);
+    for (int i = 0; words[i]; i++) {
+        if (!*words[i]) continue;
+        const char *w = words[i];
+        if (g_ascii_strcasecmp(w, "contain") == 0) w = "closest-side";
+        else if (g_ascii_strcasecmp(w, "cover") == 0) w = "farthest-corner";
+        if (out->len) g_string_append_c(out, ' ');
+        g_string_append(out, w);
+    }
+    g_strfreev(words);
+    return g_string_free(out, FALSE);
+}
+
+/* Returns v with every -webkit- gradient rewritten, or NULL if it has none. */
+static char *
+css_unprefix_webkit_gradients(const char *v)
+{
+    if (!v || !strstr(v, "-webkit-") || !strstr(v, "gradient(")) return NULL;
+    GString *out = NULL;
+    const char *p = v, *copied = v;
+    while ((p = strstr(p, "-webkit-")) != NULL) {
+        const char *f = p + 8;
+        gboolean repeating = g_ascii_strncasecmp(f, "repeating-", 10) == 0;
+        if (repeating) f += 10;
+        gboolean radial = FALSE;
+        if (g_ascii_strncasecmp(f, "linear-gradient(", 16) == 0) f += 15;
+        else if (g_ascii_strncasecmp(f, "radial-gradient(", 16) == 0) { f += 15; radial = TRUE; }
+        else { p += 8; continue; }
+        const char *body = f + 1, *close = NULL;
+        int depth = 0;
+        for (const char *q = body; *q; q++) {
+            if (*q == '(') depth++;
+            else if (*q == ')') { if (depth == 0) { close = q; break; } depth--; }
+        }
+        if (!close) break;
+        GPtrArray *args = g_ptr_array_new_with_free_func(g_free);
+        const char *seg = body;
+        depth = 0;
+        for (const char *q = body; q <= close; q++) {
+            if (q != close && *q == '(') depth++;
+            else if (q != close && *q == ')') depth--;
+            if (q == close || (*q == ',' && depth == 0)) {
+                g_ptr_array_add(args, g_strstrip(g_strndup(seg, (gsize)(q - seg))));
+                seg = q + 1;
+            }
+        }
+        GString *fn = g_string_new(repeating ? "repeating-" : "");
+        g_string_append(fn, radial ? "radial-gradient(" : "linear-gradient(");
+        guint first_stop = 0;
+        if (!radial && args->len > 1) {
+            char *dir = legacy_linear_direction(args->pdata[0]);
+            if (dir) {
+                g_string_append_printf(fn, "%s, ", dir);
+                g_free(dir);
+                first_stop = 1;
+            }
+        } else if (radial && args->len > 1) {
+            const char *pos = NULL, *shape = NULL;
+            for (guint a = 0; a < 2 && a + 1 < args->len; a++) {
+                int k = legacy_radial_arg_kind(args->pdata[a]);
+                if (k == 1 && !pos && !shape) pos = args->pdata[a];
+                else if (k == 2 && !shape) shape = args->pdata[a];
+                else break;
+                first_stop = a + 1;
+            }
+            if (shape) {
+                char *sh = legacy_radial_shape(shape);
+                g_string_append(fn, sh);
+                g_free(sh);
+            }
+            if (pos)
+                g_string_append_printf(fn, "%sat %s", shape ? " " : "", pos);
+            if (pos || shape) g_string_append(fn, ", ");
+        }
+        for (guint a = first_stop; a < args->len; a++) {
+            if (a > first_stop) g_string_append(fn, ", ");
+            g_string_append(fn, args->pdata[a]);
+        }
+        g_string_append_c(fn, ')');
+        g_ptr_array_free(args, TRUE);
+        if (!out) out = g_string_new(NULL);
+        g_string_append_len(out, copied, (gssize)(p - copied));
+        g_string_append(out, fn->str);
+        g_string_free(fn, TRUE);
+        copied = p = close + 1;
+    }
+    if (!out) return NULL;
+    g_string_append(out, copied);
+    return g_string_free(out, FALSE);
+}
+
 static void
 parse_declaration_block(const char **pp, const char *end,
                         GArray *decls_out, ns_css_rule *capture)
@@ -17687,6 +17883,13 @@ parse_declaration_block(const char **pp, const char *end,
         const char *vend = css_scan_declaration_value(p, end, &term);
         p = vend;
         char *raw_vtext = g_strndup(vstart, (gsize)(vend - vstart));
+        {
+            char *unprefixed = css_unprefix_webkit_gradients(raw_vtext);
+            if (unprefixed) {
+                g_free(raw_vtext);
+                raw_vtext = unprefixed;
+            }
+        }
 
         if (!css_declaration_value_syntax_valid(raw_vtext)) {
             g_free(raw_vtext);

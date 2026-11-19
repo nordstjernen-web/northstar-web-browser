@@ -47,8 +47,8 @@ ns_vp9_available(void)
     return TRUE;
 }
 
-ns_vp9_decoder *
-ns_vp9_decoder_new(void)
+static ns_vp9_decoder *
+vpx_decoder_new(vpx_codec_iface_t *iface)
 {
     ns_vp9_decoder *decoder = g_new0(ns_vp9_decoder, 1);
     vpx_codec_dec_cfg_t config = {
@@ -56,12 +56,26 @@ ns_vp9_decoder_new(void)
         .w = 0,
         .h = 0,
     };
-    if (vpx_codec_dec_init(&decoder->codec, vpx_codec_vp9_dx(), &config, 0) !=
+    if (vpx_codec_dec_init(&decoder->codec, iface, &config, 0) !=
         VPX_CODEC_OK) {
         g_free(decoder);
         return NULL;
     }
     return decoder;
+}
+
+ns_vp9_decoder *
+ns_vp9_decoder_new(void)
+{
+    return vpx_decoder_new(vpx_codec_vp9_dx());
+}
+
+/* libvpx decodes VP8 through the same interface; WebM files from before
+ * VP9 (2013) are VP8. */
+ns_vp9_decoder *
+ns_vp8_decoder_new(void)
+{
+    return vpx_decoder_new(vpx_codec_vp8_dx());
 }
 
 void
@@ -113,6 +127,12 @@ ns_vp9_available(void)
 
 ns_vp9_decoder *
 ns_vp9_decoder_new(void)
+{
+    return NULL;
+}
+
+ns_vp9_decoder *
+ns_vp8_decoder_new(void)
 {
     return NULL;
 }

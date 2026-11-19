@@ -29,14 +29,15 @@ codec_is_h264(const char *codec)
     return strcmp(codec, "avc1") == 0 || strcmp(codec, "avc3") == 0;
 }
 
-/* Returns TRUE if GStreamer, Media Foundation or a native decoder is available for av01, vp09 or avc1/avc3. */
+/* Returns TRUE if GStreamer, Media Foundation or a native decoder is available for av01, vp09, vp08 or avc1/avc3. */
 gboolean
 ns_video_decoder_supports(const char *codec)
 {
     if (!codec) return FALSE;
     if (ns_gst_video_available(codec) || ns_mf_video_available(codec)) return TRUE;
     if (strcmp(codec, "av01") == 0) return ns_av1_available();
-    if (strcmp(codec, "vp09") == 0) return ns_vp9_available();
+    if (strcmp(codec, "vp09") == 0 || strcmp(codec, "vp08") == 0)
+        return ns_vp9_available();
     if (codec_is_h264(codec)) return ns_h264_available();
     return FALSE;
 }
@@ -53,6 +54,7 @@ ns_video_decoder_new(const char *codec)
     if (decoder->mf) return decoder;
     if (strcmp(codec, "av01") == 0) decoder->av1 = ns_av1_decoder_new();
     else if (codec_is_h264(codec)) decoder->h264 = ns_h264_decoder_new();
+    else if (strcmp(codec, "vp08") == 0) decoder->vp9 = ns_vp8_decoder_new();
     else decoder->vp9 = ns_vp9_decoder_new();
     if (!decoder->av1 && !decoder->vp9 && !decoder->h264) {
         g_free(decoder);

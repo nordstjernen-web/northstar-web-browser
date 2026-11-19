@@ -1,11 +1,13 @@
+diff --git a/quickjs.c b/quickjs.c
+index 03af563..e5f18d5 100644
 --- a/quickjs.c
 +++ b/quickjs.c
-@@ -56902,6 +56902,8 @@
-         return JS_EXCEPTION;
+@@ -61091,6 +61091,8 @@ static JSValue js_array_buffer_transfer(JSContext *ctx,
+         return JS_ThrowTypeErrorImmutableArrayBuffer(ctx);
      if (abuf->detached)
          return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
 +    if (!abuf->free_func)
 +        return JS_ThrowTypeError(ctx, "cannot transfer an externally managed ArrayBuffer");
      pmax_len = NULL;
-     if (!transfer_to_fixed_length) {
+     if (magic == JS_ARRAY_BUFFER_TRANSFER) {
          if (array_buffer_is_resizable(abuf)) { // carry over maxByteLength

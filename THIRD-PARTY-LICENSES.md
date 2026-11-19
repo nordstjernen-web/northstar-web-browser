@@ -383,10 +383,6 @@ and separable:
   `const` and `class` bindings; used to release the realm of a frame
   document that is gone.
 
-- `subprojects/packagefiles/quickjs-sort-calls-comparator.patch` — for the
-  optional original QuickJS: `Array.prototype.sort` calls the comparator
-  for identical values too, as other engines do.
-
 Meson applies them to the fetched sources at `meson setup`; the wrap
 files name them under `diff_files`. The original QuickJS ships no meson
 build, so `subprojects/packagefiles/quickjs/meson.build` is also laid over

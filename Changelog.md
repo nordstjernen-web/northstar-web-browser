@@ -4,6 +4,18 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Dependencies: the optional original QuickJS (`-Djs_engine=quickjs`)
+  moves to master `e585640`, 125 commits after `3d5e064` (Bellard has
+  tagged no release since 2026-06-04): explicit resource management
+  (`using`), `Array.fromAsync`, `Iterator.zip`, `Iterator.concat` and
+  chunking, `Promise.allKeyed`, `Atomics.waitAsync`, immutable
+  ArrayBuffers, NaN-boxed values on 64-bit hosts, and fixes for leaks,
+  use-after-free and out-of-memory handling. `Array.prototype.sort` now
+  calls the comparator for identical values upstream, so
+  `quickjs-sort-calls-comparator.patch` is dropped. The engine's new
+  Temporal and Intl code is not built. The `-Djs_engine=quickjs` build,
+  broken since the WebGL port used `JS_GetPropertyInt64()`, builds
+  again.
 * Dependencies: quickjs-ng moves to master `dce8c0b`, 21 commits after
   `147d01c`: use-after-free fixes in `Map`/`Set.prototype.clear`,
   `FinalizationRegistry.prototype.unregister`, a generator captured

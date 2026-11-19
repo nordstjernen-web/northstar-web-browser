@@ -1,6 +1,8 @@
+diff --git a/quickjs.c b/quickjs.c
+index 65b7cb5..4fd6140 100644
 --- a/quickjs.c
 +++ b/quickjs.c
-@@ -39816,6 +39816,36 @@
+@@ -41126,6 +41126,36 @@ JSContext *JS_GetCallerRealmOrNull(JSContext *ctx)
      return js_caller_realm(ctx->rt);
  }
  

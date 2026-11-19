@@ -10206,10 +10206,19 @@ ns_js_frame_fetch(JSContext *ctx, JSValueConst this_val, int argc,
     return ns_js_fetch_for(main_ctx, data[0], argc, argv);
 }
 
-/* Creates a fetch function bound to a frame's URL (about:blank if none). */
+/* Creates a fetch function bound to a frame's URL (about:blank if none).
+ * A sandboxed frame without allow-same-origin has an opaque origin, so its
+ * fetch is bound to about:blank like its XHR (ns_js_caller_document_url):
+ * requests to the frame URL's own origin are then cross-origin, carry no
+ * cookies by default and need CORS to be read.  Callers pass absolute URLs
+ * (the frame bootstrap and Request resolve them), so nothing relies on the
+ * bound URL as a base in that case. */
 static JSValue
-ns_js_frame_fetch_new(JSContext *ctx, const char *frame_url)
+ns_js_frame_fetch_new(JSContext *ctx, const char *frame_url, unsigned sandbox)
 {
+    if ((sandbox & NS_SANDBOX_ACTIVE) &&
+        !(sandbox & NS_SANDBOX_ALLOW_SAME_ORIGIN))
+        frame_url = NULL;
     JSValue url = JS_NewString(ctx, frame_url && *frame_url ? frame_url
                                                             : "about:blank");
     JSValue fn = JS_NewCFunctionData(ctx, ns_js_frame_fetch, 2, 0, 1, &url);
@@ -46494,7 +46503,7 @@ ns_iframe_make_scope(JSContext *ctx, JSValue iframe_doc, const char *initial_url
     if (!JS_IsException(maker) && JS_IsFunction(ctx, maker)) {
         JSValue urlv = JS_NewString(ctx, initial_url ? initial_url : "about:blank");
         JSValue sbv = JS_NewInt32(ctx, (int32_t)sandbox);
-        JSValue fetchv = ns_js_frame_fetch_new(ctx, initial_url);
+        JSValue fetchv = ns_js_frame_fetch_new(ctx, initial_url, sandbox);
         JSValueConst args[5] = { global, iframe_doc, urlv, sbv, fetchv };
         scope = JS_Call(ctx, maker, JS_UNDEFINED, 5, args);
         if (JS_IsException(scope)) { JS_FreeValue(ctx, JS_GetException(ctx)); scope = JS_NULL; }
@@ -46750,7 +46759,7 @@ ns_iframe_make_realm_context(ns_js *js, ns_node *iframe,
         JSValue urlv = JS_NewString(fctx, initial_url ? initial_url : "about:blank");
         JSValue sbv = JS_NewInt32(fctx, (int32_t)sandbox);
         JSValue platform = ns_iframe_platform_names(fctx, js);
-        JSValue fetchv = ns_js_frame_fetch_new(js->ctx, initial_url);
+        JSValue fetchv = ns_js_frame_fetch_new(js->ctx, initial_url, sandbox);
         JSValueConst args[7] = { fg, parent_global, iframe_doc, urlv, sbv,
                                  platform, fetchv };
         JSValue res = JS_Call(fctx, maker, JS_UNDEFINED, 7, args);

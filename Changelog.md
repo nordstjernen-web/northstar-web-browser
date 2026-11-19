@@ -17,6 +17,10 @@ Significant changes in each release:
   - A `:has()` with no id, class, attribute or type of its own, nested
     in `:not()`, `:is()` or `:where()`, no longer turns incremental
     restyle off for the whole page.
+* Security: `fetch()` in a sandboxed iframe without `allow-same-origin`
+  runs with the frame's opaque origin, as its `XMLHttpRequest` already
+  did. It was bound to the frame's real URL, so a sandboxed script could
+  send cookies to that origin and read the responses.
 * Style sheets inside iframes and shadow roots apply again. Since
   internal `data-nd-*` attributes were hidden from author CSS, the scope
   marker the engine writes into those sheets matched nothing, so framed

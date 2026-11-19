@@ -8013,6 +8013,33 @@ table_intrinsic_width(ns_box *box, const ns_style *inherited, gboolean min)
 }
 
 /* Max-content contribution of a box: shaped text, replaced size, px width or its children. */
+/* Clamps a box's definite content width w to its min-width and max-width
+ * when those are plain lengths: an icon with `width: 24px; min-width: 52px`
+ * contributes 52px to the width of the row it is in. */
+static double
+width_contribution_length_limits(const ns_box *box, double w)
+{
+    if (!box->style || box->kind != NS_BOX_BLOCK) return w;
+    double extras = 0;
+    if (flex_box_is_border_box(box)) {
+        ns_edges m = {0}, pd = {0}, bd = {0};
+        edges_from_style(box->style, 0, &m, &pd, &bd);
+        extras = pd.left + pd.right + bd.left + bd.right;
+    }
+    const ns_css_value *lim[2] = { box->style->values[NS_CSS_MAX_WIDTH],
+                                   box->style->values[NS_CSS_MIN_WIDTH] };
+    for (int i = 0; i < 2; i++) {
+        const ns_css_value *v = lim[i];
+        if (!v || v->kind != NS_CSS_V_LENGTH ||
+            (v->u.length.unit != NS_CSS_UNIT_PX &&
+             v->u.length.unit != NS_CSS_UNIT_NUMBER) || v->u.length.v < 0)
+            continue;
+        double l = MAX(0.0, v->u.length.v - extras);
+        if (i == 0 ? w > l : w < l) w = l;
+    }
+    return w;
+}
+
 static double
 measure_natural_width(ns_box *box, const ns_style *parent_style)
 {
@@ -8115,6 +8142,7 @@ measure_natural_width(ns_box *box, const ns_style *parent_style)
                 w -= pd.left + pd.right + bd.left + bd.right;
                 if (w < 0) w = 0;
             }
+            w = width_contribution_length_limits(box, w);
             return width_contribution_keyword_limits(box, w, parent_style,
                                                      TRUE, NS_MEASURED_NONE);
         }

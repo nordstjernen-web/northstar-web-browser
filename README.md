@@ -9,7 +9,7 @@ engine targets practical HTML5, modern CSS and JavaScript compatibility
 without embedding Gecko, WebKit, Blink or another browser engine. Linux
 is the primary platform; macOS, Windows and the BSDs are also supported.
 
-![Northstar Web Browser playing a YouTube video](docs/screenshot.png)
+![Northstar Web Browser showing the Wikipedia main page](docs/screenshot.png)
 
 Repository: <https://github.com/nordstjernen-web/northstar-web-browser>.  
 Windows store: https://apps.microsoft.com/detail/9p39zb79jv0t  
@@ -58,7 +58,7 @@ gaps.
 runs on the main thread and the page engine on one dedicated thread with
 its own main loop, so a slow page never freezes the window; the shell posts
 requests to that thread and gets rendered frames back, all inside the
-same process. The engine is a compact body of C — about 219,000 lines of
+same process. The engine is a compact body of C — about 234,000 lines of
 original C, excluding the vendored web-text-lib, WAMR, Wuffs and audio
 decoders — small enough for one person to read and audit end-to-end. See
 [docs/architecture.md](docs/architecture.md) for how it fits together.
@@ -233,6 +233,9 @@ meson compile -C builddir
 ./builddir/src/gtk/northstar
 ```
 
+Ubuntu packages `libsdl3-dev` only from 26.04; on Ubuntu 24.04 leave it
+out, and the browser builds without audio output.
+
 For macOS (Homebrew or MacPorts), other Linux distributions and Windows,
 see [docs/building.md](docs/building.md); for the Arch Linux package, see
 [docs/Arch.md](docs/Arch.md). To build, run and debug from
@@ -257,7 +260,7 @@ single page can also be rendered directly:
 ```
 
 Meson feature options include `-Davif=disabled`, `-Daudio=disabled`, `-Dwebgl=disabled`,
-`-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dmediafoundation=disabled`, `-Dav1=disabled`,
+`-Dpdfjs=disabled`, `-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dmediafoundation=disabled`, `-Dav1=disabled`,
 `-Dvp9=disabled` and `-Dh264=disabled` for smaller builds; only Cisco's prebuilt OpenH264
 binaries carry Cisco's H.264 patent licence, so `-Dh264=disabled` drops
 it where that matters. `-Djs_engine=quickjs` builds on
@@ -280,9 +283,10 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 
 | Component | Role |
 |-----------|------|
-| [lexbor](https://github.com/lexbor/lexbor) master commit `145872a` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
-| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `147d01c`) | JavaScript engine — no JIT |
-| [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
+| [lexbor](https://github.com/lexbor/lexbor) master commit `e609d94` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
+| [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `dce8c0b`) | JavaScript engine — no JIT |
+| [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 (master `e585640`) | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
+| [pdfjs-dist](https://www.npmjs.com/package/pdfjs-dist) 6.5.438 | Mozilla's PDF.js, embedded at build time for the PDF viewer (`-Dpdfjs`) |
 
 lexbor (3.0 or newer) and quickjs-ng take a system copy instead when the
 build finds one.
@@ -298,26 +302,48 @@ build finds one.
 | [minimp3](https://github.com/lieff/minimp3) (CC0) | In-process MP3 audio decode |
 | web-text-lib (`src/web-text-lib/`, LGPL 2.1+) | Text itemization, shaping and line breaking — Nordstjernen's Pango fork with a cross-layout shaping cache, shared with Nordstjernen Sol |
 
-**Required system libraries:** GTK 4 (≥ 4.14; ≥ 4.22.1 on Windows),
-GLib (≥ 2.80), Cairo (≥ 1.18), HarfBuzz (≥ 8.3), FriBidi (≥ 1.0.6), fontconfig
-(≥ 2.15), FreeType, libcurl (≥ 8.5), OpenSSL (libcrypto),
-libpsl, SQLite and zlib — Ubuntu 24.04, Debian 13 and Fedora 40 meet
-every floor; Ubuntu 22.04 and older cannot build it. The engine lays
-text out through web-text-lib rather than the system Pango; GTK still
-links the system Pango for its own widgets, and the two coexist because
-every symbol in the fork is renamed. Linux builds also require libseccomp.
-SDL3 (3.2 or newer) provides audio output: it is picked up when present
-and required with `-Daudio=enabled`.
+**Required system libraries:**
 
-**Optional** (auto-detected): GStreamer ≥ 1.18 with gst-plugins-base
-(`gstreamer-1.0`, `gstreamer-app-1.0`, `gstreamer-video-1.0`; the
-default video decoder on Linux, using whichever decoder plugins are
-installed — e.g. gst-plugins-good for VP9, gst-plugins-bad for AV1 and
-the H.264 parser, gst-libav), libdav1d, libvpx and OpenH264 (AV1, VP9
-and H.264 video), libopus (Opus audio in WebM and MP4), libavif (AVIF
-images), opusfile / vorbisfile (in-process Ogg audio), libbrotlidec and
-libzstd (Brotli and zstd `Content-Encoding`), Enchant (spell-checking),
-libthai (Thai line breaking), and libepoxy with glslang (WebGL).
+| Library | Minimum version | Notes |
+|---------|-----------------|-------|
+| GTK 4 | 4.14 (4.22.1 on Windows) | 4.22 or newer is preferred, for the newer GSK renderers |
+| GLib, GObject, GIO | 2.80 | |
+| Cairo (with cairo-ft) | 1.18 | |
+| HarfBuzz | 8.3 | |
+| FriBidi | 1.0.6 | |
+| fontconfig | 2.15 | |
+| FreeType | any | |
+| libcurl | 8.5 | WebSockets need 8.11 or newer, or a libcurl built with WebSocket support |
+| OpenSSL (libcrypto) | any | WebCrypto and Safe Browsing hashes |
+| libpsl | any | Registrable domains, for cookies partitioned by site |
+| SQLite | any | IndexedDB |
+| zlib | any | |
+| libseccomp | any | Linux only: the syscall filter |
+
+Ubuntu 24.04, Debian 13 and Fedora 40 meet every minimum; Ubuntu 22.04
+and older cannot build it. The engine lays text out through
+web-text-lib rather than the system Pango; GTK still links the system
+Pango for its own widgets, and the two coexist because every symbol in
+the fork is renamed.
+
+**Optional libraries**, each used when the build finds it. A feature
+option set to `enabled` makes it required, and `disabled` leaves it out:
+
+| Library | Minimum version | Provides | Option |
+|---------|-----------------|----------|--------|
+| SDL3 | 3.2 | Audio output | `audio` |
+| opusfile, vorbisfile | any | In-process Ogg Opus and Vorbis audio (with SDL3) | |
+| libopus | any | Opus audio in WebM and MP4 | |
+| GStreamer with gst-plugins-base (`gstreamer-1.0`, `-app-1.0`, `-video-1.0`) | 1.18 | The default video decoder on Linux, through whichever decoder plugins are installed: gst-plugins-good for VP9, gst-plugins-bad for AV1 and the H.264 parser, gst-libav. Off by default on other systems. | `gstreamer` |
+| Media Foundation (system) | — | The default video decoder on Windows | `mediafoundation` |
+| libdav1d | 1.0 | AV1 video | `av1` |
+| libvpx | 1.8 | VP8 and VP9 video | `vp9` |
+| OpenH264 | 2.0 | H.264 video | `h264` |
+| libavif | any | AVIF images | `avif` |
+| libepoxy and glslang | any | WebGL 1 and 2 | `webgl` |
+| libbrotlidec, libzstd | any | Brotli and zstd `Content-Encoding` | |
+| Enchant 2 | any | Spell checking | |
+| libthai | 0.1.9 | Thai line breaking | |
 
 ## License
 

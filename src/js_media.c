@@ -493,12 +493,16 @@ media_start_fetch(ns_media_player *p)
     media_poll_ensure(js);
 }
 
-/* True if config disables autoplay and there is no transient user activation. */
+/* True if config disables autoplay and the user has not interacted with
+ * the page yet.  As in Chrome and Firefox, the block lasts until the first
+ * click or key press (sticky activation), not only for a few seconds after
+ * each one: a page that starts its video from an animation frame after the
+ * user pressed its start button, as WebGL films do, may then play it. */
 static gboolean
 media_autoplay_blocked(const ns_media_player *p)
 {
     const ns_config *cfg = ns_config_get();
-    return cfg && !cfg->autoplay_enabled &&
+    return cfg && !cfg->autoplay_enabled && !p->js->user_ever_activated &&
            !ns_js_has_transient_activation(p->js);
 }
 

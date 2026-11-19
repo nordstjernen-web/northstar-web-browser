@@ -312,9 +312,10 @@ audio context from the same bytes, so nothing downloads twice. `play()`,
 waits until the sound is decoded, then is re-seeked to the mixer's
 position whenever the two drift more than 0.1 s apart.
 
-Unless the `autoplay_enabled` setting is on, media starts only within a
-few seconds of a user gesture: `autoplay` is ignored and `play()` is
-rejected with `NotAllowedError` otherwise, muted or not. A `<source>`
+Unless the `autoplay_enabled` setting is on, media starts only once the
+user has interacted with the page (a click, tap or key press, as in Chrome
+and Firefox): before that, `autoplay` is ignored and `play()` is rejected
+with `NotAllowedError`, muted or not. A `<source>`
 whose `type` the build cannot play is skipped, in layout and in the
 controller alike, and `canPlayType` (`media_types.c`) and
 `MediaSource.isTypeSupported` (`ns_mse_type_supported` in `mse.c`, then

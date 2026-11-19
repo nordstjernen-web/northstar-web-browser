@@ -2,6 +2,22 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.27-dev:
+======
+* `-webkit-linear-gradient()`, `-webkit-radial-gradient()` and their
+  `repeating-` forms are accepted, with the legacy direction syntax (`top`
+  is where the gradient starts; angles count from east, counter-clockwise),
+  as in Chrome and Firefox. The sky behind the clouds of
+  rome.mrdoob.com was missing.
+* WebM video in VP8, the codec before VP9, plays: libvpx decodes it
+  through the same interface. `canPlayType('video/webm; codecs="vp8"')`
+  answers "probably".
+* With autoplay off (the default), media may start once the user has
+  interacted with the page, as in Chrome and Firefox, instead of only
+  within five seconds of each click or key press. A WebGL film that starts
+  its video from an animation frame after its start button was pressed
+  played no video.
+
 1.0.26:
 =======
 * Windows: a page asking for a WebGL context no longer crashes the

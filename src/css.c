@@ -31580,6 +31580,7 @@ static gboolean       g_state_has_hover;
 static gboolean       g_state_has_active;
 
 static void style_memo_forget(const ns_node *node);
+static void style_text_memo_forget(const ns_node *node);
 
 /* Drops all cached state and dirty marks referring to a node about to be freed. */
 void
@@ -31604,6 +31605,7 @@ ns_css_forget_node(const ns_node *node)
     if (g_incr_path) g_hash_table_remove(g_incr_path, node);
     if (g_incr_before_delta) g_hash_table_remove(g_incr_before_delta, node);
     style_memo_forget(node);
+    style_text_memo_forget(node);
 }
 
 /* True if the last cascade ran as an incremental pass. */
@@ -35568,6 +35570,126 @@ ns_css_style_element_text(ns_node *style)
     return style_element_final_css(style);
 }
 
+/* The CSS style_element_final_css() built for a <style> element, with the
+ * element text and scope it was built from.  Every cascade asks for every
+ * sheet again; for a style in a frame or shadow root the answer costs a
+ * flattening and a scoping pass over the whole text, and a page such as
+ * Gmail carries megabytes of it that never change. */
+typedef struct {
+    char    *raw;          /* the text children, concatenated */
+    gsize    raw_len;
+    char    *host_id;      /* scope raw was rewritten for, or NULL */
+    gboolean frame_scope;
+    char    *css;          /* the final CSS; raw itself when unscoped */
+    guint    notes;        /* the caller's findings about css; 0 when new */
+} style_text_memo;
+
+static GHashTable *g_style_text_memo;
+static gsize       g_style_text_memo_bytes;
+
+static gsize
+style_text_memo_size(const style_text_memo *m)
+{
+    return m->raw_len + (m->css != m->raw ? strlen(m->css) : 0);
+}
+
+static void
+style_text_memo_free(gpointer data)
+{
+    style_text_memo *m = data;
+    gsize size = style_text_memo_size(m);
+    g_style_text_memo_bytes -= MIN(size, g_style_text_memo_bytes);
+    if (m->css != m->raw) g_free(m->css);
+    g_free(m->raw);
+    g_free(m->host_id);
+    g_free(m);
+}
+
+static void
+style_text_memo_forget(const ns_node *node)
+{
+    if (g_style_text_memo) g_hash_table_remove(g_style_text_memo, node);
+}
+
+/* Whether n's text children, read as append_text_children() reads them,
+ * continue raw from *pos; advances *pos past them. */
+static gboolean
+text_children_match(const ns_node *n, const char *raw, gsize len, gsize *pos,
+                    int depth)
+{
+    if (depth >= 512) return TRUE;
+    for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
+        if (c->kind == NS_NODE_TEXT && c->text) {
+            gsize l = strlen(c->text);
+            if (l > len - *pos || memcmp(raw + *pos, c->text, l) != 0)
+                return FALSE;
+            *pos += l;
+        } else if (c->kind == NS_NODE_ELEMENT &&
+                   !text_children_match(c, raw, len, pos, depth + 1)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/* ns_css_style_element_text() without the copy: the text is owned by a memo
+ * and stays valid until the next call for the same element or the next
+ * ns_css_style_element_cache_begin().  The memo is checked against the
+ * element's text and scope on every call, so a changed sheet is rebuilt.
+ * *notes is a word the caller may keep facts about the text in; it is zero
+ * whenever the text is new. */
+const char *
+ns_css_style_element_text_shared(ns_node *style, guint **notes)
+{
+    if (notes) *notes = NULL;
+    if (!ns_node_is_tag(style, NS_TAG_STYLE)) return NULL;
+    const char *media = ns_element_get_attr(style, "media");
+    if (media && *media && !ns_css_media_query_matches(media)) return NULL;
+    gboolean frame_scope = FALSE;
+    char *host_id = style_host_scope_id(style);
+    if (!host_id) {
+        host_id = style_iframe_scope_id(style);
+        frame_scope = host_id != NULL;
+    }
+    if (!g_style_text_memo)
+        g_style_text_memo = g_hash_table_new_full(g_direct_hash, g_direct_equal,
+                                                  NULL, style_text_memo_free);
+    style_text_memo *m = g_hash_table_lookup(g_style_text_memo, style);
+    gsize pos = 0;
+    if (m && m->frame_scope == frame_scope &&
+        g_strcmp0(m->host_id, host_id) == 0 &&
+        text_children_match(style, m->raw, m->raw_len, &pos, 0) &&
+        pos == m->raw_len) {
+        g_free(host_id);
+        if (notes) *notes = &m->notes;
+        return m->css;
+    }
+    GString *buf = g_string_new(NULL);
+    append_text_children(style, buf, 0);
+    if (buf->len == 0) {
+        g_string_free(buf, TRUE);
+        g_free(host_id);
+        g_hash_table_remove(g_style_text_memo, style);
+        return NULL;
+    }
+    m = g_new0(style_text_memo, 1);
+    m->raw_len = buf->len;
+    m->raw = g_string_free(buf, FALSE);
+    m->host_id = host_id;
+    m->frame_scope = frame_scope;
+    if (host_id) {
+        char *flat = css_flatten_nesting(m->raw, (gssize)m->raw_len);
+        m->css = scope_shadow_css(flat, host_id, frame_scope);
+        g_free(flat);
+    } else {
+        m->css = m->raw;
+    }
+    g_hash_table_replace(g_style_text_memo, style, m);
+    g_style_text_memo_bytes += style_text_memo_size(m);
+    if (notes) *notes = &m->notes;
+    return m->css;
+}
+
 typedef struct {
     char *css;
     ns_css_stylesheet *sheet;
@@ -35786,6 +35908,10 @@ ns_css_style_element_cache_begin(void)
     if (g_css_relayout_depth > 1) return;
     if (g_style_el_cache && g_hash_table_size(g_style_el_cache) > 2048)
         g_hash_table_remove_all(g_style_el_cache);
+    if (g_style_text_memo &&
+        (g_hash_table_size(g_style_text_memo) > 512 ||
+         g_style_text_memo_bytes > (gsize)128 * 1024 * 1024))
+        g_hash_table_remove_all(g_style_text_memo);
     ns_merged_style_cache_trim();
     if (g_link_sheet_cache && g_hash_table_size(g_link_sheet_cache) > 256)
         g_hash_table_remove_all(g_link_sheet_cache);

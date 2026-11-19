@@ -46651,6 +46651,22 @@ static const char ns_iframe_global_bootstrap[] =
     "    try { Object.setPrototypeOf(FrameRange, OrigRange); } catch (e) {}"
     "    def('Range', { value: FrameRange, writable: true });"
     "  }"
+    /* The frame's own XMLHttpRequest: a subclass of the page's with a
+     * prototype of its own, so that a frame that wraps
+     * XMLHttpRequest.prototype.send wraps it for itself and not for the
+     * page that embeds it. */
+    "  if (typeof realWin.XMLHttpRequest === 'function') {"
+    "    var OrigXHR = realWin.XMLHttpRequest;"
+    "    var FrameXHR = function XMLHttpRequest(){"
+    "      var x = Reflect.construct(OrigXHR, arguments);"
+    "      try { Object.setPrototypeOf(x, (new.target || FrameXHR).prototype); } catch (e) {}"
+    "      return x;"
+    "    };"
+    "    FrameXHR.prototype = Object.create(OrigXHR.prototype, {"
+    "      constructor: { value: FrameXHR, writable: true, configurable: true } });"
+    "    try { Object.setPrototypeOf(FrameXHR, OrigXHR); } catch (e) {}"
+    "    def('XMLHttpRequest', { value: FrameXHR, writable: true });"
+    "  }"
     "  try { Object.setPrototypeOf(G, Object.getPrototypeOf(realWin)); } catch (e) {}"
     "  return { location: loc, history: hist };"
     "})";

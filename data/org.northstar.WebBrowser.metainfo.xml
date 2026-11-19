@@ -59,6 +59,18 @@
   </branding>
 
   <releases>
+    <release version="1.0.26" date="2026-11-19">
+      <description>
+        <p>Feature and bug fix release.</p>
+        <ul>
+          <li>WebGL 1 and WebGL 2 through the system OpenGL driver, with every shader validated and every draw checked against the buffers it reads; on Windows it also works with drivers that lack robust buffer access, such as AMD's.</li>
+          <li>Gmail: the compose window opens and sends, the inbox rows have their full layout, and an idle inbox restyles far less.</li>
+          <li>Style sheets inside iframes and shadow roots apply again, and each frame has its own XMLHttpRequest.</li>
+          <li>Google Search shows its account and apps buttons again.</li>
+          <li>On NixOS and Guix text renders: the sandbox can read the Nix and Guix stores.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.25" date="2026-11-16">
       <description>
         <p>Feature and bug fix release.</p>

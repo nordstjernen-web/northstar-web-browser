@@ -64,7 +64,8 @@ full AV1 decoder for a format that is rare on the web, so
 `-Davif=disabled` drops it), `libenchant-2-dev` (+ a dictionary such as
 `hunspell-en-us`) for on-screen spell-checking, `libopusfile-dev` /
 `libvorbis-dev` (which carries `vorbisfile`) for native Ogg Opus/Vorbis
-decode in the in-process mixer,
+decode in the in-process mixer, `libepoxy-dev` and `glslang-dev`
+(`libepoxy-devel` / `glslang-devel` on Fedora and openSUSE) for WebGL,
 and `libthai-dev` for Thai word breaking. The build works without them.
 
 ## macOS dependencies
@@ -79,7 +80,7 @@ brew install meson ninja pkg-config gtk4 curl openssl@3 libpsl \
 Export `PKG_CONFIG_PATH="$(brew --prefix curl)/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig"`
 before configuring. The macOS build uses the same setup and compile commands
 shown below. The optional libraries are the `libavif`, `opusfile`,
-`libvorbis` and `enchant` formulae.
+`libvorbis`, `enchant`, `libepoxy` and `glslang` formulae.
 
 With MacPorts (verified on macOS 27.0.1, Apple Silicon, Xcode 27 /
 Apple clang 21):
@@ -270,6 +271,7 @@ once (`apt install ccache` / `dnf install ccache`). Optionally use the
 | `audio` | `auto` | Enable in-process audio playback (needs SDL3 3.2 or newer). |
 | `gstreamer` | `auto` | Decode `<video>` through GStreamer decoder plugins. `auto` enables it on Linux when GStreamer (≥ 1.18, with gstreamer-app and gstreamer-video) is present, where it becomes the default video decoder; other platforms need `-Dgstreamer=enabled`. Not a required dependency: without it the native libdav1d/libvpx/OpenH264 backends decode video. |
 | `avif` | `auto` | Decode AVIF through libavif. Disabling drops a full AV1 decoder; AVIF images then fail to decode. |
+| `webgl` | `auto` | WebGL 1 / 2 over an offscreen OpenGL context (libepoxy), with every shader validated by glslang first. `auto` builds it when both libraries are present; `enabled` requires them; `disabled` leaves it out, and `getContext("webgl")` returns `null`. See [webgl.md](webgl.md). |
 | `pdfjs` | `auto` | The PDF viewer, built on PDF.js and embedded at build time. `auto` builds it when PDF.js is available; `enabled` makes PDF.js a required dependency, so the build fails without it; `disabled` leaves the viewer out, and a PDF shows a link to the file. |
 | `pdfjs_dir` | *(empty)* | Directory of an installed PDF.js to use instead of the pinned release, such as Arch's `/usr/share/pdf.js`. See below. |
 | `build_date` | *(configure date)* | Build-date stamp shown in the About dialog. |
@@ -390,6 +392,7 @@ These environment variables override the file:
 | `NS_GSK_RENDERER` | GTK renderer, as for `--gsk-renderer`. |
 | `NS_JS_EVAL_BUDGET_MS` | Time one script may run before it is interrupted (`js_eval_budget_ms`, default 60000, at most 3600000). JetStream 2 needs more than the default: each of its benchmarks runs as one script for minutes on an interpreter. |
 | `NS_PRIVATE` | Start in private mode. |
+| `NS_NO_WEBGL` | Turn WebGL off for this run, which also restores the full content-thread seccomp filter. |
 | `NS_NO_WATCHDOG`, `NS_NO_CACHE`, `NS_NO_IMAGES`, `NS_NO_LOCAL_STORAGE`, `NS_NO_HTTPS_FIRST`, `NS_NO_PRELOAD_SCAN`, `NS_NO_ASYNC_IMG_DECODE`, `NS_NO_HARDEN_ALLOC` | Turn the matching feature off. |
 
 Others the browser reads:

@@ -60,6 +60,7 @@ module.exports = {
     { module: 'opusfile', feature: 'Ogg Opus audio', apt: 'libopusfile-dev', pacman: 'opusfile', brew: 'opusfile', msys: 'opusfile' },
     { module: 'vorbisfile', feature: 'Ogg Vorbis audio', apt: 'libvorbis-dev', pacman: 'libvorbis', brew: 'libvorbis', msys: 'libvorbis' },
     { module: 'libavif', feature: 'AVIF images', apt: 'libavif-dev', pacman: 'libavif', brew: 'libavif', msys: 'libavif' },
+    { module: 'epoxy', feature: 'WebGL', apt: 'libepoxy-dev', pacman: 'libepoxy', brew: 'libepoxy', msys: 'libepoxy' },
     { module: 'enchant-2', feature: 'spell-checking', apt: 'libenchant-2-dev', pacman: 'enchant', brew: 'enchant', msys: 'enchant' },
     { module: 'libthai', minimum: '0.1.9', unix: true, feature: 'Thai word breaking', apt: 'libthai-dev', pacman: 'libthai', brew: 'libthai' },
   ],

@@ -25,7 +25,8 @@ spoofing.
 
 **Out of scope:** bugs in third-party libraries (libcurl, GTK 4, GLib,
 lexbor, QuickJS, Wuffs, FreeType, codecs, …) — report upstream; features
-we don't implement (WebGL, WebGPU, WebRTC, EME/DRM, JIT); Spectre-class
+we don't implement (WebGPU, WebRTC, EME/DRM, JIT); GPU driver bugs
+reached through WebGL (report upstream; see *WebGL* below); Spectre-class
 side channels; attacks that already need local code execution; the
 *Known gaps* below.
 
@@ -81,7 +82,11 @@ runs alike. Both layers **fail open** on kernels that lack them.
   X server). The GUI main thread is exempt, because GPU drivers JIT shaders and
   Wayland/D-Bus need sockets, and so is the audio output thread, which is
   started before the engine thread. The filter is per thread, so this is
-  hardening, not a boundary.
+  hardening, not a boundary. **With WebGL enabled (the default) only the
+  socket rule applies:** a GPU driver compiles shaders to machine code and
+  shares buffers through memfds, so executable mappings and
+  `memfd_create` stay allowed on those threads. Download threads keep the
+  full filter. See *WebGL* below.
 
 `NS_NO_SANDBOX=1` disables Landlock, seccomp and the macOS profile;
 `NS_NO_SECCOMP=1` disables seccomp alone. Other security-relevant
@@ -188,6 +193,33 @@ disables the suite.
 - Internal `data-nd-*` attributes are hidden from script, author CSS
   selectors and `attr()`.
 
+## WebGL
+
+WebGL 1 and 2 (`src/webgl.c`, [docs/webgl.md](docs/webgl.md)) map
+`canvas.getContext("webgl")` onto an offscreen OpenGL context. It is built
+when libepoxy and glslang are present, and on by default at run time.
+
+- **The GPU driver runs in the browser process**, on the engine thread.
+  There is no GPU process and no command-stream validator (no ANGLE): a
+  driver bug a page can reach is a bug in the whole browser, and enabling
+  WebGL relaxes the content-thread filter as described above.
+- **Before the driver:** every shader is validated by the Khronos glslang
+  front end against the WebGL rules (`src/glsl_validate.c`) and a rejected
+  shader never reaches the driver; the context is created with robust
+  buffer access (EGL/WGL robustness extensions) or not at all, except on
+  macOS, whose CGL has no such extension; pixel transfers, buffer copies
+  and index ranges are bounds-checked with overflow-checked arithmetic;
+  new buffer and texture storage is zero-filled; uploads and the number of
+  contexts are capped.
+- **Origin:** a texture upload from a source that is not origin-clean
+  throws `SecurityError`, so a WebGL canvas is never tainted.
+- **Fingerprinting:** vendor, renderer and version strings are fixed, and
+  the numeric limits are clamped to common values.
+- **Turning it off:** *Enable WebGL* on `about:settings`
+  (`webgl_enabled = false`), `NS_NO_WEBGL=1` for one run, or
+  `-Dwebgl=disabled` at build time. Off restores the full content-thread
+  filter at the next start; `getContext("webgl")` returns `null` at once.
+
 ## Parsers
 
 HTML and URLs: lexbor. Images: Wuffs (PNG/APNG, GIF, BMP, JPEG, WebP).
@@ -207,6 +239,10 @@ from memory.
 
 ## Known gaps
 
+- **WebGL talks to the GPU driver from the browser process,** and
+  relaxes the content-thread filter while enabled (see *WebGL*). Vertex
+  attribute ranges and the initial contents of page-allocated
+  renderbuffers and immutable textures are left to the driver.
 - **No process isolation** between pages, or between a page and the
   browser.
 - **Frame isolation is JS-level.** Frames share the page's runtime and

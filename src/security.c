@@ -1131,9 +1131,12 @@ seccomp_deny_exec_shared(scmp_filter_ctx ctx, const char *name)
 }
 #endif
 
-/* Seccomp filter refusing executable mappings and memfds; TSYNC when whole_process. */
+/* Seccomp filter refusing executable mappings, memfds and new UNIX sockets;
+ * TSYNC when whole_process. With gpu_driver set the thread will host a GPU
+ * driver for WebGL, which compiles shaders to machine code and shares
+ * buffers through memfds, so only the socket rule is installed. */
 void
-ns_security_deny_exec_memory(gboolean whole_process)
+ns_security_deny_exec_memory(gboolean whole_process, gboolean gpu_driver)
 {
     if (ns_env_flag("NS_NO_SANDBOX")) return;
     if (ns_env_flag("NS_NO_SECCOMP")) return;
@@ -1144,24 +1147,26 @@ ns_security_deny_exec_memory(gboolean whole_process)
     if (!ctx) return;
     if (whole_process)
         (void)seccomp_attr_set(ctx, SCMP_FLTATR_CTL_TSYNC, 1);
+    if (!gpu_driver) {
 #ifndef __i386__
-    seccomp_deny_exec(ctx, "mmap", TRUE);
-    seccomp_deny_exec_shared(ctx, "mmap");
+        seccomp_deny_exec(ctx, "mmap", TRUE);
+        seccomp_deny_exec_shared(ctx, "mmap");
 #endif
-    seccomp_deny_exec(ctx, "mmap2", TRUE);
-    seccomp_deny_exec_shared(ctx, "mmap2");
-    seccomp_deny_exec(ctx, "mprotect", FALSE);
-    seccomp_deny_exec(ctx, "pkey_mprotect", FALSE);
-    /* Writable-then-executable memory can also be had from an anonymous
-     * file mapped twice; content threads have no use for memfds or for
-     * re-arranging file mappings. */
-    static const char *const no_memfd[] = {
-        "memfd_create", "memfd_secret", "remap_file_pages",
-    };
-    for (gsize i = 0; i < G_N_ELEMENTS(no_memfd); i++) {
-        int nr = seccomp_syscall_resolve_name(no_memfd[i]);
-        if (nr != __NR_SCMP_ERROR)
-            (void)seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), nr, 0);
+        seccomp_deny_exec(ctx, "mmap2", TRUE);
+        seccomp_deny_exec_shared(ctx, "mmap2");
+        seccomp_deny_exec(ctx, "mprotect", FALSE);
+        seccomp_deny_exec(ctx, "pkey_mprotect", FALSE);
+        /* Writable-then-executable memory can also be had from an anonymous
+         * file mapped twice; content threads have no use for memfds or for
+         * re-arranging file mappings. */
+        static const char *const no_memfd[] = {
+            "memfd_create", "memfd_secret", "remap_file_pages",
+        };
+        for (gsize i = 0; i < G_N_ELEMENTS(no_memfd); i++) {
+            int nr = seccomp_syscall_resolve_name(no_memfd[i]);
+            if (nr != __NR_SCMP_ERROR)
+                (void)seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), nr, 0);
+        }
     }
     /* No new UNIX sockets. Landlock does not mediate connect() to a
      * socket path, so content code could otherwise reach the session bus
@@ -1182,7 +1187,7 @@ ns_security_deny_exec_memory(gboolean whole_process)
                g_strerror(-rc));
     seccomp_release(ctx);
 #else
-    (void)whole_process;
+    (void)whole_process; (void)gpu_driver;
 #endif
 }
 
@@ -1273,9 +1278,9 @@ ns_security_seccomp_init(void)
 }
 
 void
-ns_security_deny_exec_memory(gboolean whole_process)
+ns_security_deny_exec_memory(gboolean whole_process, gboolean gpu_driver)
 {
-    (void)whole_process;
+    (void)whole_process; (void)gpu_driver;
 }
 
 #else
@@ -1292,9 +1297,9 @@ ns_security_seccomp_init(void)
 }
 
 void
-ns_security_deny_exec_memory(gboolean whole_process)
+ns_security_deny_exec_memory(gboolean whole_process, gboolean gpu_driver)
 {
-    (void)whole_process;
+    (void)whole_process; (void)gpu_driver;
 }
 
 #endif

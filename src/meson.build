@@ -178,6 +178,9 @@ if have_avif
   northstar_engine_sources += files('image_avif.c')
 endif
 
+# Always compiled: without NS_ENABLE_WEBGL they reduce to stubs.
+northstar_engine_sources += files('webgl.c', 'glctx.c', 'glsl_validate.c')
+
 northstar_win_resources = []
 if host_machine.system() == 'windows'
   windows = import('windows')
@@ -232,6 +235,9 @@ if libopus.found()
 endif
 if have_avif
   northstar_deps += [libavif]
+endif
+if have_webgl
+  northstar_deps += webgl_deps
 endif
 
 if have_enchant

@@ -38,7 +38,9 @@ void ns_security_add_writable_dir(const char *dir);
 void ns_security_allow_gpu_devices(void);
 
 void ns_security_seccomp_init(void);
-void ns_security_deny_exec_memory(gboolean whole_process);
+/* gpu_driver: the thread will run a GPU driver (WebGL), so executable
+ * mappings and memfds stay allowed; new UNIX sockets are refused either way. */
+void ns_security_deny_exec_memory(gboolean whole_process, gboolean gpu_driver);
 
 void ns_security_win32_mitigations_init(gboolean interactive);
 

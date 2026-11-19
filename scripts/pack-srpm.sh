@@ -60,6 +60,8 @@ BuildRequires:  pkgconfig(libcrypto)
 BuildRequires:  pkgconfig(libpsl)
 BuildRequires:  pkgconfig(libseccomp)
 BuildRequires:  pkgconfig(libavif)
+BuildRequires:  pkgconfig(epoxy)
+BuildRequires:  glslang-devel
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(sdl3) >= 3.2.0
 

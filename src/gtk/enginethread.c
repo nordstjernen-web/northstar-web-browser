@@ -12,6 +12,7 @@
 #include "mainctx.h"
 #include "security.h"
 #include "trace.h"
+#include "webgl.h"
 
 #ifndef G_OS_WIN32
 #include <pthread.h>
@@ -85,7 +86,7 @@ static gpointer
 engine_main(gpointer data)
 {
     (void)data;
-    ns_security_deny_exec_memory(FALSE);
+    ns_security_deny_exec_memory(FALSE, ns_webgl_available());
     engine_set_os_thread_name();
     g_main_context_push_thread_default(g_ctx);
     ns_engine_context_set(g_ctx);

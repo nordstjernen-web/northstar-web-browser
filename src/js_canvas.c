@@ -5,6 +5,7 @@
  */
 #include "quickjs_compat.h"
 #include "js_internal.h"
+#include "webgl.h"
 
 #include <math.h>
 #include <string.h>
@@ -811,6 +812,8 @@ cairo_surface_t *
 ns_js_canvas_surface(ns_js *js, const ns_node *n)
 {
     if (!n) return NULL;
+    cairo_surface_t *gl = ns_webgl_canvas_surface(n);
+    if (gl) return gl;
     if (!js || !js->canvas_states) return NULL;
     ns_canvas_state *st = g_hash_table_lookup(js->canvas_states, n);
     return st ? st->surf : NULL;
@@ -2345,6 +2348,14 @@ ns_ctx_drawimage_source(JSContext *ctx, JSValueConst src, int *out_w, int *out_h
     ns_js *js = js_from_ctx(ctx);
     if (!js) return NULL;
     if (ns_node_is_tag(n, NS_TAG_CANVAS)) {
+        /* A WebGL canvas: its drawing buffer, which is always origin-clean
+         * (texture uploads from tainted sources are refused). */
+        cairo_surface_t *gl = ns_webgl_canvas_surface(n);
+        if (gl) {
+            *out_w = cairo_image_surface_get_width(gl);
+            *out_h = cairo_image_surface_get_height(gl);
+            return cairo_surface_reference(gl);
+        }
         if (js->canvas_states) {
             ns_canvas_state *st = g_hash_table_lookup(js->canvas_states, n);
             if (st && st->surf) {
@@ -3780,14 +3791,45 @@ ns_element_getContext(JSContext *ctx, JSValueConst this_val,
 {
     const ns_node *el = ns_unwrap_element(this_val);
     if (!el || !js_from_ctx(ctx)) return JS_NULL;
+    int webgl_version = 0;
     if (argc >= 1 && JS_IsString(argv[0])) {
         const char *t = JS_ToCString(ctx, argv[0]);
         gboolean is_2d = !t || strcmp(t, "2d") == 0;
+        if (t && (strcmp(t, "webgl") == 0 ||
+                  strcmp(t, "experimental-webgl") == 0))
+            webgl_version = 1;
+#ifndef NS_HAVE_CGL
+        /* Apple's OpenGL stops at 4.1 and cannot compile GLSL ES 3.00. */
+        else if (t && strcmp(t, "webgl2") == 0)
+            webgl_version = 2;
+#endif
         if (t) JS_FreeCString(ctx, t);
-        if (!is_2d) return JS_NULL;
+        if (!is_2d && !webgl_version) return JS_NULL;
     }
-    ns_canvas_state *st = ns_canvas_state_for(js_from_ctx(ctx), el);
+    ns_js *cjs = js_from_ctx(ctx);
+    /* A canvas has one context type for life: the first getContext() wins. */
+    JSValue kind_v = JS_GetPropertyStr(ctx, this_val, "__nd_context_kind");
+    int kind = 0;
+    JS_ToInt32(ctx, &kind, kind_v);
+    JS_FreeValue(ctx, kind_v);
+    if (webgl_version) {
+        if (kind == 1 || cjs->worker_host) return JS_NULL;
+        JSValue gl = ns_webgl_get_context(ctx, cjs, this_val, el, webgl_version,
+                                          argc >= 2 ? argv[1] : JS_UNDEFINED);
+        if (JS_IsObject(gl)) {
+            JS_DefinePropertyValueStr(ctx, this_val, "__nd_context_kind",
+                                      JS_NewInt32(ctx, 2), 0);
+            /* The context object must live as long as its canvas does. */
+            JS_DefinePropertyValueStr(ctx, this_val, "__nd_context",
+                                      JS_DupValue(ctx, gl), 0);
+        }
+        return gl;
+    }
+    if (kind == 2) return JS_NULL;
+    ns_canvas_state *st = ns_canvas_state_for(cjs, el);
     if (!st) return JS_NULL;
+    JS_DefinePropertyValueStr(ctx, this_val, "__nd_context_kind",
+                              JS_NewInt32(ctx, 1), 0);
     JSValue attrs = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, attrs, "alpha", JS_TRUE);
     JS_SetPropertyStr(ctx, attrs, "colorSpace", JS_NewString(ctx, "srgb"));
@@ -3937,4 +3979,152 @@ void ns_canvas_register_path2d_class(JSRuntime *rt)
 {
     ns_new_class_id(&ns_path2d_class_id);
     JS_NewClass(rt, ns_path2d_class_id, &ns_path2d_class);
+}
+
+
+/* drawImage-style source for other files: NULL with *threw set (and a
+ * SecurityError pending) when the source is not origin-clean. */
+cairo_surface_t *
+ns_js_drawimage_source_surface(JSContext *ctx, JSValueConst src,
+                               int *out_w, int *out_h, gboolean *threw)
+{
+    *out_w = 0;
+    *out_h = 0;
+    *threw = FALSE;
+    gboolean origin_clean = TRUE;
+    cairo_surface_t *surf = ns_ctx_drawimage_source(ctx, src, out_w, out_h,
+                                                    &origin_clean);
+    if (!surf || origin_clean) return surf;
+    cairo_surface_destroy(surf);
+    *out_w = 0;
+    *out_h = 0;
+    *threw = TRUE;
+    ns_canvas_throw_dom(ctx, "SecurityError",
+                        "The image source is not origin-clean.");
+    return NULL;
+}
+
+/* A platform object whose fields live in a state object script cannot
+ * reach: WebGLActiveInfo and WebGLShaderPrecisionFormat. */
+static JSClassID ns_hidden_class_id;
+
+typedef struct ns_hidden {
+    int     kind;
+    JSValue state;
+} ns_hidden;
+
+static void
+ns_hidden_finalizer(JSRuntime *rt, JSValue val)
+{
+    ns_hidden *h = JS_GetOpaque(val, ns_hidden_class_id);
+    if (!h) return;
+    JS_FreeValueRT(rt, h->state);
+    g_free(h);
+}
+
+static void
+ns_hidden_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
+{
+    ns_hidden *h = JS_GetOpaque(val, ns_hidden_class_id);
+    if (h) JS_MarkValue(rt, h->state, mark_func);
+}
+
+static JSClassDef ns_hidden_class = {
+    "CanvasObject",
+    .finalizer = ns_hidden_finalizer,
+    .gc_mark = ns_hidden_gc_mark,
+};
+
+JSValue
+ns_hidden_new(JSContext *realm, int kind, JSValueConst proto)
+{
+    JSRuntime *rt = JS_GetRuntime(realm);
+    ns_new_class_id(&ns_hidden_class_id);
+    if (!JS_IsRegisteredClass(rt, ns_hidden_class_id))
+        JS_NewClass(rt, ns_hidden_class_id, &ns_hidden_class);
+    JSValue obj = JS_IsObject(proto)
+        ? JS_NewObjectProtoClass(realm, proto, ns_hidden_class_id)
+        : JS_NewObjectClass(realm, ns_hidden_class_id);
+    if (JS_IsException(obj)) return obj;
+    ns_hidden *h = g_new0(ns_hidden, 1);
+    h->kind = kind;
+    h->state = JS_NewObjectProto(realm, JS_NULL);
+    JS_SetOpaque(obj, h);
+    return obj;
+}
+
+gboolean
+ns_hidden_is(JSValueConst v, int kind)
+{
+    ns_hidden *h = ns_hidden_class_id
+        ? JS_GetOpaque(v, ns_hidden_class_id) : NULL;
+    return h && h->kind == kind;
+}
+
+JSValue
+ns_hget(JSContext *ctx, JSValueConst obj, const char *name)
+{
+    ns_hidden *h = ns_hidden_class_id
+        ? JS_GetOpaque(obj, ns_hidden_class_id) : NULL;
+    return h ? JS_GetPropertyStr(ctx, h->state, name) : JS_UNDEFINED;
+}
+
+void
+ns_hset(JSContext *ctx, JSValueConst obj, const char *name, JSValue val)
+{
+    ns_hidden *h = ns_hidden_class_id
+        ? JS_GetOpaque(obj, ns_hidden_class_id) : NULL;
+    if (h) JS_SetPropertyStr(ctx, h->state, name, val);
+    else JS_FreeValue(ctx, val);
+}
+
+/* The realm a canvas's context objects are made in: the calling one. */
+JSContext *
+ns_canvas_realm(JSContext *ctx, const ns_node *el)
+{
+    (void)el;
+    return ctx;
+}
+
+/* The realm's current prototype for an interface, undefined if it has none. */
+JSValue
+ns_api_proto(JSContext *realm, const char *iface)
+{
+    JSValue global = JS_GetGlobalObject(realm);
+    JSValue ctor = JS_GetPropertyStr(realm, global, iface);
+    JS_FreeValue(realm, global);
+    JSValue proto = JS_IsObject(ctor) ? JS_GetPropertyStr(realm, ctor, "prototype")
+                                      : JS_UNDEFINED;
+    JS_FreeValue(realm, ctor);
+    return proto;
+}
+
+/* Defines global[name] = ctor with a fresh prototype (inheriting parent's,
+ * when named) and returns that prototype; takes ownership of ctor. */
+JSValue
+ns_api_interface(JSContext *ctx, JSValueConst global, const char *name,
+                 JSValue ctor, const char *parent)
+{
+    JSValue parent_ctor = parent ? JS_GetPropertyStr(ctx, global, parent) : JS_UNDEFINED;
+    JSValue parent_proto = JS_IsObject(parent_ctor)
+        ? JS_GetPropertyStr(ctx, parent_ctor, "prototype") : JS_UNDEFINED;
+    JSValue proto = JS_IsObject(parent_proto) ? JS_NewObjectProto(ctx, parent_proto)
+                                              : JS_NewObject(ctx);
+    JS_SetConstructor(ctx, ctor, proto);
+    JSValue sym = JS_GetPropertyStr(ctx, global, "Symbol");
+    JSValue tag_sym = JS_GetPropertyStr(ctx, sym, "toStringTag");
+    JSAtom tag_atom = JS_ValueToAtom(ctx, tag_sym);
+    if (tag_atom != JS_ATOM_NULL) {
+        JS_DefinePropertyValue(ctx, proto, tag_atom, JS_NewString(ctx, name),
+                               JS_PROP_CONFIGURABLE);
+        JS_FreeAtom(ctx, tag_atom);
+    }
+    JS_FreeValue(ctx, tag_sym);
+    JS_FreeValue(ctx, sym);
+    if (JS_IsObject(parent_ctor)) JS_SetPrototype(ctx, ctor, parent_ctor);
+    JS_DefinePropertyValueStr(ctx, global, name, ctor,
+                              JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    JS_FreeValue(ctx, parent_proto);
+    JS_FreeValue(ctx, parent_ctor);
+    return proto;
 }

@@ -68,8 +68,10 @@ decoders — small enough for one person to read and audit end-to-end. See
 This edition strips Nordstjernen down to a tab-less, single-process
 desktop browser, based on the
 [Nordstjernen project](https://github.com/nordstjernen-web/nordstjernen-sol-browser).
-It deliberately omits tabs, per-tab renderer processes, WebGL, WebGPU
-and AI-style web APIs. PDFs open in a viewer built on Mozilla's PDF.js,
+It deliberately omits tabs, per-tab renderer processes, WebGPU
+and AI-style web APIs. WebGL 1 and 2 are supported through the system's
+OpenGL driver, which runs inside the browser process; they can be turned
+off in Settings (see [docs/webgl.md](docs/webgl.md)). PDFs open in a viewer built on Mozilla's PDF.js,
 run as ordinary page script under a sandboxing policy that gives it an
 opaque origin, so it cannot read the hosting site's cookies or storage. It does not send telemetry
 or update pings; the only service it contacts on its own is Google Safe
@@ -254,7 +256,7 @@ single page can also be rendered directly:
 ./builddir/src/gtk/northstar --headless --dump=text about:start
 ```
 
-Meson feature options include `-Davif=disabled`, `-Daudio=disabled`,
+Meson feature options include `-Davif=disabled`, `-Daudio=disabled`, `-Dwebgl=disabled`,
 `-Dwasm=disabled`, `-Dgstreamer=disabled`, `-Dmediafoundation=disabled`, `-Dav1=disabled`,
 `-Dvp9=disabled` and `-Dh264=disabled` for smaller builds; only Cisco's prebuilt OpenH264
 binaries carry Cisco's H.264 patent licence, so `-Dh264=disabled` drops
@@ -314,8 +316,8 @@ installed — e.g. gst-plugins-good for VP9, gst-plugins-bad for AV1 and
 the H.264 parser, gst-libav), libdav1d, libvpx and OpenH264 (AV1, VP9
 and H.264 video), libopus (Opus audio in WebM and MP4), libavif (AVIF
 images), opusfile / vorbisfile (in-process Ogg audio), libbrotlidec and
-libzstd (Brotli and zstd `Content-Encoding`), Enchant (spell-checking)
-and libthai (Thai line breaking).
+libzstd (Brotli and zstd `Content-Encoding`), Enchant (spell-checking),
+libthai (Thai line breaking), and libepoxy with glslang (WebGL).
 
 ## License
 

@@ -175,6 +175,7 @@ static const cfg_field cfg_fields[] = {
     FB(images_enabled,        TRUE),
     FB(autoplay_enabled,      FALSE),
     FB(javascript_enabled,    TRUE),
+    FB(webgl_enabled,         TRUE),
     FB(local_storage_enabled, TRUE),
     FB(cache_enabled,         TRUE),
     FB(tls_allow_insecure_override, FALSE),
@@ -557,6 +558,7 @@ ns_config_dump(void)
     g_string_append_printf(s, "async_image_decode    = %s\n", c->async_image_decode ? "true" : "false");
     g_string_append_printf(s, "images_enabled        = %s\n", c->images_enabled ? "true" : "false");
     g_string_append_printf(s, "autoplay_enabled      = %s\n", c->autoplay_enabled ? "true" : "false");
+    g_string_append_printf(s, "webgl_enabled         = %s\n", c->webgl_enabled ? "true" : "false");
     g_string_append_printf(s, "local_storage_enabled = %s\n", c->local_storage_enabled ? "true" : "false");
     g_string_append_printf(s, "cache_enabled         = %s\n", c->cache_enabled ? "true" : "false");
     g_string_append_printf(s, "tls_allow_insecure_override = %s\n", c->tls_allow_insecure_override ? "true" : "false");

@@ -76,6 +76,8 @@ jobs:
             mingw-w64-ucrt-x86_64-libpsl
             mingw-w64-ucrt-x86_64-sqlite3
             mingw-w64-ucrt-x86_64-libavif
+            mingw-w64-ucrt-x86_64-libepoxy
+            mingw-w64-ucrt-x86_64-glslang
             mingw-w64-ucrt-x86_64-sdl3
             mingw-w64-ucrt-x86_64-opusfile
             mingw-w64-ucrt-x86_64-libvorbis

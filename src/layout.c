@@ -989,30 +989,37 @@ node_is_row_group(const ns_node *n, GHashTable *styles)
            k == NS_DISPLAY_INTERNAL_TABLE_FOOTER_GROUP;
 }
 
+/* A table, row or cell is what its computed display says.  The user agent
+ * sheet gives <table>, <tr>, <td> and <th> their table displays, so the tag
+ * decides only for an element that has no style; an author rule such as
+ * `tr { display: flex }` or `table { display: block }` makes the element
+ * an ordinary box of that kind. */
 static gboolean
 is_table_row(const ns_node *n, GHashTable *styles)
 {
     if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
-    if (ns_node_is_tag(n, NS_TAG_TR)) return TRUE;
-    return style_display_is_table_row(g_hash_table_lookup(styles, n));
+    const ns_style *s = styles ? g_hash_table_lookup(styles, n) : NULL;
+    if (!s) return ns_node_is_tag(n, NS_TAG_TR);
+    return style_display_is_table_row(s);
 }
 
 static gboolean
 is_table_box(const ns_node *n, GHashTable *styles)
 {
     if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
-    if (ns_node_is_tag(n, NS_TAG_TABLE)) return TRUE;
-    return style_display_is_table(g_hash_table_lookup(styles, n));
+    const ns_style *s = styles ? g_hash_table_lookup(styles, n) : NULL;
+    if (!s) return ns_node_is_tag(n, NS_TAG_TABLE);
+    return style_display_is_table(s);
 }
 
 static gboolean
 is_cell_element(const ns_node *n, GHashTable *styles)
 {
-    if (ns_node_is_tag(n, NS_TAG_TD) ||
-        ns_node_is_tag(n, NS_TAG_TH))
-        return TRUE;
     if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
-    return style_display_is_table_cell(g_hash_table_lookup(styles, n));
+    const ns_style *s = styles ? g_hash_table_lookup(styles, n) : NULL;
+    if (!s)
+        return ns_node_is_tag(n, NS_TAG_TD) || ns_node_is_tag(n, NS_TAG_TH);
+    return style_display_is_table_cell(s);
 }
 
 static gboolean
@@ -1568,9 +1575,28 @@ build_table_row(const ns_node *tr, GHashTable *styles)
     ns_box *row = box_new(NS_BOX_TABLE_ROW);
     row->dom = tr;
     row->style = g_hash_table_lookup(styles, tr);
-    for (const ns_node *c = tr->first_child; c; c = c->next_sibling)
-        if (is_cell_element(c, styles))
+    ns_box *anon = NULL;
+    for (const ns_node *c = tr->first_child; c; c = c->next_sibling) {
+        if (c->kind != NS_NODE_ELEMENT) continue;
+        /* A hidden child generates no box and takes no column. */
+        const ns_style *cs = g_hash_table_lookup(styles, c);
+        if (cs && style_is_none(cs)) continue;
+        if (is_cell_element(c, styles)) {
+            anon = NULL;
             box_append_child(row, build_cell(c, styles));
+            continue;
+        }
+        /* A child that is not a cell (`td { display: block }`) goes into
+         * an anonymous cell, shared with the non-cell children next to it. */
+        if (cs && style_is_absolute_or_fixed(cs)) continue;
+        ns_box *child = build_block(c, styles);
+        if (!child) continue;
+        if (!anon) {
+            anon = box_new(NS_BOX_TABLE_CELL);
+            box_append_child(row, anon);
+        }
+        box_append_child(anon, child);
+    }
     return row;
 }
 

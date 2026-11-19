@@ -553,6 +553,22 @@ svg_state_apply_animated(svg_ctx *ctx, svg_state *st, const ns_node *n,
     ctx->animated_only = FALSE;
 }
 
+/* Whether the computed value of an inherited property should replace what
+ * the element's presentation attribute set.  A declaration that applies to
+ * the element does; a value that merely came down from an ancestor does
+ * not, since the attribute is the element's own: in
+ * `<svg style="fill: gray"><path fill="none">` the path is not filled. */
+static gboolean
+svg_css_beats_attr(svg_ctx *ctx, const ns_node *n, const ns_style *s,
+                   ns_css_prop prop, const char *attr)
+{
+    if (!s->values[prop]) return FALSE;
+    if (!ns_element_get_attr(n, attr)) return TRUE;
+    const ns_style *ps = n->parent && ctx->styles
+        ? g_hash_table_lookup(ctx->styles, (gpointer)n->parent) : NULL;
+    return !(ps && ps->values[prop] == s->values[prop]);
+}
+
 /* Applies an element's presentation attributes, then its cascaded CSS, then its
  * animated values, onto inherited state. */
 static void
@@ -578,13 +594,15 @@ svg_state_apply_node(svg_ctx *ctx, svg_state *st, const ns_node *n)
 
     if (!s) return;
 
-    svg_apply_css_paint(st, s, NS_CSS_FILL, &st->fill);
-    svg_apply_css_paint(st, s, NS_CSS_STROKE, &st->stroke);
-    if (s->values[NS_CSS_FILL_OPACITY])
+    if (svg_css_beats_attr(ctx, n, s, NS_CSS_FILL, "fill"))
+        svg_apply_css_paint(st, s, NS_CSS_FILL, &st->fill);
+    if (svg_css_beats_attr(ctx, n, s, NS_CSS_STROKE, "stroke"))
+        svg_apply_css_paint(st, s, NS_CSS_STROKE, &st->stroke);
+    if (svg_css_beats_attr(ctx, n, s, NS_CSS_FILL_OPACITY, "fill-opacity"))
         st->fill_opacity = CLAMP(svg_css_number(s, NS_CSS_FILL_OPACITY, 1.0, 1.0), 0.0, 1.0);
-    if (s->values[NS_CSS_STROKE_OPACITY])
+    if (svg_css_beats_attr(ctx, n, s, NS_CSS_STROKE_OPACITY, "stroke-opacity"))
         st->stroke_opacity = CLAMP(svg_css_number(s, NS_CSS_STROKE_OPACITY, 1.0, 1.0), 0.0, 1.0);
-    if (s->values[NS_CSS_STROKE_WIDTH])
+    if (svg_css_beats_attr(ctx, n, s, NS_CSS_STROKE_WIDTH, "stroke-width"))
         st->stroke_width = MAX(0.0, svg_css_number(s, NS_CSS_STROKE_WIDTH, basis, 1.0));
     if (s->values[NS_CSS_STROKE_MITERLIMIT])
         st->miter_limit = MAX(1.0, svg_css_number(s, NS_CSS_STROKE_MITERLIMIT, 1.0, 4.0));

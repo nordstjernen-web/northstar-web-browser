@@ -4716,12 +4716,13 @@ parse_one_selector_rel(const char **pp, const char *end, int depth,
                  * from script: an input's current value, a frame's final
                  * URL.  Only the built-in sheet may select on them; in
                  * author CSS and querySelector they match nothing.  The
-                 * adopted-stylesheet scope marker is the exception: it is
-                 * written into author CSS by the engine and carries no
-                 * state. */
+                 * scope markers are the exception: the engine writes them
+                 * into the CSS of shadow roots, frames and adopted sheets
+                 * to confine its rules, and they carry no state. */
                 if (!g_sel_internal_attrs &&
                     ns_attr_name_is_internal(attr_name) &&
-                    g_ascii_strcasecmp(attr_name, "data-nd-adopt") != 0)
+                    g_ascii_strcasecmp(attr_name, NS_ADOPT_SCOPE_ATTR) != 0 &&
+                    g_ascii_strcasecmp(attr_name, NS_HOST_SCOPE_ATTR) != 0)
                     cmp->never_match = TRUE;
                 ns_css_attr_pred ap = {0};
                 ap.name = g_strdup(attr_name);
@@ -31527,6 +31528,35 @@ static gboolean       g_has_cq_loose;
 static gboolean       g_has_loose_self;
 static gboolean       g_has_loose_sibling;
 static gboolean       g_has_sibling_args;
+/* What the arguments of :has() can look for: the id, class and type keys
+ * and the attribute names of their compounds.  A change that involves none
+ * of them cannot flip a :has(), so its anchors need no restyle.  An argument
+ * that cannot be described this way (a compound with no key, a positional
+ * pseudo-class, a sibling combinator) makes its own anchor always live:
+ * g_has_argloose_* are the keys of such anchors.  The g_has_loose_arg_*
+ * set covers only the :has() whose anchor has no key, which are re-matched
+ * on every ancestor of a change. */
+static GHashTable    *g_has_arg_keys;
+static GHashTable    *g_has_arg_attrs;
+static GHashTable    *g_has_argloose_keys;
+static GPtrArray     *g_has_argloose_attrs;
+static GHashTable    *g_has_loose_arg_keys;
+static GHashTable    *g_has_loose_arg_attrs;
+static gboolean       g_has_loose_args_loose;
+
+/* How the change being marked relates to :has() arguments. */
+typedef enum {
+    INCR_HAS_CHANGE_UNKNOWN,     /* anything may have changed: always relevant */
+    INCR_HAS_CHANGE_ATTR,        /* one attribute of one element changed */
+    INCR_HAS_CHANGE_SELF,        /* the state of the marked element changed */
+    INCR_HAS_CHANGE_DECIDED,     /* the caller has decided */
+} incr_has_change_kind;
+static incr_has_change_kind g_has_change_kind;
+static const ns_node *g_has_change_node;
+static const char    *g_has_change_attr;
+static const char    *g_has_change_old;
+static gboolean       g_has_change_relevant;
+static gboolean       g_has_change_relevant_loose;
 static GHashTable    *g_incr_has_walked;
 static GHashTable    *g_has_loose_desc;
 static GHashTable    *g_incr_self_dirty;
@@ -31550,6 +31580,7 @@ static gboolean       g_state_has_hover;
 static gboolean       g_state_has_active;
 
 static void style_memo_forget(const ns_node *node);
+static void style_text_memo_forget(const ns_node *node);
 
 /* Drops all cached state and dirty marks referring to a node about to be freed. */
 void
@@ -31574,6 +31605,7 @@ ns_css_forget_node(const ns_node *node)
     if (g_incr_path) g_hash_table_remove(g_incr_path, node);
     if (g_incr_before_delta) g_hash_table_remove(g_incr_before_delta, node);
     style_memo_forget(node);
+    style_text_memo_forget(node);
 }
 
 /* True if the last cascade ran as an incremental pass. */
@@ -31642,6 +31674,109 @@ incr_mark_loose_has_anchor(ns_node *anchor)
     }
 }
 
+static gboolean incr_key_set_has(GHashTable *set, char prefix,
+                                 const char *name, gsize len, gboolean fold);
+
+/* Whether an element is one a :has() argument can look for: by its tag, id
+ * or a class, or by carrying an attribute an argument names. */
+static gboolean
+incr_node_is_has_arg(const ns_node *n, GHashTable *keys, GHashTable *attrs)
+{
+    if (!n || n->kind != NS_NODE_ELEMENT) return FALSE;
+    if (incr_node_matches_keys(n, keys)) return TRUE;
+    if (attrs && g_hash_table_size(attrs) > 0)
+        for (const ns_attr *a = n->attrs; a; a = a->next) {
+            const char *local_name = ns_attr_local_name(a);
+            if (!local_name || !*local_name) continue;
+            g_autofree char *low = g_ascii_strdown(local_name, -1);
+            if (g_hash_table_contains(attrs, low)) return TRUE;
+        }
+    return FALSE;
+}
+
+/* Whether a subtree that was inserted or removed holds an element a :has()
+ * argument can look for.  Large subtrees count as relevant. */
+static gboolean
+incr_subtree_has_arg(const ns_node *root, GHashTable *keys, GHashTable *attrs)
+{
+    if (!root) return FALSE;
+    int budget = 2000;
+    const ns_node *n = root;
+    while (n) {
+        if (--budget < 0) return TRUE;
+        if (incr_node_is_has_arg(n, keys, attrs)) return TRUE;
+        if (n->first_child) { n = n->first_child; continue; }
+        while (n != root && !n->next_sibling) n = n->parent;
+        if (n == root) break;
+        n = n->next_sibling;
+    }
+    return FALSE;
+}
+
+/* Whether the change being marked at node involves an element a :has()
+ * argument can look for: any argument, or with loose_set only those of
+ * the :has() whose anchor has no key. */
+static gboolean
+incr_has_change_matters(const ns_node *node, gboolean loose_set)
+{
+    GHashTable *keys = loose_set ? g_has_loose_arg_keys : g_has_arg_keys;
+    GHashTable *attrs = loose_set ? g_has_loose_arg_attrs : g_has_arg_attrs;
+    if (loose_set && g_has_loose_args_loose) return TRUE;
+    switch (g_has_change_kind) {
+    case INCR_HAS_CHANGE_DECIDED:
+        return loose_set ? g_has_change_relevant_loose : g_has_change_relevant;
+    case INCR_HAS_CHANGE_SELF:
+        return incr_node_is_has_arg(node, keys, attrs);
+    case INCR_HAS_CHANGE_ATTR: {
+        /* Only the element whose attribute changed can match differently. */
+        if (node != g_has_change_node) return FALSE;
+        if (incr_node_is_has_arg(node, keys, attrs)) return TRUE;
+        const char *name = g_has_change_attr;
+        const char *old = g_has_change_old;
+        if (!name) return TRUE;
+        /* These reach the descendants too, through :dir(), :lang(),
+         * :disabled, :read-write and what is rendered at all. */
+        static const char *const inherited[] = {
+            "dir", "lang", "xml:lang", "disabled", "contenteditable",
+            "inert", "open", "hidden", "readonly",
+        };
+        for (guint i = 0; i < G_N_ELEMENTS(inherited); i++)
+            if (g_ascii_strcasecmp(name, inherited[i]) == 0) return TRUE;
+        if (g_ascii_strcasecmp(name, "class") == 0) {
+            for (const char *q = old; q && *q; ) {
+                while (*q && g_ascii_isspace(*q)) q++;
+                const char *tok = q;
+                while (*q && !g_ascii_isspace(*q)) q++;
+                if (q > tok && keys &&
+                    incr_key_set_has(keys, '.', tok, (gsize)(q - tok), FALSE))
+                    return TRUE;
+            }
+            return FALSE;
+        }
+        if (g_ascii_strcasecmp(name, "id") == 0)
+            return old && *old && keys &&
+                   incr_key_set_has(keys, '#', old, strlen(old), FALSE);
+        if (attrs) {
+            g_autofree char *low = g_ascii_strdown(name, -1);
+            return g_hash_table_contains(attrs, low);
+        }
+        return FALSE;
+    }
+    case INCR_HAS_CHANGE_UNKNOWN:
+    default:
+        return TRUE;
+    }
+}
+
+/* Whether a keyed :has() anchor has an argument no key describes, so that
+ * any change below it may flip it. */
+static gboolean
+incr_has_anchor_always_live(const ns_node *n)
+{
+    return incr_node_matches_keys(n, g_has_argloose_keys) ||
+           incr_node_matches_attr_preds(n, g_has_argloose_attrs);
+}
+
 /* Walks a change's ancestors and preceding siblings, dirtying possible :has() subjects. */
 static void
 incr_mark_has_subjects(ns_node *changed)
@@ -31651,9 +31786,20 @@ incr_mark_has_subjects(ns_node *changed)
                      (g_has_cq_attrs && g_has_cq_attrs->len > 0) ||
                      (g_has_self_keys && g_hash_table_size(g_has_self_keys) > 0) ||
                      (g_has_self_attrs && g_has_self_attrs->len > 0);
-    gboolean loose = g_has_loose_self ||
+    gboolean any_loose = g_has_loose_self ||
                      (g_has_loose_desc && g_hash_table_size(g_has_loose_desc) > 0);
-    if (!keyed && !loose) return;
+    if (!keyed && !any_loose) return;
+    /* rel_keyed: the change can flip a :has() whose arguments are keyed.
+     * always: some keyed anchors are live whatever changed.
+     * loose: the change can flip a :has() whose anchor has no key. */
+    gboolean rel_keyed = keyed && incr_has_change_matters(changed, FALSE);
+    gboolean always = keyed &&
+        ((g_has_argloose_keys && g_hash_table_size(g_has_argloose_keys) > 0) ||
+         (g_has_argloose_attrs && g_has_argloose_attrs->len > 0));
+    gboolean loose = any_loose && incr_has_change_matters(changed, TRUE);
+    if (!rel_keyed && !always && !loose) return;
+    /* Only a walk that marks everything may cut a later one short. */
+    gboolean full = (rel_keyed || !keyed) && (loose || !any_loose);
     if (!g_incr_dirty)
         g_incr_dirty = g_hash_table_new(g_direct_hash, g_direct_equal);
     if (!g_incr_has_walked)
@@ -31661,15 +31807,16 @@ incr_mark_has_subjects(ns_node *changed)
     for (ns_node *a = changed; a; a = a->parent) {
         if (a != changed && g_hash_table_contains(g_incr_has_walked, a))
             break;
-        g_hash_table_add(g_incr_has_walked, a);
+        if (full) g_hash_table_add(g_incr_has_walked, a);
         if (a->kind == NS_NODE_ELEMENT && keyed &&
-            (incr_node_matches_keys(a, g_has_cq_keys) ||
-             incr_node_matches_attr_preds(a, g_has_cq_attrs)))
-            incr_mark_has_region(a);
-        if (a->kind == NS_NODE_ELEMENT && keyed &&
-            (incr_node_matches_keys(a, g_has_self_keys) ||
-             incr_node_matches_attr_preds(a, g_has_self_attrs)))
-            incr_mark_self_dirty(a);
+            (rel_keyed || incr_has_anchor_always_live(a))) {
+            if (incr_node_matches_keys(a, g_has_cq_keys) ||
+                incr_node_matches_attr_preds(a, g_has_cq_attrs))
+                incr_mark_has_region(a);
+            if (incr_node_matches_keys(a, g_has_self_keys) ||
+                incr_node_matches_attr_preds(a, g_has_self_attrs))
+                incr_mark_self_dirty(a);
+        }
         if (loose) incr_mark_loose_has_anchor(a);
         if (!g_has_sibling_args) continue;
         guint scanned = 0;
@@ -31680,12 +31827,14 @@ incr_mark_has_subjects(ns_node *changed)
                     g_hash_table_add(g_incr_dirty, a->parent);
                 break;
             }
-            if (keyed && (incr_node_matches_keys(s, g_has_cq_keys) ||
-                          incr_node_matches_attr_preds(s, g_has_cq_attrs)))
-                incr_mark_has_region(s);
-            if (keyed && (incr_node_matches_keys(s, g_has_self_keys) ||
-                          incr_node_matches_attr_preds(s, g_has_self_attrs)))
-                incr_mark_self_dirty(s);
+            if (keyed && (rel_keyed || incr_has_anchor_always_live(s))) {
+                if (incr_node_matches_keys(s, g_has_cq_keys) ||
+                    incr_node_matches_attr_preds(s, g_has_cq_attrs))
+                    incr_mark_has_region(s);
+                if (incr_node_matches_keys(s, g_has_self_keys) ||
+                    incr_node_matches_attr_preds(s, g_has_self_attrs))
+                    incr_mark_self_dirty(s);
+            }
             if (loose && g_has_loose_sibling) incr_mark_loose_has_anchor(s);
         }
     }
@@ -32388,6 +32537,18 @@ incr_mark_self_with_feature(ns_node *n, const char *feature)
     return TRUE;
 }
 
+/* Enters the marking of one element's own state change, where only that
+ * element can match a :has() argument differently; returns the kind to
+ * restore afterwards. */
+static incr_has_change_kind
+incr_has_change_enter_self(void)
+{
+    incr_has_change_kind saved = g_has_change_kind;
+    if (saved == INCR_HAS_CHANGE_UNKNOWN)
+        g_has_change_kind = INCR_HAS_CHANGE_SELF;
+    return saved;
+}
+
 /* Marks n for structural restyle, falling back to a full subtree restyle. */
 static void
 incr_mark_struct_node(ns_node *n)
@@ -32460,8 +32621,10 @@ static void
 incr_mark_state_node(const ns_node *n)
 {
     if (!n) return;
+    incr_has_change_kind saved_kind = incr_has_change_enter_self();
     if (!incr_mark_self_with_feature((ns_node *)n, ":state"))
         ns_css_mark_restyle_dirty((ns_node *)n);
+    g_has_change_kind = saved_kind;
     if (!g_state_sib) return;
     for (ns_node *s = n->next_sibling; s; s = s->next_sibling)
         if (s->kind == NS_NODE_ELEMENT)
@@ -32539,17 +32702,51 @@ ns_css_mark_text_emptiness_change(ns_node *text)
         }
 }
 
+static void ns_css_mark_childlist_change_rest(ns_node *parent, ns_node *added,
+                                              ns_node *removed,
+                                              ns_node *prev_sibling,
+                                              ns_node *next_sibling);
+
 /* Marks restyle needs after a child insertion or removal (structural and :has()). */
 void
 ns_css_mark_childlist_change(ns_node *parent, ns_node *added, ns_node *removed,
                              ns_node *prev_sibling, ns_node *next_sibling)
 {
     if (!parent) return;
+    /* A :has() above or before this point can only flip if what came or
+     * went holds an element its argument looks for. */
+    incr_has_change_kind saved_kind = g_has_change_kind;
+    gboolean saved_relevant = g_has_change_relevant;
+    gboolean saved_relevant_loose = g_has_change_relevant_loose;
+    if (saved_kind == INCR_HAS_CHANGE_UNKNOWN) {
+        g_has_change_kind = INCR_HAS_CHANGE_DECIDED;
+        g_has_change_relevant =
+            incr_subtree_has_arg(added, g_has_arg_keys, g_has_arg_attrs) ||
+            incr_subtree_has_arg(removed, g_has_arg_keys, g_has_arg_attrs);
+        g_has_change_relevant_loose =
+            incr_subtree_has_arg(added, g_has_loose_arg_keys,
+                                 g_has_loose_arg_attrs) ||
+            incr_subtree_has_arg(removed, g_has_loose_arg_keys,
+                                 g_has_loose_arg_attrs);
+    }
     incr_mark_has_subjects(parent);
     incr_mark_has_subjects(added);
     incr_mark_has_subjects(removed);
     incr_mark_has_subjects(prev_sibling);
     incr_mark_has_subjects(next_sibling);
+    ns_css_mark_childlist_change_rest(parent, added, removed, prev_sibling,
+                                      next_sibling);
+    g_has_change_kind = saved_kind;
+    g_has_change_relevant = saved_relevant;
+    g_has_change_relevant_loose = saved_relevant_loose;
+}
+
+/* The structural part of a child list change. */
+static void
+ns_css_mark_childlist_change_rest(ns_node *parent, ns_node *added,
+                                  ns_node *removed, ns_node *prev_sibling,
+                                  ns_node *next_sibling)
+{
     if (!g_struct_ready || g_struct_loose || g_struct_nth_last ||
         incr_node_matches_keys(parent, g_struct_keys) ||
         incr_node_matches_attr_preds(parent, g_struct_attrs)) {
@@ -33137,6 +33334,9 @@ incr_mark_attr_self(ns_node *target, const char *name, const char *old_value)
 }
 
 /* Marks restyle needs after an attribute change, including sibling-combinator effects. */
+static void ns_css_mark_attr_dirty_rest(ns_node *target, const char *name,
+                                        const char *old_value);
+
 void
 ns_css_mark_attr_dirty(ns_node *target, const char *name, const char *old_value)
 {
@@ -33150,6 +33350,27 @@ ns_css_mark_attr_dirty(ns_node *target, const char *name, const char *old_value)
         ns_css_mark_restyle_dirty(target->parent ? target->parent : target);
         return;
     }
+    incr_has_change_kind saved_kind = g_has_change_kind;
+    const ns_node *saved_node = g_has_change_node;
+    const char *saved_attr = g_has_change_attr;
+    const char *saved_old = g_has_change_old;
+    if (saved_kind == INCR_HAS_CHANGE_UNKNOWN && name) {
+        g_has_change_kind = INCR_HAS_CHANGE_ATTR;
+        g_has_change_node = target;
+        g_has_change_attr = name;
+        g_has_change_old = old_value;
+    }
+    ns_css_mark_attr_dirty_rest(target, name, old_value);
+    g_has_change_kind = saved_kind;
+    g_has_change_node = saved_node;
+    g_has_change_attr = saved_attr;
+    g_has_change_old = saved_old;
+}
+
+static void
+ns_css_mark_attr_dirty_rest(ns_node *target, const char *name,
+                            const char *old_value)
+{
     gboolean sib = g_sib_loose ||
         incr_attr_key_change_is_sib(target, name, old_value);
     if (!sib && name && g_sib_attrs) {
@@ -33389,6 +33610,124 @@ static gboolean incr_collect_has_anchors_selector(const ns_css_selector *sel,
                                                   const char *subject_key,
                                                   const ns_css_simple *outer);
 
+static gboolean incr_has_args_note_selector(const ns_css_selector *sel,
+                                            int depth, gboolean negated,
+                                            gboolean elem_keyed,
+                                            GHashTable *keys,
+                                            GHashTable *attrs);
+
+/* Records in keys and attrs what one compound of a :has() argument looks
+ * for; FALSE if they do not describe it.  negated is set inside :not(),
+ * where a compound needs no key of its own: the element it describes is
+ * already keyed by the compound the :not() belongs to.  elem_keyed is set
+ * when an enclosing compound names that element by id, class or type; any
+ * change to such an element counts, so its attribute tests, as in
+ * `.a:not([style*="x"])`, need not make every element with a style
+ * attribute count as well. */
+static gboolean
+incr_has_args_note_simple(const ns_css_simple *c, int depth, gboolean negated,
+                          gboolean last, gboolean elem_keyed,
+                          GHashTable *keys, GHashTable *attrs)
+{
+    if (!c || depth > 6) return FALSE;
+    gboolean ok = TRUE;
+    gboolean keyed = FALSE;
+    /* An element that matches the compound carries its id, each of its
+     * classes and its type, so the most selective of them is key enough,
+     * and none is needed when an enclosing compound keyed the element. */
+    const char *cls = NULL;
+    for (guint i = 0; c->classes && !cls && i < c->classes->len; i++) {
+        const char *name = g_ptr_array_index(c->classes, i);
+        if (name && *name) cls = name;
+    }
+    char *key = NULL;
+    if (c->id && *c->id) {
+        key = g_strconcat("#", c->id, NULL);
+    } else if (cls) {
+        key = g_strconcat(".", cls, NULL);
+    } else if (c->type && *c->type && strcmp(c->type, "*") != 0) {
+        g_autofree char *type = g_ascii_strdown(c->type, -1);
+        key = g_strconcat("%", type, NULL);
+    }
+    if (key) {
+        if (elem_keyed) g_free(key);
+        else g_hash_table_add(keys, key);
+        keyed = elem_keyed = TRUE;
+    }
+    if (c->attrs)
+        for (guint i = 0; i < c->attrs->len; i++) {
+            const ns_css_attr_pred *ap =
+                &g_array_index(c->attrs, ns_css_attr_pred, i);
+            if (!ap->name || !*ap->name) continue;
+            if (!elem_keyed)
+                g_hash_table_add(attrs, g_ascii_strdown(ap->name, -1));
+            keyed = TRUE;
+        }
+    for (guint i = 0; c->pseudos && i < c->pseudos->len; i++) {
+        const ns_css_pseudo_pred *pp =
+            &g_array_index(c->pseudos, ns_css_pseudo_pred, i);
+        /* An unrelated sibling coming or going changes the positional ones. */
+        if (pp->of_group || incr_pc_is_structural(pp->kind)) ok = FALSE;
+    }
+    if (c->has_groups && c->has_groups->len > 0) ok = FALSE;
+    gboolean any = FALSE;
+    for (guint gi = 0; c->matches_any && gi < c->matches_any->len; gi++) {
+        const GPtrArray *group = g_ptr_array_index(c->matches_any, gi);
+        for (guint si = 0; group && si < group->len; si++) {
+            ok &= incr_has_args_note_selector(g_ptr_array_index(group, si),
+                                              depth + 1, negated, elem_keyed,
+                                              keys, attrs);
+            any = TRUE;
+        }
+    }
+    for (guint gi = 0; c->matches_none && gi < c->matches_none->len; gi++) {
+        const GPtrArray *group = g_ptr_array_index(c->matches_none, gi);
+        for (guint si = 0; group && si < group->len; si++)
+            ok &= incr_has_args_note_selector(g_ptr_array_index(group, si),
+                                              depth + 1, TRUE, elem_keyed,
+                                              keys, attrs);
+    }
+    /* Every alternative of :is() was noted above and had to be keyed. */
+    if (!keyed && !any && !(negated && last)) ok = FALSE;
+    return ok;
+}
+
+/* Only the last compound of a nested selector describes the element the
+ * enclosing compound does. */
+static gboolean
+incr_has_args_note_selector(const ns_css_selector *sel, int depth,
+                            gboolean negated, gboolean elem_keyed,
+                            GHashTable *keys, GHashTable *attrs)
+{
+    if (!sel || !sel->compounds || sel->compounds->len == 0) return FALSE;
+    gboolean ok = TRUE;
+    for (guint ci = 0; sel->combinators && ci < sel->combinators->len; ci++) {
+        ns_css_comb comb = g_array_index(sel->combinators, ns_css_comb, ci);
+        if (comb == NS_CSS_COMB_ADJACENT || comb == NS_CSS_COMB_SIBLING)
+            ok = FALSE;
+    }
+    guint last = sel->compounds->len - 1;
+    for (guint ci = 0; ci < sel->compounds->len; ci++)
+        ok &= incr_has_args_note_simple(g_ptr_array_index(sel->compounds, ci),
+                                        depth, negated, ci == last,
+                                        elem_keyed && ci == last, keys, attrs);
+    return ok;
+}
+
+/* Notes every argument of a compound's :has(); FALSE if one is not keyed. */
+static gboolean
+incr_has_args_note(const ns_css_simple *c, GHashTable *keys, GHashTable *attrs)
+{
+    gboolean ok = TRUE;
+    for (guint gi = 0; gi < c->has_groups->len; gi++) {
+        const GPtrArray *group = g_ptr_array_index(c->has_groups, gi);
+        for (guint si = 0; group && si < group->len; si++)
+            ok &= incr_has_args_note_selector(g_ptr_array_index(group, si), 0,
+                                              FALSE, FALSE, keys, attrs);
+    }
+    return ok;
+}
+
 /* Whether a compound names its element by id, class, attribute or type. */
 static gboolean
 incr_simple_has_own_key(const ns_css_simple *c)
@@ -33416,12 +33755,26 @@ incr_collect_has_anchors_simple(const ns_css_simple *c, int depth,
             if (incr_has_group_uses_siblings(
                     g_ptr_array_index(c->has_groups, gi)))
                 g_has_sibling_args = TRUE;
+        gboolean args_keyed =
+            incr_has_args_note(c, g_has_arg_keys, g_has_arg_attrs);
         GHashTable *keys = identity ? g_has_self_keys : g_has_cq_keys;
         GPtrArray *attrs = identity ? g_has_self_attrs : g_has_cq_attrs;
-        if (!incr_add_positive_compound_deps(keys, attrs, c, depth) &&
-            !(outer &&
-              incr_add_positive_compound_deps(keys, attrs, outer, depth)))
+        const ns_css_simple *anchor = NULL;
+        if (incr_add_positive_compound_deps(keys, attrs, c, depth))
+            anchor = c;
+        else if (outer &&
+                 incr_add_positive_compound_deps(keys, attrs, outer, depth))
+            anchor = outer;
+        if (!anchor) {
             incr_note_loose_has_anchor(c, identity, subject_key);
+            if (!incr_has_args_note(c, g_has_loose_arg_keys,
+                                    g_has_loose_arg_attrs))
+                g_has_loose_args_loose = TRUE;
+        } else if (!args_keyed) {
+            incr_add_positive_compound_deps(g_has_argloose_keys,
+                                            g_has_argloose_attrs, anchor,
+                                            depth);
+        }
     }
     if (c->pseudos)
         for (guint i = 0; i < c->pseudos->len; i++) {
@@ -35217,6 +35570,126 @@ ns_css_style_element_text(ns_node *style)
     return style_element_final_css(style);
 }
 
+/* The CSS style_element_final_css() built for a <style> element, with the
+ * element text and scope it was built from.  Every cascade asks for every
+ * sheet again; for a style in a frame or shadow root the answer costs a
+ * flattening and a scoping pass over the whole text, and a page such as
+ * Gmail carries megabytes of it that never change. */
+typedef struct {
+    char    *raw;          /* the text children, concatenated */
+    gsize    raw_len;
+    char    *host_id;      /* scope raw was rewritten for, or NULL */
+    gboolean frame_scope;
+    char    *css;          /* the final CSS; raw itself when unscoped */
+    guint    notes;        /* the caller's findings about css; 0 when new */
+} style_text_memo;
+
+static GHashTable *g_style_text_memo;
+static gsize       g_style_text_memo_bytes;
+
+static gsize
+style_text_memo_size(const style_text_memo *m)
+{
+    return m->raw_len + (m->css != m->raw ? strlen(m->css) : 0);
+}
+
+static void
+style_text_memo_free(gpointer data)
+{
+    style_text_memo *m = data;
+    gsize size = style_text_memo_size(m);
+    g_style_text_memo_bytes -= MIN(size, g_style_text_memo_bytes);
+    if (m->css != m->raw) g_free(m->css);
+    g_free(m->raw);
+    g_free(m->host_id);
+    g_free(m);
+}
+
+static void
+style_text_memo_forget(const ns_node *node)
+{
+    if (g_style_text_memo) g_hash_table_remove(g_style_text_memo, node);
+}
+
+/* Whether n's text children, read as append_text_children() reads them,
+ * continue raw from *pos; advances *pos past them. */
+static gboolean
+text_children_match(const ns_node *n, const char *raw, gsize len, gsize *pos,
+                    int depth)
+{
+    if (depth >= 512) return TRUE;
+    for (const ns_node *c = n->first_child; c; c = c->next_sibling) {
+        if (c->kind == NS_NODE_TEXT && c->text) {
+            gsize l = strlen(c->text);
+            if (l > len - *pos || memcmp(raw + *pos, c->text, l) != 0)
+                return FALSE;
+            *pos += l;
+        } else if (c->kind == NS_NODE_ELEMENT &&
+                   !text_children_match(c, raw, len, pos, depth + 1)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/* ns_css_style_element_text() without the copy: the text is owned by a memo
+ * and stays valid until the next call for the same element or the next
+ * ns_css_style_element_cache_begin().  The memo is checked against the
+ * element's text and scope on every call, so a changed sheet is rebuilt.
+ * *notes is a word the caller may keep facts about the text in; it is zero
+ * whenever the text is new. */
+const char *
+ns_css_style_element_text_shared(ns_node *style, guint **notes)
+{
+    if (notes) *notes = NULL;
+    if (!ns_node_is_tag(style, NS_TAG_STYLE)) return NULL;
+    const char *media = ns_element_get_attr(style, "media");
+    if (media && *media && !ns_css_media_query_matches(media)) return NULL;
+    gboolean frame_scope = FALSE;
+    char *host_id = style_host_scope_id(style);
+    if (!host_id) {
+        host_id = style_iframe_scope_id(style);
+        frame_scope = host_id != NULL;
+    }
+    if (!g_style_text_memo)
+        g_style_text_memo = g_hash_table_new_full(g_direct_hash, g_direct_equal,
+                                                  NULL, style_text_memo_free);
+    style_text_memo *m = g_hash_table_lookup(g_style_text_memo, style);
+    gsize pos = 0;
+    if (m && m->frame_scope == frame_scope &&
+        g_strcmp0(m->host_id, host_id) == 0 &&
+        text_children_match(style, m->raw, m->raw_len, &pos, 0) &&
+        pos == m->raw_len) {
+        g_free(host_id);
+        if (notes) *notes = &m->notes;
+        return m->css;
+    }
+    GString *buf = g_string_new(NULL);
+    append_text_children(style, buf, 0);
+    if (buf->len == 0) {
+        g_string_free(buf, TRUE);
+        g_free(host_id);
+        g_hash_table_remove(g_style_text_memo, style);
+        return NULL;
+    }
+    m = g_new0(style_text_memo, 1);
+    m->raw_len = buf->len;
+    m->raw = g_string_free(buf, FALSE);
+    m->host_id = host_id;
+    m->frame_scope = frame_scope;
+    if (host_id) {
+        char *flat = css_flatten_nesting(m->raw, (gssize)m->raw_len);
+        m->css = scope_shadow_css(flat, host_id, frame_scope);
+        g_free(flat);
+    } else {
+        m->css = m->raw;
+    }
+    g_hash_table_replace(g_style_text_memo, style, m);
+    g_style_text_memo_bytes += style_text_memo_size(m);
+    if (notes) *notes = &m->notes;
+    return m->css;
+}
+
 typedef struct {
     char *css;
     ns_css_stylesheet *sheet;
@@ -35435,6 +35908,10 @@ ns_css_style_element_cache_begin(void)
     if (g_css_relayout_depth > 1) return;
     if (g_style_el_cache && g_hash_table_size(g_style_el_cache) > 2048)
         g_hash_table_remove_all(g_style_el_cache);
+    if (g_style_text_memo &&
+        (g_hash_table_size(g_style_text_memo) > 512 ||
+         g_style_text_memo_bytes > (gsize)128 * 1024 * 1024))
+        g_hash_table_remove_all(g_style_text_memo);
     ns_merged_style_cache_trim();
     if (g_link_sheet_cache && g_hash_table_size(g_link_sheet_cache) > 256)
         g_hash_table_remove_all(g_link_sheet_cache);
@@ -35772,6 +36249,25 @@ ns_css_compute(ns_node *doc,
         g_has_loose_self = FALSE;
         g_has_loose_sibling = FALSE;
         g_has_sibling_args = FALSE;
+        if (g_has_arg_keys) g_hash_table_remove_all(g_has_arg_keys);
+        else g_has_arg_keys = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                        g_free, NULL);
+        if (g_has_arg_attrs) g_hash_table_remove_all(g_has_arg_attrs);
+        else g_has_arg_attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                        g_free, NULL);
+        if (g_has_argloose_keys) g_hash_table_remove_all(g_has_argloose_keys);
+        else g_has_argloose_keys = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                        g_free, NULL);
+        if (g_has_loose_arg_keys) g_hash_table_remove_all(g_has_loose_arg_keys);
+        else g_has_loose_arg_keys = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                        g_free, NULL);
+        if (g_has_loose_arg_attrs) g_hash_table_remove_all(g_has_loose_arg_attrs);
+        else g_has_loose_arg_attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                        g_free, NULL);
+        if (g_has_argloose_attrs) g_ptr_array_set_size(g_has_argloose_attrs, 0);
+        else g_has_argloose_attrs =
+            g_ptr_array_new_with_free_func(incr_attr_dep_free);
+        g_has_loose_args_loose = FALSE;
         if (g_has_loose_desc) g_hash_table_remove_all(g_has_loose_desc);
         else g_has_loose_desc = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                       g_free, NULL);
@@ -35780,6 +36276,18 @@ ns_css_compute(ns_node *doc,
             incr_collect_has_cq_keys(author_sheets[i]);
         incr_own_attr_deps(g_has_cq_attrs);
         incr_own_attr_deps(g_has_self_attrs);
+        incr_own_attr_deps(g_has_argloose_attrs);
+        if (g_getenv("NS_PROFILE"))
+            g_printerr("[incr] :has() argument keys=%u attrs=%u; anchors "
+                       "always live: keys=%u attrs=%u; keyless anchors: "
+                       "argument keys=%u attrs=%u unkeyed=%d\n",
+                       g_hash_table_size(g_has_arg_keys),
+                       g_hash_table_size(g_has_arg_attrs),
+                       g_hash_table_size(g_has_argloose_keys),
+                       g_has_argloose_attrs->len,
+                       g_hash_table_size(g_has_loose_arg_keys),
+                       g_hash_table_size(g_has_loose_arg_attrs),
+                       g_has_loose_args_loose);
         g_incr_eligible = !g_has_cq_loose;
         g_incr_has_sig = keys_sig;
     }

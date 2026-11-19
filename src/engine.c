@@ -889,6 +889,25 @@ link_sheet_enabled(const ns_node *link)
            sheet_type_is_css(ns_element_get_attr(link, "type"));
 }
 
+/* What collect_stylesheets_walk() found out about a <style> element's text,
+ * kept with the text so that megabytes of unchanged CSS are scanned once. */
+enum {
+    SHEET_NOTE_SCANNED        = 1 << 0,
+    SHEET_NOTE_VIEWPORT_MEDIA = 1 << 1,
+    SHEET_NOTE_STANDALONE     = 1 << 2,   /* cannot join a merged run */
+};
+
+static guint
+style_text_notes(const char *css)
+{
+    guint notes = SHEET_NOTE_SCANNED;
+    if (css_has_viewport_media(css)) notes |= SHEET_NOTE_VIEWPORT_MEDIA;
+    if (strstr(css, "[" NS_HOST_SCOPE_ATTR "=\"") || strstr(css, "@import") ||
+        !ns_css_syntax_is_self_contained(css, strlen(css)))
+        notes |= SHEET_NOTE_STANDALONE;
+    return notes;
+}
+
 /* Collects enabled <style>/<link> sheets in tree order, recursing into frames. */
 static void
 collect_stylesheets_walk(ns_node *n, const char *base_url,
@@ -935,15 +954,14 @@ collect_stylesheets_walk(ns_node *n, const char *base_url,
     GPtrArray *out = cc->out;
     GHashTable *cache = cc->cache;
     if (is_style && style_sheet_enabled(n)) {
-        char *css = ns_css_style_element_text(n);
+        guint *notes = NULL;
+        const char *css = ns_css_style_element_text_shared(n, &notes);
         if (css) {
-            if (css_has_viewport_media(css)) cc->media_seen = TRUE;
+            if (!(*notes & SHEET_NOTE_SCANNED)) *notes = style_text_notes(css);
+            if (*notes & SHEET_NOTE_VIEWPORT_MEDIA) cc->media_seen = TRUE;
             if (cc->run_base && cc->run_base != base_url)
                 sheet_run_flush(cc);
-            gboolean host_scoped =
-                strstr(css, "[" NS_HOST_SCOPE_ATTR "=\"") != NULL;
-            if (host_scoped || strstr(css, "@import") ||
-                !ns_css_syntax_is_self_contained(css, strlen(css))) {
+            if (*notes & SHEET_NOTE_STANDALONE) {
                 sheet_run_flush(cc);
                 ns_css_stylesheet *sh =
                     ns_css_stylesheet_from_style_text_cached(n, css);
@@ -960,7 +978,6 @@ collect_stylesheets_walk(ns_node *n, const char *base_url,
                 g_string_append_c(cc->run, '\n');
                 cc->run_base = base_url;
             }
-            g_free(css);
         }
     } else if (is_link && base_url) {
         sheet_run_flush(cc);
@@ -1047,19 +1064,30 @@ ns_engine_compute_cascade(ns_node *doc, const char *page_url,
     ns_css_relayout_enter();
     ns_css_set_doc_base(document_base);
     ns_css_style_element_cache_begin();
+    gboolean profile = g_getenv("NS_PROFILE") != NULL;
+    gint64 t0 = profile ? g_get_monotonic_time() : 0;
     GPtrArray *page_sheets = g_ptr_array_new();
     GPtrArray *sheet_docs = g_ptr_array_new();
     ns_engine_collect_stylesheets(doc, base_url, page_sheets, sheet_docs,
                                   css_cache);
+    gint64 t1 = profile ? g_get_monotonic_time() : 0;
     if (anim)
         for (guint i = 0; i < page_sheets->len; i++)
             ns_anim_load_from_stylesheet(anim, g_ptr_array_index(page_sheets, i));
+    gint64 t2 = profile ? g_get_monotonic_time() : 0;
     GHashTable *styles = ns_css_compute_scoped(doc,
         (const ns_css_stylesheet *const *)page_sheets->pdata,
         (const ns_node *const *)sheet_docs->pdata,
         page_sheets->len);
+    gint64 t3 = profile ? g_get_monotonic_time() : 0;
     for (guint i = 0; i < page_sheets->len; i++)
         ns_css_stylesheet_free(g_ptr_array_index(page_sheets, i));
+    if (profile)
+        g_printerr("[profile]   sheets=%u collect=%.1fms keyframes=%.1fms "
+                   "compute=%.1fms free=%.1fms\n", page_sheets->len,
+                   (t1 - t0) / 1000.0, (t2 - t1) / 1000.0,
+                   (t3 - t2) / 1000.0,
+                   (g_get_monotonic_time() - t3) / 1000.0);
     g_ptr_array_free(page_sheets, TRUE);
     g_ptr_array_free(sheet_docs, TRUE);
     ns_css_relayout_leave();

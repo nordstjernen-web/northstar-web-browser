@@ -1083,6 +1083,8 @@ gboolean           ns_css_supports_condition(const char *condition,
 ns_css_stylesheet *ns_css_stylesheet_from_style_text_cached(ns_node *style,
                                                            const char *css);
 char              *ns_css_style_element_text(ns_node *style);
+const char        *ns_css_style_element_text_shared(ns_node *style,
+                                                    guint **notes);
 ns_css_stylesheet *ns_css_merged_styles_cached(const char *css, gssize len,
                                                const char *base_url);
 ns_css_stylesheet *ns_css_stylesheet_parse_url_cached(const char *url,

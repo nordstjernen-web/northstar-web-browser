@@ -2,8 +2,8 @@ Changelog:
 =========
 Significant changes in each release:
 
-1.0.27-dev:
-======
+1.0.26:
+=======
 * `-webkit-linear-gradient()`, `-webkit-radial-gradient()` and their
   `repeating-` forms are accepted, with the legacy direction syntax (`top`
   is where the gradient starts; angles count from east, counter-clockwise),
@@ -17,9 +17,6 @@ Significant changes in each release:
   within five seconds of each click or key press. A WebGL film that starts
   its video from an animation frame after its start button was pressed
   played no video.
-
-1.0.26:
-=======
 * Windows: a page asking for a WebGL context no longer crashes the
   browser. libepoxy calls WGL and GL through per-thread tables once GTK's
   own renderer has made a GL context current, and the engine thread's

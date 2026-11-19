@@ -15164,6 +15164,25 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
         ns_abs_entry e = g_array_index(g_abs_pending, ns_abs_entry, i);
         const ns_node *cb_dom = positioned_entry_cb_dom(&e, styles);
         ns_box *cb = cb_dom ? g_hash_table_lookup(box_map, cb_dom) : root;
+        /* A positioned inline element generates no box of its own here, but
+         * it is still the containing block: the box is placed against the
+         * rectangle around its fragments and hangs under the block that
+         * holds them.  Falling back to the page made a "stretched link"
+         * (position: absolute; inset: 0 inside a position: relative
+         * span) cover the whole page and take every click and hover, as
+         * on Google's results. */
+        gboolean inline_cb = FALSE;
+        double icb_x = 0, icb_y = 0, icb_w = 0, icb_h = 0;
+        if (!cb && cb_dom && !e.fixed) {
+            ns_box *host = NULL;
+            for (const ns_node *a = cb_dom->parent; a && !host; a = a->parent)
+                host = g_hash_table_lookup(box_map, a);
+            if (host && ns_box_inline_rect_for_dom(host, cb_dom, &icb_x, &icb_y,
+                                                   &icb_w, &icb_h)) {
+                cb = host;
+                inline_cb = TRUE;
+            }
+        }
         if (!cb) {
             cb = root;
             if (e.fixed) cb_dom = NULL;
@@ -15224,12 +15243,15 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
         double cb_h = cb_is_icb ? ns_css_viewport_h() : cb_pad_h;
         const ns_style *cs = cb->style;
         double grid_x = 0, grid_y = 0, grid_w = 0, grid_h = 0;
-        gboolean grid_cb = !cb_is_icb && !e.pseudo &&
+        gboolean grid_cb = !cb_is_icb && !inline_cb && !e.pseudo &&
             grid_abs_containing_block(cb, abox->style,
                                       &grid_x, &grid_y, &grid_w, &grid_h);
         if (grid_cb) {
             avail = grid_w;
             cb_h = grid_h;
+        } else if (inline_cb) {
+            avail = icb_w;
+            cb_h = icb_h;
         }
         ns_abs_static *st = (g_abs_static && !e.pseudo)
             ? g_hash_table_lookup(g_abs_static, e.dom) : NULL;
@@ -15404,6 +15426,8 @@ process_absolute_boxes(ns_box *root, GHashTable *styles, double viewport_width)
         apply_position_offsets(abox, avail, cb_h);
         if (grid_cb)
             position_absolute_box_in(abox, grid_x, grid_y, grid_w, grid_h);
+        else if (inline_cb)
+            position_absolute_box_in(abox, icb_x, icb_y, icb_w, icb_h);
         else
             position_absolute_box(abox, cb, cb_is_icb);
         if (profile_env)

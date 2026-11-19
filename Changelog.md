@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Windows: a page asking for a WebGL context no longer crashes the
+  browser. libepoxy calls WGL and GL through per-thread tables once GTK's
+  own renderer has made a GL context current, and the engine thread's
+  table was never filled, so the first WebGL call jumped to address 0.
 * Docs: SECURITY.md is now a short reporting FAQ shared by the three
   browsers of the project (Nordstjernen Sol, Northstar and Southstar).
   The threat model, sandbox and known gaps move unchanged to

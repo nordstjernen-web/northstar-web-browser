@@ -1,6 +1,8 @@
+diff --git a/quickjs.c b/quickjs.c
+index 4fd6140..a29895c 100644
 --- a/quickjs.c
 +++ b/quickjs.c
-@@ -2295,6 +2295,16 @@
+@@ -2352,6 +2352,16 @@ BOOL JS_IsJobPending(JSRuntime *rt)
      return !list_empty(&rt->job_list);
  }
  

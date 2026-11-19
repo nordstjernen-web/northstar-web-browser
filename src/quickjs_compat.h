@@ -102,6 +102,23 @@ JS_IsStrictEqual(JSContext *ctx, JSValueConst op1, JSValueConst op2)
     return JS_StrictEq(ctx, op1, op2);
 }
 
+/* quickjs-ng's JS_GetPropertyInt64(); the original engine only has the
+ * uint32 index form. */
+static inline JSValue
+JS_GetPropertyInt64(JSContext *ctx, JSValueConst obj, int64_t idx)
+{
+    if (idx >= 0 && idx <= UINT32_MAX)
+        return JS_GetPropertyUint32(ctx, obj, (uint32_t)idx);
+    JSValue key = JS_NewInt64(ctx, idx);
+    JSAtom atom = JS_ValueToAtom(ctx, key);
+    JS_FreeValue(ctx, key);
+    if (atom == JS_ATOM_NULL)
+        return JS_EXCEPTION;
+    JSValue val = JS_GetProperty(ctx, obj, atom);
+    JS_FreeAtom(ctx, atom);
+    return val;
+}
+
 #define JS_NewArrayBuffer(ctx, buf, len, max_len, realloc_func, opaque, is_shared) \
     ns_quickjs_new_array_buffer((ctx), (buf), (len), (max_len), (realloc_func), \
                                 (opaque), (is_shared))
@@ -112,12 +129,8 @@ JS_IsStrictEqual(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 #define JS_IsBigInt(val) ns_quickjs_is_big_int(val)
 
 const char *JS_GetVersion(void);
-bool JS_IsArrayBuffer(JSValueConst obj);
-int JS_GetTypedArrayType(JSValueConst obj);
 bool JS_IsDataView(JSValueConst obj);
-JSValue JS_NewUint8ArrayCopy(JSContext *ctx, const uint8_t *buf, size_t len);
 uint8_t *JS_GetUint8Array(JSContext *ctx, size_t *psize, JSValueConst obj);
-JSValue JS_ToObject(JSContext *ctx, JSValueConst val);
 JSValue __js_printf_like(3, 4) JS_ThrowDOMException(JSContext *ctx,
                                                     const char *name,
                                                     const char *fmt, ...);

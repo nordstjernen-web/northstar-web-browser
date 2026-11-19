@@ -333,9 +333,7 @@ JSValue ns_js_eval_without_source(JSContext *ctx, const char *input, size_t inpu
 typedef struct ns_quickjs_class_ids {
     JSClassID array;
     JSClassID error;
-    JSClassID array_buffer;
     JSClassID data_view;
-    JSClassID typed_array[JS_TYPED_ARRAY_FLOAT64 + 1];
 } ns_quickjs_class_ids;
 
 typedef struct ns_quickjs_array_buffer_owner {
@@ -355,18 +353,12 @@ static JSClassID ns_quickjs_class_of(JSContext *ctx, JSValue val)
     return id;
 }
 
-/* Discovers original-QuickJS class ids for Array, Error, buffers and typed arrays. */
+/* Discovers original-QuickJS class ids for Array, Error and DataView. */
 static void ns_quickjs_learn_class_ids(JSContext *ctx)
 {
-    static const uint8_t one_byte;
     ns_quickjs_class_ids *ids = &ns_quickjs_classes;
     ids->array = ns_quickjs_class_of(ctx, JS_NewArray(ctx));
     ids->error = ns_quickjs_class_of(ctx, JS_NewError(ctx));
-    ids->array_buffer = ns_quickjs_class_of(ctx, JS_NewArrayBufferCopy(ctx, &one_byte, 1));
-    JSValue zero = JS_NewInt32(ctx, 0);
-    for (int type = JS_TYPED_ARRAY_UINT8C; type <= JS_TYPED_ARRAY_FLOAT64; type++)
-        ids->typed_array[type] = ns_quickjs_class_of(ctx,
-            JS_NewTypedArray(ctx, 1, &zero, (JSTypedArrayEnum)type));
     static const char dv_src[] = "new DataView(new ArrayBuffer(1))";
     ids->data_view = ns_quickjs_class_of(ctx,
         JS_Eval(ctx, dv_src, sizeof(dv_src) - 1, "<class-ids>",
@@ -398,23 +390,9 @@ bool ns_quickjs_is_error(JSValueConst val)
     return ns_quickjs_has_class(val, ns_quickjs_classes.error);
 }
 
-bool JS_IsArrayBuffer(JSValueConst obj)
-{
-    return ns_quickjs_has_class(obj, ns_quickjs_classes.array_buffer);
-}
-
 bool JS_IsDataView(JSValueConst obj)
 {
     return ns_quickjs_has_class(obj, ns_quickjs_classes.data_view);
-}
-
-/* Returns the typed array type of obj by class id, or -1 if not a typed array. */
-int JS_GetTypedArrayType(JSValueConst obj)
-{
-    for (int type = JS_TYPED_ARRAY_UINT8C; type <= JS_TYPED_ARRAY_FLOAT64; type++)
-        if (ns_quickjs_has_class(obj, ns_quickjs_classes.typed_array[type]))
-            return type;
-    return -1;
 }
 
 /* ArrayBuffer free hook that releases data through the owner's realloc function. */
@@ -462,17 +440,6 @@ const char *JS_GetVersion(void)
     return NS_QUICKJS_VERSION;
 }
 
-/* Creates a Uint8Array over a new ArrayBuffer holding a copy of buf. */
-JSValue JS_NewUint8ArrayCopy(JSContext *ctx, const uint8_t *buf, size_t len)
-{
-    JSValue buffer = JS_NewArrayBufferCopy(ctx, buf, len);
-    if (JS_IsException(buffer))
-        return buffer;
-    JSValue array = JS_NewTypedArray(ctx, 1, &buffer, JS_TYPED_ARRAY_UINT8);
-    JS_FreeValue(ctx, buffer);
-    return array;
-}
-
 /* Returns a Uint8Array's data pointer and length; throws TypeError on wrong type or bounds. */
 uint8_t *JS_GetUint8Array(JSContext *ctx, size_t *psize, JSValueConst obj)
 {
@@ -497,20 +464,6 @@ uint8_t *JS_GetUint8Array(JSContext *ctx, size_t *psize, JSValueConst obj)
     return data + offset;
 }
 
-/* ToObject(): dups objects, throws on null/undefined, otherwise boxes via Object(). */
-JSValue JS_ToObject(JSContext *ctx, JSValueConst val)
-{
-    if (JS_IsObject(val))
-        return JS_DupValue(ctx, val);
-    if (JS_IsNull(val) || JS_IsUndefined(val))
-        return JS_ThrowTypeError(ctx, "cannot convert to object");
-    JSValue global = JS_GetGlobalObject(ctx);
-    JSValue object_ctor = JS_GetPropertyStr(ctx, global, "Object");
-    JS_FreeValue(ctx, global);
-    JSValue obj = JS_Call(ctx, object_ctor, JS_UNDEFINED, 1, &val);
-    JS_FreeValue(ctx, object_ctor);
-    return obj;
-}
 
 /* Throws a DOMException with a printf-formatted message, falling back to an Error. */
 JSValue JS_ThrowDOMException(JSContext *ctx, const char *name, const char *fmt, ...)

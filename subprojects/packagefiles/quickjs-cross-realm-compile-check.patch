@@ -1,6 +1,8 @@
+diff --git a/quickjs.c b/quickjs.c
+index e5f18d5..65b7cb5 100644
 --- a/quickjs.c
 +++ b/quickjs.c
-@@ -37206,6 +37206,8 @@
+@@ -38521,6 +38521,8 @@ static JSValue JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
      return ret;
  }
  
@@ -9,7 +11,7 @@
  static JSValue JS_EvalObject(JSContext *ctx, JSValueConst this_obj,
                               JSValueConst val, int flags, int scope_idx)
  {
-@@ -37215,6 +37217,8 @@
+@@ -38530,6 +38532,8 @@ static JSValue JS_EvalObject(JSContext *ctx, JSValueConst this_obj,
  
      if (!JS_IsString(val))
          return JS_DupValue(ctx, val);
@@ -18,7 +20,7 @@
      str = JS_ToCStringLen(ctx, &len, val);
      if (!str)
          return JS_EXCEPTION;
-@@ -39760,9 +39764,75 @@
+@@ -41070,9 +41074,75 @@ JSValue JS_NewCConstructor(JSContext *ctx, int class_id, const char *name,
      return JS_EXCEPTION;
  }
  
@@ -94,7 +96,7 @@
      return JS_EvalObject(ctx, ctx->global_obj, argv[0], JS_EVAL_TYPE_INDIRECT, -1);
  }
  
-@@ -40943,6 +41013,8 @@
+@@ -42271,6 +42341,8 @@ static JSValue js_function_constructor(JSContext *ctx, JSValueConst new_target,
      JSValue s, proto, obj = JS_UNDEFINED;
      StringBuffer b_s, *b = &b_s;
  

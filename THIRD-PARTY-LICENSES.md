@@ -364,10 +364,6 @@ and separable:
 - `subprojects/packagefiles/quickjs-ng-windows-link.patch` — build-only:
   on Windows, drops the threads dependency and builds the `qjs` and
   `qjsc` tools without PIE.
-- `subprojects/packagefiles/quickjs-ng-module-resolve-failed.patch` —
-  keeps a module whose dependencies failed to resolve, and rejects every
-  later import of it, instead of freeing it while an import cycle still
-  points at it.
 - `subprojects/packagefiles/quickjs-ng-regexp-legacy-statics.patch` —
   adds the legacy `RegExp` statics every browser engine has (`RegExp.$1`
   to `$9`, `lastMatch`, `lastParen`, `leftContext`, `rightContext`,

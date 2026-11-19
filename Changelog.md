@@ -4,6 +4,16 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* Dependencies: quickjs-ng moves to master `dce8c0b`, 21 commits after
+  `147d01c`: use-after-free fixes in `Map`/`Set.prototype.clear`,
+  `FinalizationRegistry.prototype.unregister`, a generator captured
+  during its prologue and a module with a pending top-level await; stale
+  lengths of length-tracking typed arrays in the C API; limits on the
+  captured and closure variables of a function and a direct eval;
+  `new super()` and `for (await using ...)` outside async functions are
+  syntax errors. Upstream now fixes the use-after-free of a module in an
+  import cycle that failed to resolve, so
+  `quickjs-ng-module-resolve-failed.patch` is dropped.
 * `-webkit-linear-gradient()`, `-webkit-radial-gradient()` and their
   `repeating-` forms are accepted, with the legacy direction syntax (`top`
   is where the gradient starts; angles count from east, counter-clockwise),

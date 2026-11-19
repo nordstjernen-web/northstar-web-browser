@@ -5253,10 +5253,7 @@ calc_unit_value(const char *unit, double num, ns_calc_term *out)
     return TRUE;
 }
 
-/* Parses a calc primary: number with unit, constant, parenthesized expr or nested math fn. */
 static gboolean calc_eval_arg(const char *text, ns_calc_term *out);
-static int calc_split_args(const char *args, const char *body_end,
-                           char *out[], int max);
 
 /* A round() nested in a larger calc() has to become one linear term, and
  * rounding a percentage is not linear: its value was taken with the
@@ -5290,6 +5287,7 @@ calc_round_is_pixel_snap(const char *name, const char *args,
     return snap;
 }
 
+/* Parses a calc primary: number with unit, constant, parenthesized expr or nested math fn. */
 static gboolean
 calc_primary_parse(const char **pp, const char *end, ns_calc_term *out,
                    int depth)

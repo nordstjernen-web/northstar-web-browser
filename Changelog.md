@@ -17,6 +17,33 @@ Significant changes in each release:
   - A `:has()` with no id, class, attribute or type of its own, nested
     in `:not()`, `:is()` or `:where()`, no longer turns incremental
     restyle off for the whole page.
+* Style sheets inside iframes and shadow roots apply again. Since
+  internal `data-nd-*` attributes were hidden from author CSS, the scope
+  marker the engine writes into those sheets matched nothing, so framed
+  documents and web components rendered with the built-in styles only.
+* A frame has its own `XMLHttpRequest`. A frame that wrapped
+  `XMLHttpRequest.prototype.send` wrapped it for the embedding page as
+  well; the page's requests then ran through the frame's script and were
+  judged as coming from the frame. Gmail's sync requests failed that way
+  ("Oops... the system encountered a problem (#2014)").
+* Gmail inbox:
+  - `<table>`, `<tr>`, `<td>` and `<th>` follow their computed display:
+    a cell with `display: none` takes no column, and `tr { display:
+    flex }` lays its cells out as flex items. Message rows have their
+    full-width subject column and show the row actions on hover only.
+  - An SVG presentation attribute is kept over a CSS value that is only
+    inherited: `<path fill="none">` inside an `<svg>` filled by a style
+    rule stays unfilled. Material icons no longer render as solid
+    squares.
+  - `min-width` and `max-width` count in the intrinsic width of a box
+    with a length width. The "Compose" label is no longer cut off.
+  - A change marks `:has()` anchors for restyle only when it involves an
+    element the `:has()` argument can match. An idle tick of the inbox
+    recomputes 9 styles instead of 4,350.
+  - The text of a `<style>` element, scoped for its frame or shadow
+    root, is kept between cascades while it is unchanged. Collecting
+    Gmail's 8.4 MB of frame CSS took 30 ms of every restyle; it takes
+    about 7 ms.
 * Backported from Nordstjernen Sol:
   - A WebSocket opens only on a 101 response; a transfer that ended
     without any HTTP status no longer dispatched `open`.

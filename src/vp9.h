@@ -16,6 +16,7 @@ typedef struct ns_vp9_decoder ns_vp9_decoder;
 
 gboolean        ns_vp9_available(void);
 ns_vp9_decoder *ns_vp9_decoder_new(void);
+ns_vp9_decoder *ns_vp8_decoder_new(void);
 void            ns_vp9_decoder_free(ns_vp9_decoder *decoder);
 void            ns_vp9_decoder_flush(ns_vp9_decoder *decoder);
 ns_texture     *ns_vp9_decoder_decode(ns_vp9_decoder *decoder, GBytes *sample,

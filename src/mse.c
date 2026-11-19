@@ -84,6 +84,10 @@ decoder_for_codec(const char *codec, gboolean webm, gboolean *video)
         *video = TRUE;
         return "vp09";
     }
+    if (strcmp(codec, "vp8") == 0 || strcmp(codec, "vp8.0") == 0) {
+        *video = TRUE;
+        return "vp08";
+    }
     if (!webm && avc_profile_supported(codec)) {
         *video = TRUE;
         return "avc1";

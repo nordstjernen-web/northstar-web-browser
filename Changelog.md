@@ -8,6 +8,16 @@ Significant changes in each release:
   browser. libepoxy calls WGL and GL through per-thread tables once GTK's
   own renderer has made a GL context current, and the engine thread's
   table was never filled, so the first WebGL call jumped to address 0.
+* Windows: WebGL works with OpenGL drivers that lack
+  `WGL_ARB_create_context_robustness`, such as AMD's. Draw calls were
+  already checked against vertex and index buffer ranges; the checks now
+  also cover instance divisors in WebGL 1 and WebGL 2 uniform buffer
+  ranges, so an ordinary context is used when a robust one cannot be had.
+  An out-of-range draw is an `INVALID_OPERATION`.
+* WebGL shaders may define functions named `average`, `addSaturate` and
+  the other `GL_INTEL_shader_integer_functions2` names. glslang 16 and
+  AMD's OpenGL compiler took them for built-ins in GLSL ES 3.00 shaders,
+  and every three.js material failed to compile.
 * Docs: SECURITY.md is now a short reporting FAQ shared by the three
   browsers of the project (Nordstjernen Sol, Northstar and Southstar).
   The threat model, sandbox and known gaps move unchanged to

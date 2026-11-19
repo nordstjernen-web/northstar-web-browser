@@ -67,6 +67,7 @@
           <li>Gmail: the compose window opens and sends, the inbox rows have their full layout, and an idle inbox restyles far less.</li>
           <li>Style sheets inside iframes and shadow roots apply again, and each frame has its own XMLHttpRequest.</li>
           <li>Google Search shows its account and apps buttons again.</li>
+          <li>WebM video in VP8 plays, prefixed -webkit- gradients render, and media may start once the user has interacted with the page.</li>
           <li>On NixOS and Guix text renders: the sandbox can read the Nix and Guix stores.</li>
         </ul>
       </description>

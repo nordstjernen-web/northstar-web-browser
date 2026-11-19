@@ -49,7 +49,8 @@ available in workers.
    `EGL_EXT_create_context_robustness`; a driver without that extension
    gets no WebGL context. On Windows it is a desktop OpenGL context
    created through **WGL** on a hidden window, with
-   `WGL_ARB_create_context_robustness`. On macOS it is a **CGL** context
+   `WGL_ARB_create_context_robustness` when the driver has it and an
+   ordinary context when it does not (AMD's driver, for one). On macOS it is a **CGL** context
    on the GL 4.1 core profile, which gives WebGL 1 only:
    `getContext("webgl2")` returns `null` there, because Apple's OpenGL
    cannot compile GLSL ES 3.00.
@@ -205,14 +206,23 @@ The rest is shared with Nordstjernen Sol:
   message; `getShaderSource()` returns the page's original text. glslang is
   therefore a build requirement for WebGL; without it WebGL is not built
   rather than built unvalidated.
-- **Robust buffer access contexts.** The GL context is created with
-  `EGL_EXT_create_context_robustness` (Linux and the BSDs) or
+- **Buffer ranges are checked by the browser.** Every draw call is checked
+  before it reaches the driver: each vertex attribute array the program
+  reads must cover the vertices and instances drawn (instance divisors
+  included, in WebGL 1 through `ANGLE_instanced_arrays` as well), the
+  largest index in an element range is read from a copy of the index
+  buffer, and in WebGL 2 every uniform block must have a bound buffer range
+  at least its data size. A draw that would read past a buffer is an
+  `INVALID_OPERATION` and is not issued.
+- **Robust buffer access contexts.** In addition, the GL context is created
+  with `EGL_EXT_create_context_robustness` (Linux and the BSDs) or
   `WGL_ARB_create_context_robustness` (Windows) and lose-context-on-reset,
-  so out-of-range buffer and texture reads inside shaders return defined
-  values instead of neighbouring GPU memory, and a reset takes down only
-  that context. A driver that cannot create such a context gets no WebGL
-  context at all. macOS's CGL has no robustness extension, so the
-  requirement cannot be enforced there.
+  so out-of-range reads return defined values and a reset takes down only
+  that context. On Linux and the BSDs a driver without it gets no WebGL
+  context. On Windows, where AMD's OpenGL driver lacks the extension, an
+  ordinary context is used and the checks above are what bound buffer
+  reads; a GPU reset is then not confined to the WebGL context. macOS's CGL
+  has no robustness extension.
 - **No JS-heap out-of-bounds.** Every pixel-transfer entry point validates
   the caller-supplied `ArrayBufferView` against the exact number of bytes
   GL will touch — computed from width/height/depth, format, type and the
@@ -279,10 +289,9 @@ The rest is shared with Nordstjernen Sol:
 
 What is **not** done: there is no full GL command-stream validator (the
 ANGLE model). Index-buffer bounds are now checked and shaders are
-validated before compilation, but vertex-attribute range validation (does
-the largest index fit every enabled attribute array?) is left to the
-driver's robust buffer access, which the context requires. So is
-"robust resource initialization": storage allocated by `texStorage2D/3D`
+validated before compilation, and vertex, index and uniform buffer ranges
+are checked at every draw (see above). "Robust resource initialization" is
+not done: storage allocated by `texStorage2D/3D`
 and `renderbufferStorage[Multisample]` is left in the driver's hands, so a
 page that attaches a never-cleared renderbuffer or immutable texture to
 its own framebuffer and reads it back gets whatever the driver hands out
@@ -300,10 +309,11 @@ GL stack can disable WebGL globally in Settings.
   `webglcontextrestored` fire through `WEBGL_lose_context`, never because the
   driver lost the context.
 - Antialiasing depends on the driver advertising `GL_MAX_SAMPLES > 1`.
-- WebGL needs a driver that can create a robust-access context
-  (`EGL_EXT_create_context_robustness`, `WGL_ARB_create_context_robustness`);
-  Mesa's drivers, llvmpipe included, do. macOS's CGL has no such extension,
-  so robust access is not enforced there.
+- On Linux and the BSDs WebGL needs a driver that can create a
+  robust-access context (`EGL_EXT_create_context_robustness`); Mesa's
+  drivers, llvmpipe included, do. Windows uses an ordinary context when the
+  driver lacks `WGL_ARB_create_context_robustness`, and macOS's CGL has no
+  such extension; buffer ranges are checked by the browser on all three.
 - WebGL 2 is not available on macOS (see [How it works](#how-it-works)).
 
 These are deliberate: the goal is a small, readable bridge that runs the

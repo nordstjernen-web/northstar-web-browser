@@ -22,6 +22,13 @@ install_apt() {
         libgtk-4-dev libcurl4-openssl-dev libssl-dev libpsl-dev \
         libsqlite3-dev libseccomp-dev libavif-dev libsdl3-dev \
         libepoxy-dev glslang-dev
+    # The media and optional libraries debian/control lists. Without them a
+    # package built here had no GStreamer (the default <video> decoder on
+    # Linux), VP9 or Opus, so YouTube played no video.
+    apt-get install -y --no-install-recommends \
+        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+        libdav1d-dev libvpx-dev libopus-dev libopusfile-dev libvorbis-dev \
+        libenchant-2-dev libthai-dev libbrotli-dev libzstd-dev
     apt-get install -y --no-install-recommends \
         libfontconfig-dev libpango1.0-dev || true
 }

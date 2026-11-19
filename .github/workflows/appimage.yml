@@ -1,0 +1,130 @@
+name: appimage
+
+# Builds the x86_64 AppImage for each published release and attaches it to
+# the release. Run manually with a tag to build or rebuild it for an
+# existing release.
+#
+# It builds on Ubuntu 24.04, the oldest release that ships the libraries
+# Northstar needs: an AppImage uses the host's glibc and the few libraries
+# every desktop has (X11, Wayland, fontconfig, freetype, harfbuzz, fribidi),
+# so it runs on systems as new as the one it was built on or newer.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build the AppImage for'
+        required: true
+
+concurrency:
+  group: appimage-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    permissions:
+      contents: write   # upload the AppImage to the release
+      actions: write    # re-run release-checksums afterwards
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Checkout the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - name: Install build dependencies
+        timeout-minutes: 15
+        run: |
+          apt_get() {
+            sudo timeout -k 10 "$1" apt-get \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30 \
+              -o DPkg::Lock::Timeout=120 \
+              "${@:2}"
+          }
+          for attempt in 1 2 3; do
+            # dpkg-dev, file and librsvg2-* are for linuxdeploy's GTK
+            # plugin and the icon; libsdl3-dev is not in Ubuntu 24.04.
+            if apt_get 120 update && apt_get 300 install -y \
+                gcc g++ pkg-config meson ninja-build git \
+                libgtk-4-dev libcurl4-openssl-dev libssl-dev \
+                libharfbuzz-dev libfribidi-dev libcairo2-dev \
+                libfontconfig-dev libfreetype-dev \
+                libpsl-dev libsqlite3-dev \
+                libavif-dev libseccomp-dev libenchant-2-dev \
+                libopusfile-dev libvorbis-dev libdav1d-dev libvpx-dev \
+                libepoxy-dev glslang-dev zlib1g-dev \
+                dpkg-dev file librsvg2-bin librsvg2-common \
+                shared-mime-info ca-certificates curl; then
+              exit 0
+            fi
+            echo "::warning::apt-get attempt $attempt failed or timed out"
+            sudo dpkg --configure -a || true
+            sleep 10
+          done
+          exit 1
+
+      - name: Fetch subprojects
+        run: meson subprojects download
+
+      - name: Build the AppImage
+        run: bash scripts/pack-appimage.sh
+
+      - name: Check the version
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          images=(dist/northstar-*-x86_64.AppImage)
+          if [ "${#images[@]}" -ne 1 ]; then
+            echo "::error::expected one AppImage in dist/, found ${#images[@]}"
+            exit 1
+          fi
+          want="dist/northstar-${TAG#v}-x86_64.AppImage"
+          if [ "${images[0]}" != "$want" ]; then
+            echo "::error::built ${images[0]}, but the tag is $TAG (meson.build version differs)"
+            exit 1
+          fi
+          echo "APPIMAGE=$want" >> "$GITHUB_ENV"
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          # The browser opens local files only from Downloads and system
+          # folders, so the test page goes in Downloads.
+          mkdir -p "$HOME/Downloads"
+          page="$HOME/Downloads/appimage-smoke.html"
+          cat > "$page" <<'EOF'
+          <!doctype html><title>smoke</title><h1>AppImage smoke test</h1>
+          <p id=p>static</p>
+          <script>document.getElementById('p').textContent = 'script ran: ' + (1 + 2);</script>
+          EOF
+          out=$("$APPIMAGE" --appimage-extract-and-run --headless \
+                  --dump=text --settle-ms=500 "file://$page" 2>/dev/null)
+          echo "$out"
+          grep -q 'AppImage smoke test' <<<"$out"
+          grep -q 'script ran: 3' <<<"$out"
+
+      - name: Upload to the release
+        run: gh release upload "$TAG" "$APPIMAGE" --clobber
+
+      - name: Refresh the release checksums
+        # release-checksums runs when the release is published, usually
+        # before this build has finished; run it again so SHA256SUMS and
+        # SHA512SUMS list the AppImage.
+        run: gh workflow run release-checksums.yml --ref "${{ github.event.repository.default_branch }}" -f tag="$TAG"

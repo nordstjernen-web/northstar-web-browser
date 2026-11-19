@@ -35297,6 +35297,16 @@ cascade_walk(ns_node *node,
                         node->parent->kind == NS_NODE_DOCUMENT, *root_px);
             compute_registered_vars(s, parent_style, *root_px);
             strip_native_widget_decorations(node, s);
+            /* A button lays out as an inline-block even when it is
+             * display: inline (HTML's button layout); the computed value
+             * stays "inline".  Laid out as an inline, Wikipedia's
+             * "Read Wikipedia in your language" button vanished. */
+            if (s->display.box == NS_DISPLAY_BOX_NORMAL &&
+                s->display.outer == NS_DISPLAY_OUTER_INLINE &&
+                s->display.inner == NS_DISPLAY_INNER_FLOW &&
+                !s->display.list_item &&
+                ns_node_is_tag(node, NS_TAG_BUTTON))
+                s->display = ns_css_display_from_keyword("inline-block");
             if (display_forced_none(node, s)) have_key = FALSE;
             g_array_set_size(matches, 0);
             g_array_set_size(var_matches, 0);

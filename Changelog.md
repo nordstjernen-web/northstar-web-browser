@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.26:
 =======
+* A `display: inline` button lays out as an inline-block, as in other
+  browsers. It generated no box and disappeared: Wikipedia's "Read
+  Wikipedia in your language" button was missing.
+* An inline-block's percentage width resolves against its containing
+  block, not the line narrowed by floats: Wikipedia's other-projects
+  grid was squeezed until its icons overlapped the next column's text.
 * A positioned inline element is the containing block of its absolutely
   positioned descendants. Its box was looked up and not found, and the
   page was used instead, so a "stretched link" (`position: absolute;

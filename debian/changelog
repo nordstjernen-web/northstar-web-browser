@@ -1,3 +1,12 @@
+northstar (1.0.26+ds-1) unstable; urgency=medium
+
+  * New upstream release: WebGL 1 and WebGL 2, so the build now also
+    uses libepoxy-dev and glslang-dev when present; Gmail's compose
+    window and inbox work; style sheets in iframes and shadow roots apply
+    again; and the sandbox can read the Nix and Guix stores.
+
+ -- Andreas Røsdal <andreas.rosdal@gmail.com>  Thu, 19 Nov 2026 12:00:00 +0100
+
 northstar (1.0.25+ds-1) unstable; urgency=medium
 
   * New upstream release: audio plays through SDL3 instead of SDL2, so

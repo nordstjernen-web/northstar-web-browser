@@ -4716,12 +4716,13 @@ parse_one_selector_rel(const char **pp, const char *end, int depth,
                  * from script: an input's current value, a frame's final
                  * URL.  Only the built-in sheet may select on them; in
                  * author CSS and querySelector they match nothing.  The
-                 * adopted-stylesheet scope marker is the exception: it is
-                 * written into author CSS by the engine and carries no
-                 * state. */
+                 * scope markers are the exception: the engine writes them
+                 * into the CSS of shadow roots, frames and adopted sheets
+                 * to confine its rules, and they carry no state. */
                 if (!g_sel_internal_attrs &&
                     ns_attr_name_is_internal(attr_name) &&
-                    g_ascii_strcasecmp(attr_name, "data-nd-adopt") != 0)
+                    g_ascii_strcasecmp(attr_name, NS_ADOPT_SCOPE_ATTR) != 0 &&
+                    g_ascii_strcasecmp(attr_name, NS_HOST_SCOPE_ATTR) != 0)
                     cmp->never_match = TRUE;
                 ns_css_attr_pred ap = {0};
                 ap.name = g_strdup(attr_name);

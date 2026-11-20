@@ -23,9 +23,8 @@ Commands:
   baseline <target>  Render one target and (re)write its baseline.
   baselines          Refresh baselines from every built-in fixture target.
 
-Each target in the list is '[mode ]url[ :: actions]', where mode is text
-(default), layout, or dom, and actions is a headless --act script run
-before the dump. text/dom baselines are <slug>.txt/<slug>.dom.txt;
+Each target in the list is '[mode ]url', where mode is text (default),
+layout, or dom. text/dom baselines are <slug>.txt/<slug>.dom.txt;
 layout baselines are <slug>.layout.txt. Use layout targets for
 geometry (text-free, fixed-size fixtures) so the diff is font-stable.
 
@@ -37,10 +36,9 @@ EOF
 
 # Built-in headless smoke targets (formerly reading-list.txt): local fixtures,
 # so the regression net is deterministic and offline — it detects drift from
-# code changes, not network/remote-site churn. One '[mode ]url[ :: actions]'
-# per line; mode is text (default), layout, or dom, and actions is a headless
-# --act script (click X,Y; key NAME; wait MS ...) run before the dump. Refresh
-# baselines after an intended change with './scripts/dev.sh baselines'.
+# code changes, not network/remote-site churn. One '[mode ]url' per line; mode
+# is text (default), layout, or dom. Refresh baselines after an intended change
+# with './scripts/dev.sh baselines'.
 smoke_targets() {
     cat <<'EOF'
 data/fixtures/basics.html
@@ -54,7 +52,6 @@ layout data/fixtures/geo-flex.html
 layout data/fixtures/geo-grid.html
 layout data/fixtures/geo-position.html
 layout data/fixtures/geo-box.html
-data/fixtures/input-events.html :: click 60,10; click 20,64; click 100,180; key 4; click 300,170; key x; key Enter; wait 50
 EOF
 }
 
@@ -66,13 +63,6 @@ slugify() {
 parse_target() {
     local spec="$1"
     T_MODE=text
-    T_ACT=
-    case "$spec" in
-        *" :: "*)
-            T_ACT="${spec#* :: }"
-            spec="${spec%% :: *}"
-            ;;
-    esac
     T_URL="$spec"
     case "$spec" in
         "text "*|"layout "*|"dom "*)
@@ -88,11 +78,7 @@ baseline_path() {
 }
 
 render() {
-    if [ -n "${3:-}" ]; then
-        "$BIN" --headless --dump="$1" --settle-ms=300 --act="$3" "$2"
-    else
-        "$BIN" --headless --dump="$1" --settle-ms=300 "$2"
-    fi
+    "$BIN" --headless --dump="$1" --settle-ms=300 "$2"
 }
 
 trim() {
@@ -113,7 +99,7 @@ cmd_smoke() {
         parse_target "$spec"
         slug=$(slugify "$T_URL")
         base=$(baseline_path "$T_MODE" "$slug")
-        render "$T_MODE" "$T_URL" "$T_ACT" >"$tmp" 2>/dev/null || true
+        render "$T_MODE" "$T_URL" >"$tmp" 2>/dev/null || true
         if [ ! -f "$base" ]; then
             printf 'NEW   %s [%s] (no baseline; run: ./scripts/dev.sh baselines)\n' "$T_URL" "$T_MODE"
             fail=1
@@ -136,7 +122,7 @@ cmd_baseline() {
     slug=$(slugify "$T_URL")
     local base
     base=$(baseline_path "$T_MODE" "$slug")
-    render "$T_MODE" "$T_URL" "$T_ACT" > "$base"
+    render "$T_MODE" "$T_URL" > "$base"
     printf 'wrote %s\n' "$base"
 }
 

@@ -427,9 +427,7 @@ they are for debugging only. Boolean switches like these and the
 `scripts/dev.sh` — the pages in `data/fixtures/` — headless, and diffs
 each against its baseline in `data/baseline/`, reporting drift. Text
 fixtures use `--dump=text`; the `geo-*` ones use `--dump=layout`, which is
-text-free and fixed-size so the diff is font-stable. A target can carry
-an `--act` script after ` :: `; `input-events.html` clicks and types
-through one, and the page writes what its listeners saw. After an intended
+text-free and fixed-size so the diff is font-stable. After an intended
 change, refresh with `./scripts/dev.sh baselines` (or
 `dev.sh baseline <target>` for one).
 

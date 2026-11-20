@@ -20,6 +20,9 @@ Significant changes in each release:
   value. It was laid out as an empty placeholder inside its own box, so
   the field stayed blank: LogicEmu's import box showed none of the
   circuit typed or pasted into it.
+* The lines of a `<textarea>` line up: the first was indented by a
+  space the others did not get, which skewed ASCII drawings such as
+  LogicEmu's exported circuits.
 
 1.0.26:
 =======

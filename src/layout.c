@@ -3444,7 +3444,11 @@ collect_walk(const ns_node *n, collector_ctx *ctx, int depth)
     if (ns_node_is_tag(n, NS_TAG_TEXTAREA)) {
         gsize start = ctx->out->len;
         gboolean focused = (n == g_focused_input_for_layout);
-        g_string_append(ctx->out, "\xc2\xa0");
+        /* The field's run opens with a word joiner, which has no width,
+         * where a single-line field opens with a no-break space: that
+         * space indented only the first line, so the lines of a textarea
+         * (an ASCII drawing, say) no longer lined up. */
+        g_string_append(ctx->out, "\xe2\x81\xa0");
         gsize val_start = ctx->out->len;
         char *raw = ns_textarea_value_dup(n);
         gsize value_byte_len = strlen(raw);

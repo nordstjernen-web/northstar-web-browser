@@ -26,7 +26,7 @@ Significant changes in each release:
 * Web Audio plays sound. `AudioContext` was an inert stub: its graph
   was never rendered, and `setValueAtTime()`, the ramps and
   `setTargetAtTime()` did nothing, so LogicEmu's music note component
-  was silent (#312). The graph is now rendered in 128-frame blocks a
+  was silent (#315). The graph is now rendered in 128-frame blocks a
   little ahead of the output clock into an SDL3 mixer stream. Oscillator
   phase, buffer position and filter, delay and compressor state carry
   over between blocks. AudioParam automation is applied, and

@@ -4,6 +4,21 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Dependencies: WAMR moves to 2.4.6, applied over the vendored subset
+  like 2.4.5. The release's fixes that reach that subset are taken: an
+  unchecked guest pointer in `realloc` and an unchecked offset from the
+  module's own `malloc` (both out-of-bounds reads or writes), signature
+  checks on the thread entry functions against a host stack overflow, and
+  a loader crash on a failed constant expression. Its WASI, pthread and
+  AOT fixes are for code this build leaves out.
+* Dependencies: lexbor moves to master `adfd1f7` (still no release after
+  v3.0.1), which frees the CSS tokenizer when `lxb_css_parser_init()`
+  fails.
+* Dependencies: minimp3 is the upstream head again (C90 compatibility and
+  ARM64EC detection). Upstream now bounds the short-block loop in
+  `L3_decode_scalefactors` itself for GCC's `-Wstringop-overflow`, so the
+  local change from the 32-bit build fix is dropped and the file is an
+  unmodified copy.
 * Typing a character fires `keydown` and `keypress` before it is
   inserted, and a cancelled `keypress` keeps it out of the field. GTK
   hands such keys to the input method first, which turned them straight

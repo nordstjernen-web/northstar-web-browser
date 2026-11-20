@@ -3823,10 +3823,26 @@ wasm_module_malloc_internal(WASMModuleInstance *module_inst,
                 module_inst->e->retain_function, size, &offset)) {
             return 0;
         }
+
+        if (!offset) {
+            LOG_WARNING("warning: allocate %" PRIu64 " bytes memory failed",
+                        size);
+            wasm_set_exception_with_id(module_inst, EXCE_OUT_OF_MEMORY);
+            return 0;
+        }
+
         /* If we use app's malloc function,
            the default memory may be changed while memory growing */
         memory = wasm_get_default_memory(module_inst);
-        addr = offset ? memory->memory_data + offset : NULL;
+        if (offset > memory->memory_data_size
+            || size > memory->memory_data_size - offset) {
+            LOG_ERROR("error: malloc returned offset %" PRIu64
+                      " out of linear memory of size %" PRIu64,
+                      offset, memory->memory_data_size);
+            wasm_set_exception_with_id(module_inst, EXCE_OUT_OF_MEMORY);
+            return 0;
+        }
+        addr = memory->memory_data + offset;
     }
 
     if (!addr) {
@@ -3865,10 +3881,23 @@ wasm_module_realloc_internal(WASMModuleInstance *module_inst,
     }
 
     if (memory->heap_handle) {
-        addr = mem_allocator_realloc(
-            memory->heap_handle,
-            (uint32)ptr ? memory->memory_data + (uint32)ptr : NULL,
-            (uint32)size);
+        addr = ptr ? memory->memory_data + (uint32)ptr : NULL;
+
+        /* Only realloc a block that lives in the app heap: the guest may
+           pass an arbitrary offset, and the heap may have moved on grow */
+        if (addr) {
+            uint8 *heap_data, *heap_data_end;
+
+            SHARED_MEMORY_LOCK(memory);
+            heap_data = memory->heap_data;
+            heap_data_end = memory->heap_data_end;
+            SHARED_MEMORY_UNLOCK(memory);
+
+            if (!(heap_data <= addr && addr < heap_data_end))
+                return 0;
+        }
+
+        addr = mem_allocator_realloc(memory->heap_handle, addr, (uint32)size);
     }
 
     /* Only support realloc in WAMR's app heap */

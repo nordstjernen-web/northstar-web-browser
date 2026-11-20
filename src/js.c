@@ -11666,14 +11666,6 @@ ns_media_set_media_keys(JSContext *ctx, JSValueConst this_val,
     return promise;
 }
 
-static JSValue
-ns_audio_return_this(JSContext *ctx, JSValueConst this_val,
-                     int argc, JSValueConst *argv)
-{
-    (void)argc; (void)argv;
-    return JS_DupValue(ctx, this_val);
-}
-
 /* AudioNode.connect() stub: records this in the destination's _inputs. */
 static JSValue
 ns_audio_node_connect(JSContext *ctx, JSValueConst this_val,
@@ -11745,7 +11737,7 @@ ns_audio_node_disconnect(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* AudioParam-like stub whose automation methods return this. */
+/* AudioParam with automation (setValueAtTime, ramps, ...) from webaudio.c. */
 static JSValue
 ns_audio_make_param(JSContext *ctx, double value)
 {
@@ -11754,17 +11746,8 @@ ns_audio_make_param(JSContext *ctx, double value)
     JS_SetPropertyStr(ctx, p, "defaultValue", JS_NewFloat64(ctx, value));
     JS_SetPropertyStr(ctx, p, "minValue",     JS_NewFloat64(ctx, -3.4e38));
     JS_SetPropertyStr(ctx, p, "maxValue",     JS_NewFloat64(ctx, 3.4e38));
-    static const ns_fn_def methods[] = {
-        { "setValueAtTime", 2 },
-        { "linearRampToValueAtTime", 2 },
-        { "exponentialRampToValueAtTime", 2 },
-        { "setTargetAtTime", 3 },
-        { "setValueCurveAtTime", 3 },
-        { "cancelScheduledValues", 1 },
-        { "cancelAndHoldAtTime", 1 },
-    };
-    ns_bind_fns(ctx, p, ns_audio_return_this,
-                methods, G_N_ELEMENTS(methods));
+    ns_webaudio_bind_param(ctx, p);
+    ns_set_tostring_tag(ctx, p, "AudioParam");
     return p;
 }
 
@@ -11838,12 +11821,11 @@ ns_audio_make_node(JSContext *ctx, const char *kind)
     return n;
 }
 
-/* BaseAudioContext.createX() stub; magic indexes the node kind table. */
+/* BaseAudioContext.createX(); magic indexes the node kind table. */
 static JSValue
 ns_audio_create_node(JSContext *ctx, JSValueConst this_val,
                      int argc, JSValueConst *argv, int magic)
 {
-    (void)this_val; (void)argc; (void)argv;
     static const char *const kinds[] = {
         "gain", "analyser", "mediaelementsource", "mediastreamsource",
         "buffersource", "oscillator", "delay", "biquad", "merger",
@@ -11853,7 +11835,34 @@ ns_audio_create_node(JSContext *ctx, JSValueConst this_val,
     };
     const char *kind = magic >= 0 && magic < (int)G_N_ELEMENTS(kinds)
                      ? kinds[magic] : "gain";
-    return ns_audio_make_node(ctx, kind);
+    JSValue n = ns_audio_make_node(ctx, kind);
+    /* Params find the context's clock through _ac, so automation that has
+     * no earlier event can start at the current time. */
+    static const char *const params[] = {
+        "gain", "frequency", "detune", "playbackRate", "offset", "pan", "Q",
+        "delayTime", "threshold", "knee", "ratio", "attack", "release",
+    };
+    for (gsize i = 0; i < G_N_ELEMENTS(params); i++) {
+        JSValue p = JS_GetPropertyStr(ctx, n, params[i]);
+        if (JS_IsObject(p))
+            JS_SetPropertyStr(ctx, p, "_ac", JS_DupValue(ctx, this_val));
+        JS_FreeValue(ctx, p);
+    }
+    if (strcmp(kind, "delay") == 0) {
+        double max_delay = 1.0;
+        if (argc >= 1 && !JS_IsUndefined(argv[0]) &&
+            JS_ToFloat64(ctx, &max_delay, argv[0]) < 0) {
+            JS_FreeValue(ctx, n);
+            return JS_EXCEPTION;
+        }
+        if (!(max_delay > 0 && max_delay < 180)) {
+            JS_FreeValue(ctx, n);
+            return ns_throw_dom_exception(ctx, "NotSupportedError", 9,
+                "createDelay: maxDelayTime must be between 0 and 180 seconds");
+        }
+        JS_SetPropertyStr(ctx, n, "_maxDelay", JS_NewFloat64(ctx, max_delay));
+    }
+    return n;
 }
 
 /* AudioBuffer-like object with zeroed Float32Array channels. */
@@ -11976,7 +11985,7 @@ ns_audio_decodeAudioData(JSContext *ctx, JSValueConst this_val,
     return ns_promise_resolve_take(ctx, b);
 }
 
-/* Builds an AudioContext-like stub object with node factory methods. */
+/* Builds a BaseAudioContext object with node factory methods. */
 static JSValue
 ns_audio_context_build(JSContext *ctx, double sample_rate)
 {
@@ -12037,7 +12046,7 @@ ns_audio_context_ctor(JSContext *ctx, JSValueConst this_val,
                       int argc, JSValueConst *argv)
 {
     (void)this_val; (void)argc; (void)argv;
-    return ns_audio_context_build(ctx, 44100.0);
+    return ns_webaudio_realtime_init(ctx, ns_audio_context_build(ctx, 44100.0));
 }
 
 /* OfflineAudioContext.startRendering(): renders the graph offline into a buffer. */
@@ -18873,6 +18882,12 @@ ns_target_fire_event(JSContext *ctx, JSValueConst obj, const char *type)
     JSValue ev = ns_target_make_event(ctx, obj, type);
     ns_target_dispatch_with_event(ctx, obj, type, ev);
     JS_FreeValue(ctx, ev);
+}
+
+void
+ns_js_target_fire_event(JSContext *ctx, JSValueConst obj, const char *type)
+{
+    ns_target_fire_event(ctx, obj, type);
 }
 
 /* True for Document nodes (not fragments). */

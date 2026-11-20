@@ -23,6 +23,19 @@ Significant changes in each release:
 * The lines of a `<textarea>` line up: the first was indented by a
   space the others did not get, which skewed ASCII drawings such as
   LogicEmu's exported circuits.
+* Web Audio plays sound. `AudioContext` was an inert stub: its graph
+  was never rendered, and `setValueAtTime()`, the ramps and
+  `setTargetAtTime()` did nothing, so LogicEmu's music note component
+  was silent (#312). The graph is now rendered in 128-frame blocks a
+  little ahead of the output clock into an SDL3 mixer stream. Oscillator
+  phase, buffer position and filter, delay and compressor state carry
+  over between blocks. AudioParam automation is applied, and
+  `currentTime` follows the device clock. `resume()`, `suspend()` and
+  `close()` work and fire `statechange`. A context created before the
+  user has interacted with the page starts suspended when autoplay is
+  off. Sources that have stopped are dropped from the graph.
+  OfflineAudioContext uses the same renderer, so its automation now
+  takes effect too, and a source that was never `start()`ed is silent.
 
 1.0.26:
 =======

@@ -175,6 +175,13 @@ media_audio_context(ns_js *js)
     return js->audio_context;
 }
 
+/* The realm's audio mixer context, shared with Web Audio. */
+NsAudioContext *
+ns_js_media_audio_context(ns_js *js)
+{
+    return js ? media_audio_context(js) : NULL;
+}
+
 /* Effective muted state: script-set value if any, else the muted content attribute. */
 static gboolean
 media_muted(const ns_media_player *p)
@@ -1239,6 +1246,7 @@ void
 ns_media_teardown(ns_js *js)
 {
     if (!js) return;
+    ns_webaudio_teardown(js);
     ns_js_mse_teardown(js);
     if (js->media_poll_source) {
         ns_engine_source_remove(js->media_poll_source);
@@ -1273,7 +1281,9 @@ ns_media_teardown(ns_js *js)
 void
 ns_js_suspend_media(ns_js *js)
 {
-    if (!js || !js->media_players) return;
+    if (!js) return;
+    ns_webaudio_suspend_all(js);
+    if (!js->media_players) return;
     GHashTableIter it;
     gpointer value;
     g_hash_table_iter_init(&it, js->media_players);

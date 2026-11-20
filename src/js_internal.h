@@ -74,6 +74,9 @@ struct ns_js {
     GPtrArray    *media_tasks;
     GPtrArray    *media_tasks_flushing;
     guint         media_poll_source;
+    GPtrArray    *webaudio_contexts;
+    guint         webaudio_poll_source;
+    guint         next_webaudio_id;
     guint         media_task_source;
     ns_js_scroll_to_cb scroll_to_cb;
     gpointer      scroll_to_user_data;
@@ -373,6 +376,13 @@ const ns_box *ns_box_find_by_dom(const ns_box *root, const ns_node *target);
 uint32_t ns_js_array_length(JSContext *ctx, JSValueConst arr);
 gboolean ns_webaudio_render_offline(JSContext *ctx, JSValueConst destination,
                                     uint32_t frames, double rate, float *out);
+void     ns_webaudio_bind_param(JSContext *ctx, JSValueConst param);
+JSValue  ns_webaudio_realtime_init(JSContext *ctx, JSValue context);
+void     ns_webaudio_suspend_all(ns_js *js);
+void     ns_webaudio_teardown(ns_js *js);
+NsAudioContext *ns_js_media_audio_context(ns_js *js);
+void     ns_js_target_fire_event(JSContext *ctx, JSValueConst obj,
+                                 const char *type);
 void ns_js_promise_reject(JSContext *ctx, JSValue resolvers[2], const char *message);
 JSValue ns_make_element(JSContext *ctx, const ns_node *cnode);
 const ns_node *ns_unwrap_element(JSValueConst val);

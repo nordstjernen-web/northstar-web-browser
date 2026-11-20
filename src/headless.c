@@ -378,7 +378,16 @@ rdrv_run_actions(ns_page_session *s, const char *spec, int vw, int vh,
                     code = rdrv_keys[k].code;
                     break;
                 }
-            char *h = ns_page_session_key(s, 0, jskey, jskey, code, 0, NULL);
+            /* A character key or Enter is pressed as the GUI presses it:
+             * keydown, keypress, then the character (kind 3). */
+            gboolean typed = strcmp(jskey, "Enter") == 0 ||
+                             (g_utf8_validate(jskey, -1, NULL) &&
+                              g_utf8_strlen(jskey, -1) == 1 &&
+                              !g_unichar_iscntrl(g_utf8_get_char(jskey)));
+            if (typed && !code && g_ascii_isalnum(jskey[0]) && !jskey[1])
+                code = g_ascii_toupper(jskey[0]);
+            char *h = ns_page_session_key(s, typed ? 3 : 0, jskey, jskey,
+                                          code, 0, NULL);
             if (h && *h)
                 rdrv_follow_nav(s, g_strdup(h), vw, vh, settle_ms, TRUE);
             g_free(h);

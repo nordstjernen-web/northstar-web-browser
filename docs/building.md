@@ -369,7 +369,9 @@ Two traps in `--act`. Actions are split on `;`, so inline JS in an `eval`
 action is cut at its first statement separator — put anything longer
 than one expression in a file and use `evalfile`. And `type` inserts
 text without keyboard events, so use `key` when the page's behaviour
-depends on `keydown`.
+depends on them: `key` with a single character, or `Enter`, presses it
+as the GUI does (keydown, keypress, the character typed unless a
+listener cancels, keyup).
 
 On Linux the sandbox confines what a headless run can read. A local
 page has to live somewhere Landlock allows: a build run from
@@ -425,7 +427,9 @@ they are for debugging only. Boolean switches like these and the
 `scripts/dev.sh` — the pages in `data/fixtures/` — headless, and diffs
 each against its baseline in `data/baseline/`, reporting drift. Text
 fixtures use `--dump=text`; the `geo-*` ones use `--dump=layout`, which is
-text-free and fixed-size so the diff is font-stable. After an intended
+text-free and fixed-size so the diff is font-stable. A target can carry
+an `--act` script after ` :: `; `input-events.html` clicks and types
+through one, and the page writes what its listeners saw. After an intended
 change, refresh with `./scripts/dev.sh baselines` (or
 `dev.sh baseline <target>` for one).
 

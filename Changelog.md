@@ -2,6 +2,25 @@ Changelog:
 =========
 Significant changes in each release:
 
+1.0.27:
+=======
+* Typing a character fires `keydown` and `keypress` before it is
+  inserted, and a cancelled `keypress` keeps it out of the field. GTK
+  hands such keys to the input method first, which turned them straight
+  into text, so pages saw only `input` and `keyup`; Enter now fires
+  `keypress` too. A cancelled `mousedown` no longer moves focus to what
+  was pressed. Together these left LogicEmu's terminals deaf to the
+  keyboard: they focus a hidden textarea from a cancelled `mousedown`
+  and read characters from `keypress`.
+* An open drop-down list (a `<select>`'s options or `<datalist>`
+  suggestions) is painted above the rest of the page and its rows take
+  clicks there, as a native popup does. A later positioned element drew
+  over it: LogicEmu's title band hid part of the colour scheme menu.
+* An absolutely positioned or fixed `<textarea>` or `<input>` shows its
+  value. It was laid out as an empty placeholder inside its own box, so
+  the field stayed blank: LogicEmu's import box showed none of the
+  circuit typed or pasted into it.
+
 1.0.26:
 =======
 * A `display: inline` button lays out as an inline-block, as in other

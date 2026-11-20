@@ -2735,6 +2735,22 @@ ns_select_set_selected_option(ns_node *select, const ns_node *chosen)
     else        ns_element_set_attr(select, "data-nd-noselect", "1");
 }
 
+/* TRUE for an option shown in a popup list: one of a drop-down <select>
+ * (not multiple, size at most 1) or a <datalist> suggestion.  Options of a
+ * list box stay in the page's own stacking order. */
+gboolean
+ns_option_in_dropdown(const ns_node *option)
+{
+    if (!ns_node_is_tag(option, NS_TAG_OPTION)) return FALSE;
+    const ns_node *p = option->parent;
+    if (ns_node_is_tag(p, NS_TAG_DATALIST)) return TRUE;
+    const ns_node *select = ns_option_select(option);
+    if (!select) return FALSE;
+    if (ns_element_get_attr(select, "multiple")) return FALSE;
+    const char *sz = ns_element_get_attr(select, "size");
+    return !(sz && atoi(sz) > 1);
+}
+
 /* Sets an option's selectedness, deselecting siblings in a single-select. */
 void
 ns_option_set_selected(ns_node *option, gboolean on)

@@ -1,0 +1,15 @@
+ second ▾ 
+                                          
+ x                    
+ positioned textarea text 
+picked: second
+focused after click: hidden
+terminal keypress 4 which=52
+field keydown x
+field keypress x
+field input x
+field keyup x
+field keydown Enter
+field keypress Enter
+field keyup Enter
+

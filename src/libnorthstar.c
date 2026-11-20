@@ -3676,7 +3676,10 @@ ns_browser_press(ns_browser *browser, int x, int y, int mods)
     gboolean in_datalist = FALSE;
     for (const ns_node *a = node; a; a = a->parent)
         if (ns_node_is_tag(a, NS_TAG_DATALIST)) { in_datalist = TRUE; break; }
-    if (browser->js && !in_datalist) {
+    /* Moving focus to what was pressed is mousedown's default action: a
+     * listener that cancels it keeps focus where it is, such as on a field
+     * the listener focused itself (LogicEmu's terminals do this). */
+    if (browser->js && !in_datalist && !browser->press_prevented) {
         const ns_node *focus = NULL;
         for (const ns_node *a = node; a; a = a->parent)
             if (ns_node_is_focusable(a)) { focus = a; break; }
@@ -4115,12 +4118,15 @@ browser_edit_key_apply(ns_browser *b, ns_node *node, const char *key, int mods)
     return FALSE;
 }
 
-/* Code point of a single printable character key, else 0 (for keypress). */
+/* Character code a key's keypress carries: the code point of a single
+ * printable character, 13 for Enter, else 0 (no keypress). */
 static int
 browser_key_char_code(const char *key)
 {
     if (!key || !*key || !g_utf8_validate(key, -1, NULL))
         return 0;
+    if (strcmp(key, "Enter") == 0)
+        return 13;
     const char *next = g_utf8_next_char(key);
     if (!next || *next)
         return 0;
@@ -4195,7 +4201,12 @@ browser_select_key(ns_browser *browser, ns_node *select, const char *key,
     return FALSE;
 }
 
-/* Dispatches key events and default actions: text input, accesskey, Tab, select, edit. */
+/* Dispatches key events and default actions: text input, accesskey, Tab,
+ * select, edit.  kind 0 is a keydown, 1 a keyup and 2 committed text (an
+ * input method or a paste: inserted with no key events).  kind 3 is a key
+ * press that produces a character: keydown, then keypress, then the default
+ * action (the character typed into a focused field), each step skipped once
+ * a listener cancels the event, as in other browsers. */
 char *
 ns_browser_key_full(ns_browser *browser, int kind, const char *key,
                     const char *code, int keycode, int mods,
@@ -4243,7 +4254,8 @@ ns_browser_key_full(ns_browser *browser, int kind, const char *key,
             *out_prevented = 1;
         browser_absorb_js_mutation(browser);
 
-        if (kind == 0 && !prevented && (mods & 4) && !(mods & (2 | 8)) &&
+        gboolean down = kind == 0 || kind == 3;
+        if (down && !prevented && (mods & 4) && !(mods & (2 | 8)) &&
             key && g_utf8_validate(key, -1, NULL) &&
             g_utf8_strlen(key, -1) == 1 && browser->doc) {
             const ns_node *ak = browser_find_accesskey(browser->doc, key, 0);
@@ -4258,18 +4270,25 @@ ns_browser_key_full(ns_browser *browser, int kind, const char *key,
         int char_code = browser_key_char_code(key);
         if (kind == 3 && !prevented && char_code > 0 &&
             (mods & (2 | 4 | 8)) == 0) {
+            /* The keydown listener may have moved focus: keypress goes to
+             * the element that has it now, as the character will. */
+            const ns_node *press_target = ns_js_focused_node(browser->js);
+            if (!press_target) press_target = target;
             gboolean press_prevented = FALSE;
-            ns_js_dispatch_key_event_full(browser->js, target, "keypress",
+            ns_js_dispatch_key_event_full(browser->js, press_target,
+                                          "keypress",
                                           key ? key : "", code ? code : "",
-                                          keycode, char_code,
+                                          char_code, char_code,
                                           (mods & 1) != 0, FALSE, FALSE, FALSE,
                                           &press_prevented);
-            if (out_prevented && press_prevented)
-                *out_prevented = 1;
+            if (press_prevented) {
+                prevented = TRUE;
+                if (out_prevented) *out_prevented = 1;
+            }
             browser_absorb_js_mutation(browser);
         }
 
-        if (!prevented && kind == 0 && key && strcmp(key, "Tab") == 0) {
+        if (!prevented && down && key && strcmp(key, "Tab") == 0) {
             gboolean backward = (mods & 1) != 0;
             const ns_node *next =
                 ns_js_sequential_focus_target(browser->js, backward);
@@ -4280,7 +4299,7 @@ ns_browser_key_full(ns_browser *browser, int kind, const char *key,
                 browser->sel_anchor_byte = browser->caret_byte;
                 browser->dirty = TRUE;
             }
-        } else if (!prevented && kind == 0) {
+        } else if (!prevented && down) {
             const ns_node *f = ns_js_focused_node(browser->js);
             if (f && ns_node_is_tag(f, NS_TAG_INPUT) &&
                 !browser->datalist_suppressed && key &&
@@ -4304,6 +4323,9 @@ ns_browser_key_full(ns_browser *browser, int kind, const char *key,
             } else if (f && ns_node_editable_value(f) &&
                 browser_edit_key(browser, (ns_node *)f, key, mods)) {
                 browser->dirty = TRUE;
+                /* A typed character went into the field: the shell must
+                 * not also scroll the page for it (Space). */
+                if (kind == 3 && out_prevented) *out_prevented = 1;
             } else if (key && strcmp(key, "Escape") == 0 &&
                        ns_js_process_close_request(browser->js)) {
                 browser->dirty = TRUE;

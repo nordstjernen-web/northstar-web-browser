@@ -280,6 +280,7 @@ void        ns_doc_tag_index_subtree_added(ns_node *doc, ns_node *root);
 void        ns_doc_tag_index_subtree_removed(ns_node *doc, ns_node *root);
 GPtrArray  *ns_doc_tag_index_lookup(const ns_node *doc, const char *tag);
 gboolean    ns_option_is_selected(const ns_node *option);
+gboolean    ns_option_in_dropdown(const ns_node *option);
 void        ns_option_set_selected(ns_node *option, gboolean on);
 void        ns_select_collect_options(const ns_node *select, GPtrArray *out);
 void        ns_select_set_selected_option(ns_node *select, const ns_node *chosen);

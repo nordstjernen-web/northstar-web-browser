@@ -160,6 +160,7 @@ struct NsProcView {
     GtkWidget     *hscroll;
     GtkWidget     *vscroll;
     GtkIMContext  *im;
+    GtkEventController *key_ctrl;
     GtkAdjustment *hadj;
     GtkAdjustment *vadj;
     gboolean    closed;
@@ -1447,7 +1448,7 @@ start_key_full(NsProcView *v, int kind, guint keyval, GdkModifierType state,
     char keybuf[8] = {0}, codebuf[16] = {0};
     Req *req = g_new0(Req, 1);
     req->type = REQ_KEY;
-    req->seq = kind == 0 ? ++v->key_seq : v->key_seq;
+    req->seq = (kind == 0 || kind == 3) ? ++v->key_seq : v->key_seq;
     req->kind = kind;
     req->keycode = keyval_js_keycode(keyval);
     req->fallback_scroll = fallback_scroll;
@@ -1485,12 +1486,34 @@ start_key_text(NsProcView *v, int kind, const char *text)
     push_req(v, req);
 }
 
+static void start_typed_key(NsProcView *v, guint keyval,
+                            GdkModifierType state);
+
+/* Text the input method committed.  A plain key press it turned straight
+ * into its character (the usual case: GTK hands such keys to the input
+ * method before the key controller's key-pressed handler sees them) goes to
+ * the page as a typed key, so page script gets keydown and keypress before
+ * the character lands.  Composed or pre-edited text, and text committed
+ * outside a key press, is inserted as is. */
 static void
 on_im_commit(GtkIMContext *im, const char *text, gpointer data)
 {
     (void)im;
     NsProcView *v = data;
     if (!v || !v->opened || !text || !*text) return;
+    GdkEvent *ev = v->key_ctrl
+        ? gtk_event_controller_get_current_event(v->key_ctrl) : NULL;
+    if (ev && gdk_event_get_event_type(ev) == GDK_KEY_PRESS) {
+        guint keyval = gdk_key_event_get_keyval(ev);
+        gunichar uc = gdk_keyval_to_unicode(keyval);
+        char buf[8];
+        int len = uc ? g_unichar_to_utf8(uc, buf) : 0;
+        buf[len] = '\0';
+        if (len > 0 && strcmp(buf, text) == 0) {
+            start_typed_key(v, keyval, gdk_event_get_modifier_state(ev));
+            return;
+        }
+    }
     start_key_text(v, 2, text);
 }
 
@@ -2030,7 +2053,7 @@ on_result(gpointer data)
     } else if (res->type == RES_KEY) {
         if (res->seq != v->key_seq)
             goto done;
-        if (res->kind == 0 && res->href && *res->href) {
+        if ((res->kind == 0 || res->kind == 3) && res->href && *res->href) {
             post_emit(v, NS_PROC_EVT_STATUS, res->href);
             ns_proc_view_load(v, res->href);
         } else {
@@ -3153,11 +3176,10 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
         return TRUE;
     }
     gunichar uc = gdk_keyval_to_unicode(keyval);
-    if (uc && uc != ' ' && !g_unichar_iscntrl(uc) &&
+    if (uc && !g_unichar_iscntrl(uc) &&
         !(state & (GDK_CONTROL_MASK | GDK_ALT_MASK | GDK_META_MASK))) {
-        start_key(v, 0, keyval, state);
-        start_key(v, 3, keyval, state);
-        return FALSE;
+        start_typed_key(v, keyval, state);
+        return TRUE;
     }
     if (state & GDK_CONTROL_MASK) {
         start_key(v, 0, keyval, state);
@@ -3208,12 +3230,13 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
     switch (keyval) {
     case GDK_KEY_Tab:
     case GDK_KEY_ISO_Left_Tab: start_key(v, 0, keyval, state); return TRUE;
+    case GDK_KEY_Return:
+    case GDK_KEY_KP_Enter:   start_key(v, 3, keyval, state); return FALSE;
     case GDK_KEY_Down:       ty = vy + line; break;
     case GDK_KEY_Up:         ty = vy - line; break;
     case GDK_KEY_Right:      tx = vx + line; break;
     case GDK_KEY_Left:       tx = vx - line; break;
-    case GDK_KEY_Page_Down:
-    case GDK_KEY_space:      ty = vy + page; break;
+    case GDK_KEY_Page_Down:  ty = vy + page; break;
     case GDK_KEY_Page_Up:    ty = vy - page; break;
     case GDK_KEY_Home:       ty = 0; break;
     case GDK_KEY_End:        ty = gtk_adjustment_get_upper(v->vadj); break;
@@ -3221,6 +3244,26 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
     }
     start_key_full(v, 0, keyval, state, 1, tx, ty);
     return TRUE;
+}
+
+/* A key press that types a character, as one request: the engine sends
+ * keydown and keypress and then types the character into a focused field
+ * unless a listener cancels.  Space keeps its page-scroll fallback for when
+ * nothing on the page uses it. */
+static void
+start_typed_key(NsProcView *v, guint keyval, GdkModifierType state)
+{
+    if (keyval == GDK_KEY_space || keyval == GDK_KEY_KP_Space) {
+        double line = 60.0;
+        double page = viewport_h(v) / cur_scale(v) - line;
+        if (page < line) page = line;
+        double ty = gtk_adjustment_get_value(v->vadj) +
+                    ((state & GDK_SHIFT_MASK) ? -page : page);
+        start_key_full(v, 3, keyval, state, 1,
+                       gtk_adjustment_get_value(v->hadj), ty);
+        return;
+    }
+    start_key(v, 3, keyval, state);
 }
 
 static void
@@ -3779,6 +3822,7 @@ ns_proc_view_new(void)
     gtk_widget_add_controller(v->area, scroll);
 
     GtkEventController *key = gtk_event_controller_key_new();
+    v->key_ctrl = key;
     g_signal_connect(key, "key-pressed", G_CALLBACK(on_key), v);
     g_signal_connect(key, "key-released", G_CALLBACK(on_key_released), v);
     v->im = gtk_im_multicontext_new();

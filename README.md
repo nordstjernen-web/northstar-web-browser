@@ -283,7 +283,7 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 
 | Component | Role |
 |-----------|------|
-| [lexbor](https://github.com/lexbor/lexbor) master commit `e609d94` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
+| [lexbor](https://github.com/lexbor/lexbor) master commit `adfd1f7` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
 | [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `dce8c0b`) | JavaScript engine — no JIT |
 | [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 (master `e585640`) | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
 | [pdfjs-dist](https://www.npmjs.com/package/pdfjs-dist) 6.5.438 | Mozilla's PDF.js, embedded at build time for the PDF viewer (`-Dpdfjs`) |
@@ -296,7 +296,7 @@ build finds one.
 
 | Component | Role |
 |-----------|------|
-| [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) 2.4.5 (subset) | WebAssembly fast interpreter |
+| [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) 2.4.6 (subset) | WebAssembly fast interpreter |
 | [Wuffs](https://github.com/google/wuffs) 0.4.0-alpha.12 | Memory-safe image decoding — PNG/APNG, GIF, BMP, JPEG, WebP |
 | [pl_mpeg](https://github.com/phoboslab/pl_mpeg) (MIT) | In-process MPEG-1 video and MP2 audio decode |
 | [minimp3](https://github.com/lieff/minimp3) (CC0) | In-process MP3 audio decode |

@@ -17,7 +17,7 @@ Group:          Productivity/Networking/Web/Browsers
 URL:            https://nordstjernen.org
 
 BuildRequires:  gcc
-BuildRequires:  meson >= 1.0
+BuildRequires:  meson >= 1.3
 BuildRequires:  ninja
 BuildRequires:  pkgconfig
 BuildRequires:  update-desktop-files

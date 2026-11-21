@@ -647,13 +647,42 @@ ns_js_eval_budget_us(void)
     return (gint64)ms * 1000LL;
 }
 
+/* A cross-origin isolated document has opted into multi-threaded
+ * WebAssembly; a game's start-up can hold one turn for minutes on the
+ * interpreter, so it gets this long before the monitor halts it. */
+#define NS_JS_ISOLATED_MONITOR_US (10LL * 60LL * 1000000LL)
+
 /* The monitor halts a page whose JavaScript holds one turn for this long:
- * 60 s, or the per-script budget when that is configured higher. */
+ * 60 s (10 minutes for a cross-origin isolated document), or the
+ * per-script budget when that is configured higher. */
 static gint64
-ns_js_monitor_limit_us(void)
+ns_js_monitor_limit_us_for(const ns_js *js)
 {
     gint64 budget = ns_js_eval_budget_us();
-    return budget > 60LL * 1000000LL ? budget : 60LL * 1000000LL;
+    gint64 floor = js && js->navigation_timing.cross_origin_isolated
+                       ? NS_JS_ISOLATED_MONITOR_US : 60LL * 1000000LL;
+    return budget > floor ? budget : floor;
+}
+
+/* The per-evaluation budget for js: the configured budget, at least the
+ * monitor limit of a cross-origin isolated document. */
+static gint64
+ns_js_eval_budget_us_for(const ns_js *js)
+{
+    gint64 budget = ns_js_eval_budget_us();
+    if (js && js->navigation_timing.cross_origin_isolated &&
+        budget < NS_JS_ISOLATED_MONITOR_US)
+        budget = NS_JS_ISOLATED_MONITOR_US;
+    return budget;
+}
+
+/* A dedicated worker has no run-time cap: it cannot freeze its page, and
+ * an Emscripten pthread holds one turn for its whole life. terminate()
+ * still stops it. */
+static gboolean
+ns_js_runs_uncapped(const ns_js *js)
+{
+    return js && js->worker_host && !js->worker_host->is_service_worker;
 }
 
 /* QuickJS interrupt check: halts on worker close, monitor deadline or eval budget expiry. */
@@ -667,11 +696,13 @@ ns_js_interrupt(void *opaque)
         js->halted = TRUE;
         return 1;
     }
+    if (ns_js_runs_uncapped(js))
+        return 0;
     gint64 now = g_get_monotonic_time();
     if (js->js_monitor_deadline_us != 0 && now > js->js_monitor_deadline_us) {
         js->halted = TRUE;
         g_warning("[js] monitor: page JavaScript ran longer than %d s — halting it",
-                  (int)(ns_js_monitor_limit_us() / 1000000LL));
+                  (int)(ns_js_monitor_limit_us_for(js) / 1000000LL));
         return 1;
     }
     if (js->eval_deadline_us == 0) return 0;
@@ -801,10 +832,14 @@ ns_js_budget_push(ns_js *js, ns_budget_guard *g)
 {
     if (!js || !g) return;
     g->saved = js->eval_deadline_us;
+    if (ns_js_runs_uncapped(js)) {
+        g->saved = 0;
+        return;
+    }
     gint64 now = g_get_monotonic_time();
     if (g->saved == 0)
-        js->js_monitor_deadline_us = now + ns_js_monitor_limit_us();
-    gint64 fresh = now + ns_js_eval_budget_us();
+        js->js_monitor_deadline_us = now + ns_js_monitor_limit_us_for(js);
+    gint64 fresh = now + ns_js_eval_budget_us_for(js);
     if (g->saved == 0 || fresh < g->saved)
         js->eval_deadline_us = fresh;
 }
@@ -27349,7 +27384,7 @@ ns_io_call_cb(JSContext *ctx, ns_io_observer *o, JSValue entries)
     ns_js *jsx = js_from_ctx(ctx);
     gint64 io_saved = jsx ? jsx->eval_deadline_us : 0;
     if (jsx) jsx->eval_deadline_us =
-        g_get_monotonic_time() + ns_js_eval_budget_us();
+        g_get_monotonic_time() + ns_js_eval_budget_us_for(jsx);
     JSValue cb = JS_DupValue(ctx, o->cb);
     JSValue self = JS_DupValue(ctx, o->wrapper);
     JSValueConst args[2] = { entries, self };
@@ -30677,7 +30712,7 @@ ns_js_run_animation_frame_body(ns_js *js)
                                                          "data-nd-frame-url");
             js->current_url = g_strdup(frame_url ? frame_url : "");
         }
-        js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+        js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
         JSValue arg = JS_NewFloat64(callback_ctx, ts_ms);
         JSValue ret;
         if (e->video_frame) {
@@ -59529,7 +59564,7 @@ ns_js_eval(ns_js *js, const char *src, gsize len, const char *origin)
         if (!JS_IsException(fn) && JS_IsFunction(js->ctx, fn)) {
             JSValue global = JS_GetGlobalObject(js->ctx);
             JSValueConst args[1] = { js->iframe_doc };
-            js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+            js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
             js->eval_depth++;
             JSValue v = JS_Call(js->ctx, fn, global, 1, args);
             js->eval_depth--;
@@ -59567,7 +59602,7 @@ ns_js_eval(ns_js *js, const char *src, gsize len, const char *origin)
     gboolean profile = ns_js_profile_enabled();
     gint64 t0 = profile ? g_get_monotonic_time() : 0;
     gint64 trace_start = ns_trace_now();
-    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
     js->eval_depth++;
 
     JSValue v = JS_UNDEFINED;
@@ -60148,7 +60183,7 @@ ns_js_eval_module(ns_js *js, const char *src, gsize len, const char *origin)
     gboolean profile = ns_js_profile_enabled();
     gint64 t0 = profile ? g_get_monotonic_time() : 0;
     gint64 trace_start = ns_trace_now();
-    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
     js->eval_depth++;
     JSValue fn = ns_js_compile_module_cached(ctx, copy, len,
                                              origin ? origin : "module");
@@ -60414,7 +60449,7 @@ ns_js_eval_script_source(ns_js *js, ns_node *script, const char *source,
         js->module_ctx = previous_module_ctx;
     } else {
         g_autofree char *copy = g_strndup(source ? source : "", length);
-        js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+        js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
         js->eval_depth++;
         JSValue value = ns_js_eval_realm_classic(realm, previous_url, copy,
                                                  length,
@@ -62342,7 +62377,7 @@ ns_js_run_iframe_scripts(ns_js *js, ns_node *content_root,
             if (!JS_IsObject(shist)) { JS_FreeValue(js->ctx, shist); shist = JS_GetPropertyStr(js->ctx, g, "history"); }
             JSValueConst args[8] = { swin, swin, g, g, swin,
                                      iframe_doc, sloc, shist };
-            js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+            js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
             js->eval_depth++;
             JSValue v = JS_Call(js->ctx, fn, swin, 8, args);
             js->eval_depth--;
@@ -63200,7 +63235,7 @@ static void
 ns_js_run_content_scripts(ns_js *js, const char *src)
 {
     if (!js || !src || js->halted || js->in_pump) return;
-    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
     JSValue list = JS_Eval(js->ctx, src, strlen(src), "content-script",
                            JS_EVAL_TYPE_GLOBAL);
     if (JS_IsException(list)) {
@@ -63879,7 +63914,7 @@ ns_js_eval_source(ns_js *js, const char *src, const char *origin)
 {
     if (!js || !src) return NULL;
     if (js->halted || js->in_pump) return NULL;
-    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us();
+    js->eval_deadline_us = g_get_monotonic_time() + ns_js_eval_budget_us_for(js);
     JSValue v = JS_Eval(js->ctx, src, strlen(src), origin ? origin : "console", JS_EVAL_TYPE_GLOBAL);
     js->eval_deadline_us = 0;
     char *out = NULL;

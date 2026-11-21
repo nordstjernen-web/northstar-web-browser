@@ -8,17 +8,25 @@ if js_engine == 'quickjs-ng' and not meson.is_cross_build()
 endif
 
 if qjs_tools_found
-  # files() so the script path is absolute — a raw '../scripts/...' string would
-  # be resolved relative to the build dir and break out-of-tree builds.
-  verify_polyfills_py = files('../scripts/verify-polyfills.py')
+  # Build-time check of data/js/polyfills.js: qjsc compiles it to catch syntax
+  # errors, then qjs loads it and runs scripts/verify-polyfills.js to catch a
+  # missing or broken API. Either failing fails the build; the outputs are
+  # stamps so the check reruns only when an input changes.
+  polyfills_syntax = custom_target(
+    'polyfills-syntax',
+    input: '../data/js/polyfills.js',
+    output: 'polyfills.qjsc.c',
+    command: [qjsc_prog, '-C', '-P', '-n', 'polyfills.js',
+              '-o', '@OUTPUT@', '@INPUT@'],
+    build_by_default: true,
+  )
   polyfills_verify = custom_target(
     'polyfills-verify',
     input: ['../data/js/polyfills.js', '../scripts/verify-polyfills.js'],
     output: 'polyfills.verified',
-    command: [
-      python, verify_polyfills_py,
-      qjsc_prog, qjs_prog, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-    ],
+    command: [qjs_prog, '-I', '@INPUT0@', '@INPUT1@'],
+    capture: true,
+    depends: polyfills_syntax,
     build_by_default: true,
   )
 endif
@@ -68,11 +76,32 @@ foreach name, src : pdf_viewer_embedded
   )
 endforeach
 if have_pdfjs
-  pdf_viewer_headers += custom_target(
-    'pdfjs_fonts.h',
-    input: ['../scripts/embed-pdfjs-fonts.py'] + pdfjs_standard_fonts,
+  # Each standard font is embedded like any other file (with the trailing
+  # NUL embed-text.py adds, left out of the length), and pdfjs_fonts.h is a
+  # table over them, written at configure time.
+  pdfjs_font_includes = []
+  pdfjs_font_rows = []
+  foreach font : pdfjs_standard_fonts
+    i = pdfjs_font_rows.length()
+    pdf_viewer_headers += custom_target(
+      'pdfjs_font_@0@.h'.format(i),
+      input: ['../scripts/embed-text.py', font],
+      output: 'pdfjs_font_@0@.h'.format(i),
+      command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
+                'ns_pdfjs_font_@0@'.format(i)],
+    )
+    pdfjs_font_includes += '#include "pdfjs_font_@0@.h"'.format(i)
+    pdfjs_font_rows += ('    { "@0@", (const unsigned char *)ns_pdfjs_font_@1@,' +
+                        ' sizeof ns_pdfjs_font_@1@ - 1 },').format(
+      fs.name(font), i)
+  endforeach
+  pdfjs_fonts_conf = configuration_data()
+  pdfjs_fonts_conf.set('PDFJS_FONT_INCLUDES', '\n'.join(pdfjs_font_includes))
+  pdfjs_fonts_conf.set('PDFJS_FONT_ROWS', '\n'.join(pdfjs_font_rows))
+  pdf_viewer_headers += configure_file(
+    input: 'pdfjs_fonts.h.in',
     output: 'pdfjs_fonts.h',
-    command: [python, '@INPUT0@', '@OUTPUT@'] + pdfjs_standard_fonts,
+    configuration: pdfjs_fonts_conf,
   )
 endif
 

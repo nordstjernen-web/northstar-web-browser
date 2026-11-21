@@ -2,8 +2,8 @@
 
 Northstar Web Browser builds with **meson + ninja** and a C compiler (GCC or Clang).
 The primary target is Linux; macOS and Windows are also supported. The
-project declares C++ as well, so meson wants a C++ compiler present even
-though no C++ source is built.
+project is C only: no C++ compiler is needed, though WebGL links the C++
+runtime that glslang (a C++ library with a C interface) depends on.
 
 ## Linux dependencies
 
@@ -66,7 +66,12 @@ full AV1 decoder for a format that is rare on the web, so
 `libvorbis-dev` (which carries `vorbisfile`) for native Ogg Opus/Vorbis
 decode in the in-process mixer, `libepoxy-dev` and `glslang-dev`
 (`libepoxy-devel` / `glslang-devel` on Fedora and openSUSE) for WebGL,
-and `libthai-dev` for Thai word breaking. The build works without them.
+`libthai-dev` for Thai word breaking, `libdav1d-dev`, `libvpx-dev` and
+OpenH264 (where the distribution packages it) for the built-in AV1, VP9
+and H.264 decoders that stand in where GStreamer has no decoder,
+`libopus-dev` for Opus sound in WebM, and `libbrotli-dev` and
+`libzstd-dev` for Brotli and zstd `Content-Encoding`. The build works
+without them.
 
 ## macOS dependencies
 
@@ -268,6 +273,9 @@ once (`apt install ccache` / `dnf install ccache`). Optionally use the
 | Option | Default | Effect |
 |--------|---------|--------|
 | `wasm` | `auto` | Build the WebAssembly JS API over vendored WAMR. `auto` turns it off on 32-bit x86, which WAMR does not support; disable it on other platforms WAMR does not support. |
+| `js_engine` | `quickjs-ng` | JavaScript engine: `quickjs-ng`, or `quickjs` for Fabrice Bellard's original QuickJS. See [quickjs.md](quickjs.md). |
+| `av1`, `vp9`, `h264` | `auto` | The built-in AV1 (libdav1d), VP9 (libvpx) and H.264 (OpenH264) `<video>` decoders, each built when its library is present. They decode where GStreamer or Media Foundation is not built in or has no decoder for the codec, and with `NS_VIDEO_DECODER=native`. Only Cisco-built OpenH264 binaries are covered by the H.264 patent license Cisco pays for. |
+| `mediafoundation` | `auto` | Decode `<video>` through Windows Media Foundation, the Windows default. Not built elsewhere. |
 | `audio` | `auto` | Enable in-process audio playback (needs SDL3 3.2 or newer). |
 | `gstreamer` | `auto` | Decode `<video>` through GStreamer decoder plugins. `auto` enables it on Linux when GStreamer (≥ 1.18, with gstreamer-app and gstreamer-video) is present, where it becomes the default video decoder; other platforms need `-Dgstreamer=enabled`. Not a required dependency: without it the native libdav1d/libvpx/OpenH264 backends decode video. |
 | `avif` | `auto` | Decode AVIF through libavif. Disabling drops a full AV1 decoder; AVIF images then fail to decode. |
@@ -356,7 +364,7 @@ selects it; headless runs are never supervised by the watchdog.
 | `--url=URL`, or a bare URL or file path | The page to load. |
 | `--dump=text\|dom\|layout\|none` | Print the page text (the default), the DOM, the box tree, or nothing. |
 | `--dump=png:FILE` | Write a screenshot. This also writes `FILE-initial.png`, captured at the first render; the named file follows after `--time-ms`. |
-| `--dump=pdf:FILE` | Write the page as a paginated PDF, laid out with print media at the `@page` size and margins (A4 with half-inch margins by default; an explicit `--viewport` width overrides the page width). Headings h1–h6 become a bookmark outline, links are clickable (`#fragment` links jump within the document) and the text stays selectable. |
+| `--dump=pdf:FILE` | Write the page as a paginated PDF, laid out with print media at the `@page` size and margins (A4 with half-inch margins by default; an explicit `--viewport` width overrides the page width). Links are clickable (`#fragment` links jump within the document) and the text stays selectable. Nothing the page does not have is added: no bookmark outline or table of contents. |
 | `--viewport=W` or `WxH`, `--viewport-height=H` | Viewport size in CSS pixels (default width 1000). |
 | `--settle-ms=N` | Time to let the page settle before output (default 200). |
 | `--time-ms=N` | Page time between the first and final screenshot (default 1000). |

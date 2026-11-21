@@ -6,13 +6,26 @@ Significant changes in each release:
 =======
 * `--headless --dump=pdf:FILE` writes the page as a paginated PDF again,
   without the cairo writer's old gaps: the page is laid out with print
-  media at the `@page` size and margins, h1–h6 become a nested bookmark
-  outline, every link is clickable (a `#fragment` link jumps to its
-  target's page and position, a relative one resolves against the page
-  URL), and the document title is the PDF's title. A page served from
-  localhost can be turned into an article or book with a working table of
-  contents, as asked in discussion #286. A page cut can still fall
-  through a line of text in a long paragraph, as it can when printing.
+  media at the `@page` size and margins, every link is clickable (a
+  `#fragment` link jumps to its target's page and position, a relative
+  one resolves against the page URL), and the document title is the
+  PDF's title. Nothing the page does not have is added, so there is no
+  generated bookmark outline or table of contents; a page served from
+  localhost can be turned into an article or book whose own table of
+  contents links work, as asked in discussion #286.
+* Printing and PDF export end a page between lines of text, never inside
+  one. The page cut stepped through a paragraph by its CSS line height,
+  which drifted from the painted lines whenever a line held larger text
+  and missed them altogether under `line-height: normal`, so a line was
+  cut in two across the page boundary.
+* A forced page break (`break-before` / `break-after: page`) is honoured
+  near the end of a document too. Breaks were looked for only while more
+  than a page of content remained, so a book's short last chapters ran
+  together on one page, and a one-page document ignored its breaks.
+* A forced break with no content before it on its page, or none after it
+  in the document, no longer leaves an empty page: `h1 { break-before:
+  page }` printed a blank first page, and a `break-after` meeting a
+  `break-before` a blank page between them.
 * A `::before` or `::after` with content in a flex or grid container is
   an item of its own, in its place: `::before` first, `::after` last,
   with its margins applied once. It trailed the container's block items

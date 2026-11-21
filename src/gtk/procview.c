@@ -3157,12 +3157,35 @@ on_paste_text_ready(GObject *src, GAsyncResult *res, gpointer data)
 }
 
 /* Key press: devtools/zoom/find/clipboard shortcuts, else DOM key events, scroll fallback. */
+/* Windows reports AltGr as Ctrl+Alt, so AltGr+2 on a Nordic layout arrives
+ * as '@' with both modifiers held.  It is a typed character, not a shortcut,
+ * when the same key without Ctrl and Alt gives a different keyval. */
+static gboolean
+key_is_altgr_char(GtkEventControllerKey *ctrl, guint keycode, guint keyval,
+                  GdkModifierType state)
+{
+    if ((state & (GDK_CONTROL_MASK | GDK_ALT_MASK)) !=
+            (GDK_CONTROL_MASK | GDK_ALT_MASK) ||
+        (state & GDK_META_MASK))
+        return FALSE;
+    GdkEvent *ev = gtk_event_controller_get_current_event(
+        GTK_EVENT_CONTROLLER(ctrl));
+    GtkWidget *w = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(ctrl));
+    if (!ev || !w)
+        return FALSE;
+    guint plain = 0;
+    if (!gdk_display_translate_key(gtk_widget_get_display(w), keycode,
+                                   state & ~(GDK_CONTROL_MASK | GDK_ALT_MASK),
+                                   (int)gdk_key_event_get_layout(ev),
+                                   &plain, NULL, NULL, NULL))
+        return FALSE;
+    return gdk_keyval_to_lower(plain) != gdk_keyval_to_lower(keyval);
+}
+
 static gboolean
 on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
        GdkModifierType state, gpointer data)
 {
-    (void)ctrl;
-    (void)keycode;
     NsProcView *v = data;
     if (!v->opened)
         return FALSE;
@@ -3179,6 +3202,11 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
     if (uc && !g_unichar_iscntrl(uc) &&
         !(state & (GDK_CONTROL_MASK | GDK_ALT_MASK | GDK_META_MASK))) {
         start_typed_key(v, keyval, state);
+        return TRUE;
+    }
+    if (uc && !g_unichar_iscntrl(uc) && key_is_altgr_char(ctrl, keycode, keyval, state)) {
+        start_typed_key(v, keyval,
+                        state & ~(GDK_CONTROL_MASK | GDK_ALT_MASK));
         return TRUE;
     }
     if (state & GDK_CONTROL_MASK) {

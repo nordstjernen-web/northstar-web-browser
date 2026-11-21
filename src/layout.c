@@ -7150,6 +7150,8 @@ static double
 measure_min_width(ns_box *box, const ns_style *parent_style);
 static double
 measure_min_content_width(ns_box *box, const ns_style *parent_style);
+static gboolean
+flex_wraps(const ns_style *s);
 static void
 table_border_spacing(const ns_style *s, double *hsp, double *vsp);
 
@@ -8436,7 +8438,14 @@ measure_min_content_width(ns_box *box, const ns_style *parent_style)
         }
     }
     const ns_style *child_style = box->style ? box->style : parent_style;
+    /* css-flexbox 9.9.1: a single-line row flex container's min-content size
+     * is the sum of its items' min-content contributions, not the largest. */
+    gboolean flex_row_line = style_is_flex_container(box->style) &&
+        strncmp(flex_direction_of(box->style), "row", 3) == 0 &&
+        !flex_wraps(box->style);
     double max_child = 0;
+    double row_sum = 0;
+    int flex_items = 0;
     for (ns_box *c = box->first_child; c; c = c->next_sibling) {
         double w = measure_min_width(c, child_style);
         double outer = w;
@@ -8446,6 +8455,19 @@ measure_min_content_width(ns_box *box, const ns_style *parent_style)
             outer += m.left + m.right + pd.left + pd.right + bd.left + bd.right;
         }
         if (outer > max_child) max_child = outer;
+        if (!style_is_absolute_or_fixed(c->style)) {
+            row_sum += outer;
+            flex_items++;
+        }
+    }
+    if (flex_row_line) {
+        if (flex_items > 1) {
+            const ns_css_value *g = box->style->values[NS_CSS_COLUMN_GAP];
+            if (!g || g->kind != NS_CSS_V_LENGTH) g = box->style->values[NS_CSS_GAP];
+            double gap = (g && g->kind == NS_CSS_V_LENGTH) ? g->u.length.v : 0;
+            row_sum += gap * (flex_items - 1);
+        }
+        return row_sum;
     }
     return max_child;
 }

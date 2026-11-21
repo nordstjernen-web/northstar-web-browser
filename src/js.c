@@ -13220,6 +13220,10 @@ ns_post_message_to_target(JSContext *ctx, JSValue target,
         gboolean match = actual && wanted &&
                          g_ascii_strcasecmp(wanted, actual) == 0;
         if (!match) {
+            if (g_getenv("NS_DEBUG_POSTMESSAGE"))
+                g_printerr("[postmessage] dropped: targetOrigin %s, target is %s\n",
+                              wanted ? wanted : "(none)",
+                              actual ? actual : "(none)");
             JS_FreeValue(ctx, transfer);
             JS_FreeValue(ctx, target);
             return JS_UNDEFINED;
@@ -13244,6 +13248,22 @@ ns_post_message_to_target(JSContext *ctx, JSValue target,
     JS_FreeValue(ctx, source_proxy);
     JS_FreeValue(ctx, source_global);
 
+    /* NS_DEBUG_POSTMESSAGE=1 logs each message; off by default because
+     * JSON.stringify can run page toJSON code. */
+    static int pm_debug = -1;
+    if (pm_debug < 0) pm_debug = g_getenv("NS_DEBUG_POSTMESSAGE") != NULL;
+    if (pm_debug) {
+        g_autofree char *dst_origin = ns_window_origin_of(ctx, target);
+        JSValue json = JS_JSONStringify(ctx, data, JS_UNDEFINED, JS_UNDEFINED);
+        const char *js_text = JS_IsString(json) ? JS_ToCString(ctx, json) : NULL;
+        g_printerr("[postmessage] %s -> %s: %.300s\n",
+                          src_origin ? src_origin : "(none)",
+                          dst_origin ? dst_origin : "(none)",
+                          js_text ? js_text : "(not JSON)");
+        if (js_text) JS_FreeCString(ctx, js_text);
+        JS_FreeValue(ctx, json);
+        if (JS_HasException(ctx)) JS_FreeValue(ctx, JS_GetException(ctx));
+    }
     JSValue ev = ns_target_make_event(ctx, target, "message");
     JS_SetPropertyStr(ctx, ev, "data", data);
     JS_SetPropertyStr(ctx, ev, "origin",
@@ -55629,6 +55649,35 @@ ns_realmdoc_get_selection(JSContext *ctx, JSValueConst this_val, int argc,
 }
 
 /* Wraps doc_node as a standalone Document with URL, cookie, charset and DOM methods. */
+static JSValue ns_document_get_hidden(JSContext *ctx, JSValueConst this_val);
+static JSValue ns_document_get_visibilityState(JSContext *ctx,
+                                               JSValueConst this_val);
+
+/* Document members a frame's or parsed document has as well as the page's.
+ * Each getter works on the document it is called on (or needs none), so
+ * the page's implementations serve: a frame without visibilityState or
+ * scripts is a tell, and challenge scripts that wait for a visible
+ * document never start. */
+static const JSCFunctionListEntry ns_realm_document_funcs[] = {
+    JS_CGETSET_DEF("hidden",             ns_document_get_hidden,          ns_element_noop_set),
+    JS_CGETSET_DEF("visibilityState",    ns_document_get_visibilityState, ns_element_noop_set),
+    JS_CGETSET_DEF("fonts",              ns_document_get_fonts,           ns_element_noop_set),
+    JS_CGETSET_DEF("scripts",            ns_document_get_scripts,         ns_element_noop_set),
+    JS_CGETSET_DEF("links",              ns_document_get_links,           ns_element_noop_set),
+    JS_CGETSET_DEF("anchors",            ns_document_get_anchors,         ns_element_noop_set),
+    JS_CGETSET_DEF("all",                ns_document_get_all,             ns_element_noop_set),
+    JS_CGETSET_DEF("embeds",             ns_get_empty_array,              ns_element_noop_set),
+    JS_CGETSET_DEF("plugins",            ns_get_empty_array,              ns_element_noop_set),
+    JS_CGETSET_DEF("applets",            ns_get_empty_array,              ns_element_noop_set),
+    JS_CGETSET_DEF("scrollingElement",   ns_document_get_scrollingElement, ns_element_noop_set),
+    JS_CGETSET_DEF("rootElement",        ns_document_get_documentElement, ns_element_noop_set),
+    JS_CGETSET_DEF("designMode",         ns_document_get_designMode,      ns_element_noop_set),
+    JS_CGETSET_DEF("lastModified",       ns_document_get_lastModified,    ns_element_noop_set),
+    JS_CGETSET_DEF("fullscreenElement",  ns_get_null,                     ns_element_noop_set),
+    JS_CGETSET_DEF("fullscreenEnabled",  ns_element_get_zero_int,         ns_element_noop_set),
+    JS_CGETSET_DEF("pointerLockElement", ns_document_get_pointerLockElement, ns_element_noop_set),
+};
+
 static JSValue
 ns_make_realm_document(JSContext *ctx, ns_node *doc_node, const char *url,
                        const char *charset, const char *content_type,
@@ -55742,6 +55791,8 @@ ns_make_realm_document(JSContext *ctx, ns_node *doc_node, const char *url,
     ns_bind_fn(ctx, w, "elementsFromPoint",  ns_document_elements_from_point, 2);
     ns_bind_fn(ctx, w, "getSelection",       ns_realmdoc_get_selection, 0);
     ns_bind_fn(ctx, w, "hasFocus",           ns_returns_true, 0);
+    JS_SetPropertyFunctionList(ctx, w, ns_realm_document_funcs,
+                               G_N_ELEMENTS(ns_realm_document_funcs));
     return w;
 }
 

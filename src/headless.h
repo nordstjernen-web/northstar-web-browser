@@ -16,6 +16,7 @@ typedef enum ns_headless_dump {
     NS_DUMP_DOM,
     NS_DUMP_LAYOUT,
     NS_DUMP_PNG,
+    NS_DUMP_PDF,
     NS_DUMP_NONE,
 } ns_headless_dump;
 
@@ -25,6 +26,7 @@ typedef struct ns_headless_opts {
     const char       *out_path;
     int               viewport_width;
     int               viewport_height;
+    gboolean          viewport_set;     /* --viewport given on the command line */
     int               settle_ms;
     int               time_ms;
     unsigned          debug_levels;

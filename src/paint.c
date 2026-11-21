@@ -3447,6 +3447,79 @@ paint_selection_rects(NsPangoLayout *layout, double ox, double oy,
     return out;
 }
 
+/* PDF output: emit a cairo link tag for each hyperlink run of an inline box. */
+static gboolean g_paint_pdf_links;
+static char    *g_paint_pdf_base;
+
+void
+ns_paint_set_pdf_links(gboolean on, const char *base_url)
+{
+    g_paint_pdf_links = on;
+    g_free(g_paint_pdf_base);
+    g_paint_pdf_base = on && base_url ? g_strdup(base_url) : NULL;
+}
+
+/* Appends s to out with the backslash/quote escaping cairo tag attributes want. */
+static void
+pdf_attr_escape(GString *out, const char *s)
+{
+    for (; *s; s++) {
+        if (*s == '\'' || *s == '\\') g_string_append_c(out, '\\');
+        g_string_append_c(out, *s);
+    }
+}
+
+static void
+paint_pdf_link_tags(cairo_t *cr, const ns_box *b, NsPangoLayout *layout,
+                    double ox, double oy)
+{
+    double cx0, cy0, cx1, cy1;
+    cairo_clip_extents(cr, &cx0, &cy0, &cx1, &cy1);
+    for (guint i = 0; i < b->links->len; i++) {
+        const ns_link_range *l = &g_array_index(b->links, ns_link_range, i);
+        if (!l->href || !*l->href || l->len == 0) continue;
+        ns_selection_run run = { l->start, l->start + l->len };
+        GArray *rects = paint_selection_rects(layout, ox, oy, &run);
+        if (!rects) continue;
+        GString *attrs = g_string_new(NULL);
+        if (l->href[0] == '#' && l->href[1]) {
+            g_string_append(attrs, "dest='");
+            pdf_attr_escape(attrs, l->href + 1);
+        } else {
+            char *abs = g_paint_pdf_base
+                ? g_uri_resolve_relative(g_paint_pdf_base, l->href,
+                                         G_URI_FLAGS_NONE, NULL)
+                : NULL;
+            g_string_append(attrs, "uri='");
+            pdf_attr_escape(attrs, abs ? abs : l->href);
+            g_free(abs);
+        }
+        g_string_append(attrs, "' rect=[");
+        int visible = 0;
+        for (guint j = 0; j < rects->len; j++) {
+            const sel_rect *r = &g_array_index(rects, sel_rect, j);
+                /* Every page paints the whole tree under a clip: skip off-page runs. */
+            if (r->x + r->w < cx0 || r->x > cx1 ||
+                r->y + r->h < cy0 || r->y > cy1)
+                continue;
+            /* cairo takes link rects in device space; map the user-space box. */
+            double x0 = r->x, y0 = r->y, x1 = r->x + r->w, y1 = r->y + r->h;
+            cairo_user_to_device(cr, &x0, &y0);
+            cairo_user_to_device(cr, &x1, &y1);
+            g_string_append_printf(attrs, "%s%.2f %.2f %.2f %.2f",
+                                   visible++ ? " " : "", MIN(x0, x1),
+                                   MIN(y0, y1), fabs(x1 - x0), fabs(y1 - y0));
+        }
+        g_string_append_c(attrs, ']');
+        if (visible) {
+            cairo_tag_begin(cr, CAIRO_TAG_LINK, attrs->str);
+            cairo_tag_end(cr, CAIRO_TAG_LINK);
+        }
+        g_string_free(attrs, TRUE);
+        g_array_free(rects, TRUE);
+    }
+}
+
 /* Looks up a ::selection color property from the nearest styled ancestor. */
 static gboolean
 selection_pseudo_color(const ns_box *b, ns_css_prop prop, rgba *out)
@@ -3782,6 +3855,9 @@ paint_inline(cairo_t *cr, const ns_box *b, const char *highlight)
     cairo_move_to(cr, text_x, y_origin);
     ns_pango_cairo_show_layout(cr, layout);
     cairo_restore(cr);
+
+    if (g_paint_pdf_links && b->links)
+        paint_pdf_link_tags(cr, b, layout, text_x, y_origin);
 
     if (sel_run)
         paint_selection_foreground(cr, b, layout, text_x, y_origin, sel_run);

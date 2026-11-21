@@ -356,6 +356,7 @@ selects it; headless runs are never supervised by the watchdog.
 | `--url=URL`, or a bare URL or file path | The page to load. |
 | `--dump=text\|dom\|layout\|none` | Print the page text (the default), the DOM, the box tree, or nothing. |
 | `--dump=png:FILE` | Write a screenshot. This also writes `FILE-initial.png`, captured at the first render; the named file follows after `--time-ms`. |
+| `--dump=pdf:FILE` | Write the page as a paginated PDF, laid out with print media at the `@page` size and margins (A4 with half-inch margins by default; an explicit `--viewport` width overrides the page width). Headings h1–h6 become a bookmark outline, links are clickable (`#fragment` links jump within the document) and the text stays selectable. |
 | `--viewport=W` or `WxH`, `--viewport-height=H` | Viewport size in CSS pixels (default width 1000). |
 | `--settle-ms=N` | Time to let the page settle before output (default 200). |
 | `--time-ms=N` | Page time between the first and final screenshot (default 1000). |

@@ -31,6 +31,7 @@
 #include "layout.h"
 #include "net.h"
 #include "paint.h"
+#include "print.h"
 #include "page_session.h"
 #include "wpt_hook.h"
 
@@ -71,6 +72,26 @@ headless_dlog_listener(const ns_dlog_entry *e, gpointer user_data)
     if (!e || !(mask & (1u << e->level))) return;
     fprintf(stderr, "[%s %s] %s\n", ns_dlog_level_name(e->level),
             e->category ? e->category : "", e->message ? e->message : "");
+}
+
+/* Text of the document's first <title>, whitespace collapsed; caller frees. */
+static char *
+headless_doc_title(const ns_node *n)
+{
+    for (; n; n = n->next_sibling) {
+        if (ns_node_is_html_tag(n, NS_TAG_TITLE)) {
+            size_t len = 0;
+            char *raw = ns_node_collect_all_text_len(n, &len);
+            if (!raw) return NULL;
+            char *t = g_strstrip(g_strdelimit(raw, "\t\r\n", ' '));
+            char *out = g_strdup(t);
+            g_free(raw);
+            return out;
+        }
+        char *t = headless_doc_title(n->first_child);
+        if (t) return t;
+    }
+    return NULL;
 }
 
 static void
@@ -534,7 +555,7 @@ ns_headless_renderer_capable(const ns_headless_opts *opts)
     if (opts->wpt) return FALSE;
     if (opts->inspect && *opts->inspect) return FALSE;
     if (opts->inspect_at && *opts->inspect_at) return FALSE;
-    if (opts->dump == NS_DUMP_PNG) return FALSE;
+    if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF) return FALSE;
     return TRUE;
 }
 
@@ -1801,7 +1822,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
     if (!resp) {
         const char *emsg = err ? err->message : "unknown error";
         fprintf(stderr, "headless: fetch failed: %s\n", emsg);
-        if (opts->dump == NS_DUMP_PNG) {
+        if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF) {
             resp = g_new0(ns_response, 1);
             resp->body = g_byte_array_new();
             resp->final_url = g_strdup(opts->url ? opts->url : "");
@@ -1816,7 +1837,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         }
     } else if (resp->error) {
         fprintf(stderr, "headless: fetch error: %s\n", resp->error);
-        if (opts->dump == NS_DUMP_PNG) {
+        if (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF) {
             char *html = ns_build_error_page(
                 resp->final_url ? resp->final_url : opts->url,
                 resp->status, resp->error);
@@ -1837,7 +1858,7 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
              g_ascii_strncasecmp(resp->content_type, "application/xhtml", 17) == 0);
         gboolean body_useful = resp->body && resp->body->len > 64 && body_is_html;
         if (!body_useful &&
-            opts->dump == NS_DUMP_PNG) {
+            (opts->dump == NS_DUMP_PNG || opts->dump == NS_DUMP_PDF)) {
             char *html = ns_build_error_page(
                 resp->final_url ? resp->final_url : opts->url,
                 resp->status, NULL);
@@ -1931,6 +1952,13 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
     int vw = opts->viewport_width > 0 ? opts->viewport_width : 1000;
     double vh = opts->viewport_height > 0 ? (double)opts->viewport_height
                                           : (double)vw * 0.75;
+    ns_print_setup pdf_setup;
+    ns_print_setup_default(&pdf_setup);
+    ns_css_set_print_media(opts->dump == NS_DUMP_PDF);
+    if (opts->dump == NS_DUMP_PDF && !opts->viewport_set) {
+        vw = (int)(pdf_setup.width - pdf_setup.margin_left - pdf_setup.margin_right);
+        vh = pdf_setup.height - pdf_setup.margin_top - pdf_setup.margin_bottom;
+    }
     ns_css_set_viewport((double)vw, vh);
     ns_css_media_device media_device = {
         .width = vw,
@@ -2086,6 +2114,33 @@ ns_headless_run_one(const ns_headless_opts *opts, const char *fetch_url, int hop
         ns_engine_dump_layout(layout, 0, out);
         fwrite(out->str, 1, out->len, stdout);
         break;
+    case NS_DUMP_PDF: {
+        const char *base = resp->final_url ? resp->final_url : opts->url;
+        if (!image_cache) image_cache = ns_image_cache_new();
+        ns_engine_fetch_images(layout, base, image_cache, js);
+        headless_relayout(&flush_ctx);
+        /* @page size and margins decide the content width: lay out again. */
+        ns_print_setup_apply_page_rule(&pdf_setup, ns_render_page_rule());
+        double cw = pdf_setup.width - pdf_setup.margin_left - pdf_setup.margin_right;
+        if (cw > 0 && !opts->viewport_set && (int)cw != vw) {
+            vw = (int)cw;
+            vh = pdf_setup.height - pdf_setup.margin_top - pdf_setup.margin_bottom;
+            ns_css_set_viewport((double)vw, vh);
+            flush_ctx.vw = vw;      /* relayout reads the width from here */
+            flush_ctx.vh = vh;
+            headless_relayout(&flush_ctx);
+        }
+        ns_paint_set_js(js);
+        int time_ms = opts->time_ms >= 0 ? opts->time_ms : 1000;
+        if (js) ns_js_fire_media_load_events(js, layout);
+        settle_main_loop(time_ms, &flush_ctx);
+        headless_relayout(&flush_ctx);
+        char *title = headless_doc_title(doc);
+        rc = ns_engine_write_pdf(layout, opts->out_path, &pdf_setup, base, title);
+        g_free(title);
+        fprintf(stderr, "[headless] pdf -> %s\n", opts->out_path);
+        break;
+    }
     case NS_DUMP_PNG: {
         const char *base = resp->final_url ? resp->final_url : opts->url;
         if (!image_cache) image_cache = ns_image_cache_new();

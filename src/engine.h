@@ -86,6 +86,9 @@ void ns_engine_img_session_close(ns_engine_img_session *s);
 gboolean ns_engine_preopen_output(const char *path);
 int ns_engine_write_png(const ns_box *root, const char *path);
 
+int ns_engine_write_pdf(const ns_box *root, const char *path,
+                        const struct ns_print_setup *setup,
+                        const char *base_url, const char *title);
 GPtrArray *ns_engine_print_recordings(const ns_box *root,
                                       const struct ns_print_setup *setup);
 

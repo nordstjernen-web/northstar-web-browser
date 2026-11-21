@@ -402,6 +402,7 @@ ns_preopen_screenshot_outputs(int argc, char **argv)
         if (g_str_has_prefix(argv[i], "--dump=")) {
             const char *v = argv[i] + 7;
             if      (g_str_has_prefix(v, "png:")) p = v + 4;
+            else if (g_str_has_prefix(v, "pdf:")) p = v + 4;
         } else if (g_str_has_prefix(argv[i], "--screenshot=")) {
             p = argv[i] + 13;
         }
@@ -412,7 +413,7 @@ ns_preopen_screenshot_outputs(int argc, char **argv)
         if (!ns_engine_preopen_output(p))
             g_printerr("northstar: cannot write to %s\n", p);
         /* Headless --dump captures also write a "-initial" render. */
-        if (g_str_has_prefix(argv[i], "--dump=")) {
+        if (g_str_has_prefix(argv[i], "--dump=png:")) {
             g_autofree char *initial = ns_engine_suffix_before_ext(p, "-initial");
             ns_engine_preopen_output(initial);
         }
@@ -667,10 +668,11 @@ main(int argc, char **argv)
             else if (g_strcmp0(v, "layout") == 0) hopts.dump = NS_DUMP_LAYOUT;
             else if (g_strcmp0(v, "none")   == 0) hopts.dump = NS_DUMP_NONE;
             else if (g_str_has_prefix(v, "png:")) { hopts.dump = NS_DUMP_PNG; hopts.out_path = v + 4; }
+            else if (g_str_has_prefix(v, "pdf:")) { hopts.dump = NS_DUMP_PDF; hopts.out_path = v + 4; }
             else {
                 fprintf(stderr,
-                        "northstar: --dump wants text, dom, layout, none or "
-                        "png:FILE, got '%s'\n", v);
+                        "northstar: --dump wants text, dom, layout, none, "
+                        "png:FILE or pdf:FILE, got '%s'\n", v);
                 return 2;
             }
         } else if (g_str_has_prefix(argv[i], "--viewport=")) {
@@ -693,6 +695,7 @@ main(int argc, char **argv)
                 return 2;
             }
             hopts.viewport_width = (int)w;
+            hopts.viewport_set = TRUE;
             if (h > 0) hopts.viewport_height = (int)h;
         } else if (g_str_has_prefix(argv[i], "--viewport-height=")) {
             char *end = NULL;

@@ -4,6 +4,25 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* `grid-template-areas` rows are split into cells as the grid spec
+  tokenizes them, so a minified row such as `". .main. ."` is five
+  cells, not four with a `.main.` name. lichess.org's page grid is
+  written that way, and its whole lobby collapsed into a 10px column
+  some 30,000px tall. Areas that are not rectangles, or that use
+  characters outside names and `.`, now make the declaration invalid,
+  and `element.style` gives the rows in their canonical form.
+* A `url()` in a custom property keeps the author's quoting when it is
+  made absolute. Scripts read such values back as text: lichess.org cuts
+  `url(` and `)` off its piece variables, and the quotes we added landed
+  in the image address, so no chess piece loaded.
+* A single-line row flex container's min-content width is the sum of
+  its items, not the widest one. `width: fit-content` on such a
+  container clamped it to its parent and squeezed the items: the blog
+  carousel on lichess.org showed its cards as slivers.
+* AltGr characters can be typed on Windows. Windows reports AltGr as
+  Ctrl+Alt, so AltGr+2 on a Nordic layout arrived as `@` with Ctrl held
+  and was taken for a shortcut; `@`, `{`, `[`, `$`, `€` and the like
+  never reached text fields.
 * Dependencies: WAMR moves to 2.4.6, applied over the vendored subset
   like 2.4.5. The release's fixes that reach that subset are taken: an
   unchecked guest pointer in `realloc` and an unchecked offset from the

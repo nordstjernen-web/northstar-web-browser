@@ -11,8 +11,14 @@ Significant changes in each release:
   target's page and position, a relative one resolves against the page
   URL), and the document title is the PDF's title. A page served from
   localhost can be turned into an article or book with a working table of
-  contents, as asked in discussion #286. A page cut can still fall
-  through a line of text in a long paragraph, as it can when printing.
+  contents, as asked in discussion #286.
+* Printed and PDF pages break between lines of text, not through them.
+  Pagination stepped down a paragraph by its CSS line-height, which drifts
+  from the lines the text is actually set in, so over a long paragraph a
+  page could end on the top half of a line and the next begin with its
+  bottom half; it now uses the painted lines. A heading also stays on the
+  page with the first line that follows it instead of ending a page on
+  its own, as `break-after: avoid` on h1-h6 does in print user agents.
 * A `::before` or `::after` with content in a flex or grid container is
   an item of its own, in its place: `::before` first, `::after` last,
   with its margins applied once. It trailed the container's block items

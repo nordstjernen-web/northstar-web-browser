@@ -91,6 +91,20 @@ static void
 add_text_line_spans(GArray *spans, const ns_box *b, double top, double bottom,
                     double page_h)
 {
+    /* The painted lines, so a cut falls between them: stepping by the CSS
+     * line-height drifts from the real lines over a long paragraph. */
+    GArray *lines = ns_paint_inline_line_extents(b);
+    if (lines && lines->len >= 2) {
+        guint room = spans->len < NS_PRINT_MAX_SPANS
+            ? NS_PRINT_MAX_SPANS - spans->len : 0;
+        for (guint i = 0; i + 1 < lines->len && room > 0; i += 2, room--)
+            add_span(spans, b->y + g_array_index(lines, double, i),
+                     b->y + g_array_index(lines, double, i + 1), page_h);
+        g_array_free(lines, TRUE);
+        return;
+    }
+    if (lines) g_array_free(lines, TRUE);
+
     double line_h = b->style ? ns_paint_css_line_height_px(b->style) : 0;
     double height = bottom - top;
     if (!(line_h > 1) || height <= line_h * 1.5) {
@@ -105,6 +119,36 @@ add_text_line_spans(GArray *spans, const ns_box *b, double top, double bottom,
 }
 
 /* Walks the box tree gathering forced break positions and unbreakable spans. */
+/* Bottom of the first line of content in b: its first text line, else the
+ * bottom of its first leaf box. */
+static double
+first_line_bottom(const ns_box *b)
+{
+    while (b && b->first_child) b = b->first_child;
+    if (!b) return 0;
+    if (b->kind == NS_BOX_INLINE && b->text && *b->text) {
+        GArray *lines = ns_paint_inline_line_extents(b);
+        if (lines && lines->len >= 2) {
+            double y = b->y + g_array_index(lines, double, 1);
+            g_array_free(lines, TRUE);
+            return y;
+        }
+        if (lines) g_array_free(lines, TRUE);
+    }
+    double top, bottom;
+    box_page_extent(b, &top, &bottom);
+    return bottom;
+}
+
+static gboolean
+is_heading_block(const ns_box *b)
+{
+    const ns_node *n = b->dom;
+    return b->kind == NS_BOX_BLOCK && n && n->kind == NS_NODE_ELEMENT &&
+           n->tag >= NS_TAG_H1 && n->tag <= NS_TAG_H6 &&
+           !(n->flags & (NS_NODE_SVG_NS | NS_NODE_FOREIGN_NS));
+}
+
 static void
 collect_breaks(const ns_box *b, GArray *forced, GArray *spans, double page_h)
 {
@@ -117,6 +161,12 @@ collect_breaks(const ns_box *b, GArray *forced, GArray *spans, double page_h)
             g_array_append_val(forced, top);
         if (forces_page_break(break_keyword(b, NS_CSS_BREAK_AFTER)))
             g_array_append_val(forced, bottom);
+        /* A heading stays with the first line after it (break-after: avoid
+         * for h1-h6, as print user agents style them) unless the author
+         * forces a break there. */
+        if (b->next_sibling && is_heading_block(b) &&
+            !forces_page_break(break_keyword(b, NS_CSS_BREAK_AFTER)))
+            add_span(spans, top, first_line_bottom(b->next_sibling), page_h);
         if (avoids_page_break(break_keyword(b, NS_CSS_BREAK_INSIDE))) {
             add_span(spans, top, bottom, page_h);
             return;

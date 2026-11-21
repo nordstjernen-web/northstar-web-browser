@@ -4221,6 +4221,30 @@ ns_paint_inline_range_extents(const ns_box *b, gsize start, gsize len,
     return TRUE;
 }
 
+/* Top and bottom of each text line of an inline box, relative to the box's
+ * y, in the layout it is painted with: pairs of doubles, or NULL. */
+GArray *
+ns_paint_inline_line_extents(const ns_box *b)
+{
+    if (!b || !b->text || !*b->text) return NULL;
+    NsPangoLayout *layout = ns_paint_build_inline_layout(b);
+    if (!layout) return NULL;
+    double y_offset = ns_paint_inline_y_offset_for_layout(b, layout);
+    GArray *out = g_array_new(FALSE, FALSE, sizeof(double));
+    NsPangoLayoutIter *it = ns_pango_layout_get_iter(layout);
+    do {
+        NsPangoRectangle lrect;
+        ns_pango_layout_iter_get_line_extents(it, NULL, &lrect);
+        double top = y_offset + (double)lrect.y / NS_PANGO_SCALE;
+        double bottom = top + (double)lrect.height / NS_PANGO_SCALE;
+        g_array_append_val(out, top);
+        g_array_append_val(out, bottom);
+    } while (ns_pango_layout_iter_next_line(it));
+    ns_pango_layout_iter_free(it);
+    g_object_unref(layout);
+    return out;
+}
+
 /* Parses a filter function amount; percentages become fractions; -1 if no number. */
 static double
 parse_filter_amount(const char *p, const char **out_end)

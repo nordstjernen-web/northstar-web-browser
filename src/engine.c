@@ -1679,23 +1679,18 @@ ns_engine_write_png(const ns_box *root, const char *path)
 typedef struct pdf_anchor {
     const ns_node *dom;
     double x, y;          /* document px of the element's first box */
-    int level;            /* 1..6 for h1..h6, 0 for other id targets */
 } pdf_anchor;
 
-/* Collects the first box of every heading and id-bearing element, in tree order. */
+/* Collects the first box of every id-bearing element, in tree order. */
 static void
 pdf_collect_anchors(const ns_box *b, GArray *out, GHashTable *seen)
 {
     for (; b; b = b->next_sibling) {
         const ns_node *n = b->dom;
         if (n && n->kind == NS_NODE_ELEMENT && !g_hash_table_contains(seen, n)) {
-            int level = 0;
-            if (n->tag >= NS_TAG_H1 && n->tag <= NS_TAG_H6 &&
-                !(n->flags & (NS_NODE_SVG_NS | NS_NODE_FOREIGN_NS)))
-                level = 1 + (int)(n->tag - NS_TAG_H1);
             const char *id = ns_element_get_attr(n, "id");
-            if (level || (id && *id)) {
-                pdf_anchor a = { n, b->x, b->y + b->margin.top, level };
+            if (id && *id) {
+                pdf_anchor a = { n, b->x, b->y + b->margin.top };
                 g_array_append_val(out, a);
                 g_hash_table_add(seen, (gpointer)n);
             }
@@ -1712,25 +1707,6 @@ pdf_page_of(const GArray *offsets, double y)
     while (i + 1 < offsets->len && g_array_index(offsets, double, i + 1) <= y)
         i++;
     return i;
-}
-
-/* Collapsed whitespace text of an element, for bookmark titles; caller frees. */
-static char *
-pdf_node_title(const ns_node *n)
-{
-    size_t len = 0;
-    char *raw = ns_node_collect_all_text_len(n, &len);
-    if (!raw) return g_strdup("");
-    GString *out = g_string_new(NULL);
-    gboolean space = FALSE;
-    for (const char *p = raw; *p; p++) {
-        if (g_ascii_isspace(*p)) { space = out->len > 0; continue; }
-        if (space) g_string_append_c(out, ' ');
-        space = FALSE;
-        g_string_append_c(out, *p);
-    }
-    g_free(raw);
-    return g_string_free(out, FALSE);
 }
 
 static void
@@ -1753,8 +1729,8 @@ pdf_write_metadata(cairo_surface_t *surf, const char *title)
 }
 
 /* Writes a paginated PDF: @page size and margins, selectable text, link
- * annotations, a named destination per id and a bookmark outline from h1-h6.
- * Returns 0 or 2. */
+ * annotations and a named destination per id. Nothing the page does not
+ * have is added: no bookmark outline or table of contents. Returns 0 or 2. */
 int
 ns_engine_write_pdf(const ns_box *root, const char *path,
                     const ns_print_setup *setup, const char *base_url,
@@ -1809,30 +1785,6 @@ ns_engine_write_pdf(const ns_box *root, const char *path,
         cairo_show_page(cr);
     }
     ns_paint_set_pdf_links(FALSE, NULL);
-
-    /* Bookmarks: nest each heading under the nearest shallower one. */
-    int parent_id[7] = { CAIRO_PDF_OUTLINE_ROOT };
-    int open_level = 0;
-    for (guint k = 0; k < anchors->len; k++) {
-        const pdf_anchor *a = &g_array_index(anchors, pdf_anchor, k);
-        if (!a->level) continue;
-        int parent = CAIRO_PDF_OUTLINE_ROOT;
-        for (int l = MIN(a->level, open_level + 1) - 1; l >= 1; l--)
-            if (parent_id[l]) { parent = parent_id[l]; break; }
-        guint page = pdf_page_of(offsets, a->y);
-        double top = g_array_index(offsets, double, page);
-        char *name = pdf_node_title(a->dom);
-        char *link = g_strdup_printf("page=%u pos=[%.2f %.2f]", page + 1,
-            (setup->margin_left + a->x) * NS_PDF_PT_PER_PX,
-            (setup->margin_top + a->y - top) * NS_PDF_PT_PER_PX);
-        int id = cairo_pdf_surface_add_outline(surf, parent, name, link,
-            a->level <= 2 ? CAIRO_PDF_OUTLINE_FLAG_OPEN : 0);
-        g_free(link);
-        g_free(name);
-        parent_id[a->level] = id;
-        for (int l = a->level + 1; l <= 6; l++) parent_id[l] = 0;
-        open_level = a->level;
-    }
 
     cairo_destroy(cr);
     cairo_surface_finish(surf);

@@ -91,6 +91,20 @@ static void
 add_text_line_spans(GArray *spans, const ns_box *b, double top, double bottom,
                     double page_h)
 {
+    /* The painted lines: their real tops and bottoms, whatever the font
+     * sizes and line-height on each. */
+    GArray *lines = g_array_new(FALSE, FALSE, sizeof(double));
+    if (ns_paint_inline_line_extents(b, lines)) {
+        for (guint i = 0; i + 1 < lines->len &&
+                          spans->len < NS_PRINT_MAX_SPANS; i += 2)
+            add_span(spans, g_array_index(lines, double, i),
+                     g_array_index(lines, double, i + 1), page_h);
+        g_array_free(lines, TRUE);
+        return;
+    }
+    g_array_free(lines, TRUE);
+
+    /* Vertical text: step down by the CSS line height. */
     double line_h = b->style ? ns_paint_css_line_height_px(b->style) : 0;
     double height = bottom - top;
     if (!(line_h > 1) || height <= line_h * 1.5) {
@@ -104,9 +118,20 @@ add_text_line_spans(GArray *spans, const ns_box *b, double top, double bottom,
         add_span(spans, y, MIN(y + line_h, bottom), page_h);
 }
 
-/* Walks the box tree gathering forced break positions and unbreakable spans. */
+/* Records where painted content sits, whatever its height. */
 static void
-collect_breaks(const ns_box *b, GArray *forced, GArray *spans, double page_h)
+add_content(GArray *content, double top, double bottom)
+{
+    if (!(bottom > top)) return;
+    ns_print_span s = { top, bottom };
+    g_array_append_val(content, s);
+}
+
+/* Walks the box tree gathering forced break positions, unbreakable spans
+ * and the extent of every leaf box. */
+static void
+collect_breaks(const ns_box *b, GArray *forced, GArray *spans,
+               GArray *content, double page_h)
 {
     if (!b) return;
     double top, bottom;
@@ -119,6 +144,7 @@ collect_breaks(const ns_box *b, GArray *forced, GArray *spans, double page_h)
             g_array_append_val(forced, bottom);
         if (avoids_page_break(break_keyword(b, NS_CSS_BREAK_INSIDE))) {
             add_span(spans, top, bottom, page_h);
+            add_content(content, top, bottom);
             return;
         }
     }
@@ -128,10 +154,22 @@ collect_breaks(const ns_box *b, GArray *forced, GArray *spans, double page_h)
             add_text_line_spans(spans, b, top, bottom, page_h);
         else
             add_span(spans, top, bottom, page_h);
+        add_content(content, top, bottom);
         return;
     }
     for (const ns_box *c = b->first_child; c; c = c->next_sibling)
-        collect_breaks(c, forced, spans, page_h);
+        collect_breaks(c, forced, spans, content, page_h);
+}
+
+/* TRUE if some leaf box overlaps the band between top and bottom. */
+static gboolean
+has_content_between(const GArray *content, double top, double bottom)
+{
+    for (guint i = 0; i < content->len; i++) {
+        const ns_print_span *c = &g_array_index(content, ns_print_span, i);
+        if (c->top < bottom - 0.5 && c->bottom > top + 0.5) return TRUE;
+    }
+    return FALSE;
 }
 
 static int
@@ -141,13 +179,22 @@ cmp_double(gconstpointer a, gconstpointer b)
     return x < y ? -1 : (x > y ? 1 : 0);
 }
 
-/* First forced break position after the page start and within the page limit; -1 if none. */
+/* First forced break after the page start and within the page limit; -1 if
+ * none. A break with no content before it on the page, or none after it in
+ * the document, is skipped: it would only leave an empty page. That covers a
+ * break-before on the first heading, a break-after on the last element, and
+ * a break-after and break-before that meet. */
 static double
-next_forced_break(const GArray *forced, double after, double limit)
+next_forced_break(const GArray *forced, const GArray *content, double after,
+                  double limit, double doc_bottom)
 {
     for (guint i = 0; i < forced->len; i++) {
         double f = g_array_index(forced, double, i);
-        if (f > after + 0.5 && f <= limit + 0.5) return f;
+        if (f <= after + 0.5) continue;
+        if (f > limit + 0.5) break;
+        if (has_content_between(content, after, f) &&
+            has_content_between(content, f, doc_bottom))
+            return f;
     }
     return -1;
 }
@@ -182,23 +229,30 @@ ns_print_page_offsets(const ns_box *root, double page_content_height)
 
     GArray *forced = g_array_new(FALSE, FALSE, sizeof(double));
     GArray *spans = g_array_new(FALSE, FALSE, sizeof(ns_print_span));
-    collect_breaks(root, forced, spans, page_content_height);
+    GArray *content = g_array_new(FALSE, FALSE, sizeof(ns_print_span));
+    collect_breaks(root, forced, spans, content, page_content_height);
     g_array_sort(forced, cmp_double);
 
     double doc_bottom = ns_box_max_bottom(root, 0);
     double cur = 0;
-    while (cur + page_content_height < doc_bottom - 0.5 &&
-           offsets->len < 4096) {
+    while (offsets->len < 4096) {
         double limit = cur + page_content_height;
-        double cut = next_forced_break(forced, cur, limit);
-        if (cut < 0) cut = pull_above_spans(spans, cur, limit);
-        if (cut <= cur + 1) cut = limit;
+        /* On the last page only a forced break can start another one. */
+        gboolean last = limit >= doc_bottom - 0.5;
+        double cut = next_forced_break(forced, content, cur,
+                                       last ? doc_bottom : limit, doc_bottom);
+        if (cut < 0) {
+            if (last) break;
+            cut = pull_above_spans(spans, cur, limit);
+            if (cut <= cur + 1) cut = limit;
+        }
         g_array_append_val(offsets, cut);
         cur = cut;
     }
 
     g_array_free(forced, TRUE);
     g_array_free(spans, TRUE);
+    g_array_free(content, TRUE);
     return offsets;
 }
 

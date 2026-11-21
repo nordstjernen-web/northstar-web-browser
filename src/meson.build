@@ -99,7 +99,7 @@ static const char ns_embed_probe[] = {
 int ns_embed_probe_len(void);
 int ns_embed_probe_len(void) { return (int)sizeof ns_embed_probe; }
 '''.format((meson.project_source_root() / 'LICENSE').replace('\\', '/')),
-  args: ['-Werror'],
+  werror: true,
   name: 'C23 #embed')
 ns_embedded_headers = []
 foreach e : ns_embeds
@@ -233,7 +233,7 @@ endif
 northstar_engine_sources += files('webgl.c', 'glctx.c', 'glsl_validate.c')
 
 northstar_win_resources = []
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   windows = import('windows')
   northstar_win_resources = windows.compile_resources(
     'northstar.rc',
@@ -241,6 +241,8 @@ if host_machine.system() == 'windows'
   )
 endif
 
+# A dependency that was not found is ignored, so optional libraries are
+# listed unconditionally.
 northstar_deps = [
   glib,
   gobject,
@@ -248,9 +250,11 @@ northstar_deps = [
   cairo,
   pango,
   pangocairo,
+  libpangoft2,
   libcurl,
   libcrypto,
   libm,
+  libpsl,
   libquickjs,
   libwuffs,
   libplmpeg,
@@ -260,117 +264,78 @@ northstar_deps = [
   zlib,
   libbrotlidec,
   libzstd,
+  libseccomp,
+  libdav1d,
+  libvpx,
+  libopenh264,
+  libopus,
+  libavif,
+  libenchant,
+  libfontconfig,
+  libfreetype,
+  webgl_deps,
 ]
-
-if have_seccomp
-  northstar_deps += [libseccomp]
-endif
-
-if have_av1
-  northstar_deps += [libdav1d]
-endif
-if have_vp9
-  northstar_deps += [libvpx]
-endif
-if have_h264
-  northstar_deps += [libopenh264]
-endif
 if have_gstreamer
   northstar_deps += [libgstreamer, libgstapp, libgstvideo]
 endif
 if have_media_foundation
   northstar_deps += [libmfuuid, libole32]
 endif
-if libopus.found()
-  northstar_deps += [libopus]
-endif
-if have_avif
-  northstar_deps += [libavif]
-endif
-if have_webgl
-  northstar_deps += webgl_deps
-endif
 
-if have_enchant
-  northstar_deps += [libenchant]
-endif
-
-if have_fontconfig
-  northstar_deps += [libfontconfig]
-endif
-
-northstar_deps += [libpangoft2]
-
-if have_freetype
-  northstar_deps += [libfreetype]
-endif
-
-northstar_deps += [libpsl]
-
-northstar_win_subsystem = (
-  host_machine.system() == 'windows' ? 'windows' : 'console'
-)
+northstar_win_subsystem = host_system == 'windows' ? 'windows' : 'console'
 
 northstar_link_args = []
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,--stack,8388608'],
   )
-  northstar_link_args += ['-lbcrypt', '-ladvapi32', '-lshell32', '-luser32']
-endif
-if host_machine.system() == 'linux'
+  northstar_deps += [
+    cc.find_library('bcrypt'),
+    cc.find_library('advapi32'),
+    cc.find_library('shell32'),
+    cc.find_library('user32'),
+  ]
+elif host_system == 'linux'
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,-z,stack-size=2097152'],
   )
-endif
-
-# NetBSD pkgsrc gnutls (pulled in transitively) carries an undefined
-# reference to libc's mbrtoc32, which the hardened --no-undefined link
-# rejects even though the dynamic linker resolves it at runtime. Allow
-# undefined symbols originating from shared libraries on NetBSD only; our
-# own objects are still checked.
-if host_machine.system() == 'netbsd'
+elif host_system == 'netbsd'
+  # NetBSD pkgsrc gnutls (pulled in transitively) carries an undefined
+  # reference to libc's mbrtoc32, which the hardened --no-undefined link
+  # rejects even though the dynamic linker resolves it at runtime. Allow
+  # undefined symbols originating from shared libraries on NetBSD only; our
+  # own objects are still checked.
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,--allow-shlib-undefined'],
   )
 endif
 
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   executable(
     'northstar-launcher',
     files('win_launcher.c') + northstar_win_resources,
     pie: false,
     win_subsystem: 'windows',
-    link_args: ['-luser32', '-lshell32'],
+    dependencies: [cc.find_library('user32'), cc.find_library('shell32')],
   )
 endif
 
-# Optional in-process audio playback.
+# Optional in-process audio playback over SDL3, with minimp3 and pl_mpeg
+# decoding MP3 and MPEG-1 audio and, where present, vorbisfile and opusfile
+# decoding Ogg.
 northstar_audio_sources = files('audio/stub.c')
 northstar_audio_deps = []
 northstar_audio_libs = []
-sdl3_dep = dependency('sdl3', version: '>=3.2.0', required: get_option('audio'))
 if sdl3_dep.found()
-  libminimp3 = static_library(
+  northstar_audio_sources = files('audio/audio.c')
+  northstar_audio_deps = [sdl3_dep, libplmpeg, libvorbisfile, libopusfile,
+                          libm]
+  northstar_audio_libs = static_library(
     'minimp3',
     files('audio/minimp3_impl.c'),
     include_directories: include_directories('audio'),
     c_args: cc.get_supported_arguments(['-w']),
-    install: false,
   )
-
-  northstar_audio_sources = files('audio/audio.c')
-  northstar_audio_deps = [sdl3_dep, libplmpeg]
-  northstar_audio_libs = [libminimp3]
-  if libvorbisfile.found()
-    northstar_audio_deps += [libvorbisfile]
-  endif
-  if libopusfile.found()
-    northstar_audio_deps += [libopusfile]
-  endif
-  # libm is needed by pl_mpeg / minimp3 on Linux and the BSDs; it is part of
-  # the C runtime on Windows, where find_library('m') is a harmless no-op.
-  northstar_audio_deps += [cc.find_library('m', required: false)]
 else
   message('SDL3 not found — in-process audio playback disabled')
 endif

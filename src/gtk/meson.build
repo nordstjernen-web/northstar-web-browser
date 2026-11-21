@@ -34,13 +34,13 @@ executable(
   dependencies: northstar_gtk_deps + northstar_audio_deps,
   link_with: northstar_audio_libs,
   include_directories: include_directories('..', '.'),
-  pie: host_machine.system() != 'windows',
+  pie: host_system != 'windows',
   win_subsystem: northstar_win_subsystem,
   link_args: northstar_link_args + northstar_gtk_platform_link_args,
   install: true,
 )
 
-if host_machine.system() != 'windows'
+if host_system != 'windows'
   install_symlink(
     'open-internet-browser',
     pointing_to: 'northstar',

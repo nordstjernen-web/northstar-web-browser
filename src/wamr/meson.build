@@ -1,8 +1,6 @@
 # WAMR (wasm-micro-runtime) — vendored subset, fast interpreter with
 # reference-types + bulk-memory, exposed as the `libwamr` declared dependency.
 
-wamr_system = host_machine.system()
-
 wamr_c_args = cc.get_supported_arguments(['-w']) + [
   '-DBH_MALLOC=wasm_runtime_malloc',
   '-DBH_FREE=wasm_runtime_free',
@@ -46,7 +44,7 @@ wamr_srcs = files(
   'core/shared/utils/runtime_timer.c',
 )
 
-if wamr_system == 'windows'
+if host_system == 'windows'
   wamr_c_args += [
     '-DBH_PLATFORM_WINDOWS',
     '-DHAVE_STRUCT_TIMESPEC',
@@ -77,7 +75,7 @@ else
     'core/shared/platform/common/posix/posix_thread.c',
     'core/shared/platform/common/posix/posix_time.c',
   )
-  if wamr_system == 'darwin'
+  if host_system == 'darwin'
     wamr_c_args += ['-DBH_PLATFORM_DARWIN']
     wamr_srcs += files(
       'core/iwasm/common/arch/invokeNative_osx_universal.s',
@@ -110,10 +108,8 @@ wamr_incs = include_directories(
 
 # The Windows platform layer threads through Win32, and clang's MinGW driver
 # drops -pthread unclaimed, which -Werror turns into a link failure under LTO.
-wamr_sys_deps = [
-  cc.find_library('m', required: false),
-]
-if wamr_system != 'windows'
+wamr_sys_deps = [libm]
+if host_system != 'windows'
   wamr_sys_deps += dependency('threads', required: false)
 endif
 

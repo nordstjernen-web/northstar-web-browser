@@ -3,22 +3,24 @@ project(
   'c',
   version: '1.0.27-dev',
   license: 'GPL-3.0-or-later',
-  default_options: [
-    'c_std=gnu2x,c2x,gnu11,c11',
-    'warning_level=2',
-    'quickjs-ng:warning_level=0',
-    'quickjs-ng:default_library=static',
-    'buildtype=release',
-    'optimization=3',
-    'b_lto=true',
-    'b_ndebug=true',
-    'b_pie=true',
-  ],
+  license_files: ['LICENSE', 'THIRD-PARTY-LICENSES.md'],
+  default_options: {
+    'c_std': 'gnu2x,c2x,gnu11,c11',
+    'warning_level': '2',
+    'quickjs-ng:warning_level': '0',
+    'quickjs-ng:default_library': 'static',
+    'buildtype': 'release',
+    'optimization': '3',
+    'b_lto': true,
+    'b_ndebug': 'true',
+    'b_pie': true,
+  },
   meson_version: '>=1.3',
 )
 
 cc = meson.get_compiler('c')
 fs = import('fs')
+host_system = host_machine.system()
 
 common_warning_flags = [
   '-Wshadow',
@@ -43,17 +45,13 @@ suppressed_warnings = [
   '-Wno-constant-logical-operand',
 ]
 
-fortify_level = '-D_FORTIFY_SOURCE=2'
-if cc.has_argument('-D_FORTIFY_SOURCE=3')
-  fortify_level = '-D_FORTIFY_SOURCE=3'
-endif
-
+# A C library without level 3 (glibc before 2.34) treats it as level 2.
 hardening_c_flags = [
   '-fstack-protector-strong',
   '-fstack-clash-protection',
   '-fcf-protection=full',
   '-U_FORTIFY_SOURCE',
-  fortify_level,
+  '-D_FORTIFY_SOURCE=3',
 ]
 
 hardening_link_flags = [
@@ -105,7 +103,7 @@ endif
 # binutils ar on Windows has no LLVM plugin, so it archives clang's LTO
 # bitcode without indexing a single symbol and every static library links as
 # if it were empty. Meson picks llvm-ar for clang when it is installed.
-if get_option('b_lto') and cc.get_id() == 'clang' and host_machine.system() == 'windows'
+if get_option('b_lto') and cc.get_id() == 'clang' and host_system == 'windows'
   llvm_ar = find_program('llvm-ar-' + cc.version().split('.')[0], 'llvm-ar',
                          required: false)
   if not llvm_ar.found()
@@ -122,23 +120,24 @@ message('northstar build profile: ' +
 # web-text-lib enforces the text-stack floors from inside its own build, where
 # a too-old library surfaces as a bare version mismatch and only the first of
 # several is reported. Checking every floor here first names them all at once.
-gtk4_min = host_machine.system() == 'windows' ? '>=4.22.1' : '>=4.14'
-ns_dependency_floors = [
-  ['glib-2.0', '>=2.80'],
-  ['gobject-2.0', '>=2.80'],
-  ['gio-2.0', '>=2.80'],
-  ['cairo', '>=1.18'],
-  ['harfbuzz', '>=8.3'],
-  ['fribidi', '>=1.0.6'],
-  ['fontconfig', '>=2.15'],
-  ['gtk4', gtk4_min],
-  ['libcurl', '>=8.5'],
-]
+# The floors are named once here and reused by every dependency() call on
+# these libraries, here and in src/web-text-lib/.
+ns_floors = {
+  'glib-2.0': '>=2.80',
+  'gobject-2.0': '>=2.80',
+  'gio-2.0': '>=2.80',
+  'cairo': '>=1.18',
+  'harfbuzz': '>=8.3',
+  'fribidi': '>=1.0.6',
+  'fontconfig': '>=2.15',
+  'gtk4': host_system == 'windows' ? '>=4.22.1' : '>=4.14',
+  'libcurl': '>=8.5',
+}
 ns_unmet_floors = []
-foreach floor : ns_dependency_floors
-  if not dependency(floor[0], version: floor[1], required: false).found()
-    installed = dependency(floor[0], required: false)
-    ns_unmet_floors += '  @0@ @1@ (@2@)'.format(floor[0], floor[1],
+foreach name, floor : ns_floors
+  if not dependency(name, version: floor, required: false).found()
+    installed = dependency(name, required: false)
+    ns_unmet_floors += '  @0@ @1@ (@2@)'.format(name, floor,
       installed.found() ? 'found ' + installed.version() : 'not found')
   endif
 endforeach
@@ -149,20 +148,20 @@ if ns_unmet_floors.length() > 0
         'their distributions that ship all of them; see docs/building.md.')
 endif
 
-glib       = dependency('glib-2.0')
-gobject    = dependency('gobject-2.0')
-gio        = dependency('gio-2.0')
-cairo      = dependency('cairo')
+glib    = dependency('glib-2.0', version: ns_floors['glib-2.0'])
+gobject = dependency('gobject-2.0', version: ns_floors['gobject-2.0'])
+gio     = dependency('gio-2.0', version: ns_floors['gio-2.0'])
+cairo   = dependency('cairo', version: ns_floors['cairo'])
 
-gtk4 = dependency('gtk4', version: gtk4_min)
-if host_machine.system() == 'windows'
+gtk4 = dependency('gtk4', version: ns_floors['gtk4'])
+if host_system == 'windows'
   message('GTK @0@ — Windows requires the MSYS2 stock GTK (>= 4.22.1).'.format(gtk4.version()))
 elif gtk4.version().version_compare('>=4.22')
   message('GTK @0@ — preferred (>= 4.22).'.format(gtk4.version()))
 else
   warning('GTK @0@ meets the 4.14 minimum, but Northstar Web Browser prefers >= 4.22 for the newer GSK renderers.'.format(gtk4.version()))
 endif
-libcurl = dependency('libcurl', version: '>=8.5')
+libcurl = dependency('libcurl', version: ns_floors['libcurl'])
 if libcurl.version().version_compare('<8.11')
   warning('libcurl @0@ predates stable WebSocket support (curl 8.11): WebSocket will be unavailable at runtime unless this libcurl was built with the ws/wss protocols.'.format(libcurl.version()))
 endif
@@ -173,69 +172,34 @@ libpsl = dependency('libpsl')
 
 sqlite3 = dependency('sqlite3')
 
-libfontconfig = dependency('fontconfig', required: false)
-have_fontconfig = libfontconfig.found()
-if have_fontconfig
-  add_project_arguments('-DNS_HAVE_FONTCONFIG=1', language: 'c')
-endif
-
+libfontconfig = dependency('fontconfig', version: ns_floors['fontconfig'],
+                           required: false)
 libfreetype = dependency('freetype2', required: false)
-have_freetype = libfreetype.found()
-if have_freetype
-  add_project_arguments('-DNS_HAVE_FREETYPE=1', language: 'c')
-endif
-
 
 libdav1d = dependency('dav1d', version: '>= 1.0.0', required: get_option('av1'))
 have_av1 = libdav1d.found()
-if have_av1
-  add_project_arguments('-DNS_HAVE_AV1', language: 'c')
-endif
 libvpx = dependency('vpx', version: '>= 1.8.0', required: get_option('vp9'))
 have_vp9 = libvpx.found()
-if have_vp9
-  add_project_arguments('-DNS_HAVE_VP9', language: 'c')
-endif
 libopenh264 = dependency('openh264', version: '>= 2.0.0', required: get_option('h264'))
 have_h264 = libopenh264.found()
-if have_h264
-  add_project_arguments('-DNS_HAVE_H264', language: 'c')
-endif
 # GStreamer is the default <video> decoder on Linux; elsewhere it is used only
 # when asked for explicitly with -Dgstreamer=enabled.
-gst_wanted = get_option('gstreamer')
-if host_machine.system() != 'linux' and gst_wanted.auto()
-  gst_wanted = gst_wanted.disable_auto_if(true)
-endif
+gst_wanted = get_option('gstreamer').disable_auto_if(host_system != 'linux')
 libgstreamer = dependency('gstreamer-1.0', version: '>= 1.18', required: gst_wanted)
 libgstapp = dependency('gstreamer-app-1.0', version: '>= 1.18', required: gst_wanted)
 libgstvideo = dependency('gstreamer-video-1.0', version: '>= 1.18', required: gst_wanted)
 have_gstreamer = libgstreamer.found() and libgstapp.found() and libgstvideo.found()
-if have_gstreamer
-  add_project_arguments('-DNS_HAVE_GSTREAMER', language: 'c')
-endif
 # Media Foundation is the default <video> decoder on Windows: the H.264
 # decoder that ships with the system, plus the AV1 and VP9 Video Extensions
 # where installed. mfplat.dll itself is loaded at runtime.
-mf_wanted = get_option('mediafoundation')
-if host_machine.system() != 'windows'
-  mf_wanted = mf_wanted.disable_auto_if(true)
-endif
+mf_wanted = get_option('mediafoundation').disable_auto_if(host_system != 'windows')
 libmfuuid = cc.find_library('mfuuid', required: mf_wanted)
 libole32 = cc.find_library('ole32', required: mf_wanted)
-have_media_foundation = libmfuuid.found() and libole32.found() and   cc.has_header('mftransform.h', required: mf_wanted)
-if have_media_foundation
-  add_project_arguments('-DNS_HAVE_MEDIA_FOUNDATION', language: 'c')
-endif
+have_media_foundation = libmfuuid.found() and libole32.found() and \
+                        cc.has_header('mftransform.h', required: mf_wanted)
 libopus = dependency('opus', required: false)
-if libopus.found()
-  add_project_arguments('-DNS_HAVE_OPUS', language: 'c')
-endif
 libavif = dependency('libavif', required: get_option('avif'))
 have_avif = libavif.found()
-if have_avif
-  add_project_arguments('-DNS_HAVE_AVIF=1', language: 'c')
-endif
 
 # WebGL 1 / 2 (src/webgl.c) maps canvas.getContext('webgl') onto an offscreen
 # GL context (src/glctx.c: EGL, CGL on macOS, WGL on Windows) through
@@ -252,7 +216,7 @@ webgl_deps = []
 if webgl_feature.allowed()
   epoxy = dependency('epoxy', required: webgl_feature)
   have_egl = epoxy.found() and cc.has_header('epoxy/egl.h', dependencies: epoxy)
-  have_gl_backend = host_machine.system() in ['darwin', 'windows'] or have_egl
+  have_gl_backend = host_system in ['darwin', 'windows'] or have_egl
   glslang_pc = dependency('glslang', method: 'pkg-config', required: false)
   glslang_lib_dirs = []
   glslang_cflags = []
@@ -272,7 +236,7 @@ if webgl_feature.allowed()
       'dragonfly': ['/usr/local'],
       'openbsd': ['/usr/local'],
       'netbsd': ['/usr/pkg'],
-    }.get(host_machine.system(), [])
+    }.get(host_system, [])
     foreach glslang_prefix : glslang_prefixes
       glslang_lib_dirs += glslang_prefix / 'lib'
       glslang_cflags += '-I' + glslang_prefix / 'include'
@@ -294,27 +258,23 @@ if webgl_feature.allowed()
     # glslang uses threads. Not on Windows: the threads dependency puts
     # -pthread on the link line, which clang there does not use and, under
     # --werror with LTO, rejects (-Wunused-command-line-argument).
-    if host_machine.system() != 'windows'
+    if host_system != 'windows'
       webgl_deps += dependency('threads')
     endif
     # glslang is C++ behind a C interface; a static glslang needs the C++
     # runtime named on the link line of this C program.
-    cxx_runtime_name = host_machine.system() == 'darwin' ? 'c++' : 'stdc++'
+    cxx_runtime_name = host_system == 'darwin' ? 'c++' : 'stdc++'
     cxx_runtime = cc.find_library(cxx_runtime_name, required: false)
     if cxx_runtime.found()
       webgl_deps += cxx_runtime
-    elif host_machine.system() != 'darwin' and cc.has_link_argument('-l:libstdc++.so.6')
+    elif host_system != 'darwin' and cc.has_link_argument('-l:libstdc++.so.6')
       # No C++ compiler installed, so no libstdc++.so development link:
       # name the runtime library itself.
       webgl_deps += declare_dependency(link_args: ['-l:libstdc++.so.6'])
     endif
-    if host_machine.system() == 'darwin'
+    if host_system == 'darwin'
       webgl_deps += dependency('appleframeworks', modules: ['OpenGL'])
-      add_project_arguments('-DNS_HAVE_CGL=1', language: 'c')
-    elif host_machine.system() != 'windows'
-      add_project_arguments('-DNS_HAVE_EGL=1', language: 'c')
     endif
-    add_project_arguments('-DNS_ENABLE_WEBGL=1', language: 'c')
   elif webgl_feature.enabled()
     error('-Dwebgl=enabled needs libepoxy (with EGL on Linux and the BSDs) and the glslang shader validator: install libepoxy-dev and glslang-dev (Debian/Ubuntu), libepoxy-devel and glslang-devel (Fedora/openSUSE) or libepoxy and glslang (Arch, Alpine, FreeBSD, MSYS2, Homebrew)')
   else
@@ -435,50 +395,18 @@ if have_pdfjs and pdfjs_standard_fonts.length() == 0
   error('pdfjs-dist: no standard fonts; the extracted subproject predates ' +
         'them, delete subprojects/pdfjs-dist-*/ and set up again')
 endif
-if have_pdfjs
-  add_project_arguments('-DNS_HAVE_PDFJS=1', language: 'c')
-endif
 
-# vorbisfile is the ov_* high-level decode API over libvorbis, used by the
-# in-process audio mixer to decode Ogg/Vorbis natively.
+# vorbisfile and opusfile are the high-level decode APIs over libvorbis and
+# libopus + libogg, used by the in-process SDL3 audio mixer to decode
+# Ogg/Vorbis and Ogg/Opus natively.
+sdl3_dep = dependency('sdl3', version: '>=3.2.0', required: get_option('audio'))
 libvorbisfile = dependency('vorbisfile', required: false)
-if libvorbisfile.found()
-  add_project_arguments('-DNS_HAVE_VORBISFILE=1', language: 'c')
-endif
-# opusfile is the high-level op_* decode API over libopus + libogg, used by the
-# in-process audio mixer to decode Ogg/Opus natively.
 libopusfile = dependency('opusfile', required: false)
-if libopusfile.found()
-  add_project_arguments('-DNS_HAVE_OPUSFILE=1', language: 'c')
-endif
-# src/media_types.c may advertise an audio type only where the decoder that
-# plays it is built: the SDL3 in-process mixer.
-if get_option('audio').allowed()
-  sdl3_probe = dependency('sdl3', version: '>=3.2.0', required: false)
-  if sdl3_probe.found()
-    add_project_arguments('-DNS_AUDIO_PLAYBACK=1', language: 'c')
-  endif
-  if sdl3_probe.found() and libvorbisfile.found()
-    add_project_arguments('-DNS_AUDIO_NATIVE_VORBIS=1', language: 'c')
-  endif
-  if sdl3_probe.found() and libopusfile.found()
-    add_project_arguments('-DNS_AUDIO_NATIVE_OPUS=1', language: 'c')
-  endif
-endif
 libenchant = dependency('enchant-2', required: false)
 have_enchant = libenchant.found()
-if have_enchant
-  add_project_arguments('-DNS_HAVE_ENCHANT=1', language: 'c')
-endif
 
-libseccomp = dependency(
-  'libseccomp',
-  required: host_machine.system() == 'linux',
-)
+libseccomp = dependency('libseccomp', required: host_system == 'linux')
 have_seccomp = libseccomp.found()
-if have_seccomp
-  add_project_arguments('-DNS_HAVE_SECCOMP=1', language: 'c')
-endif
 
 libwuffs = dependency('wuffs', fallback: ['wuffs', 'wuffs_dep'])
 libplmpeg = dependency('plmpeg', fallback: ['plmpeg', 'plmpeg_dep'])
@@ -486,21 +414,45 @@ zlib = dependency('zlib')
 
 # Brotli and zstd Content-Encoding; without them they are not advertised.
 libbrotlidec = dependency('libbrotlidec', required: false)
-if libbrotlidec.found()
-  add_project_arguments('-DNS_HAVE_BROTLI_DEC=1', language: 'c')
-endif
 libzstd = dependency('libzstd', required: false)
-if libzstd.found()
-  add_project_arguments('-DNS_HAVE_ZSTD=1', language: 'c')
-endif
 
-liblexbor = dependency('lexbor', version: '>=3.0.0', required: false)
-if liblexbor.found()
-  lexbor_version = liblexbor.version()
-else
-  lexbor_version = '3.0.1'
-endif
-add_project_arguments('-DNS_LEXBOR_VERSION="' + lexbor_version + '"',
+# A system lexbor 3 is used when there is one, else the pinned subproject.
+liblexbor = dependency('lexbor', version: '>=3.0.0',
+                       fallback: ['lexbor', 'lexbor_dep'])
+
+# Feature macros for the sources, each defined when its condition holds.
+# src/media_types.c may advertise an audio type only where the decoder that
+# plays it is built: the SDL3 in-process mixer.
+ns_feature_macros = {
+  'NS_HAVE_FONTCONFIG=1': libfontconfig.found(),
+  'NS_HAVE_FREETYPE=1': libfreetype.found(),
+  'NS_HAVE_AV1': have_av1,
+  'NS_HAVE_VP9': have_vp9,
+  'NS_HAVE_H264': have_h264,
+  'NS_HAVE_GSTREAMER': have_gstreamer,
+  'NS_HAVE_MEDIA_FOUNDATION': have_media_foundation,
+  'NS_HAVE_OPUS': libopus.found(),
+  'NS_HAVE_AVIF=1': have_avif,
+  'NS_ENABLE_WEBGL=1': have_webgl,
+  'NS_HAVE_CGL=1': have_webgl and host_system == 'darwin',
+  'NS_HAVE_EGL=1': have_webgl and host_system not in ['darwin', 'windows'],
+  'NS_HAVE_PDFJS=1': have_pdfjs,
+  'NS_HAVE_VORBISFILE=1': libvorbisfile.found(),
+  'NS_HAVE_OPUSFILE=1': libopusfile.found(),
+  'NS_AUDIO_PLAYBACK=1': sdl3_dep.found(),
+  'NS_AUDIO_NATIVE_VORBIS=1': sdl3_dep.found() and libvorbisfile.found(),
+  'NS_AUDIO_NATIVE_OPUS=1': sdl3_dep.found() and libopusfile.found(),
+  'NS_HAVE_ENCHANT=1': have_enchant,
+  'NS_HAVE_SECCOMP=1': have_seccomp,
+  'NS_HAVE_BROTLI_DEC=1': libbrotlidec.found(),
+  'NS_HAVE_ZSTD=1': libzstd.found(),
+}
+foreach macro, enabled : ns_feature_macros
+  if enabled
+    add_project_arguments('-D' + macro, language: 'c')
+  endif
+endforeach
+add_project_arguments('-DNS_LEXBOR_VERSION="' + liblexbor.version() + '"',
                       language: 'c')
 
 build_date = get_option('build_date')
@@ -513,10 +465,6 @@ endif
 add_project_arguments('-DNS_BUILD_DATE="' + build_date + '"', language: 'c')
 add_project_arguments('-DNS_VERSION="' + meson.project_version() + '"', language: 'c')
 
-if not liblexbor.found()
-  liblexbor = subproject('lexbor').get_variable('lexbor_dep')
-endif
-
 js_engine = get_option('js_engine')
 if js_engine == 'quickjs'
   libquickjs = subproject('quickjs').get_variable('quickjs_dep')
@@ -527,16 +475,15 @@ else
   libquickjs = dependency('quickjs-ng', fallback: ['quickjs-ng', 'qjs_dep'])
 endif
 
-wasm_unsupported_cpu = not (host_machine.cpu_family() == 'x86_64' or
-  (host_machine.cpu_family() == 'aarch64' and host_machine.system() != 'windows'))
-if get_option('wasm').enabled() and wasm_unsupported_cpu
-  error('wasm (WAMR) is built only for x86-64 and 64-bit Arm (not Arm Windows); build with -Dwasm=disabled')
-endif
-wasm_feature = get_option('wasm').disable_auto_if(wasm_unsupported_cpu)
-have_wasm = false
-if wasm_feature.allowed()
+# WAMR's call stubs cover x86-64 and 64-bit Arm (not Arm Windows).
+wasm_feature = get_option('wasm').require(
+  host_machine.cpu_family() == 'x86_64' or
+    (host_machine.cpu_family() == 'aarch64' and host_system != 'windows'),
+  error_message: 'wasm (WAMR) is built only for x86-64 and 64-bit Arm ' +
+                 '(not Arm Windows); build with -Dwasm=disabled')
+have_wasm = wasm_feature.allowed()
+if have_wasm
   subdir('src/wamr')
-  have_wasm = true
 else
   libwamr = declare_dependency()
 endif
@@ -575,17 +522,20 @@ install_data(
   install_dir: get_option('datadir') / 'metainfo',
 )
 
-summary({'WebAssembly (WAMR)': have_wasm}, section: 'Features')
-summary({'PDF viewer (PDF.js)': pdfjs_source}, section: 'Features')
-summary({'AV1 video (dav1d)': have_av1}, section: 'Features')
-summary({'VP9 video (libvpx)': have_vp9}, section: 'Features')
-summary({'H.264 video (OpenH264)': have_h264}, section: 'Features')
-summary({'Video via GStreamer': have_gstreamer}, section: 'Features')
-summary({'Video via Media Foundation': have_media_foundation}, section: 'Features')
-summary({'Opus in WebM (libopus)': libopus.found()}, section: 'Features')
-summary({'AVIF images (libavif)': have_avif}, section: 'Features')
-summary({'WebGL 1 / 2 (libepoxy, glslang)': have_webgl}, section: 'Features')
-summary({'JavaScript engine': js_engine + ' ' + libquickjs.version()}, section: 'Features')
+summary({
+  'WebAssembly (WAMR)': have_wasm,
+  'PDF viewer (PDF.js)': pdfjs_source,
+  'AV1 video (dav1d)': have_av1,
+  'VP9 video (libvpx)': have_vp9,
+  'H.264 video (OpenH264)': have_h264,
+  'Video via GStreamer': have_gstreamer,
+  'Video via Media Foundation': have_media_foundation,
+  'Opus in WebM (libopus)': libopus.found(),
+  'AVIF images (libavif)': have_avif,
+  'WebGL 1 / 2 (libepoxy, glslang)': have_webgl,
+  'Audio playback (SDL3)': sdl3_dep.found(),
+  'JavaScript engine': js_engine + ' ' + libquickjs.version(),
+}, section: 'Features')
 
 # Text is shaped through web-text-lib (src/web-text-lib/), the in-tree Pango
 # fork that caches finished glyph strings across layouts; every symbol in it

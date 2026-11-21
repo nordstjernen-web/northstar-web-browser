@@ -27,6 +27,7 @@ restarts it, with its session, after a crash or a hang.
 Any of
 .BR \-\-headless ,
 .BR \-\-dump ,
+.BR \-\-export ,
 .BR \-\-eval ,
 .BR \-\-act ,
 .BR \-\-inspect ,
@@ -101,16 +102,23 @@ What to output:
 .B layout
 (the box tree),
 .BR none ,
+or
 .BI png: FILE
-(a screenshot),
-.BI pdf: FILE
-(the page as one long sheet), or
-.BI print: FILE
-(the page paginated as for printing).
-Image and PDF dumps write a
+(a screenshot).
+A screenshot also writes a
 .IB name \-initial. ext
-file at the first render and the named file after
+file at the first render, and the named file after
 .BR \-\-time\-ms .
+.TP
+.BI \-\-export=pdf: FILE
+Write the page as a paginated PDF, laid out with print media at the
+.B @page
+size and margins (A4 with half\-inch margins by default).
+Links are clickable, a
+.BI # fragment
+link jumps to its target's page, and the text stays selectable.
+Nothing the page does not have is added: no bookmark outline or table of
+contents.
 .TP
 \fB\-\-viewport=\fP\fIW\fP[\fBx\fP\fIH\fP]
 Viewport width, and optionally height, in CSS pixels (default 1000).

@@ -4,8 +4,9 @@ Significant changes in each release:
 
 1.0.27:
 =======
-* `--headless --dump=pdf:FILE` writes the page as a paginated PDF again,
-  without the cairo writer's old gaps: the page is laid out with print
+* `--export=pdf:FILE` writes the page as a paginated PDF, replacing the
+  `--dump=pdf:` that went with the old cairo writer, and without that
+  writer's gaps: it runs headless, the page is laid out with print
   media at the `@page` size and margins, every link is clickable (a
   `#fragment` link jumps to its target's page and position, a relative
   one resolves against the page URL), and the document title is the

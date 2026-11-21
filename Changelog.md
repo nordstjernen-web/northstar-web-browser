@@ -4,6 +4,20 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Security: Web Audio no longer reads past an AudioParam's automation
+  array. The event count is a script-writable property, and a count of
+  2^30 wrapped the bounds check to zero, so `cancelAndHoldAtTime` and the
+  render path walked memory beyond the array and returned a value from it
+  to the page. The count is now clamped to the 4096-event limit and
+  compared without multiplying.
+* Security: WebGL no longer hands a page graphics memory it did not write.
+  `bufferData(size)` left every buffer except an element array
+  uninitialised, `texStorage2D` / `texStorage3D` and
+  `renderbufferStorage` allocated without clearing, and a resized canvas
+  kept whatever the driver gave it; `getBufferSubData` and `readPixels`
+  then returned stale bytes from earlier buffers and textures. All of
+  these now start as zeros. `texStorage2D` / `texStorage3D` accept only
+  the sized and compressed formats WebGL 2 defines.
 * Qwasm (Quake in WebAssembly, https://qwasm.m-h.org.uk/) starts and
   plays. Three fixes on the way there:
   - A MessagePort bridged to a worker now honours postMessage()'s

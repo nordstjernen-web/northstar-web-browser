@@ -4221,6 +4221,38 @@ ns_paint_inline_range_extents(const ns_box *b, gsize start, gsize len,
     return TRUE;
 }
 
+/* Appends the top and bottom of each painted line of a horizontal inline
+ * text box to out, as pairs of doubles in layout coordinates. FALSE when the
+ * box has no such lines (no text, or vertical writing). */
+gboolean
+ns_paint_inline_line_extents(const ns_box *b, GArray *out)
+{
+    if (!b || !b->text || !*b->text || b->vertical_wm || !out) return FALSE;
+    NsPangoLayout *layout = b->paint_layout
+        ? (NsPangoLayout *)g_object_ref(b->paint_layout)
+        : ns_paint_build_inline_layout(b);
+    if (!layout) return FALSE;
+    /* The same layout paint_inline() would build and cache, so keep it for
+     * the paint that follows. */
+    if (!b->paint_layout)
+        ((ns_box *)b)->paint_layout = (NsPangoLayout *)g_object_ref(layout);
+    double y_origin = b->y + ns_paint_inline_y_offset_for_layout(b, layout);
+    guint before = out->len;
+    NsPangoLayoutIter *it = ns_pango_layout_get_iter(layout);
+    do {
+        NsPangoRectangle logical;
+        ns_pango_layout_iter_get_line_extents(it, NULL, &logical);
+        double ext[2] = {
+            y_origin + (double)logical.y / NS_PANGO_SCALE,
+            y_origin + (double)(logical.y + logical.height) / NS_PANGO_SCALE,
+        };
+        g_array_append_vals(out, ext, 2);
+    } while (ns_pango_layout_iter_next_line(it));
+    ns_pango_layout_iter_free(it);
+    g_object_unref(layout);
+    return out->len > before;
+}
+
 /* Parses a filter function amount; percentages become fractions; -1 if no number. */
 static double
 parse_filter_amount(const char *p, const char **out_end)

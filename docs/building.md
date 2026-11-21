@@ -475,7 +475,7 @@ verified by running the browser.
 | `render-screenshots.sh` | Render each URL listed in `data/screenshots/sites.txt` to a PNG beside it. |
 | `speedometer-bench.sh`, `speedometer4-bench.sh`, `sample-profile.sh` | Benchmarks and a sampling profiler. |
 | `gen-architecture.py`, `gen-badge.sh`, `gen-windows-icon.py` | Regenerate the architecture diagram, the badge and the Windows icon. |
-| `embed-text.py`, `verify-polyfills.js` | Build helpers: embed a file as a C array where the compiler lacks C23 `#embed` (before GCC 15 and Clang 19; newer compilers read the files directly through `src/embed.h.in`), and the polyfill smoke test meson runs under `qjs`. |
+| `embed-text.py`, `verify-polyfills.js` | Build helpers: embed a file as a C array where the compiler lacks C23 `#embed` (before GCC 15 and Clang 19; newer compilers read the files directly through `src/embedded/embed.h.in`), and the polyfill smoke test meson runs under `qjs`. |
 
 ## Definition of done
 

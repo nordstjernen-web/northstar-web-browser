@@ -33,7 +33,7 @@ executable(
     pdf_viewer_headers,
   dependencies: northstar_gtk_deps + northstar_audio_deps,
   link_with: northstar_audio_libs,
-  include_directories: include_directories('..', '.'),
+  include_directories: [include_directories('..', '.'), ns_embedded_inc],
   pie: host_system != 'windows',
   win_subsystem: northstar_win_subsystem,
   link_args: northstar_link_args + northstar_gtk_platform_link_args,

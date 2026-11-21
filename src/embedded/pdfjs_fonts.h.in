@@ -1,4 +1,4 @@
-/* generated from src/pdfjs_fonts.h.in by meson — do not edit */
+/* generated from src/embedded/pdfjs_fonts.h.in by meson — do not edit */
 @PDFJS_FONT_INCLUDES@
 
 typedef struct { const char *name; const unsigned char *data;

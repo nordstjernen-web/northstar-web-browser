@@ -346,13 +346,17 @@ is the manual page.
 
 The browser can render without a display, which is how the fixtures are
 exercised and how behaviour can be scripted. Any of `--headless`,
-`--dump=`, `--eval=`, `--act=`, `--inspect=`, `--inspect-at=` or `--wpt`
-selects it; headless runs are never supervised by the watchdog.
+`--dump=`, `--export=`, `--eval=`, `--act=`, `--inspect=`, `--inspect-at=`
+or `--wpt` selects it; headless runs are never supervised by the watchdog.
 
 ```sh
 # Dump a page to PNG
 ./builddir/src/gtk/northstar --headless \
     --url="https://example.com/" --dump="png:/tmp/out.png" --viewport=1000
+
+# Export a page to PDF
+./builddir/src/gtk/northstar \
+    --url="http://localhost:8080/book.html" --export="pdf:/tmp/book.pdf"
 
 # Evaluate JavaScript against a loaded page and print the result
 ./builddir/src/gtk/northstar --headless \
@@ -364,7 +368,7 @@ selects it; headless runs are never supervised by the watchdog.
 | `--url=URL`, or a bare URL or file path | The page to load. |
 | `--dump=text\|dom\|layout\|none` | Print the page text (the default), the DOM, the box tree, or nothing. |
 | `--dump=png:FILE` | Write a screenshot. This also writes `FILE-initial.png`, captured at the first render; the named file follows after `--time-ms`. |
-| `--dump=pdf:FILE` | Write the page as a paginated PDF, laid out with print media at the `@page` size and margins (A4 with half-inch margins by default; an explicit `--viewport` width overrides the page width). Links are clickable (`#fragment` links jump within the document) and the text stays selectable. Nothing the page does not have is added: no bookmark outline or table of contents. |
+| `--export=pdf:FILE` | Write the page as a paginated PDF, laid out with print media at the `@page` size and margins (A4 with half-inch margins by default; an explicit `--viewport` width overrides the page width). Links are clickable (`#fragment` links jump within the document) and the text stays selectable. Nothing the page does not have is added: no bookmark outline or table of contents. |
 | `--viewport=W` or `WxH`, `--viewport-height=H` | Viewport size in CSS pixels (default width 1000). |
 | `--settle-ms=N` | Time to let the page settle before output (default 200). |
 | `--time-ms=N` | Page time between the first and final screenshot (default 1000). |

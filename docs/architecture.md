@@ -33,7 +33,7 @@ space.
     ├─ audio mixer thread → SDL3                            (src/audio/audio.c)
     └─ download threads                                     (procwindow.c)
 
- headless / tooling  (--headless, --dump=, --eval=, --act=, --wpt, …)
+ headless / tooling  (--headless, --dump=, --export=, --eval=, --act=, --wpt, …)
     the same binary, never supervised, no GTK window       (headless.c)
 ```
 

@@ -5046,6 +5046,27 @@ build_pseudo_block_for(const ns_style *ps, const ns_node *host)
     return pb;
 }
 
+/* A flex or grid container's ::before or ::after with content is an item
+ * of its own (css-flexbox 4, css-grid 6): wrap its inline run in a block
+ * carrying the pseudo-element's style, so it takes its place in order and
+ * gets its margins, instead of trailing the block-level items as a bare
+ * inline run. */
+static ns_box *
+wrap_pseudo_item(ns_box *run, const ns_style *ps, const ns_node *host)
+{
+    if (!run) return NULL;
+    ns_box *item = box_new(NS_BOX_BLOCK);
+    item->dom = host;
+    item->style = ps;
+    collect_box_bg_image(item, ps);
+    /* The run's font and colour ride on its attrs; left with the pseudo's
+     * style it would apply the margins, padding and border the item now
+     * carries a second time. */
+    if (!run->inline_atomics) run->style = NULL;
+    box_append_child(item, run);
+    return item;
+}
+
 /* Queues an abspos/fixed pseudo-element that has content for later out-of-flow layout. */
 static void
 register_abs_pseudo(const ns_node *host, const ns_style *ps)
@@ -5404,6 +5425,10 @@ build_block_impl(const ns_node *n, GHashTable *styles)
 
     gboolean blockify_children = style_is_flex_container(s) ||
                                  style_is_grid_container(s);
+    if (blockify_children && pending_before) {
+        box_append_child(block, wrap_pseudo_item(pending_before, s->before, n));
+        pending_before = NULL;
+    }
 
     const ns_node *saved_skip = g_inline_skip_node;
     if (rendered_legend) {
@@ -5499,7 +5524,15 @@ build_block_impl(const ns_node *n, GHashTable *styles)
         pending_before = NULL;
     }
 
-    append_generated_after(block, n, s);
+    if (blockify_children && s && s->after &&
+        !style_is_absolute_or_fixed(s->after)) {
+        ns_box *after_block = build_pseudo_block_for(s->after, n);
+        ns_box *gen = after_block ? NULL : build_pseudo_inline_for(s->after, n);
+        if (after_block) box_append_child(block, after_block);
+        else if (gen) box_append_child(block, wrap_pseudo_item(gen, s->after, n));
+    } else {
+        append_generated_after(block, n, s);
+    }
     return block;
 }
 

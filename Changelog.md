@@ -4,6 +4,25 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* A `::before` or `::after` with content in a flex or grid container is
+  an item of its own, in its place: `::before` first, `::after` last,
+  with its margins applied once. It trailed the container's block items
+  as a bare text run, so icons drawn with `::before` landed after the
+  text they label: on a lichess.org game the variant icon covered the
+  game's description and the side dots followed the player names.
+* Code compiled through another realm's `Function` or `eval` that the
+  caller may not run code in is compiled in the caller's own realm
+  instead of being refused. A cross-origin frame shares DOM objects with
+  its page, so `element.constructor.constructor("…")` reached the page's
+  `Function` and threw, where browsers with per-frame DOM objects hand
+  the frame its own; challenge scripts such as Cloudflare Turnstile
+  build code that way. The code still runs only with the caller's own
+  global.
+* A frame's document has `visibilityState`, `hidden`, `fonts`, `scripts`,
+  `links`, `anchors`, `all`, `scrollingElement` and the other members the
+  page's document has; they were missing from frame and parsed documents.
+* `NS_DEBUG_POSTMESSAGE=1` logs every `postMessage` between windows and
+  frames, with the origins and a JSON preview, to stderr.
 * `grid-template-areas` rows are split into cells as the grid spec
   tokenizes them, so a minified row such as `". .main. ."` is five
   cells, not four with a `.main.` name. lichess.org's page grid is

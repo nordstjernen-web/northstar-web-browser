@@ -34,6 +34,6 @@
 +    return NULL;
 +}
 +
- static int js_cross_realm_compile_denied(JSContext *ctx)
- {
-     JSContext *caller;
+ /* The realm to compile eval or Function source in.  A realm the embedder
+  * vetoes is swapped for the caller's own realm: code reached through a
+  * shared object's constructor runs where the caller's own Function would

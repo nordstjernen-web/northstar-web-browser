@@ -18,7 +18,7 @@
      str = JS_ToCStringLen(ctx, &len, val);
      if (!str)
          return JS_EXCEPTION;
-@@ -41228,9 +41232,75 @@
+@@ -41228,10 +41232,85 @@
      return JS_EXCEPTION;
  }
  
@@ -74,32 +74,48 @@
 +    return js_caller_realm(ctx->rt);
 +}
 +
-+static int js_cross_realm_compile_denied(JSContext *ctx)
++/* The realm to compile eval or Function source in.  A realm the embedder
++ * vetoes is swapped for the caller's own realm: code reached through a
++ * shared object's constructor runs where the caller's own Function would
++ * have put it, which is also where a browser with per-frame DOM objects
++ * puts it.  NULL with an exception pending when no JS code is calling. */
++static JSContext *js_cross_realm_compile_target(JSContext *ctx)
 +{
 +    JSContext *caller;
 +    if (!js_cross_realm_compile_check)
-+        return 0;
++        return ctx;
 +    caller = js_caller_realm(ctx->rt);
 +    if (caller == ctx || js_cross_realm_compile_check(ctx, caller))
-+        return 0;
++        return ctx;
++    if (caller)
++        return caller;
 +    JS_ThrowTypeError(ctx, "code generation from another realm is not allowed");
-+    return 1;
++    return NULL;
 +}
 +
  static JSValue js_global_eval(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
  {
-+    if (js_cross_realm_compile_denied(ctx))
++    JSContext *compile_realm = js_cross_realm_compile_target(ctx);
++    if (!compile_realm)
 +        return JS_EXCEPTION;
-     return JS_EvalObject(ctx, ctx->global_obj, argv[0], JS_EVAL_TYPE_INDIRECT, -1);
+-    return JS_EvalObject(ctx, ctx->global_obj, argv[0], JS_EVAL_TYPE_INDIRECT, -1);
++    return JS_EvalObject(compile_realm, compile_realm->global_obj, argv[0],
++                         JS_EVAL_TYPE_INDIRECT, -1);
  }
  
-@@ -42574,6 +42644,8 @@
+ static JSValue js_global_isNaN(JSContext *ctx, JSValueConst this_val,
+@@ -42574,6 +42653,13 @@
      JSValue s, proto, obj = JS_UNDEFINED;
      StringBuffer b_s, *b = &b_s;
++    JSContext *compile_realm;
  
-+    if (js_cross_realm_compile_denied(ctx))
++    compile_realm = js_cross_realm_compile_target(ctx);
++    if (!compile_realm)
 +        return JS_EXCEPTION;
++    if (compile_realm != ctx)
++        return js_function_constructor(compile_realm, JS_UNDEFINED,
++                                       argc, argv, magic);
      string_buffer_init(ctx, b, 0);
      string_buffer_putc8(b, '(');
  

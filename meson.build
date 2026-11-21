@@ -18,6 +18,7 @@ project(
 )
 
 cc = meson.get_compiler('c')
+fs = import('fs')
 
 common_warning_flags = [
   '-Wshadow',
@@ -330,25 +331,95 @@ pdfjs_standard_fonts = []
 pdfjs_source = 'not built'
 if not get_option('pdfjs').disabled()
   if get_option('pdfjs_dir') != ''
-    pdfjs_check = run_command(
-      import('python').find_installation(),
-      files('scripts/check-pdfjs.py'), get_option('pdfjs_dir'),
-      check: false)
-    if pdfjs_check.returncode() != 0
-      error('-Dpdfjs_dir: ' + pdfjs_check.stderr().strip())
+    # Both the pdfjs-dist npm layout (build/pdf.min.mjs, wasm/,
+    # standard_fonts/) and the generic viewer layout distributions install
+    # (build/pdf.mjs, web/wasm/, web/standard_fonts/) are accepted, minified
+    # or not. The viewer (data/js/pdf-viewer.js) is written against 6.5 to 6.x.
+    pdfjs_root = get_option('pdfjs_dir')
+    if not fs.is_dir(pdfjs_root)
+      error('-Dpdfjs_dir: @0@ is not a directory'.format(pdfjs_root))
     endif
-    pdfjs_version = ''
-    foreach line : pdfjs_check.stdout().strip().split('\n')
-      kv = line.strip().split('\t')
-      if kv[0] == 'version'
-        pdfjs_version = kv[1]
-      elif kv[0] == 'font'
-        pdfjs_standard_fonts += files(kv[1])
-      else
-        pdfjs_embedded += {kv[0]: files(kv[1])}
+    pdfjs_candidates = {
+      'pdfjs_lib': ['build/pdf.min.mjs', 'build/pdf.mjs'],
+      'pdfjs_worker': ['build/pdf.worker.min.mjs', 'build/pdf.worker.mjs'],
+      'pdfjs_openjpeg': ['wasm/openjpeg.wasm', 'web/wasm/openjpeg.wasm'],
+      'pdfjs_jbig2': ['wasm/jbig2.wasm', 'web/wasm/jbig2.wasm'],
+      'pdfjs_qcms': ['wasm/qcms_bg.wasm', 'web/wasm/qcms_bg.wasm'],
+    }
+    foreach name, rels : pdfjs_candidates
+      pdfjs_found = ''
+      foreach rel : rels
+        if pdfjs_found == '' and fs.is_file(pdfjs_root / rel)
+          pdfjs_found = pdfjs_root / rel
+        endif
+      endforeach
+      if pdfjs_found == ''
+        error('-Dpdfjs_dir: @0@ has none of @1@'.format(pdfjs_root,
+                                                        ', '.join(rels)))
+      endif
+      pdfjs_embedded += {name: files(pdfjs_found)}
+    endforeach
+
+    # Glyph data for PDF's standard fonts when a document does not embed
+    # them. Only the BSD-licensed Foxit fonts (PDFium) are embedded; PDF.js's
+    # Liberation Sans, under GPL-2.0 with a font exception, is left out, and
+    # Helvetica/Arial then draw with a system sans-serif font.
+    pdfjs_font_dir = ''
+    foreach rel : ['standard_fonts', 'web/standard_fonts']
+      if pdfjs_font_dir == '' and fs.is_dir(pdfjs_root / rel)
+        pdfjs_font_dir = pdfjs_root / rel
       endif
     endforeach
-    pdfjs_source = pdfjs_version + ' from ' + get_option('pdfjs_dir')
+    if pdfjs_font_dir == ''
+      error('-Dpdfjs_dir: @0@ has neither standard_fonts nor web/standard_fonts'.format(pdfjs_root))
+    endif
+    foreach name : ['FoxitDingbats.pfb', 'FoxitFixed.pfb', 'FoxitFixedBold.pfb',
+                    'FoxitFixedBoldItalic.pfb', 'FoxitFixedItalic.pfb',
+                    'FoxitSerif.pfb', 'FoxitSerifBold.pfb',
+                    'FoxitSerifBoldItalic.pfb', 'FoxitSerifItalic.pfb',
+                    'FoxitSymbol.pfb']
+      if not fs.is_file(pdfjs_font_dir / name)
+        error('-Dpdfjs_dir: @0@ lacks the standard font @1@'.format(
+          pdfjs_font_dir, name))
+      endif
+      pdfjs_standard_fonts += files(pdfjs_font_dir / name)
+    endforeach
+
+    # The library and worker each state "pdfjsVersion = X.Y.Z" in their
+    # header comment; both must agree and fall in the supported range.
+    pdfjs_versions = []
+    foreach name : ['pdfjs_lib', 'pdfjs_worker']
+      pdfjs_text = fs.read(pdfjs_embedded[name][0])
+      if pdfjs_text.to_lower().contains('</script')
+        error('-Dpdfjs_dir: @0@ contains "</script" and cannot be inlined in a script element'.format(name))
+      endif
+      pdfjs_parts = pdfjs_text.split('pdfjsVersion')
+      if pdfjs_parts.length() < 2
+        error('-Dpdfjs_dir: @0@ does not state a pdfjsVersion'.format(name))
+      endif
+      pdfjs_v = pdfjs_parts[1].split('\n')[0].split(',')[0].split(';')[0]
+      pdfjs_v = pdfjs_v.strip().strip('=').strip().strip('"').strip()
+      pdfjs_digits = pdfjs_v
+      foreach c : ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        pdfjs_digits = pdfjs_digits.replace(c, '')
+      endforeach
+      if pdfjs_v.split('.').length() != 3 or pdfjs_digits != '..'
+        error('-Dpdfjs_dir: @0@ states an unreadable pdfjsVersion "@1@"'.format(
+          name, pdfjs_v))
+      endif
+      pdfjs_versions += pdfjs_v
+    endforeach
+    pdfjs_version = pdfjs_versions[0]
+    if pdfjs_versions[1] != pdfjs_version
+      error('-Dpdfjs_dir: PDF.js library @0@ and worker @1@ differ in version'.format(
+        pdfjs_version, pdfjs_versions[1]))
+    endif
+    if not (pdfjs_version.version_compare('>=6.5.0') and
+            pdfjs_version.version_compare('<7'))
+      error('-Dpdfjs_dir: PDF.js @0@ in @1@ is outside the supported range 6.5.0 to 6.x'.format(
+        pdfjs_version, pdfjs_root))
+    endif
+    pdfjs_source = pdfjs_version + ' from ' + pdfjs_root
   else
     pdfjs_sub = subproject('pdfjs-dist', required: get_option('pdfjs'))
     if pdfjs_sub.found()
@@ -470,28 +541,11 @@ else
   libwamr = declare_dependency()
 endif
 
-install_data(
-  'data/icons/hicolor/scalable/apps/northstar.svg',
-  'data/icons/hicolor/scalable/apps/northstar.gif',
-  'data/icons/hicolor/scalable/apps/northstar-back.svg',
-  'data/icons/hicolor/scalable/apps/northstar-forward.svg',
-  'data/icons/hicolor/scalable/apps/northstar-home.svg',
-  'data/icons/hicolor/scalable/apps/northstar-reload.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stop.svg',
-  'data/icons/hicolor/scalable/apps/northstar-print.svg',
-  'data/icons/hicolor/scalable/apps/northstar-downloads.svg',
-  'data/icons/hicolor/scalable/apps/northstar-bookmarks.svg',
-  'data/icons/hicolor/scalable/apps/northstar-bookmarks-saved.svg',
-  'data/icons/hicolor/scalable/apps/northstar-console.svg',
-  'data/icons/hicolor/scalable/apps/northstar-settings.svg',
-  'data/icons/hicolor/scalable/apps/northstar-about.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-connect.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-fetch.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-parse.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-script.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-render.svg',
-  'data/icons/hicolor/scalable/apps/northstar-stage-done.svg',
-  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
+# Every file in these two directories is installed, so a new icon or
+# translation needs no change here.
+install_subdir(
+  'data/icons/hicolor/scalable/apps',
+  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable',
 )
 
 install_data(
@@ -505,48 +559,9 @@ install_data(
   install_dir: get_option('datadir') / 'northstar',
 )
 
-install_data(
-  'data/i18n/am.lang',
-  'data/i18n/ar.lang',
-  'data/i18n/bn.lang',
-  'data/i18n/de.lang',
-  'data/i18n/el.lang',
-  'data/i18n/en.lang',
-  'data/i18n/es.lang',
-  'data/i18n/fa.lang',
-  'data/i18n/fr.lang',
-  'data/i18n/gu.lang',
-  'data/i18n/ha.lang',
-  'data/i18n/hi.lang',
-  'data/i18n/hu.lang',
-  'data/i18n/id.lang',
-  'data/i18n/it.lang',
-  'data/i18n/ja.lang',
-  'data/i18n/jv.lang',
-  'data/i18n/kn.lang',
-  'data/i18n/ko.lang',
-  'data/i18n/ml.lang',
-  'data/i18n/mr.lang',
-  'data/i18n/my.lang',
-  'data/i18n/nl.lang',
-  'data/i18n/pa.lang',
-  'data/i18n/pl.lang',
-  'data/i18n/pt.lang',
-  'data/i18n/ro.lang',
-  'data/i18n/ru.lang',
-  'data/i18n/su.lang',
-  'data/i18n/sw.lang',
-  'data/i18n/ta.lang',
-  'data/i18n/te.lang',
-  'data/i18n/th.lang',
-  'data/i18n/tl.lang',
-  'data/i18n/tr.lang',
-  'data/i18n/uk.lang',
-  'data/i18n/ur.lang',
-  'data/i18n/vi.lang',
-  'data/i18n/yo.lang',
-  'data/i18n/zh.lang',
-  install_dir: get_option('datadir') / 'northstar' / 'i18n',
+install_subdir(
+  'data/i18n',
+  install_dir: get_option('datadir') / 'northstar',
 )
 
 install_data(

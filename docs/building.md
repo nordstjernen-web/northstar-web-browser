@@ -198,7 +198,7 @@ cannot satisfy locally, unless the system supplies them. A tarball that must bui
 
 A quickjs-ng build also compiles `data/js/polyfills.js` with quickjs-ng's
 `qjs` and `qjsc` (the subproject's, or the system's alongside a system
-quickjs-ng) as a syntax and sanity check (`scripts/verify-polyfills.py`).
+quickjs-ng) as a syntax and sanity check (`scripts/verify-polyfills.js`).
 A `-Djs_engine=quickjs` build skips the check: that subproject builds no
 tools, and a `qjsc` from Bellard's QuickJS on the `PATH` takes different
 options.
@@ -292,7 +292,7 @@ PDF.js is never part of this repository. Without `pdfjs_dir`, meson fetches
 the release pinned in `subprojects/pdfjs-dist.wrap` (by version and
 SHA-256) into the git-ignored `subprojects/pdfjs-dist-<version>/`. With
 `pdfjs_dir`, it uses an installed copy instead, which
-`scripts/check-pdfjs.py` vets at setup: it must hold the library, the
+`meson.build` vets at setup: it must hold the library, the
 worker, the three WebAssembly image decoders and the Foxit standard fonts
 (the BSD-licensed glyph data for PDFs that name a standard font without
 embedding it), in either the pdfjs-dist
@@ -319,7 +319,7 @@ the pin, change `directory`, `source_url`, `source_filename` and
 `source_hash` in the wrap and the version in
 `subprojects/packagefiles/pdfjs-dist/meson.build`, delete the old
 `subprojects/pdfjs-dist-*/`, check the new release against the viewer,
-and raise `MIN_VERSION`/`MAX_MAJOR` in `scripts/check-pdfjs.py` if the
+and raise the `version_compare` range in the `pdfjs_dir` block of `meson.build` if the
 supported range moves.
 
 ## Command line
@@ -467,7 +467,7 @@ verified by running the browser.
 | `render-screenshots.sh` | Render each URL listed in `data/screenshots/sites.txt` to a PNG beside it. |
 | `speedometer-bench.sh`, `speedometer4-bench.sh`, `sample-profile.sh` | Benchmarks and a sampling profiler. |
 | `gen-architecture.py`, `gen-badge.sh`, `gen-windows-icon.py` | Regenerate the architecture diagram, the badge and the Windows icon. |
-| `embed-text.py`, `verify-polyfills.py`, `verify-polyfills.js` | Build helpers: embed the JS polyfills and hooks, check the polyfills. |
+| `embed-text.py`, `verify-polyfills.js` | Build helpers: embed a file as a C array, and the polyfill smoke test meson runs under `qjs`. |
 
 ## Definition of done
 

@@ -49,6 +49,7 @@ void ns_wasm_cross_thread_drop(guint64 id)
 
 #include "ns_wamr.h"
 #include "shared_buffer.h"
+#include "js.h"
 
 #define NS_WASM_STACK_SIZE (1u << 20)
 #define NS_WASM_RECLAIM_INTERVAL 64
@@ -63,6 +64,9 @@ void ns_wasm_cross_thread_drop(guint64 id)
 /* Hidden WebAssembly member the bootstrap defines: returns [tag, payload]
  * for a WebAssembly.Exception, undefined otherwise. */
 #define NS_WASM_EXCEPTION_PARTS "__nsExceptionParts"
+/* Internal tag for a JS value thrown through an import: no catch clause
+ * names it, so only catch_all takes it, as in browsers. */
+#define NS_WASM_JS_EXCEPTION_TAG 0xFFFFFFFEu
 
 static JSClassID ns_wasm_module_class_id;
 static JSClassID ns_wasm_instance_class_id;
@@ -72,6 +76,10 @@ static JSClassID ns_wasm_global_class_id;
 static JSClassID ns_wasm_func_class_id;
 
 static GMutex ns_wasm_link_mutex;
+
+/* When control last entered WebAssembly on this thread (0: in JS). Time
+ * spent in wasm is credited back to the page's script deadlines. */
+static _Thread_local gint64 ns_wasm_entered_us;
 
 typedef struct {
     JSContext *ctx;
@@ -120,6 +128,9 @@ typedef struct {
     JSValue pending_exc;
     /* WebAssembly.Tag object per tag index, created on first use */
     JSValue tags;
+    /* JS values thrown through an import, unwinding through wasm as
+       NS_WASM_JS_EXCEPTION_TAG exceptions whose payload is the slot */
+    JSValue js_exceptions;
     /* the one JS function per wasm function: Table.get(i) and an export
        return the same object every time, as Emscripten checks */
     JSValue funcs;
@@ -673,6 +684,47 @@ ns_wasm_throw_exception_to_wasm(JSContext *ctx, ns_wasm_instance *wi,
     return ns_wamr_throw_exception(wi->inst, tag_index, cells, pos);
 }
 
+/* Lets a JS value thrown by an import unwind through wasm: it is kept in
+ * the instance and raised under NS_WASM_JS_EXCEPTION_TAG, so catch_all
+ * can run cleanup and rethrow it. Returns TRUE when raised. */
+static gboolean
+ns_wasm_throw_js_value_to_wasm(JSContext *ctx, ns_wasm_instance *wi,
+                               JSValueConst thrown)
+{
+    if (!JS_IsObject(wi->js_exceptions)) {
+        JS_FreeValue(ctx, wi->js_exceptions);
+        wi->js_exceptions = JS_NewArray(ctx);
+        if (JS_IsException(wi->js_exceptions)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+            wi->js_exceptions = JS_UNDEFINED;
+            return FALSE;
+        }
+    }
+    /* reuse a free slot, else append */
+    uint32_t len = 0, slot = 0;
+    JSValue len_v = JS_GetPropertyStr(ctx, wi->js_exceptions, "length");
+    JS_ToUint32(ctx, &len, len_v);
+    JS_FreeValue(ctx, len_v);
+    for (slot = 0; slot < len; slot++) {
+        JSValue v = JS_GetPropertyUint32(ctx, wi->js_exceptions, slot);
+        gboolean free_slot = JS_IsUndefined(v);
+        JS_FreeValue(ctx, v);
+        if (free_slot)
+            break;
+    }
+    if (JS_SetPropertyUint32(ctx, wi->js_exceptions, slot,
+                             JS_DupValue(ctx, thrown)) < 0) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    uint32_t cell = slot;
+    if (!ns_wamr_throw_exception(wi->inst, NS_WASM_JS_EXCEPTION_TAG, &cell, 1)) {
+        JS_SetPropertyUint32(ctx, wi->js_exceptions, slot, JS_UNDEFINED);
+        return FALSE;
+    }
+    return TRUE;
+}
+
 /* Converts a call outcome to JS: rethrows a pending import exception or a RuntimeError trap. */
 static JSValue
 ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
@@ -688,9 +740,19 @@ ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
         }
         uint32_t tag_index = 0, cells[NS_WAMR_EH_MAX_CELLS], cell_num = 0;
         if (ns_wamr_take_exception(wi->inst, &tag_index, cells,
-                                   NS_WAMR_EH_MAX_CELLS, &cell_num))
+                                   NS_WAMR_EH_MAX_CELLS, &cell_num)) {
+            if (tag_index == NS_WASM_JS_EXCEPTION_TAG && cell_num >= 1 &&
+                JS_IsObject(wi->js_exceptions)) {
+                /* the JS value an import threw, unchanged */
+                JSValue v = JS_GetPropertyUint32(ctx, wi->js_exceptions,
+                                                 cells[0]);
+                JS_SetPropertyUint32(ctx, wi->js_exceptions, cells[0],
+                                     JS_UNDEFINED);
+                return JS_Throw(ctx, v);
+            }
             return ns_wasm_throw_exception_to_js(ctx, wi, tag_index, cells,
                                                  cell_num);
+        }
         const char *msg = wasm_runtime_get_exception(wi->inst);
         JSValue ret = ns_wasm_throw_named(ctx, "RuntimeError",
                                           msg ? msg : "wasm trap");
@@ -759,8 +821,14 @@ ns_wasm_call_function(JSContext *ctx, ns_wasm_instance *wi,
     }
 
     wi->call_depth++;
+    /* wasm time is not script time: credit it back to the deadlines */
+    gint64 outer_entered = ns_wasm_entered_us;
+    ns_wasm_entered_us = g_get_monotonic_time();
     gboolean ok = wasm_runtime_call_wasm_a(wi->exec_env, func, n_results,
                                            results, n_params, args);
+    if (ns_wasm_entered_us)
+        ns_js_credit_wasm_time(ctx, g_get_monotonic_time() - ns_wasm_entered_us);
+    ns_wasm_entered_us = outer_entered;
     wi->call_depth--;
     ns_wasm_memory_resync(ctx, wi);
 
@@ -1047,6 +1115,16 @@ ns_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc,
     }
     return JS_NewUint32(ctx, old_pages);
 }
+
+static const JSCFunctionListEntry ns_wasm_module_proto_funcs[] = {
+    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WebAssembly.Module",
+                       JS_PROP_CONFIGURABLE),
+};
+
+static const JSCFunctionListEntry ns_wasm_instance_proto_funcs[] = {
+    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WebAssembly.Instance",
+                       JS_PROP_CONFIGURABLE),
+};
 
 static const JSCFunctionListEntry ns_wasm_memory_proto_funcs[] = {
     JS_CGETSET_DEF("buffer", ns_wasm_memory_buffer_get, NULL),
@@ -1519,6 +1597,7 @@ ns_wasm_instance_finalizer(JSRuntime *rt, JSValue val)
     JS_FreeValueRT(rt, wi->pending_exc);
     JS_FreeValueRT(rt, wi->tags);
     JS_FreeValueRT(rt, wi->funcs);
+    JS_FreeValueRT(rt, wi->js_exceptions);
     g_free(wi);
 }
 
@@ -1535,6 +1614,7 @@ ns_wasm_instance_gc_mark(JSRuntime *rt, JSValueConst val,
     JS_MarkValue(rt, wi->pending_exc, mark_func);
     JS_MarkValue(rt, wi->tags, mark_func);
     JS_MarkValue(rt, wi->funcs, mark_func);
+    JS_MarkValue(rt, wi->js_exceptions, mark_func);
     ns_wasm_linkage_gc_mark(rt, &wi->linkage, mark_func);
 }
 
@@ -1617,7 +1697,12 @@ ns_wasm_native_dispatch(wasm_exec_env_t exec_env, uint64_t *args)
         }
     }
 
+    /* the clock stops while the JS import runs and restarts after it */
+    if (ns_wasm_entered_us)
+        ns_js_credit_wasm_time(ctx, g_get_monotonic_time() - ns_wasm_entered_us);
+    ns_wasm_entered_us = 0;
     JSValue ret = JS_Call(ctx, b->fn, JS_UNDEFINED, (int)argc, argv);
+    ns_wasm_entered_us = g_get_monotonic_time();
     for (guint i = 0; i < argc; i++)
         JS_FreeValue(ctx, argv[i]);
 
@@ -1625,7 +1710,8 @@ ns_wasm_native_dispatch(wasm_exec_env_t exec_env, uint64_t *args)
         /* a WebAssembly.Exception of this instance's tags unwinds into
            the wasm caller, which may catch it */
         JSValue thrown = JS_GetException(ctx);
-        if (wi && inst && ns_wasm_throw_exception_to_wasm(ctx, wi, thrown)) {
+        if (wi && inst && (ns_wasm_throw_exception_to_wasm(ctx, wi, thrown) ||
+                           ns_wasm_throw_js_value_to_wasm(ctx, wi, thrown))) {
             JS_FreeValue(ctx, thrown);
             return;
         }
@@ -2366,6 +2452,7 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
     wi->pending_exc = JS_UNDEFINED;
     wi->tags = JS_UNDEFINED;
     wi->funcs = JS_UNDEFINED;
+    wi->js_exceptions = JS_UNDEFINED;
     wi->linkage = linkage;
 
     g_private_set(&ns_wasm_instantiating, wi);
@@ -3054,9 +3141,14 @@ ns_wasm_install(JSContext *ctx, JSValueConst global)
     JS_SetClassProto(ctx, ns_wasm_global_class_id, global_proto);
 
     JSValue module_proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, module_proto, ns_wasm_module_proto_funcs,
+                               G_N_ELEMENTS(ns_wasm_module_proto_funcs));
     JS_SetClassProto(ctx, ns_wasm_module_class_id,
                      JS_DupValue(ctx, module_proto));
     JSValue instance_proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, instance_proto,
+                               ns_wasm_instance_proto_funcs,
+                               G_N_ELEMENTS(ns_wasm_instance_proto_funcs));
     JS_SetClassProto(ctx, ns_wasm_instance_class_id,
                      JS_DupValue(ctx, instance_proto));
 

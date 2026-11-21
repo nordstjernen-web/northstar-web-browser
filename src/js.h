@@ -24,6 +24,11 @@ G_BEGIN_DECLS
 #define NS_JS_EVAL_BUDGET_MAX_MS 3600000
 
 typedef struct ns_js ns_js;
+
+struct JSContext;
+
+/* Pushes a page's script deadlines out by time spent executing wasm. */
+void ns_js_credit_wasm_time(struct JSContext *ctx, gint64 elapsed_us);
 typedef struct ns_js_drag_session ns_js_drag_session;
 
 typedef void (*ns_js_log_cb)(const char *line, gpointer user_data);

@@ -483,7 +483,18 @@ wasm_feature = get_option('wasm').require(
                  '(not Arm Windows); build with -Dwasm=disabled')
 have_wasm = wasm_feature.allowed()
 if have_wasm
-  subdir('src/wamr')
+  # WAMR is the upstream release pinned in subprojects/wamr.wrap. A subproject
+  # does not inherit this project's arguments, so the hardening and
+  # code-generation flags are handed to it.
+  wamr_parent_c_args = cc.get_supported_arguments(
+    hardening_c_flags + ['-ffunction-sections', '-fdata-sections'])
+  if not ns_is_release
+    wamr_parent_c_args += cc.get_supported_arguments(
+      ['-g3', '-fno-omit-frame-pointer'])
+  endif
+  libwamr = subproject('wamr',
+    default_options: {'parent_c_args': wamr_parent_c_args},
+  ).get_variable('libwamr')
 else
   libwamr = declare_dependency()
 endif

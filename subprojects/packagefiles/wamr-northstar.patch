@@ -1,0 +1,1077 @@
+--- a/core/iwasm/common/wasm_memory.c
++++ b/core/iwasm/common/wasm_memory.c
+@@ -5,7 +5,9 @@
+ 
+ #include "wasm_runtime_common.h"
+ #include "../interpreter/wasm_runtime.h"
++#if WASM_ENABLE_AOT != 0
+ #include "../aot/aot_runtime.h"
++#endif
+ #include "mem_alloc.h"
+ #include "wasm_memory.h"
+ 
+@@ -36,6 +38,19 @@
+ static enlarge_memory_error_callback_t enlarge_memory_error_cb;
+ static void *enlarge_memory_error_user_data;
+ 
++static void (*enlarge_memory_success_cb)(WASMModuleInstanceCommon *module_inst,
++                                         void *user_data);
++static void *enlarge_memory_success_user_data;
++
++void
++wasm_runtime_set_enlarge_mem_success_callback(
++    void (*callback)(WASMModuleInstanceCommon *module_inst, void *user_data),
++    void *user_data)
++{
++    enlarge_memory_success_cb = callback;
++    enlarge_memory_success_user_data = user_data;
++}
++
+ #if WASM_MEM_ALLOC_WITH_USER_DATA != 0
+ static void *allocator_user_data = NULL;
+ #endif
+@@ -1704,6 +1719,9 @@
+ 
+     wasm_runtime_set_mem_bound_check_bytes(memory, total_size_new);
+ 
++    if (module && enlarge_memory_success_cb)
++        enlarge_memory_success_cb(module, enlarge_memory_success_user_data);
++
+ return_func:
+     if (!ret && module && enlarge_memory_error_cb) {
+         WASMExecEnv *exec_env = NULL;
+--- a/core/iwasm/common/wasm_runtime_common.c
++++ b/core/iwasm/common/wasm_runtime_common.c
+@@ -4418,6 +4418,99 @@
+ #endif
+ }
+ 
++bool
++wasm_runtime_link_import_global(WASMModuleCommon *const module,
++                                int32 import_index, const wasm_val_t *value)
++{
++#if WASM_ENABLE_INTERP != 0
++    if (module && value && module->module_type == Wasm_Module_Bytecode) {
++        WASMModule *wasm_module = (WASMModule *)module;
++        WASMImport *wasm_import;
++
++        if ((uint32)import_index >= wasm_module->import_count)
++            return false;
++        wasm_import = &wasm_module->imports[import_index];
++        if (wasm_import->kind != WASM_IMPORT_EXPORT_KIND_GLOBAL)
++            return false;
++        switch (value->kind) {
++            case WASM_I32:
++                wasm_import->u.global.global_data_linked.i32 = value->of.i32;
++                break;
++            case WASM_I64:
++                wasm_import->u.global.global_data_linked.i64 = value->of.i64;
++                break;
++            case WASM_F32:
++                wasm_import->u.global.global_data_linked.f32 = value->of.f32;
++                break;
++            case WASM_F64:
++                wasm_import->u.global.global_data_linked.f64 = value->of.f64;
++                break;
++            default:
++                return false;
++        }
++        wasm_import->u.global.is_linked = true;
++        return true;
++    }
++#endif
++    (void)module;
++    (void)import_index;
++    (void)value;
++    return false;
++}
++
++int32
++wasm_runtime_get_data_segment_count(WASMModuleCommon *const module)
++{
++#if WASM_ENABLE_INTERP != 0
++    if (module && module->module_type == Wasm_Module_Bytecode) {
++        return (int32)((WASMModule *)module)->data_seg_count;
++    }
++#endif
++    return -1;
++}
++
++bool
++wasm_runtime_get_data_segment_range(WASMModuleCommon *const module,
++                                    int32 index, uint64 *out_offset,
++                                    uint32 *out_length)
++{
++#if WASM_ENABLE_INTERP != 0
++    if (module && out_offset && out_length
++        && module->module_type == Wasm_Module_Bytecode) {
++        WASMModule *wasm_module = (WASMModule *)module;
++        WASMDataSeg *data_seg;
++
++        if ((uint32)index >= wasm_module->data_seg_count)
++            return false;
++        data_seg = wasm_module->data_segments[index];
++#if WASM_ENABLE_BULK_MEMORY != 0
++        if (data_seg->is_passive) {
++            *out_offset = 0;
++            *out_length = 0;
++            return true;
++        }
++#endif
++        switch (data_seg->base_offset.init_expr_type) {
++            case INIT_EXPR_TYPE_I32_CONST:
++                *out_offset = (uint64)(uint32)data_seg->base_offset.u.unary.v.i32;
++                break;
++            case INIT_EXPR_TYPE_I64_CONST:
++                *out_offset = (uint64)data_seg->base_offset.u.unary.v.i64;
++                break;
++            default:
++                return false;
++        }
++        *out_length = data_seg->data_length;
++        return true;
++    }
++#endif
++    (void)module;
++    (void)index;
++    (void)out_offset;
++    (void)out_length;
++    return false;
++}
++
+ int32
+ wasm_runtime_get_export_count(WASMModuleCommon *const module)
+ {
+@@ -4711,6 +4804,7 @@
+ #endif
+ #if WASM_ENABLE_REF_TYPES != 0
+         case VALUE_TYPE_EXTERNREF:
++            return WASM_EXTERNREF;
+ #endif
+         case VALUE_TYPE_VOID:
+         default:
+@@ -4952,7 +5046,7 @@
+                 if (!wasm_externref_ref2obj(externref_idx, &externref_obj))
+                     goto fail;
+ 
+-                bh_memcpy_s(argv_dst, sizeof(uintptr_t), argv_src,
++                bh_memcpy_s(argv_dst, sizeof(uintptr_t), &externref_obj,
+                             sizeof(uintptr_t));
+                 break;
+             }
+--- a/core/iwasm/include/wasm_export.h
++++ b/core/iwasm/include/wasm_export.h
+@@ -1545,6 +1545,42 @@
+                              wasm_import_t *import_type);
+ 
+ /**
++ * Provide the value for an imported global so instantiation links it,
++ * as if it had been resolved against a built-in module. Bytecode
++ * modules only.
++ *
++ * @param module the WASM module
++ * @param import_index index into the module's import section, which
++ *        must refer to a global import
++ * @param value the value to link the global to; the kind must match
++ *        the declared type
++ *
++ * @return true on success
++ */
++WASM_RUNTIME_API_EXTERN bool
++wasm_runtime_link_import_global(const wasm_module_t module,
++                                int32_t import_index,
++                                const wasm_val_t *value);
++
++/**
++ * Get the number of data segments in a WASM module. Bytecode modules
++ * only; returns -1 otherwise.
++ */
++WASM_RUNTIME_API_EXTERN int32_t
++wasm_runtime_get_data_segment_count(const wasm_module_t module);
++
++/**
++ * Get the linear memory range an active data segment initializes.
++ * Passive segments report a zero-length range. Returns false for
++ * segments whose offset is not a constant expression, or for
++ * non-bytecode modules.
++ */
++WASM_RUNTIME_API_EXTERN bool
++wasm_runtime_get_data_segment_range(const wasm_module_t module,
++                                    int32_t index, uint64_t *out_offset,
++                                    uint32_t *out_length);
++
++/**
+  * Get the number of export items for a WASM module
+  *
+  * @param module the WASM module
+--- a/core/iwasm/interpreter/wasm.h
++++ b/core/iwasm/interpreter/wasm.h
+@@ -681,6 +681,40 @@
+     } u;
+ } WASMImport;
+ 
++#if WASM_ENABLE_EXCE_HANDLING != 0 && WASM_ENABLE_FAST_INTERP != 0
++/* Largest exception payload, in cells, the fast interpreter carries. */
++#define WASM_FAST_EH_MAX_PAYLOAD_CELLS 16
++#define WASM_FAST_EH_CATCH_ALL ((uint32)0xFFFFFFFF)
++#define WASM_FAST_EH_NO_DELEGATE (-2)
++
++/* A try block of the fast interpreter's compiled code. An exception
++   raised after the instruction that ends at compiled address ip belongs
++   to the innermost (highest-index) handler with start < ip <= end. */
++typedef struct WASMFastEHHandler {
++    uint8 *start;
++    uint8 *end;
++    /* innermost enclosing try still in its body, or -1 */
++    int32 parent;
++    /* WASM_FAST_EH_NO_DELEGATE, -1 to rethrow to the caller, or the
++       handler the exception is delegated to */
++    int32 delegate;
++    /* first catch clause index, or -1; clauses are linked by next */
++    int32 catch_first;
++    int32 catch_last;
++    /* slot of the caught-exception record used by rethrow */
++    uint32 slot;
++} WASMFastEHHandler;
++
++typedef struct WASMFastEHCatch {
++    /* tag index, or WASM_FAST_EH_CATCH_ALL */
++    uint32 tag_index;
++    int32 next;
++    /* frame cell the payload is copied to */
++    int16 dst_offset;
++    uint8 *target;
++} WASMFastEHCatch;
++#endif
++
+ struct WASMFunction {
+ #if WASM_ENABLE_CUSTOM_NAME_SECTION != 0
+     char *field_name;
+@@ -722,6 +756,19 @@
+ 
+ #if WASM_ENABLE_EXCE_HANDLING != 0
+     uint32 exception_handler_count;
++#if WASM_ENABLE_FAST_INTERP != 0
++    /* Fast-interpreter exception handling (legacy try/catch/delegate):
++       one handler per try block, in try-opening order, and their catch
++       clauses. See WASMFastEHHandler. */
++    struct WASMFastEHHandler *eh_handlers;
++    uint32 eh_handler_count;
++    struct WASMFastEHCatch *eh_catches;
++    uint32 eh_catch_count;
++    /* Frame cell (relative to frame lp) where the caught-exception records
++       for rethrow start, and the cells one record takes. */
++    uint32 eh_record_base;
++    uint32 eh_record_stride;
++#endif
+ #endif
+ 
+ #if WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 \
+--- a/core/iwasm/interpreter/wasm_interp_fast.c
++++ b/core/iwasm/interpreter/wasm_interp_fast.c
+@@ -1492,6 +1492,121 @@
+ #endif
+ }
+ 
++#if WASM_ENABLE_EXCE_HANDLING != 0
++/* Starts unwinding a wasm exception whose payload is in module->e->eh_cells. */
++static void
++fast_eh_raise(WASMModuleInstance *module, uint32 tag_index, uint32 cell_num)
++{
++    module->e->eh_tag_index = tag_index;
++    module->e->eh_cell_num = cell_num;
++    module->e->eh_pending = true;
++    wasm_set_exception(module, WASM_FAST_EH_EXCEPTION_MSG);
++}
++
++/* TRUE while the pending exception is a wasm exception, not a trap. */
++static bool
++fast_eh_is_pending(WASMModuleInstance *module)
++{
++    const char *exc;
++
++    if (!module->e->eh_pending)
++        return false;
++    exc = wasm_get_exception(module);
++    if (exc && strcmp(exc, "Exception: " WASM_FAST_EH_EXCEPTION_MSG) == 0)
++        return true;
++    /* a trap replaced it */
++    module->e->eh_pending = false;
++    return false;
++}
++
++/* Finds the catch clause of function `func` that takes an exception with
++   tag `tag_index` raised after the instruction ending at `ip`. */
++static bool
++fast_eh_find_catch(const WASMFunction *func, const uint8 *ip, uint32 tag_index,
++                   const WASMFastEHHandler **p_handler,
++                   const WASMFastEHCatch **p_catch)
++{
++    int32 h = -1, i, c;
++
++    for (i = (int32)func->eh_handler_count - 1; i >= 0; i--) {
++        const WASMFastEHHandler *handler = &func->eh_handlers[i];
++        if (handler->start < ip && ip <= handler->end) {
++            h = i;
++            break;
++        }
++    }
++    while (h >= 0) {
++        const WASMFastEHHandler *handler = &func->eh_handlers[h];
++        if (handler->delegate != WASM_FAST_EH_NO_DELEGATE) {
++            h = handler->delegate;
++            continue;
++        }
++        for (c = handler->catch_first; c >= 0; c = func->eh_catches[c].next) {
++            const WASMFastEHCatch *clause = &func->eh_catches[c];
++            if (clause->tag_index == WASM_FAST_EH_CATCH_ALL
++                || clause->tag_index == tag_index) {
++                *p_handler = handler;
++                *p_catch = clause;
++                return true;
++            }
++        }
++        h = handler->parent;
++    }
++    return false;
++}
++
++/* Unwinds the interpreter frames of this call from `frame` until a catch
++   clause takes the pending wasm exception: copies the payload and the
++   rethrow record into that frame and returns it, with *p_target set to
++   the catch body. Returns NULL, with the exception still pending, when
++   the exception leaves the outermost frame of this call. */
++static WASMInterpFrame *
++fast_eh_unwind(WASMModuleInstance *module, WASMExecEnv *exec_env,
++               WASMInterpFrame *frame, uint8 **p_target)
++{
++    uint32 tag_index = module->e->eh_tag_index;
++    uint32 cell_num = module->e->eh_cell_num;
++
++    for (;;) {
++        WASMFunctionInstance *fi = frame->function;
++        const WASMFastEHHandler *handler;
++        const WASMFastEHCatch *clause;
++        WASMInterpFrame *prev;
++
++        if (fi && !fi->is_import_func && frame->ip
++            && fi->u.func->eh_handler_count > 0
++            && fast_eh_find_catch(fi->u.func, frame->ip, tag_index, &handler,
++                                  &clause)) {
++            WASMFunction *func = fi->u.func;
++            uint32 *record = frame->lp + func->eh_record_base
++                             + handler->slot * func->eh_record_stride;
++
++            record[0] = tag_index;
++            if (cell_num > 0) {
++                bh_memcpy_s(record + 1, (func->eh_record_stride - 1) * 4,
++                            module->e->eh_cells, cell_num * 4);
++                if (clause->tag_index != WASM_FAST_EH_CATCH_ALL)
++                    bh_memcpy_s(frame->lp + clause->dst_offset, cell_num * 4,
++                                module->e->eh_cells, cell_num * 4);
++            }
++            module->e->eh_pending = false;
++            wasm_set_exception(module, NULL);
++            wasm_exec_env_set_cur_frame(exec_env, (WASMRuntimeFrame *)frame);
++            *p_target = clause->target;
++            return frame;
++        }
++
++        prev = frame->prev_frame;
++        /* the frame below belongs to whoever called into the interpreter */
++        if (!prev || !prev->ip)
++            return NULL;
++        FREE_FRAME(exec_env, frame);
++        wasm_exec_env_set_cur_frame(exec_env, (WASMRuntimeFrame *)prev);
++        frame = prev;
++    }
++}
++#endif /* end of WASM_ENABLE_EXCE_HANDLING != 0 */
++
+ static void
+ wasm_interp_call_func_bytecode(WASMModuleInstance *module,
+                                WASMExecEnv *exec_env,
+@@ -1836,10 +1951,49 @@
+             }
+ 
+ #if WASM_ENABLE_EXCE_HANDLING != 0
+-            HANDLE_OP(WASM_OP_TRY)
+-            HANDLE_OP(WASM_OP_CATCH)
+             HANDLE_OP(WASM_OP_THROW)
++            {
++                /* tag index, param count, then per param: src offset,
++                   payload cell index, cell count */
++                uint32 tag_index = read_uint32(frame_ip);
++                uint32 n = read_uint32(frame_ip), k, cell_num = 0;
++                uint32 *cells = module->e->eh_cells;
++
++                for (k = 0; k < n; k++) {
++                    int16 src = GET_OFFSET();
++                    uint32 cell_idx = (uint16)GET_OFFSET();
++                    uint32 cell_cnt = (uint16)GET_OFFSET();
++                    if (cell_idx + cell_cnt > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
++                        wasm_set_exception(module, "exception payload too large");
++                        goto got_exception;
++                    }
++                    bh_memcpy_s(cells + cell_idx, cell_cnt * 4, frame_lp + src,
++                                cell_cnt * 4);
++                    if (cell_idx + cell_cnt > cell_num)
++                        cell_num = cell_idx + cell_cnt;
++                }
++                fast_eh_raise(module, tag_index, cell_num);
++                goto got_exception;
++            }
++
+             HANDLE_OP(WASM_OP_RETHROW)
++            {
++                uint32 slot = read_uint32(frame_ip);
++                WASMFunction *wasm_func = cur_func->u.func;
++                uint32 *record = frame_lp + wasm_func->eh_record_base
++                                 + slot * wasm_func->eh_record_stride;
++                uint32 cell_num = wasm_func->eh_record_stride - 1;
++
++                bh_memcpy_s(module->e->eh_cells, sizeof(module->e->eh_cells),
++                            record + 1, cell_num * 4);
++                fast_eh_raise(module, record[0], cell_num);
++                goto got_exception;
++            }
++
++            /* the loader resolves try, delegate and the catch clauses
++               into the function's handler table; these never run */
++            HANDLE_OP(WASM_OP_TRY)
++            HANDLE_OP(WASM_OP_CATCH)
+             HANDLE_OP(WASM_OP_DELEGATE)
+             HANDLE_OP(WASM_OP_CATCH_ALL)
+             HANDLE_OP(EXT_OP_TRY)
+@@ -7815,6 +7969,22 @@
+ 
+     got_exception:
+         SYNC_ALL_TO_FRAME();
++#if WASM_ENABLE_EXCE_HANDLING != 0
++        if (fast_eh_is_pending(module)) {
++            uint8 *catch_target = NULL;
++            WASMInterpFrame *catch_frame =
++                fast_eh_unwind(module, exec_env, frame, &catch_target);
++            if (catch_frame) {
++                RECOVER_CONTEXT(catch_frame);
++                frame_ip = catch_target;
++#if WASM_ENABLE_GC != 0
++                local_cell_num =
++                    cur_func->param_cell_num + cur_func->local_cell_num;
++#endif
++                HANDLE_OP_END();
++            }
++        }
++#endif
+         return;
+ 
+ #if WASM_ENABLE_LABELS_AS_VALUES == 0
+--- a/core/iwasm/interpreter/wasm_loader.c
++++ b/core/iwasm/interpreter/wasm_loader.c
+@@ -6510,7 +6510,25 @@
+         }
+     }
+ 
+-    if (!module->possible_memory_grow) {
++    bool has_exported_memory = false;
++    for (i = 0; i < module->export_count; i++) {
++        if (module->exports[i].kind == EXPORT_KIND_MEMORY) {
++            has_exported_memory = true;
++        }
++        else if (module->exports[i].kind == EXPORT_KIND_TABLE) {
++            uint32 table_idx = module->exports[i].index;
++            if (table_idx < module->import_table_count)
++                module->import_tables[table_idx]
++                    .u.table.table_type.possible_grow = true;
++            else if (table_idx - module->import_table_count
++                     < module->table_count)
++                module->tables[table_idx - module->import_table_count]
++                    .table_type.possible_grow = true;
++        }
++    }
++
++    if (!module->possible_memory_grow && !has_exported_memory
++        && module->import_memory_count == 0) {
+ #if WASM_ENABLE_SHRUNK_MEMORY != 0
+         if (aux_data_end_global && aux_heap_base_global
+             && aux_stack_top_global) {
+@@ -7177,6 +7195,12 @@
+                     wasm_runtime_free(module->functions[i]->code_compiled);
+                 if (module->functions[i]->consts)
+                     wasm_runtime_free(module->functions[i]->consts);
++#if WASM_ENABLE_EXCE_HANDLING != 0
++                if (module->functions[i]->eh_handlers)
++                    wasm_runtime_free(module->functions[i]->eh_handlers);
++                if (module->functions[i]->eh_catches)
++                    wasm_runtime_free(module->functions[i]->eh_catches);
++#endif
+ #endif
+ #if WASM_ENABLE_FAST_JIT != 0
+                 if (module->functions[i]->fast_jit_jitted_code) {
+@@ -8281,6 +8305,11 @@
+      * to copy the stack operands to the loop block's arguments in
+      * wasm_loader_emit_br_info for opcode br. */
+     uint16 start_dynamic_offset;
++#if WASM_ENABLE_EXCE_HANDLING != 0
++    /* index of this try's WASMFastEHHandler, and its rethrow record slot */
++    int32 eh_index;
++    uint32 eh_slot;
++#endif
+ #endif
+ 
+     /* Indicate the operand stack is in polymorphic state.
+@@ -8362,6 +8391,13 @@
+      * than the final code_compiled_size, we record the peak size to ensure
+      * there will not be invalid memory access during second traverse */
+     uint32 code_compiled_peak_size;
++#if WASM_ENABLE_EXCE_HANDLING != 0
++    /* try blocks and catch clauses seen so far in this traverse */
++    uint32 eh_handler_num;
++    uint32 eh_catch_num;
++    /* highest rethrow record slot plus one */
++    uint32 eh_slot_num;
++#endif
+ #endif
+ } WASMLoaderContext;
+ 
+@@ -11111,9 +11147,8 @@
+         goto fail;
+     }
+     frame_csp_tmp = loader_ctx->frame_csp - depth - 2;
+-#if WASM_ENABLE_FAST_INTERP != 0
+-    emit_br_info(frame_csp_tmp, false);
+-#endif
++    /* fast interpreter: delegate is resolved through the exception
++       handler table, not a branch, so no br info is emitted */
+ 
+     *p_buf = p;
+     return frame_csp_tmp;
+@@ -11438,6 +11473,130 @@
+         }                                                             \
+     } while (0)
+ 
++#if WASM_ENABLE_FAST_INTERP != 0 && WASM_ENABLE_EXCE_HANDLING != 0
++static WASMFuncType *
++fast_eh_tag_type(const WASMModule *module, uint32 tag_index)
++{
++    if (tag_index < module->import_tag_count)
++        return module->import_tags[tag_index].u.tag.tag_type;
++    return module->tags[tag_index - module->import_tag_count]->tag_type;
++}
++
++/* Cells of one caught-exception record: the tag index and the largest
++   payload of any tag of the module. */
++static uint32
++fast_eh_record_stride(const WASMModule *module)
++{
++    uint32 i, max_cells = 0;
++    uint32 n = module->import_tag_count + module->tag_count;
++
++    for (i = 0; i < n; i++) {
++        WASMFuncType *type = fast_eh_tag_type(module, i);
++        if (type && type->param_cell_num > max_cells)
++            max_cells = type->param_cell_num;
++    }
++    return 1 + max_cells;
++}
++
++/* Innermost try at or below block `from` that is still in its body. */
++static int32
++fast_eh_enclosing_try(WASMLoaderContext *loader_ctx, BranchBlock *from)
++{
++    BranchBlock *block;
++
++    for (block = from; block >= loader_ctx->frame_csp_bottom; block--) {
++        if (block->label_type == LABEL_TYPE_TRY)
++            return block->eh_index;
++    }
++    return -1;
++}
++
++/* catch / catch_all: ends the try body (or the previous catch body) as
++   `else` ends an if branch, copying the results and jumping to the end,
++   then opens a catch body whose payload lands in dynamic space. The
++   dispatcher has already emitted the opcode's label. */
++static bool
++fast_eh_begin_catch(WASMLoaderContext *loader_ctx, WASMFunction *func,
++                    uint32 tag_index, WASMFuncType *tag_type,
++                    char *error_buf, uint32 error_buf_size)
++{
++    BranchBlock *block = loader_ctx->frame_csp - 1;
++    bool disable_emit = false;
++    int16 operand_offset = 0;
++    int16 dst_offset;
++    uint8 *body_end;
++    int32 catch_index;
++    uint32 i;
++
++    if (tag_type && tag_type->param_cell_num > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
++        set_error_buf(error_buf, error_buf_size,
++                      "exception payload too large");
++        return false;
++    }
++
++    skip_label();
++    body_end = loader_ctx->p_code_compiled;
++    emit_label(WASM_OP_ELSE);
++
++    if (!check_block_stack(loader_ctx, block, error_buf, error_buf_size))
++        return false;
++    if (!reserve_block_ret(loader_ctx, WASM_OP_ELSE, disable_emit, error_buf,
++                           error_buf_size))
++        return false;
++    emit_empty_label_addr_and_frame_ip(PATCH_END);
++
++    if (loader_ctx->p_code_compiled && block->label_type == LABEL_TYPE_TRY)
++        func->eh_handlers[block->eh_index].end = body_end;
++
++    RESET_STACK();
++    SET_CUR_BLOCK_STACK_POLYMORPHIC_STATE(false);
++    loader_ctx->dynamic_offset = block->dynamic_offset;
++    dst_offset = loader_ctx->dynamic_offset;
++
++    for (i = 0; tag_type && i < tag_type->param_count; i++) {
++        /* allocate a dynamic slot for the payload value without emitting
++           its offset */
++        PUSH_OFFSET_TYPE(tag_type->types[i]);
++        wasm_loader_emit_backspace(loader_ctx, sizeof(int16));
++        PUSH_TYPE(tag_type->types[i]);
++    }
++
++    catch_index = (int32)loader_ctx->eh_catch_num++;
++    if (loader_ctx->p_code_compiled) {
++        WASMFastEHHandler *handler = &func->eh_handlers[block->eh_index];
++        WASMFastEHCatch *clause = &func->eh_catches[catch_index];
++
++        clause->tag_index = tag_type ? tag_index : WASM_FAST_EH_CATCH_ALL;
++        clause->next = -1;
++        clause->dst_offset = dst_offset;
++        clause->target = loader_ctx->p_code_compiled;
++        if (handler->catch_last >= 0)
++            func->eh_catches[handler->catch_last].next = catch_index;
++        else
++            handler->catch_first = catch_index;
++        handler->catch_last = catch_index;
++    }
++
++    block->label_type = tag_type ? LABEL_TYPE_CATCH : LABEL_TYPE_CATCH_ALL;
++    return true;
++fail:
++    return false;
++}
++
++/* Records where a try body ends, at an `end` or `delegate` that closes it
++   while it is still in its body. Call with the opcode's label emitted. */
++static void
++fast_eh_mark_try_end(WASMLoaderContext *loader_ctx, WASMFunction *func,
++                     BranchBlock *block, uint8 opcode)
++{
++    if (block->label_type != LABEL_TYPE_TRY || !loader_ctx->p_code_compiled)
++        return;
++    skip_label();
++    func->eh_handlers[block->eh_index].end = loader_ctx->p_code_compiled;
++    emit_label(opcode);
++}
++#endif
++
+ #if WASM_ENABLE_REF_TYPES != 0 || WASM_ENABLE_GC != 0
+ static bool
+ get_table_elem_type(const WASMModule *module, uint32 table_idx,
+@@ -11705,6 +11864,28 @@
+         func->code_compiled = loader_ctx->p_code_compiled;
+         func->code_compiled_size = loader_ctx->code_compiled_size;
+ 
++#if WASM_ENABLE_EXCE_HANDLING != 0
++        /* The first traverse counted the try blocks and catch clauses */
++        if (loader_ctx->eh_handler_num > 0) {
++            if (!(func->eh_handlers = loader_malloc(
++                      sizeof(WASMFastEHHandler)
++                          * (uint64)loader_ctx->eh_handler_num,
++                      error_buf, error_buf_size)))
++                goto fail;
++            func->eh_handler_count = loader_ctx->eh_handler_num;
++        }
++        if (loader_ctx->eh_catch_num > 0) {
++            if (!(func->eh_catches = loader_malloc(
++                      sizeof(WASMFastEHCatch)
++                          * (uint64)loader_ctx->eh_catch_num,
++                      error_buf, error_buf_size)))
++                goto fail;
++            func->eh_catch_count = loader_ctx->eh_catch_num;
++        }
++        loader_ctx->eh_handler_num = 0;
++        loader_ctx->eh_catch_num = 0;
++#endif
++
+         if (loader_ctx->i64_const_num > 0) {
+             int64 *i64_consts_old = loader_ctx->i64_consts;
+ 
+@@ -12085,7 +12266,43 @@
+                 }
+ #if WASM_ENABLE_EXCE_HANDLING != 0
+                 else if (opcode == WASM_OP_TRY) {
++                    BranchBlock *try_block = loader_ctx->frame_csp - 1;
++                    BranchBlock *outer;
++                    uint32 slot = 0;
++
+                     skip_label();
++                    if (BLOCK_HAS_PARAM(block_type)) {
++                        /* Make sure params are in dynamic space */
++                        if (!copy_params_to_dynamic_space(loader_ctx, error_buf,
++                                                          error_buf_size))
++                            goto fail;
++                    }
++
++                    /* Each catch nesting level keeps its caught exception
++                       in its own record slot, for rethrow */
++                    for (outer = try_block - 1;
++                         outer >= loader_ctx->frame_csp_bottom; outer--) {
++                        if (outer->label_type == LABEL_TYPE_CATCH
++                            || outer->label_type == LABEL_TYPE_CATCH_ALL)
++                            slot++;
++                    }
++                    try_block->eh_index = (int32)loader_ctx->eh_handler_num++;
++                    try_block->eh_slot = slot;
++                    if (slot + 1 > loader_ctx->eh_slot_num)
++                        loader_ctx->eh_slot_num = slot + 1;
++
++                    if (loader_ctx->p_code_compiled) {
++                        WASMFastEHHandler *handler =
++                            &func->eh_handlers[try_block->eh_index];
++                        handler->start = loader_ctx->p_code_compiled;
++                        handler->end = loader_ctx->p_code_compiled;
++                        handler->parent =
++                            fast_eh_enclosing_try(loader_ctx, try_block - 1);
++                        handler->delegate = WASM_FAST_EH_NO_DELEGATE;
++                        handler->catch_first = -1;
++                        handler->catch_last = -1;
++                        handler->slot = slot;
++                    }
+                 }
+ #endif
+                 else if (opcode == WASM_OP_IF) {
+@@ -12251,6 +12468,29 @@
+                 param_count = func->func_type->param_count;
+ #endif
+ 
++#if WASM_ENABLE_FAST_INTERP != 0
++                /* throw tag_index, param count, then per param from the
++                   last: src offset, payload cell index, cell count */
++                if (tag_type->param_cell_num
++                    > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
++                    set_error_buf(error_buf, error_buf_size,
++                                  "exception payload too large");
++                    goto fail;
++                }
++                emit_uint32(loader_ctx, tag_index);
++                emit_uint32(loader_ctx, tag_type->param_count);
++                for (tti = (int32)tag_type->param_count - 1; tti >= 0; tti--) {
++                    uint8 param_type = tag_type->types[tti];
++                    uint32 cell_idx = 0, k;
++                    for (k = 0; k < (uint32)tti; k++)
++                        cell_idx += wasm_value_type_cell_num(tag_type->types[k]);
++                    POP_OFFSET_TYPE(param_type);
++                    POP_TYPE(param_type);
++                    emit_operand(loader_ctx, (int16)cell_idx);
++                    emit_operand(loader_ctx,
++                                 (int16)wasm_value_type_cell_num(param_type));
++                }
++#endif
+                 /* throw is stack polymorphic */
+                 (void)label_type;
+                 RESET_STACK();
+@@ -12263,10 +12503,24 @@
+                 SET_CUR_BLOCK_STACK_POLYMORPHIC_STATE(true);
+ 
+                 /* check the target catching block:  LABEL_TYPE_CATCH */
++#if WASM_ENABLE_FAST_INTERP != 0
++                {
++                    /* not check_branch_block(): that emits br info */
++                    uint32 depth;
++                    pb_read_leb_uint32(p, p_end, depth);
++                    if (loader_ctx->csp_num - 1 < depth) {
++                        set_error_buf(error_buf, error_buf_size,
++                                      "unknown label");
++                        goto fail;
++                    }
++                    frame_csp_tmp = loader_ctx->frame_csp - depth - 1;
++                }
++#else
+                 if (!(frame_csp_tmp =
+                           check_branch_block(loader_ctx, &p, p_end, opcode,
+                                              error_buf, error_buf_size)))
+                     goto fail;
++#endif
+ 
+                 if (frame_csp_tmp->label_type != LABEL_TYPE_CATCH
+                     && frame_csp_tmp->label_type != LABEL_TYPE_CATCH_ALL) {
+@@ -12279,6 +12533,10 @@
+                 BranchBlock *cur_block = loader_ctx->frame_csp - 1;
+                 uint8 label_type = cur_block->label_type;
+                 (void)label_type;
++#if WASM_ENABLE_FAST_INTERP != 0
++                /* rethrow the exception kept in the target catch's slot */
++                emit_uint32(loader_ctx, frame_csp_tmp->eh_slot);
++#endif
+                 /* rethrow is stack polymorphic */
+                 RESET_STACK();
+                 break;
+@@ -12294,8 +12552,33 @@
+                 uint8 label_type = cur_block->label_type;
+ 
+                 (void)label_type;
++#if WASM_ENABLE_FAST_INTERP != 0
++                if (label_type != LABEL_TYPE_TRY) {
++                    set_error_buf(error_buf, error_buf_size,
++                                  "delegate without matching try");
++                    goto fail;
++                }
++                if (!check_block_stack(loader_ctx, cur_block, error_buf,
++                                       error_buf_size))
++                    goto fail;
++                fast_eh_mark_try_end(loader_ctx, func, cur_block, opcode);
++                if (loader_ctx->p_code_compiled)
++                    func->eh_handlers[cur_block->eh_index].delegate =
++                        fast_eh_enclosing_try(loader_ctx, frame_csp_tmp);
++#endif
+                 /* DELEGATE ends the block */
+                 POP_CSP();
++#if WASM_ENABLE_FAST_INTERP != 0
++                /* delegate has no runtime effect: end the block as `end` */
++                skip_label();
++                if (!reserve_block_ret(loader_ctx, opcode, disable_emit,
++                                       error_buf, error_buf_size)) {
++                    free_label_patch_list(loader_ctx->frame_csp);
++                    goto fail;
++                }
++                apply_label_patch(loader_ctx, 0, PATCH_END);
++                free_label_patch_list(loader_ctx->frame_csp);
++#endif
+                 break;
+             }
+             case WASM_OP_CATCH:
+@@ -12342,6 +12625,12 @@
+                     goto fail;
+                 }
+ 
++#if WASM_ENABLE_FAST_INTERP != 0
++                if (!fast_eh_begin_catch(loader_ctx, func, tag_index,
++                                         func_type, error_buf, error_buf_size))
++                    goto fail;
++                break;
++#endif
+                 /*
+                  * replace frame_csp by LABEL_TYPE_CATCH
+                  */
+@@ -12386,6 +12675,12 @@
+                 }
+ 
+                 /* no immediates */
++#if WASM_ENABLE_FAST_INTERP != 0
++                if (!fast_eh_begin_catch(loader_ctx, func, 0, NULL, error_buf,
++                                         error_buf_size))
++                    goto fail;
++                break;
++#endif
+                 /* replace frame_csp by LABEL_TYPE_CATCH_ALL */
+                 cur_block->label_type = LABEL_TYPE_CATCH_ALL;
+ 
+@@ -12491,6 +12786,10 @@
+                     goto handle_op_else;
+                 }
+ 
++#if WASM_ENABLE_FAST_INTERP != 0 && WASM_ENABLE_EXCE_HANDLING != 0
++                /* a try without catch clauses: its body ends here */
++                fast_eh_mark_try_end(loader_ctx, func, cur_block, opcode);
++#endif
+                 POP_CSP();
+ 
+ #if WASM_ENABLE_FAST_INTERP != 0
+@@ -16888,6 +17187,15 @@
+ 
+     func->max_stack_cell_num = loader_ctx->preserved_local_offset
+                                - loader_ctx->start_dynamic_offset + 1;
++#if WASM_ENABLE_EXCE_HANDLING != 0
++    if (func->eh_catch_count > 0) {
++        /* caught-exception records for rethrow, after the operand area */
++        func->eh_record_stride = fast_eh_record_stride(module);
++        func->eh_record_base = (uint32)loader_ctx->preserved_local_offset + 1;
++        func->max_stack_cell_num +=
++            loader_ctx->eh_slot_num * func->eh_record_stride;
++    }
++#endif
+ #else
+     func->max_stack_cell_num = loader_ctx->max_stack_cell_num;
+ #endif
+--- a/core/iwasm/interpreter/wasm_runtime.c
++++ b/core/iwasm/interpreter/wasm_runtime.c
+@@ -272,6 +272,19 @@
+     (void)module_inst;
+ }
+ 
++#if WASM_ENABLE_SHARED_MEMORY != 0
++/* Northstar: a shared memory the host provides for the next instantiation
++   on this thread (a WebAssembly.Memory with shared: true, created on its
++   own and possibly imported by instances on several threads). */
++static os_thread_local_attribute WASMMemoryInstance *ns_wamr_provided_memory;
++
++void
++ns_wamr_provide_shared_memory(WASMMemoryInstance *memory)
++{
++    ns_wamr_provided_memory = memory;
++}
++#endif
++
+ static WASMMemoryInstance *
+ memory_instantiate(WASMModuleInstance *module_inst, WASMModuleInstance *parent,
+                    WASMMemoryInstance *memory, uint32 memory_idx,
+@@ -298,6 +311,18 @@
+         shared_memory_inc_reference(memory);
+         return memory;
+     }
++    if (is_shared_memory && memory_idx == 0 && ns_wamr_provided_memory) {
++        WASMMemoryInstance *provided = ns_wamr_provided_memory;
++        if (provided->num_bytes_per_page != num_bytes_per_page
++            || provided->cur_page_count < init_page_count
++            || provided->max_page_count > max_page_count) {
++            set_error_buf(error_buf, error_buf_size,
++                          "imported shared memory does not match the import");
++            return NULL;
++        }
++        shared_memory_inc_reference(provided);
++        return provided;
++    }
+ #else
+     (void)parent;
+     (void)memory_idx;
+@@ -1634,6 +1659,13 @@
+     return func;
+ }
+ 
++bool ns_wamr_host_calls_ctors = false;
++
++/* Northstar: the embedder supplies every imported memory and table itself
++ * (the WebAssembly JS API), whatever module name the import carries, so
++ * instantiation must not insist on the built-in "env" name for them. */
++bool ns_wamr_host_links_imports = false;
++
+ static bool
+ execute_post_instantiate_functions(WASMModuleInstance *module_inst,
+                                    bool is_sub_inst, WASMExecEnv *exec_env_main)
+@@ -1658,7 +1690,7 @@
+      * the environment at most once, and that none of their other exports
+      * are accessed before that call.
+      */
+-    if (!is_sub_inst && module->import_wasi_api) {
++    if (!is_sub_inst && !ns_wamr_host_calls_ctors && module->import_wasi_api) {
+         initialize_func =
+             lookup_post_instantiate_func(module_inst, "_initialize");
+     }
+@@ -1666,7 +1698,7 @@
+ 
+     /* Execute possible "__post_instantiate" function if wasm app is
+        compiled by emsdk's early version */
+-    if (!is_sub_inst) {
++    if (!is_sub_inst && !ns_wamr_host_calls_ctors) {
+         post_inst_func =
+             lookup_post_instantiate_func(module_inst, "__post_instantiate");
+     }
+@@ -1674,7 +1706,7 @@
+ #if WASM_ENABLE_BULK_MEMORY != 0
+     /* Only execute the memory init function for main instance since
+        the data segments will be dropped once initialized */
+-    if (!is_sub_inst
++    if (!is_sub_inst && !ns_wamr_host_calls_ctors
+ #if WASM_ENABLE_LIBC_WASI != 0
+         && !module->import_wasi_api
+ #endif
+@@ -2001,7 +2033,8 @@
+     for (i = 0; i < module->import_table_count; i++) {
+         WASMTableImport *table = &((module->import_tables + i)->u.table);
+ 
+-        if (!wasm_runtime_is_built_in_module(table->module_name)
++        if (!ns_wamr_host_links_imports
++            && !wasm_runtime_is_built_in_module(table->module_name)
+ #if WASM_ENABLE_MULTI_MODULE != 0
+             && !table->import_table_linked
+ #endif
+@@ -2016,7 +2049,8 @@
+     for (i = 0; i < module->import_memory_count; i++) {
+         WASMMemoryImport *memory = &((module->import_memories + i)->u.memory);
+ 
+-        if (!wasm_runtime_is_built_in_module(memory->module_name)
++        if (!ns_wamr_host_links_imports
++            && !wasm_runtime_is_built_in_module(memory->module_name)
+ #if WASM_ENABLE_MULTI_MODULE != 0
+             && !memory->import_memory_linked
+ #endif
+--- a/core/iwasm/interpreter/wasm_runtime.h
++++ b/core/iwasm/interpreter/wasm_runtime.h
+@@ -271,6 +271,9 @@
+ #endif
+ 
+ #if WASM_ENABLE_EXCE_HANDLING != 0
++/* cur_exception text while a wasm exception unwinds (without the
++   "Exception: " prefix) */
++#define WASM_FAST_EH_EXCEPTION_MSG "uncaught wasm exception"
+ #define INVALID_TAGINDEX ((uint32)0xFFFFFFFF)
+ #define SET_INVALID_TAGINDEX(tag) (tag = INVALID_TAGINDEX)
+ #define IS_INVALID_TAGINDEX(tag) ((tag & INVALID_TAGINDEX) == INVALID_TAGINDEX)
+@@ -368,6 +371,15 @@
+     void **import_tag_ptrs;
+ #endif
+ 
++#if WASM_ENABLE_EXCE_HANDLING != 0 && WASM_ENABLE_FAST_INTERP != 0
++    /* The wasm exception being thrown: valid while eh_pending is set and
++       cur_exception holds WASM_FAST_EH_EXCEPTION_MSG */
++    bool eh_pending;
++    uint32 eh_tag_index;
++    uint32 eh_cell_num;
++    uint32 eh_cells[WASM_FAST_EH_MAX_PAYLOAD_CELLS];
++#endif
++
+ #if WASM_ENABLE_MEMORY_PROFILING != 0
+     uint32 max_aux_stack_used;
+ #endif
+--- a/core/shared/platform/linux/platform_internal.h
++++ b/core/shared/platform/linux/platform_internal.h
+@@ -31,7 +31,10 @@
+ #include <sys/stat.h>
+ #include <sys/mman.h>
+ #include <sys/time.h>
++#if !defined(__ANDROID__) && !defined(__OpenBSD__) && !defined(__NetBSD__) \
++    && !defined(__FreeBSD__)
+ #include <sys/timeb.h>
++#endif
+ #include <sys/uio.h>
+ #include <sys/ioctl.h>
+ #include <sys/socket.h>
+--- a/core/shared/platform/windows/platform_init.c
++++ b/core/shared/platform/windows/platform_init.c
+@@ -12,26 +12,14 @@
+ os_thread_sys_destroy();
+ 
+ int
+-init_winsock();
+-
+-void
+-deinit_winsock();
+-
+-int
+ bh_platform_init()
+ {
+-    if (init_winsock() != 0) {
+-        return -1;
+-    }
+-
+     return os_thread_sys_init();
+ }
+ 
+ void
+ bh_platform_destroy()
+ {
+-    deinit_winsock();
+-
+     os_thread_sys_destroy();
+ }
+ 

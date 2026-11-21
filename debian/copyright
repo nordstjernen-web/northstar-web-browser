@@ -61,7 +61,7 @@ Files: src/web-text-lib/emoji_presentation_scanner.c
 Copyright: 2019 Google LLC
 License: Apache-2.0
 
-Files: subprojects/wuffs/*
+Files: subprojects/wuffs-*/*
 Copyright: 2017 The Wuffs Authors
 License: Apache-2.0
 
@@ -69,14 +69,14 @@ Files: subprojects/plmpeg/*
 Copyright: 2019 Dominic Szablewski
 License: Expat
 
-Files: src/wamr/*
+Files: subprojects/wasm-micro-runtime-*/*
 Copyright: 2019-2023 Intel Corporation
            2023-2024 Amazon Inc.
            2023 Midokura Japan KK
            The WebAssembly Micro Runtime contributors
 License: Apache-2.0 with LLVM exception
 
-Files: src/wamr/core/shared/platform/common/math/math.c
+Files: subprojects/wasm-micro-runtime-*/core/shared/platform/common/math/math.c
 Copyright: 2004 David Schultz <das@FreeBSD.ORG>
 License: BSD-2-Clause
 

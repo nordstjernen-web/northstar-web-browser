@@ -1,0 +1,2 @@
+option('parent_c_args', type: 'array', value: [],
+       description: 'C flags of the parent project (hardening, section GC, debug info) to build WAMR with.')

@@ -195,7 +195,7 @@ cx = 36
 for name, w in tp:
     chip(cx, 1168, w, name)
     cx += w + 8
-text(36, 1218, "lexbor, quickjs-ng: subprojects/*.wrap · Wuffs, pl_mpeg: subprojects/ · minimp3: src/audio/ · WAMR: src/wamr/ · web-text-lib: src/web-text-lib/", "lbl")
+text(36, 1218, "lexbor, quickjs-ng, Wuffs, WAMR: subprojects/*.wrap · pl_mpeg: subprojects/ · minimp3: src/audio/ · web-text-lib: src/web-text-lib/", "lbl")
 
 group(20, 1238, 1160, 76, "System libraries", "g-ext")
 libs = ["GTK 4", "GLib", "Cairo", "HarfBuzz", "FriBidi", "fontconfig", "FreeType", "libcurl", "OpenSSL",

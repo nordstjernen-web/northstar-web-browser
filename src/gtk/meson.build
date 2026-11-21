@@ -29,18 +29,18 @@ executable(
     northstar_gtk_sources + northstar_audio_sources +
     northstar_gtk_platform_sources +
     northstar_icon_resources +
-    northstar_win_resources + [polyfills_h, wpt_hook_h, sb_key_h] +
+    northstar_win_resources + ns_embedded_headers + [sb_key_h] +
     pdf_viewer_headers,
   dependencies: northstar_gtk_deps + northstar_audio_deps,
   link_with: northstar_audio_libs,
-  include_directories: include_directories('..', '.'),
-  pie: host_machine.system() != 'windows',
+  include_directories: [include_directories('..', '.'), ns_embedded_inc],
+  pie: host_system != 'windows',
   win_subsystem: northstar_win_subsystem,
   link_args: northstar_link_args + northstar_gtk_platform_link_args,
   install: true,
 )
 
-if host_machine.system() != 'windows'
+if host_system != 'windows'
   install_symlink(
     'open-internet-browser',
     pointing_to: 'northstar',

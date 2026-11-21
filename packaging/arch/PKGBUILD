@@ -51,10 +51,19 @@ _lexbor_commit=7e278c0188489bfce6b71ced0cc900cbb31e6244
 _quickjs_ng_commit=9b061718955874e648d8c2bf2910a717aac8fa63
 source=("$pkgname-$pkgver.tar.gz::https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/$pkgver.tar.gz"
         "lexbor::git+https://github.com/lexbor/lexbor.git#commit=$_lexbor_commit"
-        "quickjs-ng::git+https://github.com/quickjs-ng/quickjs.git#commit=$_quickjs_ng_commit")
+        "quickjs-ng::git+https://github.com/quickjs-ng/quickjs.git#commit=$_quickjs_ng_commit"
+        "wasm-micro-runtime-WAMR-2.4.6.tar.gz::https://github.com/bytecodealliance/wasm-micro-runtime/archive/refs/tags/WAMR-2.4.6.tar.gz"
+        "wuffs-0.4.0-alpha.12.tar.gz::https://github.com/google/wuffs/archive/refs/tags/v0.4.0-alpha.12.tar.gz")
+# WAMR and Wuffs are wrap-file subprojects: meson extracts and patches them
+# itself from subprojects/packagecache/, which arch-meson's
+# --wrap-mode=nodownload still reads.
+noextract=(wasm-micro-runtime-WAMR-2.4.6.tar.gz
+           wuffs-0.4.0-alpha.12.tar.gz)
 sha256sums=('af2ff9195da62e4bf0e72a43ac2e6fbb4d298e02aaaa3b9eaaab5c61a963c9d3'
             'SKIP'
-            'SKIP')
+            'SKIP'
+            '6a8de3f74671a72698b4bd61a96c1ce8966db077b2adad7b720757cfd9caff62'
+            '0c1c84aa93fcaeda523ed517848b1555e72e679c37780aaa2db8d7e5b8ff78f1')
 
 _srcdir=northstar-web-browser-$pkgver
 
@@ -79,6 +88,9 @@ _add_subproject() {
 prepare() {
   _add_subproject lexbor "$_lexbor_commit"
   _add_subproject quickjs-ng "$_quickjs_ng_commit"
+  mkdir -p "$_srcdir/subprojects/packagecache"
+  cp wasm-micro-runtime-WAMR-2.4.6.tar.gz wuffs-0.4.0-alpha.12.tar.gz \
+    "$_srcdir/subprojects/packagecache/"
 }
 
 build() {

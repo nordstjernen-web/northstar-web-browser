@@ -62,8 +62,10 @@ library and rebuild the binary against it.
 ### Wuffs — Apache License 2.0
 
 > Memory-safe PNG / APNG / GIF / BMP / JPEG / WebP decoders, transpiled
-> from the Wuffs language to C. Vendored as the single-file release in
-> `subprojects/wuffs/wuffs-v0.4.c`.
+> from the Wuffs language to C. The single-file release `release/c/wuffs-v0.4.c`
+> of the tag pinned in `subprojects/wuffs.wrap`, fetched at setup, with one
+> patch: `subprojects/packagefiles/wuffs-jpeg-16bit-dqt.patch` decodes JPEGs
+> whose quantization tables use 16-bit precision.
 > <https://github.com/google/wuffs-mirror-release-c>
 >
 > Copyright (c) 2017 The Wuffs Authors.
@@ -113,15 +115,17 @@ license text (same license).
 
 ### WebAssembly Micro Runtime (WAMR) — Apache License 2.0 with LLVM exceptions
 
-> WebAssembly runtime. Vendored in `src/wamr/`.
+> WebAssembly runtime. The release pinned in `subprojects/wamr.wrap`,
+> fetched at setup, with the local changes in
+> `subprojects/packagefiles/wamr-northstar.patch`.
 > <https://github.com/bytecodealliance/wasm-micro-runtime>
 >
 > Copyright (c) The WebAssembly Micro Runtime contributors.
 
 Licensed under the Apache License, Version 2.0, with LLVM exceptions.
 See the lexbor section above for the base Apache 2.0 text; the full
-license including the LLVM exceptions is reproduced in
-`src/wamr/LICENSE`.
+license including the LLVM exceptions is the `LICENSE` file of the
+fetched release.
 
 ### PDF.js — Apache License 2.0 (optional, `-Dpdfjs`)
 
@@ -350,7 +354,7 @@ shipped with the upstream sources. As of this release:
 - lexbor ships no `NOTICE` file.
 - Wuffs ships no `NOTICE` file.
 - WAMR ships no `NOTICE` file separate from its `LICENSE`, which is
-  reproduced at `src/wamr/LICENSE`.
+  part of the fetched release.
 
 If a future upstream release adds one, it will be included verbatim
 in this section.

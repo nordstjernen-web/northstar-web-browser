@@ -45,8 +45,14 @@ pkgbase = northstar-browser
 	source = northstar-browser-1.0.19.tar.gz::https://github.com/nordstjernen-web/northstar-web-browser/archive/refs/tags/1.0.19.tar.gz
 	source = lexbor::git+https://github.com/lexbor/lexbor.git#commit=7e278c0188489bfce6b71ced0cc900cbb31e6244
 	source = quickjs-ng::git+https://github.com/quickjs-ng/quickjs.git#commit=9b061718955874e648d8c2bf2910a717aac8fa63
+	source = wasm-micro-runtime-WAMR-2.4.6.tar.gz::https://github.com/bytecodealliance/wasm-micro-runtime/archive/refs/tags/WAMR-2.4.6.tar.gz
+	source = wuffs-0.4.0-alpha.12.tar.gz::https://github.com/google/wuffs/archive/refs/tags/v0.4.0-alpha.12.tar.gz
+	noextract = wasm-micro-runtime-WAMR-2.4.6.tar.gz
+	noextract = wuffs-0.4.0-alpha.12.tar.gz
 	sha256sums = af2ff9195da62e4bf0e72a43ac2e6fbb4d298e02aaaa3b9eaaab5c61a963c9d3
 	sha256sums = SKIP
 	sha256sums = SKIP
+	sha256sums = 6a8de3f74671a72698b4bd61a96c1ce8966db077b2adad7b720757cfd9caff62
+	sha256sums = 0c1c84aa93fcaeda523ed517848b1555e72e679c37780aaa2db8d7e5b8ff78f1
 
 pkgname = northstar-browser

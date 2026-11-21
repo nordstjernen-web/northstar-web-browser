@@ -36,13 +36,15 @@ build.ninja
 compile_commands.json
 
 # Meson auto-downloaded subprojects (wrap files only are committed).
-# lexbor, quickjs-ng, quickjs and pdfjs-dist are fetched at setup from their upstream
-# releases.
+# lexbor, quickjs-ng, quickjs, pdfjs-dist, WAMR and Wuffs are fetched at setup
+# from their upstream releases.
 /subprojects/packagecache/
 /subprojects/lexbor/
 /subprojects/quickjs-ng/
 /subprojects/quickjs/
 /subprojects/pdfjs-dist-*/
+/subprojects/wasm-micro-runtime-*/
+/subprojects/wuffs-*/
 
 # Editor / OS
 *~

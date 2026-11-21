@@ -2,8 +2,9 @@ Building northstar for Debian
 -----------------------------
 
 The upstream build uses two meson wrap subprojects that `meson setup`
-normally downloads at configure time: lexbor (HTML/URL engine) and
-quickjs-ng (JavaScript engine). Debian builds run without network
+normally downloads at configure time: lexbor (HTML/URL engine),
+quickjs-ng (JavaScript engine), WAMR (WebAssembly) and Wuffs (image
+decoders). Debian builds run without network
 access, and debhelper's meson buildsystem passes
 --wrap-mode=nodownload, so the orig tarball must already contain the
 subproject sources.
@@ -20,7 +21,7 @@ also leaves out the render-test fixtures copied from Wikipedia, listed
 under Files-Excluded in debian/copyright; nothing in the build uses
 them. To produce it from a checkout of the upstream release tag:
 
-    meson subprojects download lexbor quickjs-ng
+    meson subprojects download lexbor quickjs-ng wamr wuffs
     scripts/check-subprojects.sh
     tar --exclude-vcs --exclude='subprojects/*/.git' \
         --exclude='builddir*' --exclude='subprojects/quickjs' \
@@ -33,8 +34,8 @@ them. To produce it from a checkout of the upstream release tag:
 If check-subprojects.sh reports a stale checkout, delete
 subprojects/<name> and download it again.
 
-The wuffs and plmpeg subprojects are vendored directly in the tree and
-need no download. After that, `dpkg-buildpackage -us -uc` builds the
+The plmpeg subproject is vendored directly in the tree and needs no
+download. After that, `dpkg-buildpackage -us -uc` builds the
 package the normal debhelper way.
 
 debian/rules builds without H.264: only Cisco's prebuilt OpenH264

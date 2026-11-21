@@ -329,7 +329,7 @@
 <text class="chiptext" x="1027.0" y="1284" text-anchor="middle">minimp3</text>
 <rect class="chip" x="1080" y="1264" width="80" height="30" rx="6"/>
 <text class="chiptext" x="1120.0" y="1284" text-anchor="middle">WAMR</text>
-<text class="lbl" x="36" y="1314" text-anchor="start">lexbor, quickjs-ng: subprojects/*.wrap · Wuffs, pl_mpeg: subprojects/ · minimp3: src/audio/ · WAMR: src/wamr/ · web-text-lib: src/web-text-lib/</text>
+<text class="lbl" x="36" y="1314" text-anchor="start">lexbor, quickjs-ng, Wuffs, WAMR: subprojects/*.wrap · pl_mpeg: subprojects/ · minimp3: src/audio/ · web-text-lib: src/web-text-lib/</text>
 <rect class="g-ext" x="20" y="1334" width="1160" height="112" rx="12"/>
 <text class="gtitle" x="36" y="1360" text-anchor="start">System libraries</text>
 <rect class="chip" x="36" y="1368" width="49" height="30" rx="6"/>

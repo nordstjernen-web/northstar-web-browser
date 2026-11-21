@@ -31,21 +31,13 @@ if qjs_tools_found
   )
 endif
 
-polyfills_h = custom_target(
-  'polyfills.h',
-  input: ['../scripts/embed-text.py', '../data/js/polyfills.js'],
-  output: 'polyfills.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-            'ns_js_polyfills_src'],
-)
-
-wpt_hook_h = custom_target(
-  'wpt_hook.h',
-  input: ['../scripts/embed-text.py', '../data/js/wpt-hook.js'],
-  output: 'wpt_hook.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-            'ns_wpt_hook_src'],
-)
+# Files compiled into the binary, each as a NUL-terminated
+# `static const char <symbol>[]` in its own generated header:
+# [header, file, symbol].
+ns_embeds = [
+  ['polyfills.h', files('../data/js/polyfills.js'), 'ns_js_polyfills_src'],
+  ['wpt_hook.h', files('../data/js/wpt-hook.js'), 'ns_wpt_hook_src'],
+]
 
 # The Google Safe Browsing API key, read from NS_SAFE_BROWSING_API_KEY at
 # build time into a generated header so it never sits in the tree or on a
@@ -68,42 +60,31 @@ if have_pdfjs
 endif
 pdf_viewer_headers = []
 foreach name, src : pdf_viewer_embedded
-  pdf_viewer_headers += custom_target(
-    name + '.h',
-    input: ['../scripts/embed-text.py', src],
-    output: name + '.h',
-    command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', 'ns_' + name],
-  )
+  ns_embeds += [[name + '.h', src, 'ns_' + name]]
 endforeach
 if have_pdfjs
   # Each standard font is embedded like any other file (with the trailing
-  # NUL embed-text.py adds, left out of the length), and pdfjs_fonts.h is a
-  # table over them, written at configure time.
+  # NUL left out of the length), and pdfjs_fonts.h is a table over them,
+  # written at configure time.
   pdfjs_font_includes = []
   pdfjs_font_rows = []
   foreach font : pdfjs_standard_fonts
     i = pdfjs_font_rows.length()
-    pdf_viewer_headers += custom_target(
-      'pdfjs_font_@0@.h'.format(i),
-      input: ['../scripts/embed-text.py', font],
-      output: 'pdfjs_font_@0@.h'.format(i),
-      command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-                'ns_pdfjs_font_@0@'.format(i)],
-    )
+    ns_embeds += [['pdfjs_font_@0@.h'.format(i), [font],
+                   'ns_pdfjs_font_@0@'.format(i)]]
     pdfjs_font_includes += '#include "pdfjs_font_@0@.h"'.format(i)
     pdfjs_font_rows += ('    { "@0@", (const unsigned char *)ns_pdfjs_font_@1@,' +
                         ' sizeof ns_pdfjs_font_@1@ - 1 },').format(
       fs.name(font), i)
   endforeach
-  pdfjs_fonts_conf = configuration_data()
-  pdfjs_fonts_conf.set('PDFJS_FONT_INCLUDES', '\n'.join(pdfjs_font_includes))
-  pdfjs_fonts_conf.set('PDFJS_FONT_ROWS', '\n'.join(pdfjs_font_rows))
-  pdf_viewer_headers += configure_file(
-    input: 'pdfjs_fonts.h.in',
-    output: 'pdfjs_fonts.h',
-    configuration: pdfjs_fonts_conf,
-  )
 endif
+
+# The generated headers are written to their own build directory,
+# src/embedded/: an earlier build made headers of the same names in src/ at
+# build time, and after a reconfigure meson deletes what were outputs of the
+# old build graph, a configure_file() of the same name included.
+subdir('embedded')
+ns_embedded_inc = include_directories('embedded')
 
 northstar_engine_sources = files(
   'anim.c',
@@ -212,7 +193,7 @@ endif
 northstar_engine_sources += files('webgl.c', 'glctx.c', 'glsl_validate.c')
 
 northstar_win_resources = []
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   windows = import('windows')
   northstar_win_resources = windows.compile_resources(
     'northstar.rc',
@@ -220,6 +201,8 @@ if host_machine.system() == 'windows'
   )
 endif
 
+# A dependency that was not found is ignored, so optional libraries are
+# listed unconditionally.
 northstar_deps = [
   glib,
   gobject,
@@ -227,9 +210,11 @@ northstar_deps = [
   cairo,
   pango,
   pangocairo,
+  libpangoft2,
   libcurl,
   libcrypto,
   libm,
+  libpsl,
   libquickjs,
   libwuffs,
   libplmpeg,
@@ -239,117 +224,78 @@ northstar_deps = [
   zlib,
   libbrotlidec,
   libzstd,
+  libseccomp,
+  libdav1d,
+  libvpx,
+  libopenh264,
+  libopus,
+  libavif,
+  libenchant,
+  libfontconfig,
+  libfreetype,
+  webgl_deps,
 ]
-
-if have_seccomp
-  northstar_deps += [libseccomp]
-endif
-
-if have_av1
-  northstar_deps += [libdav1d]
-endif
-if have_vp9
-  northstar_deps += [libvpx]
-endif
-if have_h264
-  northstar_deps += [libopenh264]
-endif
 if have_gstreamer
   northstar_deps += [libgstreamer, libgstapp, libgstvideo]
 endif
 if have_media_foundation
   northstar_deps += [libmfuuid, libole32]
 endif
-if libopus.found()
-  northstar_deps += [libopus]
-endif
-if have_avif
-  northstar_deps += [libavif]
-endif
-if have_webgl
-  northstar_deps += webgl_deps
-endif
 
-if have_enchant
-  northstar_deps += [libenchant]
-endif
-
-if have_fontconfig
-  northstar_deps += [libfontconfig]
-endif
-
-northstar_deps += [libpangoft2]
-
-if have_freetype
-  northstar_deps += [libfreetype]
-endif
-
-northstar_deps += [libpsl]
-
-northstar_win_subsystem = (
-  host_machine.system() == 'windows' ? 'windows' : 'console'
-)
+northstar_win_subsystem = host_system == 'windows' ? 'windows' : 'console'
 
 northstar_link_args = []
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,--stack,8388608'],
   )
-  northstar_link_args += ['-lbcrypt', '-ladvapi32', '-lshell32', '-luser32']
-endif
-if host_machine.system() == 'linux'
+  northstar_deps += [
+    cc.find_library('bcrypt'),
+    cc.find_library('advapi32'),
+    cc.find_library('shell32'),
+    cc.find_library('user32'),
+  ]
+elif host_system == 'linux'
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,-z,stack-size=2097152'],
   )
-endif
-
-# NetBSD pkgsrc gnutls (pulled in transitively) carries an undefined
-# reference to libc's mbrtoc32, which the hardened --no-undefined link
-# rejects even though the dynamic linker resolves it at runtime. Allow
-# undefined symbols originating from shared libraries on NetBSD only; our
-# own objects are still checked.
-if host_machine.system() == 'netbsd'
+elif host_system == 'netbsd'
+  # NetBSD pkgsrc gnutls (pulled in transitively) carries an undefined
+  # reference to libc's mbrtoc32, which the hardened --no-undefined link
+  # rejects even though the dynamic linker resolves it at runtime. Allow
+  # undefined symbols originating from shared libraries on NetBSD only; our
+  # own objects are still checked.
   northstar_link_args += cc.get_supported_link_arguments(
     ['-Wl,--allow-shlib-undefined'],
   )
 endif
 
-if host_machine.system() == 'windows'
+if host_system == 'windows'
   executable(
     'northstar-launcher',
     files('win_launcher.c') + northstar_win_resources,
     pie: false,
     win_subsystem: 'windows',
-    link_args: ['-luser32', '-lshell32'],
+    dependencies: [cc.find_library('user32'), cc.find_library('shell32')],
   )
 endif
 
-# Optional in-process audio playback.
+# Optional in-process audio playback over SDL3, with minimp3 and pl_mpeg
+# decoding MP3 and MPEG-1 audio and, where present, vorbisfile and opusfile
+# decoding Ogg.
 northstar_audio_sources = files('audio/stub.c')
 northstar_audio_deps = []
 northstar_audio_libs = []
-sdl3_dep = dependency('sdl3', version: '>=3.2.0', required: get_option('audio'))
 if sdl3_dep.found()
-  libminimp3 = static_library(
+  northstar_audio_sources = files('audio/audio.c')
+  northstar_audio_deps = [sdl3_dep, libplmpeg, libvorbisfile, libopusfile,
+                          libm]
+  northstar_audio_libs = static_library(
     'minimp3',
     files('audio/minimp3_impl.c'),
     include_directories: include_directories('audio'),
     c_args: cc.get_supported_arguments(['-w']),
-    install: false,
   )
-
-  northstar_audio_sources = files('audio/audio.c')
-  northstar_audio_deps = [sdl3_dep, libplmpeg]
-  northstar_audio_libs = [libminimp3]
-  if libvorbisfile.found()
-    northstar_audio_deps += [libvorbisfile]
-  endif
-  if libopusfile.found()
-    northstar_audio_deps += [libopusfile]
-  endif
-  # libm is needed by pl_mpeg / minimp3 on Linux and the BSDs; it is part of
-  # the C runtime on Windows, where find_library('m') is a harmless no-op.
-  northstar_audio_deps += [cc.find_library('m', required: false)]
 else
   message('SDL3 not found — in-process audio playback disabled')
 endif

@@ -196,7 +196,7 @@ run of table-internal siblings.
 | Offline Web Audio graph rendering | `webaudio.c` |
 | WebIDL receiver checks: node-interface members called on a non-node throw "Illegal invocation" | `js_receiver.c` |
 | `TextDecoder`, `TextEncoder` (over the `encoding.c` decoders) | `js_encoding.c` |
-| WebAssembly JS API (over vendored WAMR's fast interpreter; `-Dwasm`) | `wasm.c`, `src/wamr/` |
+| WebAssembly JS API (over WAMR's fast interpreter, `subprojects/wamr.wrap`; `-Dwasm`) | `wasm.c`, `subprojects/packagefiles/wamr/` |
 | `WebSocket`, `EventSource` | `ws.c`, `eventsource.c` |
 | IndexedDB | `idb.c` |
 | `getUserMedia` video: V4L2 capture (Linux) and per-site permission | `camera.c` |
@@ -374,7 +374,7 @@ and the WHATWG URL parser — CSS is the engine's own), **quickjs-ng** (JS;
 `-Djs_engine=quickjs` takes the original **QuickJS** instead). Vendored
 in-tree: **web-text-lib** (text itemization, shaping and line breaking,
 `src/web-text-lib/`), **Wuffs** (images), **pl_mpeg** (MPEG-1 video and
-MP2 audio), **WAMR** (WebAssembly, `src/wamr/`) and **minimp3** (MP3,
+MP2 audio), **WAMR** (WebAssembly, `subprojects/wamr.wrap`) and **minimp3** (MP3,
 `src/audio/minimp3.h`). See
 [`../THIRD-PARTY-LICENSES.md`](../THIRD-PARTY-LICENSES.md).
 

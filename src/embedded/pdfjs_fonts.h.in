@@ -1,0 +1,9 @@
+/* generated from src/embedded/pdfjs_fonts.h.in by meson — do not edit */
+@PDFJS_FONT_INCLUDES@
+
+typedef struct { const char *name; const unsigned char *data;
+                 unsigned len; } ns_pdfjs_font;
+
+static const ns_pdfjs_font ns_pdfjs_fonts[] = {
+@PDFJS_FONT_ROWS@
+};

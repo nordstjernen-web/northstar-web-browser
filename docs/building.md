@@ -125,7 +125,8 @@ A few traps:
 - After a source file of a static library is renamed — the WAMR
   interpreter moved from `wasm_interp_classic.c` to `wasm_interp_fast.c` —
   an existing build directory can fail at `gcc-ar ... libwamr.a: No such
-  file or directory`. Delete `builddir/src/wamr/libwamr.a` and rebuild.
+  file or directory`. Delete the stale `libwamr.a` under
+  `builddir/subprojects/` and rebuild.
 - LTO with clang needs `llvm-ar` (`mingw-w64-ucrt-x86_64-llvm-tools`);
   `meson setup` stops without it unless configured with `-Db_lto=false`.
 - The Windows CI job builds with clang and `--werror`, the Linux job with
@@ -230,14 +231,21 @@ its comparator. Regenerate
 them against the new sources when a pin moves, or drop one upstream has
 taken. A system lexbor or quickjs-ng does not get them.
 
-The vendored copies are updated by replacing the files. Wuffs
-(`subprojects/wuffs/wuffs-v0.4.c`) and minimp3 (`src/audio/minimp3.h`) are
-byte-identical to their upstream releases, so syncing either is a copy.
+WAMR and Wuffs are tag archives pinned by SHA-256 in `subprojects/wamr.wrap`
+and `subprojects/wuffs.wrap`. Meson extracts them, applies the patches in
+`diff_files` (`wamr-northstar.patch`, the local interpreter changes, and
+`wuffs-jpeg-16bit-dqt.patch`), and copies the overlay from
+`subprojects/packagefiles/wamr/` (the build file and `ns_wamr.c`, the narrow
+accessors the WebAssembly JS API needs) or `packagefiles/wuffs/`. To move a
+pin, change `directory`, `source_url`, `source_filename` and `source_hash`,
+delete the old extracted directory, and refresh the patch.
+
+The vendored copies are updated by replacing the files. minimp3
+(`src/audio/minimp3.h`) is byte-identical to its upstream release, so
+syncing it is a copy.
 pl_mpeg carries one Northstar Web Browser change — a bounds fix for half-pel motion
 compensation, which read a row past the plane — marked in place in the
-vendored header; keep it when syncing. WAMR (`src/wamr/`) is a subset of
-upstream: `core/` plus `ns_wamr.c`, the narrow accessors the WebAssembly
-JS API needs, which are Northstar Web Browser's own.
+vendored header; keep it when syncing.
 [`../THIRD-PARTY-LICENSES.md`](../THIRD-PARTY-LICENSES.md) lists every
 component and every patch, and is the file to update when any of this
 moves.
@@ -467,7 +475,7 @@ verified by running the browser.
 | `render-screenshots.sh` | Render each URL listed in `data/screenshots/sites.txt` to a PNG beside it. |
 | `speedometer-bench.sh`, `speedometer4-bench.sh`, `sample-profile.sh` | Benchmarks and a sampling profiler. |
 | `gen-architecture.py`, `gen-badge.sh`, `gen-windows-icon.py` | Regenerate the architecture diagram, the badge and the Windows icon. |
-| `embed-text.py`, `verify-polyfills.js` | Build helpers: embed a file as a C array, and the polyfill smoke test meson runs under `qjs`. |
+| `embed-text.py`, `verify-polyfills.js` | Build helpers: embed a file as a C array where the compiler lacks C23 `#embed` (before GCC 15 and Clang 19; newer compilers read the files directly through `src/embedded/embed.h.in`), and the polyfill smoke test meson runs under `qjs`. |
 
 ## Definition of done
 

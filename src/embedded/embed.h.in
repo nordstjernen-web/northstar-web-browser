@@ -1,0 +1,4 @@
+/* generated from src/embedded/embed.h.in by meson — do not edit */
+static const char @SYMBOL@[] = {
+#embed "@PATH@" suffix(, 0) if_empty(0)
+};

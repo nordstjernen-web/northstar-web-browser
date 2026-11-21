@@ -17,10 +17,19 @@ files = [p for p in sorted(lex.rglob("*.c"))
 files += sorted(port.rglob("*.c"))
 sys.stdout.write("\n".join(p.relative_to(src.parent).as_posix() for p in files))
 '''
-python = find_program('python3', 'python')
-srcs = run_command(python, '-c', list_sources,
-                   meson.current_source_dir() / 'source', port,
-                   check: true).stdout().strip().split('\n')
+python = find_program('python3', 'python', required: false)
+if python.found()
+  srcs = run_command(python, '-c', list_sources,
+                     meson.current_source_dir() / 'source', port,
+                     check: true).stdout().strip().split('\n')
+else
+  # No Python (e.g. muon + samurai): the same glob with sh, find and sort.
+  srcs = run_command('sh', '-c',
+    'cd "$1" && { find lexbor -name "*.c" ! -path "lexbor/ports/*" | LC_ALL=C sort; ' +
+    'find "lexbor/ports/$2/lexbor" -name "*.c" | LC_ALL=C sort; } | sed "s|^|source/|"',
+    'sh', meson.current_source_dir() / 'source', port,
+    check: true).stdout().strip().split('\n')
+endif
 
 c_args = ['-DLEXBOR_STATIC', '-w']
 if host_machine.system() == 'linux'

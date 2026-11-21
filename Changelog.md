@@ -12,6 +12,18 @@ Significant changes in each release:
   URL), and the document title is the PDF's title. A page served from
   localhost can be turned into an article or book with a working table of
   contents, as asked in discussion #286.
+* The build needs no Python. The files it generates (the embedded JS
+  polyfills, hooks, PDF.js and its fonts, and the Safe Browsing key
+  header) come from `scripts/ns-buildtool.c`, which the build compiles
+  first, and the polyfill check runs `qjsc` and `qjs` directly; the four
+  Python scripts that did this are gone. With muon and samurai, the C
+  implementations of meson and ninja, Northstar builds from a C compiler
+  and a shell alone (`docs/building.md`, "Building without Python"), as
+  asked in discussion #286. `quickjs-ng.wrap` gained a `patch_directory`
+  so that muon 0.7.0 applies the quickjs-ng patches, and the lexbor wrap
+  lists its sources with `sh` and `find` when Python is absent.
+* `docs/building.md` no longer says a C++ compiler is needed: only the
+  optional WebGL shader validator (glslang) is C++.
 * Printed and PDF pages break between lines of text, not through them.
   Pagination stepped down a paragraph by its CSS line-height, which drifts
   from the lines the text is actually set in, so over a long paragraph a

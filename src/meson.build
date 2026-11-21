@@ -1,4 +1,7 @@
-python = import('python').find_installation()
+# Build-time helper in C: embeds files as C arrays and writes the Safe
+# Browsing key header, so the build needs no script interpreter.
+ns_buildtool = executable('ns-buildtool', '../scripts/ns-buildtool.c',
+                          native: true, install: false)
 
 qjs_tools_found = false
 if js_engine == 'quickjs-ng' and not meson.is_cross_build()
@@ -7,35 +10,41 @@ if js_engine == 'quickjs-ng' and not meson.is_cross_build()
   qjs_tools_found = qjsc_prog.found() and qjs_prog.found()
 endif
 
+# Check data/js/polyfills.js at build time: qjsc compiles it (syntax), then
+# qjs runs scripts/verify-polyfills.js against it (every API it defines).
 if qjs_tools_found
-  # files() so the script path is absolute — a raw '../scripts/...' string would
-  # be resolved relative to the build dir and break out-of-tree builds.
-  verify_polyfills_py = files('../scripts/verify-polyfills.py')
+  polyfills_syntax = custom_target(
+    'polyfills-syntax',
+    input: '../data/js/polyfills.js',
+    output: 'polyfills-syntax.c',
+    command: [qjsc_prog, '-C', '-P', '-n', 'polyfills.js',
+              '-o', '@OUTPUT@', '@INPUT@'],
+    build_by_default: true,
+  )
   polyfills_verify = custom_target(
     'polyfills-verify',
     input: ['../data/js/polyfills.js', '../scripts/verify-polyfills.js'],
     output: 'polyfills.verified',
-    command: [
-      python, verify_polyfills_py,
-      qjsc_prog, qjs_prog, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-    ],
+    command: [qjs_prog, '-I', '@INPUT0@', '@INPUT1@'],
+    capture: true,
+    depends: polyfills_syntax,
     build_by_default: true,
   )
 endif
 
 polyfills_h = custom_target(
   'polyfills.h',
-  input: ['../scripts/embed-text.py', '../data/js/polyfills.js'],
+  input: '../data/js/polyfills.js',
   output: 'polyfills.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
+  command: [ns_buildtool, 'embed-text', '@INPUT@', '@OUTPUT@',
             'ns_js_polyfills_src'],
 )
 
 wpt_hook_h = custom_target(
   'wpt_hook.h',
-  input: ['../scripts/embed-text.py', '../data/js/wpt-hook.js'],
+  input: '../data/js/wpt-hook.js',
   output: 'wpt_hook.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
+  command: [ns_buildtool, 'embed-text', '@INPUT@', '@OUTPUT@',
             'ns_wpt_hook_src'],
 )
 
@@ -44,9 +53,8 @@ wpt_hook_h = custom_target(
 # compiler command line. Empty when unset: only the local list is used.
 sb_key_h = custom_target(
   'ns_sb_key.h',
-  input: '../scripts/gen-safebrowsing-key.py',
   output: 'ns_sb_key.h',
-  command: [python, '@INPUT@', '@OUTPUT@'],
+  command: [ns_buildtool, 'sb-key', '@OUTPUT@'],
   build_always_stale: true,
 )
 
@@ -62,17 +70,17 @@ pdf_viewer_headers = []
 foreach name, src : pdf_viewer_embedded
   pdf_viewer_headers += custom_target(
     name + '.h',
-    input: ['../scripts/embed-text.py', src],
+    input: src,
     output: name + '.h',
-    command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', 'ns_' + name],
+    command: [ns_buildtool, 'embed-text', '@INPUT@', '@OUTPUT@', 'ns_' + name],
   )
 endforeach
 if have_pdfjs
   pdf_viewer_headers += custom_target(
     'pdfjs_fonts.h',
-    input: ['../scripts/embed-pdfjs-fonts.py'] + pdfjs_standard_fonts,
+    input: pdfjs_standard_fonts,
     output: 'pdfjs_fonts.h',
-    command: [python, '@INPUT0@', '@OUTPUT@'] + pdfjs_standard_fonts,
+    command: [ns_buildtool, 'embed-fonts', '@OUTPUT@', '@INPUT@'],
   )
 endif
 

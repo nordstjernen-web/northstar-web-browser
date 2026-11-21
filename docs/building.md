@@ -2,8 +2,10 @@
 
 Northstar Web Browser builds with **meson + ninja** and a C compiler (GCC or Clang).
 The primary target is Linux; macOS and Windows are also supported. The
-project declares C++ as well, so meson wants a C++ compiler present even
-though no C++ source is built.
+build runs no script interpreter of its own: its code generation is a
+small C program built first, so with **muon + samurai** in place of meson
+and ninja it needs no Python at all (see
+[Building without Python](#building-without-python-muon-and-samurai)).
 
 ## Linux dependencies
 
@@ -193,13 +195,49 @@ cannot satisfy locally, unless the system supplies them. A tarball that must bui
 
 A quickjs-ng build also compiles `data/js/polyfills.js` with quickjs-ng's
 `qjs` and `qjsc` (the subproject's, or the system's alongside a system
-quickjs-ng) as a syntax and sanity check (`scripts/verify-polyfills.py`).
+quickjs-ng) as a syntax and sanity check (`qjsc` compiles it, then `qjs`
+runs `scripts/verify-polyfills.js` against it).
 A `-Djs_engine=quickjs` build skips the check: that subproject builds no
 tools, and a `qjsc` from Bellard's QuickJS on the `PATH` takes different
 options.
 
 `./scripts/dev.sh build` runs `meson setup` (only when needed) and
 `meson compile -C builddir` in one step.
+
+### Building without Python: muon and samurai
+
+[muon](https://muon.build) is an implementation of meson in C, and
+[samurai](https://github.com/michaelforney/samurai) one of ninja; each
+builds with a C compiler and a POSIX shell. Northstar's build files work
+with them unchanged, so the same tree builds with no Python, Perl or
+CMake installed:
+
+```sh
+git clone --branch 0.7.0 https://git.sr.ht/~lattis/muon && cd muon
+./bootstrap.sh build && build/muon-bootstrap setup build
+build/muon-bootstrap -C build samu && cd ..
+git clone https://github.com/michaelforney/samurai && make -C samurai
+
+cd northstar-web-browser
+../muon/build/muon setup -Dpdfjs=disabled -Dwebgl=disabled builddir
+../samurai/samu -C builddir       # or: ../muon/build/muon -C builddir samu
+```
+
+Besides the compiler and shell the build uses `pkg-config` (or pkgconf),
+`git` and `patch` to fetch and patch the lexbor and quickjs-ng wraps, and
+GLib's `glib-compile-resources`, a C program. Tested with muon 0.7.0 on
+Ubuntu 24.04: the binary matches the meson build's (same layout dumps and
+`dev.sh smoke` output).
+
+- `-Dpdfjs=disabled`: PDF.js is JavaScript built with Node and is fetched
+  as a release archive; `-Dpdfjs_dir` also runs a Python check.
+- `-Dwebgl=disabled`: glslang is C++.
+- `quickjs-ng.wrap` has a `patch_directory` holding only a note: muon
+  0.7.0 applies a wrap's `diff_files` only when it also has a
+  `patch_directory` or `patch_filename`, and without its patches
+  quickjs-ng fails to link.
+- The lexbor wrap lists its sources with Python when Python is installed
+  and with `sh`, `find` and `sort` when it is not.
 
 ## Updating a pinned dependency
 
@@ -455,7 +493,7 @@ verified by running the browser.
 | `render-screenshots.sh` | Render each URL listed in `data/screenshots/sites.txt` to a PNG beside it. |
 | `speedometer-bench.sh`, `speedometer4-bench.sh`, `sample-profile.sh` | Benchmarks and a sampling profiler. |
 | `gen-architecture.py`, `gen-badge.sh`, `gen-windows-icon.py` | Regenerate the architecture diagram, the badge and the Windows icon. |
-| `embed-text.py`, `verify-polyfills.py`, `verify-polyfills.js` | Build helpers: embed the JS polyfills and hooks, check the polyfills. |
+| `ns-buildtool.c`, `verify-polyfills.js` | Build helpers. The build compiles `ns-buildtool.c` first and runs it to embed the JS polyfills, hooks, PDF.js and its fonts as C arrays and to write the Safe Browsing key header; `qjs` runs `verify-polyfills.js` to check the polyfills. |
 
 ## Definition of done
 

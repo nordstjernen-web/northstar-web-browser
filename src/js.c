@@ -11866,6 +11866,85 @@ ns_audio_make_node(JSContext *ctx, const char *kind)
     return n;
 }
 
+/* Sets the .value of three AudioParams of this_val named prefix + X/Y/Z
+ * from argv[first..first+2]. */
+static JSValue
+ns_audio_set_param_triple(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv, int first,
+                          const char *prefix)
+{
+    static const char axes[] = "XYZ";
+    for (int i = 0; i < 3; i++) {
+        double v = 0;
+        if (first + i < argc && JS_ToFloat64(ctx, &v, argv[first + i]) < 0)
+            return JS_EXCEPTION;
+        char name[32];
+        g_snprintf(name, sizeof name, "%s%c", prefix, axes[i]);
+        JSValue p = JS_GetPropertyStr(ctx, this_val, name);
+        if (JS_IsObject(p))
+            JS_SetPropertyStr(ctx, p, "value", JS_NewFloat64(ctx, v));
+        JS_FreeValue(ctx, p);
+    }
+    return JS_UNDEFINED;
+}
+
+/* PannerNode / AudioListener setPosition(x, y, z). */
+static JSValue
+ns_audio_set_position(JSContext *ctx, JSValueConst this_val,
+                      int argc, JSValueConst *argv)
+{
+    return ns_audio_set_param_triple(ctx, this_val, argc, argv, 0, "position");
+}
+
+/* PannerNode setOrientation(x, y, z). */
+static JSValue
+ns_audio_panner_set_orientation(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    return ns_audio_set_param_triple(ctx, this_val, argc, argv, 0,
+                                     "orientation");
+}
+
+/* AudioListener setOrientation(fx, fy, fz, ux, uy, uz). */
+static JSValue
+ns_audio_listener_set_orientation(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    JSValue r = ns_audio_set_param_triple(ctx, this_val, argc, argv, 0,
+                                          "forward");
+    if (JS_IsException(r)) return r;
+    return ns_audio_set_param_triple(ctx, this_val, argc, argv, 3, "up");
+}
+
+/* Adds AudioParams prefix + X/Y/Z with the given defaults. */
+static void
+ns_audio_add_param_triple(JSContext *ctx, JSValueConst obj, const char *prefix,
+                          double x, double y, double z)
+{
+    const double v[3] = { x, y, z };
+    static const char axes[] = "XYZ";
+    for (int i = 0; i < 3; i++) {
+        char name[32];
+        g_snprintf(name, sizeof name, "%s%c", prefix, axes[i]);
+        JS_SetPropertyStr(ctx, obj, name, ns_audio_make_param(ctx, v[i]));
+    }
+}
+
+/* AudioListener: position, forward and up as AudioParams, plus the older
+ * setPosition/setOrientation. The mixer does not spatialize yet. */
+static JSValue
+ns_audio_make_listener(JSContext *ctx)
+{
+    JSValue l = JS_NewObject(ctx);
+    ns_audio_add_param_triple(ctx, l, "position", 0, 0, 0);
+    ns_audio_add_param_triple(ctx, l, "forward", 0, 0, -1);
+    ns_audio_add_param_triple(ctx, l, "up", 0, 1, 0);
+    ns_bind_fn(ctx, l, "setPosition", ns_audio_set_position, 3);
+    ns_bind_fn(ctx, l, "setOrientation", ns_audio_listener_set_orientation, 6);
+    ns_set_tostring_tag(ctx, l, "AudioListener");
+    return l;
+}
+
 /* BaseAudioContext.createX(); magic indexes the node kind table. */
 static JSValue
 ns_audio_create_node(JSContext *ctx, JSValueConst this_val,
@@ -11881,11 +11960,29 @@ ns_audio_create_node(JSContext *ctx, JSValueConst this_val,
     const char *kind = magic >= 0 && magic < (int)G_N_ELEMENTS(kinds)
                      ? kinds[magic] : "gain";
     JSValue n = ns_audio_make_node(ctx, kind);
+    if (strcmp(kind, "panner") == 0) {
+        /* PannerNode's spatial attributes, at the spec defaults; the mixer
+         * passes the signal through unpanned for now */
+        ns_audio_add_param_triple(ctx, n, "position", 0, 0, 0);
+        ns_audio_add_param_triple(ctx, n, "orientation", 1, 0, 0);
+        JS_SetPropertyStr(ctx, n, "panningModel", JS_NewString(ctx, "equalpower"));
+        JS_SetPropertyStr(ctx, n, "distanceModel", JS_NewString(ctx, "inverse"));
+        JS_SetPropertyStr(ctx, n, "refDistance", JS_NewFloat64(ctx, 1));
+        JS_SetPropertyStr(ctx, n, "maxDistance", JS_NewFloat64(ctx, 10000));
+        JS_SetPropertyStr(ctx, n, "rolloffFactor", JS_NewFloat64(ctx, 1));
+        JS_SetPropertyStr(ctx, n, "coneInnerAngle", JS_NewFloat64(ctx, 360));
+        JS_SetPropertyStr(ctx, n, "coneOuterAngle", JS_NewFloat64(ctx, 360));
+        JS_SetPropertyStr(ctx, n, "coneOuterGain", JS_NewFloat64(ctx, 0));
+        ns_bind_fn(ctx, n, "setPosition", ns_audio_set_position, 3);
+        ns_bind_fn(ctx, n, "setOrientation", ns_audio_panner_set_orientation, 3);
+    }
     /* Params find the context's clock through _ac, so automation that has
      * no earlier event can start at the current time. */
     static const char *const params[] = {
         "gain", "frequency", "detune", "playbackRate", "offset", "pan", "Q",
         "delayTime", "threshold", "knee", "ratio", "attack", "release",
+        "positionX", "positionY", "positionZ", "orientationX",
+        "orientationY", "orientationZ",
     };
     for (gsize i = 0; i < G_N_ELEMENTS(params); i++) {
         JSValue p = JS_GetPropertyStr(ctx, n, params[i]);
@@ -12043,7 +12140,7 @@ ns_audio_context_build(JSContext *ctx, double sample_rate)
     JS_SetPropertyStr(ctx, a, "outputLatency", JS_NewFloat64(ctx, 0.02));
     JS_SetPropertyStr(ctx, a, "destination",
                       ns_audio_make_node(ctx, "destination"));
-    JS_SetPropertyStr(ctx, a, "listener", JS_NewObject(ctx));
+    JS_SetPropertyStr(ctx, a, "listener", ns_audio_make_listener(ctx));
     JS_SetPropertyStr(ctx, a, "onstatechange", JS_NULL);
     JS_SetPropertyStr(ctx, a, "_listeners", JS_NewArray(ctx));
     JSValue worklet = JS_NewObject(ctx);

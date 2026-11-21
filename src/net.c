@@ -6357,6 +6357,15 @@ ns_cors_unsafe_header_name(const char *line)
 
 /* Comma-joins all values of a header in raw response headers; NULL if absent. */
 static char *
+ns_cors_raw_header(const char *raw, const char *name);
+
+char *
+ns_net_raw_header(const char *raw_headers, const char *name)
+{
+    return ns_cors_raw_header(raw_headers, name);
+}
+
+static char *
 ns_cors_raw_header(const char *raw, const char *name)
 {
     if (!raw) return NULL;

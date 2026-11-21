@@ -4,6 +4,65 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* WebAssembly exception handling: modules built with Emscripten's
+  `-fwasm-exceptions` (C++ `try`/`catch`, and `setjmp`/`longjmp` built
+  on it) load and run. WAMR's fast interpreter only validated the
+  `try`/`catch`/`catch_all`/`throw`/`rethrow`/`delegate` instructions and
+  stopped at them with "unsupported opcode"; the loader now records each
+  try block in a per-function handler table and the interpreter unwinds
+  frames to the matching catch. `WebAssembly.Tag` and
+  `WebAssembly.Exception` are available, an exported tag is a
+  `WebAssembly.Tag`, a wasm exception that leaves the module reaches
+  JavaScript as a `WebAssembly.Exception`, and one thrown by an imported
+  JavaScript function, or passing through one, can be caught by the wasm
+  caller. Traps are still not catchable, as the proposal specifies.
+* WebAssembly threads, as Emscripten's pthreads use them. A document
+  served with `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp` (or `credentialless`)
+  from https or localhost is cross-origin isolated: `crossOriginIsolated`
+  is true and `SharedArrayBuffer` is defined. `new
+  WebAssembly.Memory({shared: true, maximum})` reserves its maximum once,
+  never moves, and its `buffer` is a `SharedArrayBuffer`; every instance
+  that imports it, on the page or in a worker, uses the same memory, and
+  the atomic instructions, `memory.atomic.wait32/64` and
+  `memory.atomic.notify` work across threads. A `WebAssembly.Module` and
+  a shared `WebAssembly.Memory` can be posted to a worker, and a
+  `SharedArrayBuffer` posted to one shares its memory instead of being
+  copied. Workers may block in `Atomics.wait`.
+* IndexedDB keeps `ArrayBuffer`s and typed arrays: a stored
+  `Uint8Array` came back as a plain object with numeric keys and no
+  `length`. A database and an origin may now hold up to 4 GiB, up from
+  256 MiB per database, so a game can cache its unpacked data.
+* On Windows, `Date` applies daylight saving time by the date, not by
+  today: in a zone that observes it, every summer (or, in summer, every
+  winter) local time was an hour off and `getTimezoneOffset()` returned
+  the current offset for all dates.
+* `toLocaleTimeString()` and `toLocaleDateString()` with options that
+  name no date or time field (only `timeZoneName` or `hour12`, say) keep
+  their default fields: `toLocaleTimeString(undefined, { timeZoneName:
+  "short" })` gave the date. `timeZoneName` is supported, as GMT-offset
+  names ("GMT+1", or "GMT+01:00" for "long").
+* A cross-origin isolated page may hold one JavaScript turn for up to 10
+  minutes before it is halted (60 s otherwise): a WebAssembly game's
+  start-up runs in one turn and takes minutes on the interpreter. A
+  dedicated worker is not halted at all, as in other browsers; an
+  Emscripten pthread runs its whole life in one turn, and `terminate()`
+  still stops it.
+* WebGL 2 takes the `srcOffset`/`srcLength` arguments of `bufferData`,
+  `bufferSubData`, `getBufferSubData`, `uniform*v`, `uniformMatrix*fv`,
+  `clearBuffer*v` and `tex(Sub)Image2D/3D`. Emscripten passes its whole
+  heap with an offset; the arguments were ignored, so its buffer uploads
+  failed and its sampler uniforms were set to 4096-element arrays, and
+  nothing was drawn. `uniformMatrix*fv` honours `transpose` in WebGL 2.
+* `Table.get()` and a module's exports return the same function object
+  each time for the same wasm function (Emscripten checks).
+* `PannerNode` has its `position*`/`orientation*` parameters,
+  `setPosition()`, `setOrientation()` and distance and cone attributes,
+  and `AudioContext.listener` is an `AudioListener`; sound is not yet
+  spatialized.
+* A worker message may be up to 1 GiB (it was 16 MiB, too small for an
+  archive handed to an unpacking worker), and a worker has the same
+  JavaScript heap limit as its page instead of at most 512 MiB.
 * `--export=pdf:FILE` writes the page as a paginated PDF, replacing the
   `--dump=pdf:` that went with the old cairo writer, and without that
   writer's gaps: it runs headless, the page is laid out with print

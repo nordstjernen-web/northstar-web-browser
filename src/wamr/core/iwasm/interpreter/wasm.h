@@ -681,6 +681,40 @@ typedef struct WASMImport {
     } u;
 } WASMImport;
 
+#if WASM_ENABLE_EXCE_HANDLING != 0 && WASM_ENABLE_FAST_INTERP != 0
+/* Largest exception payload, in cells, the fast interpreter carries. */
+#define WASM_FAST_EH_MAX_PAYLOAD_CELLS 16
+#define WASM_FAST_EH_CATCH_ALL ((uint32)0xFFFFFFFF)
+#define WASM_FAST_EH_NO_DELEGATE (-2)
+
+/* A try block of the fast interpreter's compiled code. An exception
+   raised after the instruction that ends at compiled address ip belongs
+   to the innermost (highest-index) handler with start < ip <= end. */
+typedef struct WASMFastEHHandler {
+    uint8 *start;
+    uint8 *end;
+    /* innermost enclosing try still in its body, or -1 */
+    int32 parent;
+    /* WASM_FAST_EH_NO_DELEGATE, -1 to rethrow to the caller, or the
+       handler the exception is delegated to */
+    int32 delegate;
+    /* first catch clause index, or -1; clauses are linked by next */
+    int32 catch_first;
+    int32 catch_last;
+    /* slot of the caught-exception record used by rethrow */
+    uint32 slot;
+} WASMFastEHHandler;
+
+typedef struct WASMFastEHCatch {
+    /* tag index, or WASM_FAST_EH_CATCH_ALL */
+    uint32 tag_index;
+    int32 next;
+    /* frame cell the payload is copied to */
+    int16 dst_offset;
+    uint8 *target;
+} WASMFastEHCatch;
+#endif
+
 struct WASMFunction {
 #if WASM_ENABLE_CUSTOM_NAME_SECTION != 0
     char *field_name;
@@ -722,6 +756,19 @@ struct WASMFunction {
 
 #if WASM_ENABLE_EXCE_HANDLING != 0
     uint32 exception_handler_count;
+#if WASM_ENABLE_FAST_INTERP != 0
+    /* Fast-interpreter exception handling (legacy try/catch/delegate):
+       one handler per try block, in try-opening order, and their catch
+       clauses. See WASMFastEHHandler. */
+    struct WASMFastEHHandler *eh_handlers;
+    uint32 eh_handler_count;
+    struct WASMFastEHCatch *eh_catches;
+    uint32 eh_catch_count;
+    /* Frame cell (relative to frame lp) where the caught-exception records
+       for rethrow start, and the cells one record takes. */
+    uint32 eh_record_base;
+    uint32 eh_record_stride;
+#endif
 #endif
 
 #if WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 \

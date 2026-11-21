@@ -194,8 +194,11 @@ ns_idb_exec(sqlite3 *db, const char *sql)
     return ns_sqlite_exec(db, "idb", sql);
 }
 
-#define NS_IDB_MAX_PAGES 65536
-#define NS_IDB_MAX_ORIGIN_PAGES (256 * 1024)
+/* 4 GiB per database and per origin at the 4 KiB SQLite page size: a game
+ * that caches its unpacked data (hundreds of MiB) has to fit, as it does in
+ * other browsers. */
+#define NS_IDB_MAX_PAGES 1048576
+#define NS_IDB_MAX_ORIGIN_PAGES 1048576
 
 /* Applies pragmas (WAL, page cap) and creates the meta/stores/records/index tables. */
 static gboolean
@@ -1170,6 +1173,32 @@ ns_idb_plain_copy(JSContext *ctx, JSValueConst v, int depth)
     if (!JS_IsObject(v)) return JS_DupValue(ctx, v);
     if (depth > 8) return JS_NULL;
     if (JS_IsFunction(ctx, v)) return JS_ToString(ctx, v);
+    /* Binary data stays binary: a copy of the bytes, read without running
+     * page code (a game caches its assets as Uint8Array chunks). */
+    if (JS_IsArrayBuffer(v)) {
+        size_t size = 0;
+        uint8_t *bytes = JS_GetArrayBuffer(ctx, &size, v);
+        if (!bytes) return JS_EXCEPTION;
+        return JS_NewArrayBufferCopy(ctx, bytes, size);
+    }
+    int ta_type = JS_GetTypedArrayType(v);
+    if (ta_type >= 0) {
+        size_t off = 0, len = 0, bpe = 0;
+        JSValue buf = JS_GetTypedArrayBuffer(ctx, v, &off, &len, &bpe);
+        if (JS_IsException(buf)) return buf;
+        size_t size = 0;
+        uint8_t *bytes = JS_GetArrayBuffer(ctx, &size, buf);
+        JS_FreeValue(ctx, buf);
+        if (!bytes || off + len > size)
+            return JS_ThrowTypeError(ctx, "IndexedDB: detached typed array");
+        JSValue copy = JS_NewArrayBufferCopy(ctx, bytes + off, len);
+        if (JS_IsException(copy)) return copy;
+        JSValueConst args[3] = { copy, JS_NewInt32(ctx, 0),
+                                 JS_NewInt64(ctx, (int64_t)(bpe ? len / bpe : 0)) };
+        JSValue out = JS_NewTypedArray(ctx, 3, args, (JSTypedArrayEnum)ta_type);
+        JS_FreeValue(ctx, copy);
+        return out;
+    }
     if (JS_IsArray(v)) {
         JSValue lenv = JS_GetPropertyStr(ctx, v, "length");
         uint32_t n = 0;

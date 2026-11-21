@@ -187,8 +187,12 @@ through libavif when available, and SVG in the engine).
 - **MathML** — a minimalist presentation-MathML renderer.
 - **Spell checking** — optional, via the Enchant library.
 - **WebAssembly** — the JavaScript API over WAMR's fast interpreter,
-  vendored in-tree; no JIT and no ahead-of-time compilation. Built by
-  default on x86-64 and 64-bit Arm (not Arm Windows).
+  vendored in-tree; no JIT and no ahead-of-time compilation. Exception
+  handling (`-fwasm-exceptions`) and threads (shared memory, atomics,
+  modules and memories posted to workers, for cross-origin isolated
+  pages) are supported, enough to run Emscripten ports such as
+  SuperTuxKart. Built by default on x86-64 and 64-bit Arm (not Arm
+  Windows).
 - **One process, no tabs** — each window shows one page (*New Window*
   opens another in the same process), and the page engine runs on its own
   thread inside the shell process; there are no renderer processes. A

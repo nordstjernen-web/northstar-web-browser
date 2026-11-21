@@ -346,6 +346,10 @@ rdrv_run_actions(ns_page_session *s, const char *spec, int vw, int vh,
             double x = 0, y = 0;
             if (!rdrv_point(s, a + 6, &x, &y)) continue;
             fprintf(stderr, "[headless] click %g,%g\n", x, y);
+            /* the pointer moves there first, as a user's does: pages that
+             * track it (an SDL game takes mouse focus on mouseenter) see
+             * mouseover/enter/move before the press */
+            ns_page_session_hover(s, (int)x, (int)y, NULL, NULL);
             char *h = ns_page_session_click(s, (int)x, (int)y, 0);
             g_free(h);
             int changed = 0;

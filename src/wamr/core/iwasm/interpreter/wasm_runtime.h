@@ -271,6 +271,9 @@ struct WASMTagInstance {
 #endif
 
 #if WASM_ENABLE_EXCE_HANDLING != 0
+/* cur_exception text while a wasm exception unwinds (without the
+   "Exception: " prefix) */
+#define WASM_FAST_EH_EXCEPTION_MSG "uncaught wasm exception"
 #define INVALID_TAGINDEX ((uint32)0xFFFFFFFF)
 #define SET_INVALID_TAGINDEX(tag) (tag = INVALID_TAGINDEX)
 #define IS_INVALID_TAGINDEX(tag) ((tag & INVALID_TAGINDEX) == INVALID_TAGINDEX)
@@ -366,6 +369,15 @@ typedef struct WASMModuleInstanceExtra {
     WASMTagInstance *tags;
     WASMExportTagInstance *export_tags;
     void **import_tag_ptrs;
+#endif
+
+#if WASM_ENABLE_EXCE_HANDLING != 0 && WASM_ENABLE_FAST_INTERP != 0
+    /* The wasm exception being thrown: valid while eh_pending is set and
+       cur_exception holds WASM_FAST_EH_EXCEPTION_MSG */
+    bool eh_pending;
+    uint32 eh_tag_index;
+    uint32 eh_cell_num;
+    uint32 eh_cells[WASM_FAST_EH_MAX_PAYLOAD_CELLS];
 #endif
 
 #if WASM_ENABLE_MEMORY_PROFILING != 0

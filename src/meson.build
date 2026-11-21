@@ -153,6 +153,7 @@ northstar_engine_sources = files(
   'safebrowsing.c',
   'safebrowsing_google.c',
   'security.c',
+  'shared_buffer.c',
   'selection.c',
   'spellcheck.c',
   'sqlite_db.c',

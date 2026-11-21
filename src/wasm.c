@@ -16,6 +16,30 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
     (void)global;
 }
 
+gboolean ns_wasm_is_cross_thread_object(JSValueConst v)
+{
+    (void)v;
+    return FALSE;
+}
+
+guint64 ns_wasm_cross_thread_export(JSContext *ctx, JSValueConst v)
+{
+    (void)v;
+    JS_ThrowTypeError(ctx, "object cannot be cloned");
+    return 0;
+}
+
+JSValue ns_wasm_cross_thread_import(JSContext *ctx, guint64 id)
+{
+    (void)id;
+    return JS_ThrowTypeError(ctx, "WebAssembly is unavailable");
+}
+
+void ns_wasm_cross_thread_drop(guint64 id)
+{
+    (void)id;
+}
+
 #else
 
 #include <glib.h>
@@ -24,6 +48,7 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
 #include <wasm_export.h>
 
 #include "ns_wamr.h"
+#include "shared_buffer.h"
 
 #define NS_WASM_STACK_SIZE (1u << 20)
 #define NS_WASM_RECLAIM_INTERVAL 64
@@ -31,6 +56,13 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
 #define NS_WASM_MAX_RESULTS 16
 #define NS_WASM_PAGE_SIZE 65536u
 #define NS_WASM_MEMORY_MAX_BYTES (512u * 1024u * 1024u)
+/* A shared memory reserves its maximum up front; a SharedArrayBuffer over
+ * it can be at most 2 GiB long (the QuickJS ArrayBuffer limit). */
+#define NS_WASM_SHARED_MEMORY_MAX_PAGES 65536u
+#define NS_WASM_SHARED_MEMORY_MAX_BYTES ((guint64)G_MAXINT32 + 1)
+/* Hidden WebAssembly member the bootstrap defines: returns [tag, payload]
+ * for a WebAssembly.Exception, undefined otherwise. */
+#define NS_WASM_EXCEPTION_PARTS "__nsExceptionParts"
 
 static JSClassID ns_wasm_module_class_id;
 static JSClassID ns_wasm_instance_class_id;
@@ -74,6 +106,8 @@ typedef struct {
      * lock let any page or worker stall every other's instantiation.
      * Recursive because instantiation can call back into JS. */
     GRecMutex lock;
+    /* JS Module objects (one per realm or worker it was posted to) */
+    gint ref_count;
 } ns_wasm_module;
 
 typedef struct {
@@ -84,6 +118,11 @@ typedef struct {
     JSValue exports;
     JSValue memory_obj;
     JSValue pending_exc;
+    /* WebAssembly.Tag object per tag index, created on first use */
+    JSValue tags;
+    /* the one JS function per wasm function: Table.get(i) and an export
+       return the same object every time, as Emscripten checks */
+    JSValue funcs;
     ns_wasm_linkage linkage;
     gboolean has_pending;
     guint call_depth;
@@ -91,6 +130,9 @@ typedef struct {
 } ns_wasm_instance;
 
 static void ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi);
+static JSValue ns_wasm_shared_memory_new(JSContext *ctx, uint32_t initial,
+                                         uint32_t maximum,
+                                         gboolean has_maximum);
 
 typedef struct {
     JSContext *ctx;
@@ -101,6 +143,9 @@ typedef struct {
     guint8 *staging;
     size_t staging_size;
     uint32_t max_pages;
+    /* WebAssembly.Memory({shared: true}): memory of its own, shared by
+     * every instance that imports it on any thread */
+    wasm_memory_inst_t shared;
 } ns_wasm_memory;
 
 typedef struct {
@@ -422,6 +467,212 @@ ns_wasm_val_to_js(JSContext *ctx, const wasm_val_t *val)
     }
 }
 
+/* Returns WebAssembly[name] from the global object. */
+static JSValue
+ns_wasm_namespace_get(JSContext *ctx, const char *name)
+{
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue ns = JS_GetPropertyStr(ctx, global, "WebAssembly");
+    JSValue v = JS_IsObject(ns) ? JS_GetPropertyStr(ctx, ns, name)
+                                : JS_UNDEFINED;
+    JS_FreeValue(ctx, ns);
+    JS_FreeValue(ctx, global);
+    return v;
+}
+
+/* The instance's WebAssembly.Tag for tag_index, created on first use so
+ * an exported tag and the tag of a thrown exception are the same object. */
+static JSValue
+ns_wasm_instance_tag(JSContext *ctx, ns_wasm_instance *wi, uint32_t tag_index)
+{
+    if (!JS_IsObject(wi->tags)) {
+        JS_FreeValue(ctx, wi->tags);
+        wi->tags = JS_NewArray(ctx);
+        if (JS_IsException(wi->tags)) {
+            wi->tags = JS_UNDEFINED;
+            return JS_EXCEPTION;
+        }
+    }
+    JSValue tag = JS_GetPropertyUint32(ctx, wi->tags, tag_index);
+    if (JS_IsObject(tag))
+        return tag;
+    JS_FreeValue(ctx, tag);
+
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    if (!mod)
+        return JS_ThrowTypeError(ctx, "wasm module is gone");
+    JSValue params = JS_NewArray(ctx);
+    uint32_t n = ns_wamr_tag_param_count(mod->module, tag_index);
+    for (uint32_t i = 0; i < n; i++) {
+        const char *name = "externref";
+        switch (ns_wamr_tag_param_kind(mod->module, tag_index, i)) {
+        case WASM_I32: name = "i32"; break;
+        case WASM_I64: name = "i64"; break;
+        case WASM_F32: name = "f32"; break;
+        case WASM_F64: name = "f64"; break;
+        default: break;
+        }
+        JS_SetPropertyUint32(ctx, params, i, JS_NewString(ctx, name));
+    }
+    JSValue desc = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, desc, "parameters", params);
+    JSValue ctor = ns_wasm_namespace_get(ctx, "Tag");
+    tag = JS_IsFunction(ctx, ctor)
+              ? JS_CallConstructor(ctx, ctor, 1, (JSValueConst *)&desc)
+              : JS_ThrowTypeError(ctx, "WebAssembly.Tag is unavailable");
+    JS_FreeValue(ctx, ctor);
+    JS_FreeValue(ctx, desc);
+    if (!JS_IsException(tag))
+        JS_SetPropertyUint32(ctx, wi->tags, tag_index, JS_DupValue(ctx, tag));
+    return tag;
+}
+
+/* Throws a wasm exception that left the instance as a WebAssembly.Exception. */
+static JSValue
+ns_wasm_throw_exception_to_js(JSContext *ctx, ns_wasm_instance *wi,
+                              uint32_t tag_index, const uint32_t *cells,
+                              uint32_t cell_num)
+{
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    JSValue tag = ns_wasm_instance_tag(ctx, wi, tag_index);
+    if (JS_IsException(tag) || !mod)
+        return JS_IsException(tag) ? tag
+                                   : JS_ThrowTypeError(ctx, "wasm module is gone");
+    JSValue payload = JS_NewArray(ctx);
+    uint32_t n = ns_wamr_tag_param_count(mod->module, tag_index), pos = 0;
+    for (uint32_t i = 0; i < n; i++) {
+        JSValue v = JS_UNDEFINED;
+        switch (ns_wamr_tag_param_kind(mod->module, tag_index, i)) {
+        case WASM_I32:
+            if (pos + 1 <= cell_num)
+                v = JS_NewInt32(ctx, (int32_t)cells[pos]);
+            pos += 1;
+            break;
+        case WASM_F32: {
+            float f = 0;
+            if (pos + 1 <= cell_num)
+                memcpy(&f, &cells[pos], sizeof f);
+            v = JS_NewFloat64(ctx, f);
+            pos += 1;
+            break;
+        }
+        case WASM_I64: {
+            int64_t i64 = 0;
+            if (pos + 2 <= cell_num)
+                memcpy(&i64, &cells[pos], sizeof i64);
+            v = JS_NewBigInt64(ctx, i64);
+            pos += 2;
+            break;
+        }
+        case WASM_F64: {
+            double d = 0;
+            if (pos + 2 <= cell_num)
+                memcpy(&d, &cells[pos], sizeof d);
+            v = JS_NewFloat64(ctx, d);
+            pos += 2;
+            break;
+        }
+        default:
+            pos += 1;
+            break;
+        }
+        JS_SetPropertyUint32(ctx, payload, i, v);
+    }
+    JSValue ctor = ns_wasm_namespace_get(ctx, "Exception");
+    JSValueConst args[2] = { tag, payload };
+    JSValue exc = JS_IsFunction(ctx, ctor)
+                      ? JS_CallConstructor(ctx, ctor, 2, args)
+                      : JS_ThrowTypeError(ctx,
+                                          "WebAssembly.Exception is unavailable");
+    JS_FreeValue(ctx, ctor);
+    JS_FreeValue(ctx, tag);
+    JS_FreeValue(ctx, payload);
+    if (JS_IsException(exc))
+        return exc;
+    return JS_Throw(ctx, exc);
+}
+
+/* If thrown is a WebAssembly.Exception with one of the instance's tags,
+ * raises it inside the instance and returns TRUE. */
+static gboolean
+ns_wasm_throw_exception_to_wasm(JSContext *ctx, ns_wasm_instance *wi,
+                                JSValueConst thrown)
+{
+    if (!JS_IsObject(thrown) || !JS_IsObject(wi->tags))
+        return FALSE;
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    if (!mod)
+        return FALSE;
+    JSValue parts_fn = ns_wasm_namespace_get(ctx, NS_WASM_EXCEPTION_PARTS);
+    JSValue parts = JS_IsFunction(ctx, parts_fn)
+                        ? JS_Call(ctx, parts_fn, JS_UNDEFINED, 1, &thrown)
+                        : JS_UNDEFINED;
+    JS_FreeValue(ctx, parts_fn);
+    if (JS_IsException(parts)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    if (!JS_IsArray(parts)) {
+        JS_FreeValue(ctx, parts);
+        return FALSE;
+    }
+    JSValue tag = JS_GetPropertyUint32(ctx, parts, 0);
+    JSValue payload = JS_GetPropertyUint32(ctx, parts, 1);
+    JS_FreeValue(ctx, parts);
+
+    gboolean found = FALSE;
+    uint32_t tag_index = 0;
+    uint32_t len = 0;
+    JSValue len_v = JS_GetPropertyStr(ctx, wi->tags, "length");
+    JS_ToUint32(ctx, &len, len_v);
+    JS_FreeValue(ctx, len_v);
+    for (uint32_t i = 0; i < len && !found; i++) {
+        JSValue t = JS_GetPropertyUint32(ctx, wi->tags, i);
+        if (JS_IsObject(t) && JS_IsStrictEqual(ctx, t, tag)) {
+            found = TRUE;
+            tag_index = i;
+        }
+        JS_FreeValue(ctx, t);
+    }
+    JS_FreeValue(ctx, tag);
+
+    uint32_t cells[NS_WAMR_EH_MAX_CELLS], pos = 0;
+    uint32_t n = found ? ns_wamr_tag_param_count(mod->module, tag_index) : 0;
+    for (uint32_t i = 0; found && i < n; i++) {
+        JSValue v = JS_GetPropertyUint32(ctx, payload, i);
+        wasm_valkind_t kind = ns_wamr_tag_param_kind(mod->module, tag_index, i);
+        uint32_t need = (kind == WASM_I64 || kind == WASM_F64) ? 2 : 1;
+        if (pos + need > NS_WAMR_EH_MAX_CELLS || kind == WASM_EXTERNREF) {
+            found = FALSE;
+        } else if (kind == WASM_I32) {
+            int32_t i32 = 0;
+            found = !JS_ToInt32(ctx, &i32, v);
+            cells[pos] = (uint32_t)i32;
+        } else if (kind == WASM_F32) {
+            double d = 0;
+            found = !JS_ToFloat64(ctx, &d, v);
+            float f = (float)d;
+            memcpy(&cells[pos], &f, sizeof f);
+        } else if (kind == WASM_I64) {
+            int64_t i64 = 0;
+            found = !JS_ToBigInt64(ctx, &i64, v);
+            memcpy(&cells[pos], &i64, sizeof i64);
+        } else {
+            double d = 0;
+            found = !JS_ToFloat64(ctx, &d, v);
+            memcpy(&cells[pos], &d, sizeof d);
+        }
+        pos += need;
+        JS_FreeValue(ctx, v);
+    }
+    JS_FreeValue(ctx, payload);
+    if (JS_HasException(ctx))
+        JS_FreeValue(ctx, JS_GetException(ctx));
+    if (!found)
+        return FALSE;
+    return ns_wamr_throw_exception(wi->inst, tag_index, cells, pos);
+}
+
 /* Converts a call outcome to JS: rethrows a pending import exception or a RuntimeError trap. */
 static JSValue
 ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
@@ -435,6 +686,11 @@ ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
             wasm_runtime_clear_exception(wi->inst);
             return JS_Throw(ctx, exc);
         }
+        uint32_t tag_index = 0, cells[NS_WAMR_EH_MAX_CELLS], cell_num = 0;
+        if (ns_wamr_take_exception(wi->inst, &tag_index, cells,
+                                   NS_WAMR_EH_MAX_CELLS, &cell_num))
+            return ns_wasm_throw_exception_to_js(ctx, wi, tag_index, cells,
+                                                 cell_num);
         const char *msg = wasm_runtime_get_exception(wi->inst);
         JSValue ret = ns_wasm_throw_named(ctx, "RuntimeError",
                                           msg ? msg : "wasm trap");
@@ -562,9 +818,26 @@ static JSValue
 ns_wasm_make_func(JSContext *ctx, JSValueConst instance,
                   wasm_function_inst_t func)
 {
+    ns_wasm_instance *owner = ns_wasm_instance_opaque(instance);
+    char key[32];
+    g_snprintf(key, sizeof key, "%p", (void *)func);
+    if (owner && JS_IsObject(owner->funcs)) {
+        JSValue cached = JS_GetPropertyStr(ctx, owner->funcs, key);
+        if (JS_IsObject(cached))
+            return cached;
+        JS_FreeValue(ctx, cached);
+    }
     JSValue obj = JS_NewObjectClass(ctx, ns_wasm_func_class_id);
     if (JS_IsException(obj))
         return obj;
+    if (owner) {
+        if (!JS_IsObject(owner->funcs)) {
+            JS_FreeValue(ctx, owner->funcs);
+            owner->funcs = JS_NewObjectProto(ctx, JS_NULL);
+        }
+        if (JS_IsObject(owner->funcs))
+            JS_SetPropertyStr(ctx, owner->funcs, key, JS_DupValue(ctx, obj));
+    }
     ns_wasm_func *f = g_new0(ns_wasm_func, 1);
     f->ctx = ctx;
     f->instance = JS_DupValue(ctx, instance);
@@ -586,7 +859,9 @@ ns_wasm_memory_detach_buffer(ns_wasm_memory *m)
 {
     if (!m || JS_IsUndefined(m->buffer))
         return;
-    JS_DetachArrayBuffer(m->ctx, m->buffer);
+    /* a SharedArrayBuffer is never detached */
+    if (!m->shared)
+        JS_DetachArrayBuffer(m->ctx, m->buffer);
     JS_FreeValue(m->ctx, m->buffer);
     m->buffer = JS_UNDEFINED;
     m->base = NULL;
@@ -604,7 +879,7 @@ ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi)
     if (!wi || !wi->inst || JS_IsUndefined(wi->memory_obj))
         return;
     ns_wasm_memory *m = JS_GetOpaque(wi->memory_obj, ns_wasm_memory_class_id);
-    if (!m || m->staging || JS_IsUndefined(m->buffer))
+    if (!m || m->staging || m->shared || JS_IsUndefined(m->buffer))
         return;
     wasm_memory_inst_t mem = wasm_runtime_get_memory(wi->inst, 0);
     if (!mem) {
@@ -635,6 +910,8 @@ ns_wasm_memory_finalizer(JSRuntime *rt, JSValue val)
     ns_wasm_memory_detach_buffer(m);
     JS_FreeValueRT(rt, m->instance);
     g_free(m->staging);
+    if (m->shared)
+        ns_wamr_shared_memory_release(m->shared);
     g_free(m);
 }
 
@@ -663,6 +940,29 @@ ns_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
         return JS_EXCEPTION;
     guint8 *base;
     size_t size;
+    if (m->shared) {
+        base = wasm_memory_get_base_address(m->shared);
+        size = (size_t)wasm_memory_get_cur_page_count(m->shared) *
+               wasm_memory_get_bytes_per_page(m->shared);
+        if (!JS_IsUndefined(m->buffer) && m->base == base && m->size == size)
+            return JS_DupValue(ctx, m->buffer);
+        /* a grow makes a longer SharedArrayBuffer over the same memory;
+         * the old one stays valid at its old length */
+        ns_wamr_shared_memory_retain(m->shared);
+        gboolean took = FALSE;
+        JSValue sab = ns_shared_buffer_new_external(
+            ctx, base, size, (void (*)(gpointer))ns_wamr_shared_memory_release,
+            m->shared, &took);
+        if (!took)
+            ns_wamr_shared_memory_release(m->shared);
+        if (JS_IsException(sab))
+            return sab;
+        JS_FreeValue(ctx, m->buffer);
+        m->buffer = sab;
+        m->base = base;
+        m->size = size;
+        return JS_DupValue(ctx, m->buffer);
+    }
     if (m->staging) {
         base = m->staging;
         size = m->staging_size;
@@ -705,6 +1005,15 @@ ns_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc,
     if (ns_wasm_to_u32_index(ctx, argc > 0 ? argv[0] : JS_UNDEFINED,
                              &delta, "wasm memory.grow delta"))
         return JS_EXCEPTION;
+    if (m->shared) {
+        uint32_t old_pages =
+            (uint32_t)wasm_memory_get_cur_page_count(m->shared);
+        guint64 new_bytes = ((guint64)old_pages + delta) * NS_WASM_PAGE_SIZE;
+        if (delta && (new_bytes > NS_WASM_SHARED_MEMORY_MAX_BYTES ||
+                      !wasm_memory_enlarge(m->shared, delta)))
+            return JS_ThrowRangeError(ctx, "wasm memory.grow failed");
+        return JS_NewUint32(ctx, old_pages);
+    }
     if (m->staging) {
         uint32_t old_pages = (uint32_t)(m->staging_size / NS_WASM_PAGE_SIZE);
         if (delta) {
@@ -755,7 +1064,10 @@ ns_wasm_on_memory_grown(wasm_module_inst_t inst, void *user_data)
     if (!wi || JS_IsUndefined(wi->memory_obj))
         return;
     ns_wasm_memory *m = JS_GetOpaque(wi->memory_obj, ns_wasm_memory_class_id);
-    ns_wasm_memory_detach_buffer(m);
+    /* runs on the growing thread; a shared memory's buffer is rebuilt on
+     * the next read of memory.buffer instead */
+    if (m && !m->shared)
+        ns_wasm_memory_detach_buffer(m);
 }
 
 static void
@@ -1148,11 +1460,12 @@ static const JSCFunctionListEntry ns_wasm_global_proto_funcs[] = {
 };
 
 /* Unloads the WAMR module and frees its linkage and copied bytes. */
+/* Drops a reference to a compiled module; the last one unloads it. Its
+ * linkage holds no JS values, so any runtime (or none) may free it. */
 static void
-ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
+ns_wasm_module_unref(JSRuntime *rt, ns_wasm_module *m)
 {
-    ns_wasm_module *m = JS_GetOpaque(val, ns_wasm_module_class_id);
-    if (!m)
+    if (!m || !g_atomic_int_dec_and_test(&m->ref_count))
         return;
     if (m->module)
         wasm_runtime_unload(m->module);
@@ -1160,6 +1473,15 @@ ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
     g_free(m->load_bytes);
     g_rec_mutex_clear(&m->lock);
     g_free(m);
+}
+
+static void
+ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
+{
+    ns_wasm_module *m = JS_GetOpaque(val, ns_wasm_module_class_id);
+    if (!m)
+        return;
+    ns_wasm_module_unref(rt, m);
 }
 
 static void
@@ -1195,6 +1517,8 @@ ns_wasm_instance_finalizer(JSRuntime *rt, JSValue val)
     JS_FreeValueRT(rt, wi->exports);
     JS_FreeValueRT(rt, wi->memory_obj);
     JS_FreeValueRT(rt, wi->pending_exc);
+    JS_FreeValueRT(rt, wi->tags);
+    JS_FreeValueRT(rt, wi->funcs);
     g_free(wi);
 }
 
@@ -1209,6 +1533,8 @@ ns_wasm_instance_gc_mark(JSRuntime *rt, JSValueConst val,
     JS_MarkValue(rt, wi->exports, mark_func);
     JS_MarkValue(rt, wi->memory_obj, mark_func);
     JS_MarkValue(rt, wi->pending_exc, mark_func);
+    JS_MarkValue(rt, wi->tags, mark_func);
+    JS_MarkValue(rt, wi->funcs, mark_func);
     ns_wasm_linkage_gc_mark(rt, &wi->linkage, mark_func);
 }
 
@@ -1296,6 +1622,14 @@ ns_wasm_native_dispatch(wasm_exec_env_t exec_env, uint64_t *args)
         JS_FreeValue(ctx, argv[i]);
 
     if (JS_IsException(ret)) {
+        /* a WebAssembly.Exception of this instance's tags unwinds into
+           the wasm caller, which may catch it */
+        JSValue thrown = JS_GetException(ctx);
+        if (wi && inst && ns_wasm_throw_exception_to_wasm(ctx, wi, thrown)) {
+            JS_FreeValue(ctx, thrown);
+            return;
+        }
+        JS_Throw(ctx, thrown);
         if (wi && !wi->has_pending) {
             wi->pending_exc = JS_GetException(ctx);
             wi->has_pending = TRUE;
@@ -1805,6 +2139,19 @@ ns_wasm_build_exports(JSContext *ctx, JSValueConst instance_obj,
             break;
         }
     }
+    uint32_t n_tags = ns_wamr_export_tag_count(mod->module);
+    for (uint32_t i = 0; i < n_tags; i++) {
+        const char *name = NULL;
+        uint32_t tag_index = 0;
+        if (!ns_wamr_export_tag(mod->module, i, &name, &tag_index))
+            continue;
+        JSValue tag = ns_wasm_instance_tag(ctx, wi, tag_index);
+        if (JS_IsException(tag) ||
+            JS_SetPropertyStr(ctx, exports, name, tag) < 0) {
+            JS_FreeValue(ctx, exports);
+            return JS_EXCEPTION;
+        }
+    }
     ns_wasm_freeze(ctx, exports);
     return exports;
 }
@@ -1820,6 +2167,7 @@ ns_wasm_module_from_bytes(JSContext *ctx, const guint8 *bytes, size_t len)
                                    "wasm module too large");
 
     ns_wasm_module *mod = g_new0(ns_wasm_module, 1);
+    mod->ref_count = 1;
     g_rec_mutex_init(&mod->lock);
     ns_wasm_linkage_init(&mod->linkage);
     mod->load_bytes = ns_wasm_memdup_bytes(bytes, len);
@@ -1911,6 +2259,8 @@ ns_wasm_adopt_provided_imports(JSContext *ctx, JSValueConst instance_obj,
     if (!JS_IsUndefined(wi->linkage.provided_memory)) {
         ns_wasm_memory *m = JS_GetOpaque(wi->linkage.provided_memory,
                                          ns_wasm_memory_class_id);
+        if (m && m->shared && JS_IsUndefined(wi->memory_obj))
+            wi->memory_obj = JS_DupValue(ctx, wi->linkage.provided_memory);
         wasm_memory_inst_t mem =
             m && m->staging ? wasm_runtime_get_memory(wi->inst, 0) : NULL;
         if (mem) {
@@ -1962,6 +2312,10 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
         JS_GetOpaque2(ctx, module_obj, ns_wasm_module_class_id);
     if (!mod || !mod->module)
         return JS_EXCEPTION;
+    /* a module posted from another thread was compiled there: this thread
+     * still needs its WAMR thread environment */
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
 
     JSRuntime *rt = JS_GetRuntime(ctx);
     ns_wasm_linkage linkage;
@@ -2010,12 +2364,22 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
     wi->exports = JS_UNDEFINED;
     wi->memory_obj = JS_UNDEFINED;
     wi->pending_exc = JS_UNDEFINED;
+    wi->tags = JS_UNDEFINED;
+    wi->funcs = JS_UNDEFINED;
     wi->linkage = linkage;
 
     g_private_set(&ns_wasm_instantiating, wi);
+    ns_wasm_memory *provided_shared =
+        JS_IsUndefined(wi->linkage.provided_memory)
+            ? NULL
+            : JS_GetOpaque(wi->linkage.provided_memory,
+                           ns_wasm_memory_class_id);
+    if (provided_shared && provided_shared->shared)
+        ns_wamr_provide_shared_memory_for_next_instance(provided_shared->shared);
     wasm_module_inst_t inst =
         wasm_runtime_instantiate(inst_module, NS_WASM_STACK_SIZE, 0, error_buf,
                                  sizeof(error_buf));
+    ns_wamr_provide_shared_memory_for_next_instance(NULL);
     mod->instantiating = FALSE;
     g_rec_mutex_unlock(&mod->lock);
     g_private_set(&ns_wasm_instantiating, NULL);
@@ -2191,6 +2555,7 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
         return JS_EXCEPTION;
     JSValue maxv = JS_GetPropertyStr(ctx, desc, "maximum");
     uint32_t maximum = 0;
+    gboolean has_maximum = !JS_IsUndefined(maxv);
     if (!JS_IsUndefined(maxv))
         rc = ns_wasm_to_u32_index(ctx, maxv, &maximum, "wasm memory maximum");
     JS_FreeValue(ctx, maxv);
@@ -2202,7 +2567,7 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
     int shared = JS_ToBool(ctx, sv);
     JS_FreeValue(ctx, sv);
     if (shared)
-        return JS_ThrowTypeError(ctx, "shared wasm memory is not supported");
+        return ns_wasm_shared_memory_new(ctx, initial, maximum, has_maximum);
     guint64 bytes = (guint64)initial * NS_WASM_PAGE_SIZE;
     if (bytes > NS_WASM_MEMORY_MAX_BYTES)
         return JS_ThrowRangeError(ctx, "wasm memory initial is too large");
@@ -2216,6 +2581,156 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
     m->staging = g_malloc0(bytes ? (size_t)bytes : 1);
     m->staging_size = (size_t)bytes;
     m->max_pages = maximum;
+    JS_SetOpaque(obj, m);
+    return obj;
+}
+
+/* Cross-thread handles: a WebAssembly.Module or shared WebAssembly.Memory
+ * posted to a worker travels as an id; the receiver makes its own JS object
+ * over the same compiled module or memory. */
+typedef struct {
+    gboolean is_memory;
+    ns_wasm_module *module;
+    wasm_memory_inst_t memory;
+    uint32_t max_pages;
+} ns_wasm_xthread;
+
+static GMutex ns_wasm_xthread_lock;
+static GHashTable *ns_wasm_xthread_table; /* id -> ns_wasm_xthread */
+static guint64 ns_wasm_xthread_next_id;
+
+static void
+ns_wasm_xthread_free(ns_wasm_xthread *h)
+{
+    if (!h)
+        return;
+    if (h->module)
+        ns_wasm_module_unref(NULL, h->module);
+    if (h->memory)
+        ns_wamr_shared_memory_release(h->memory);
+    g_free(h);
+}
+
+gboolean
+ns_wasm_is_cross_thread_object(JSValueConst v)
+{
+    return JS_IsObject(v) &&
+           (JS_GetOpaque(v, ns_wasm_module_class_id) ||
+            JS_GetOpaque(v, ns_wasm_memory_class_id));
+}
+
+guint64
+ns_wasm_cross_thread_export(JSContext *ctx, JSValueConst v)
+{
+    ns_wasm_module *mod = JS_GetOpaque(v, ns_wasm_module_class_id);
+    ns_wasm_memory *mem = mod ? NULL : JS_GetOpaque(v, ns_wasm_memory_class_id);
+    if (!mod && !(mem && mem->shared)) {
+        JS_ThrowTypeError(ctx, mem ? "a non-shared WebAssembly.Memory "
+                                     "cannot be posted to a worker"
+                                   : "object cannot be cloned");
+        return 0;
+    }
+    ns_wasm_xthread *h = g_new0(ns_wasm_xthread, 1);
+    if (mod) {
+        g_atomic_int_inc(&mod->ref_count);
+        h->module = mod;
+    } else {
+        ns_wamr_shared_memory_retain(mem->shared);
+        h->is_memory = TRUE;
+        h->memory = mem->shared;
+        h->max_pages = mem->max_pages;
+    }
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    if (!ns_wasm_xthread_table)
+        ns_wasm_xthread_table = g_hash_table_new_full(
+            g_int64_hash, g_int64_equal, g_free,
+            (GDestroyNotify)ns_wasm_xthread_free);
+    guint64 *key = g_new(guint64, 1);
+    *key = ++ns_wasm_xthread_next_id;
+    guint64 id = *key;
+    g_hash_table_insert(ns_wasm_xthread_table, key, h);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+    return id;
+}
+
+JSValue
+ns_wasm_cross_thread_import(JSContext *ctx, guint64 id)
+{
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    ns_wasm_xthread *h = ns_wasm_xthread_table
+        ? g_hash_table_lookup(ns_wasm_xthread_table, &id) : NULL;
+    ns_wasm_module *mod = h ? h->module : NULL;
+    wasm_memory_inst_t memory = h ? h->memory : NULL;
+    uint32_t max_pages = h ? h->max_pages : 0;
+    if (mod)
+        g_atomic_int_inc(&mod->ref_count);
+    if (memory)
+        ns_wamr_shared_memory_retain(memory);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+    if (!mod && !memory)
+        return JS_ThrowTypeError(ctx, "posted WebAssembly object is gone");
+
+    JSValue obj = JS_NewObjectClass(ctx, mod ? ns_wasm_module_class_id
+                                             : ns_wasm_memory_class_id);
+    if (JS_IsException(obj)) {
+        if (mod)
+            ns_wasm_module_unref(JS_GetRuntime(ctx), mod);
+        if (memory)
+            ns_wamr_shared_memory_release(memory);
+        return obj;
+    }
+    if (mod) {
+        JS_SetOpaque(obj, mod);
+    } else {
+        ns_wasm_memory *m = g_new0(ns_wasm_memory, 1);
+        m->ctx = ctx;
+        m->instance = JS_UNDEFINED;
+        m->buffer = JS_UNDEFINED;
+        m->max_pages = max_pages;
+        m->shared = memory;
+        JS_SetOpaque(obj, m);
+    }
+    return obj;
+}
+
+void
+ns_wasm_cross_thread_drop(guint64 id)
+{
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    if (ns_wasm_xthread_table)
+        g_hash_table_remove(ns_wasm_xthread_table, &id);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+}
+
+/* WebAssembly.Memory({shared: true}): needs a maximum, reserved now. */
+static JSValue
+ns_wasm_shared_memory_new(JSContext *ctx, uint32_t initial, uint32_t maximum,
+                          gboolean has_maximum)
+{
+    if (!has_maximum)
+        return JS_ThrowTypeError(ctx, "shared wasm memory needs a maximum");
+    if (maximum > NS_WASM_SHARED_MEMORY_MAX_PAGES)
+        return JS_ThrowRangeError(ctx, "wasm memory maximum is too large");
+    if ((guint64)initial * NS_WASM_PAGE_SIZE > NS_WASM_SHARED_MEMORY_MAX_BYTES)
+        return JS_ThrowRangeError(ctx, "wasm memory initial is too large");
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
+    wasm_memory_inst_t shared = ns_wamr_shared_memory_new(initial, maximum);
+    if (!shared)
+        return JS_ThrowRangeError(ctx, "could not reserve shared wasm memory");
+    JSValue obj = JS_NewObjectClass(ctx, ns_wasm_memory_class_id);
+    if (JS_IsException(obj)) {
+        ns_wamr_shared_memory_release(shared);
+        return obj;
+    }
+    ns_wasm_memory *m = g_new0(ns_wasm_memory, 1);
+    m->ctx = ctx;
+    m->instance = JS_UNDEFINED;
+    m->buffer = JS_UNDEFINED;
+    m->max_pages = maximum;
+    m->shared = shared;
     JS_SetOpaque(obj, m);
     return obj;
 }
@@ -2453,6 +2968,45 @@ static const char ns_wasm_bootstrap_js[] =
     "  W.LinkError.prototype.name = 'LinkError';"
     "  W.RuntimeError = class RuntimeError extends Error {};"
     "  W.RuntimeError.prototype.name = 'RuntimeError';"
+    "  const tagParams = new WeakMap(), excParts = new WeakMap();"
+    "  const kinds = ['i32', 'i64', 'f32', 'f64', 'externref', 'anyfunc', 'funcref'];"
+    "  W.Tag = class Tag {"
+    "    constructor(type) {"
+    "      const p = type && type.parameters;"
+    "      if (p == null || typeof p[Symbol.iterator] !== 'function')"
+    "        throw new TypeError('WebAssembly.Tag: parameters is not iterable');"
+    "      const list = Array.from(p, String);"
+    "      for (const k of list)"
+    "        if (!kinds.includes(k))"
+    "          throw new TypeError('WebAssembly.Tag: invalid value type ' + k);"
+    "      tagParams.set(this, list);"
+    "    }"
+    "    type() { return { parameters: tagParams.get(this).slice() }; }"
+    "  };"
+    "  W.Exception = class Exception {"
+    "    constructor(tag, payload, options) {"
+    "      if (!tagParams.has(tag))"
+    "        throw new TypeError('WebAssembly.Exception: tag is not a WebAssembly.Tag');"
+    "      const values = Array.from(payload == null ? [] : payload);"
+    "      if (values.length !== tagParams.get(tag).length)"
+    "        throw new TypeError('WebAssembly.Exception: payload does not match the tag');"
+    "      excParts.set(this, [tag, values]);"
+    "      if (options && options.traceStack)"
+    "        Object.defineProperty(this, 'stack', { value: new Error().stack,"
+    "          writable: true, configurable: true });"
+    "    }"
+    "    is(tag) { return excParts.get(this)[0] === tag; }"
+    "    getArg(tag, index) {"
+    "      const parts = excParts.get(this);"
+    "      if (parts[0] !== tag)"
+    "        throw new TypeError('WebAssembly.Exception.getArg: tag mismatch');"
+    "      if (!(index >= 0 && index < parts[1].length))"
+    "        throw new RangeError('WebAssembly.Exception.getArg: index out of range');"
+    "      return parts[1][index];"
+    "    }"
+    "  };"
+    "  Object.defineProperty(W, '" NS_WASM_EXCEPTION_PARTS "', {"
+    "    value: (e) => { const p = excParts.get(e); return p && [p[0], p[1]]; } });"
     "  W.instantiateStreaming = async (src, imports) =>"
     "    W.instantiate(await (await src).arrayBuffer(), imports);"
     "  W.compileStreaming = async (src) =>"

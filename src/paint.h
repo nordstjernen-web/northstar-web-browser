@@ -34,6 +34,7 @@ gboolean ns_paint_3d_registered(const ns_box *b);
 const ns_box *ns_paint_3d_pick(const ns_box *root3d, double x, double y);
 
 void ns_paint_set_search(gboolean case_sensitive, const ns_box *active);
+void ns_paint_set_pdf_links(gboolean on, const char *base_url);
 
 gboolean ns_paint_inline_range_extents(const ns_box *b, gsize start, gsize len,
                                        double *out_x, double *out_y,

@@ -8,6 +8,7 @@
 #include "engine.h"
 
 #include <glib/gstdio.h>
+#include <cairo-pdf.h>
 #include <cairo.h>
 #include <math.h>
 #include <stdio.h>
@@ -1671,6 +1672,176 @@ ns_engine_write_png(const ns_box *root, const char *path)
         return 2;
     }
     return 0;
+}
+
+#define NS_PDF_PT_PER_PX (72.0 / 96.0)
+
+typedef struct pdf_anchor {
+    const ns_node *dom;
+    double x, y;          /* document px of the element's first box */
+    int level;            /* 1..6 for h1..h6, 0 for other id targets */
+} pdf_anchor;
+
+/* Collects the first box of every heading and id-bearing element, in tree order. */
+static void
+pdf_collect_anchors(const ns_box *b, GArray *out, GHashTable *seen)
+{
+    for (; b; b = b->next_sibling) {
+        const ns_node *n = b->dom;
+        if (n && n->kind == NS_NODE_ELEMENT && !g_hash_table_contains(seen, n)) {
+            int level = 0;
+            if (n->tag >= NS_TAG_H1 && n->tag <= NS_TAG_H6 &&
+                !(n->flags & (NS_NODE_SVG_NS | NS_NODE_FOREIGN_NS)))
+                level = 1 + (int)(n->tag - NS_TAG_H1);
+            const char *id = ns_element_get_attr(n, "id");
+            if (level || (id && *id)) {
+                pdf_anchor a = { n, b->x, b->y + b->margin.top, level };
+                g_array_append_val(out, a);
+                g_hash_table_add(seen, (gpointer)n);
+            }
+        }
+        pdf_collect_anchors(b->first_child, out, seen);
+    }
+}
+
+/* Index of the page whose slice holds document y. */
+static guint
+pdf_page_of(const GArray *offsets, double y)
+{
+    guint i = 0;
+    while (i + 1 < offsets->len && g_array_index(offsets, double, i + 1) <= y)
+        i++;
+    return i;
+}
+
+/* Collapsed whitespace text of an element, for bookmark titles; caller frees. */
+static char *
+pdf_node_title(const ns_node *n)
+{
+    size_t len = 0;
+    char *raw = ns_node_collect_all_text_len(n, &len);
+    if (!raw) return g_strdup("");
+    GString *out = g_string_new(NULL);
+    gboolean space = FALSE;
+    for (const char *p = raw; *p; p++) {
+        if (g_ascii_isspace(*p)) { space = out->len > 0; continue; }
+        if (space) g_string_append_c(out, ' ');
+        space = FALSE;
+        g_string_append_c(out, *p);
+    }
+    g_free(raw);
+    return g_string_free(out, FALSE);
+}
+
+static void
+pdf_write_metadata(cairo_surface_t *surf, const char *title)
+{
+    cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_CREATOR,
+                                   "Northstar Web Browser");
+    if (title && *title)
+        cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_TITLE, title);
+    time_t now = time(NULL);
+    struct tm tm_utc;
+#if defined(_WIN32)
+    int have_tm = gmtime_s(&tm_utc, &now) == 0;
+#else
+    int have_tm = gmtime_r(&now, &tm_utc) != NULL;
+#endif
+    char iso[32];
+    if (have_tm && strftime(iso, sizeof iso, "%Y-%m-%dT%H:%M:%SZ", &tm_utc) > 0)
+        cairo_pdf_surface_set_metadata(surf, CAIRO_PDF_METADATA_CREATE_DATE, iso);
+}
+
+/* Writes a paginated PDF: @page size and margins, selectable text, link
+ * annotations, a named destination per id and a bookmark outline from h1-h6.
+ * Returns 0 or 2. */
+int
+ns_engine_write_pdf(const ns_box *root, const char *path,
+                    const ns_print_setup *setup, const char *base_url,
+                    const char *title)
+{
+    if (!root || !path || !setup) return 2;
+    double page_h = setup->height - setup->margin_top - setup->margin_bottom;
+    if (!(page_h > 0)) return 2;
+    GArray *offsets = ns_print_page_offsets(root, page_h);
+    FILE *f = engine_take_preopened(path);
+    double w_pt = setup->width * NS_PDF_PT_PER_PX;
+    double h_pt = setup->height * NS_PDF_PT_PER_PX;
+    cairo_surface_t *surf = f
+        ? cairo_pdf_surface_create_for_stream(engine_write_to_file, f, w_pt, h_pt)
+        : cairo_pdf_surface_create(path, w_pt, h_pt);
+    if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(surf);
+        if (f) fclose(f);
+        g_array_free(offsets, TRUE);
+        fprintf(stderr, "engine: failed to create PDF surface\n");
+        return 2;
+    }
+    pdf_write_metadata(surf, title);
+
+    GArray *anchors = g_array_new(FALSE, FALSE, sizeof(pdf_anchor));
+    GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+    pdf_collect_anchors(root, anchors, seen);
+    g_hash_table_destroy(seen);
+
+    ns_paint_set_pdf_links(TRUE, base_url);
+    cairo_t *cr = cairo_create(surf);
+    for (guint i = 0; i < offsets->len; i++) {
+        double top = g_array_index(offsets, double, i);
+        ns_print_draw_page(cr, root, setup, NS_PDF_PT_PER_PX, top,
+                           ns_print_page_bottom(offsets, i, page_h));
+        for (guint k = 0; k < anchors->len; k++) {
+            const pdf_anchor *a = &g_array_index(anchors, pdf_anchor, k);
+            const char *id = ns_element_get_attr(a->dom, "id");
+            if (!id || !*id || pdf_page_of(offsets, a->y) != i) continue;
+            GString *attrs = g_string_new("name='");
+            for (const char *p = id; *p; p++) {
+                if (*p == '\'' || *p == '\\') g_string_append_c(attrs, '\\');
+                g_string_append_c(attrs, *p);
+            }
+            g_string_append_printf(attrs, "' x=%.2f y=%.2f",
+                (setup->margin_left + a->x) * NS_PDF_PT_PER_PX,
+                (setup->margin_top + a->y - top) * NS_PDF_PT_PER_PX);
+            cairo_tag_begin(cr, CAIRO_TAG_DEST, attrs->str);
+            cairo_tag_end(cr, CAIRO_TAG_DEST);
+            g_string_free(attrs, TRUE);
+        }
+        cairo_show_page(cr);
+    }
+    ns_paint_set_pdf_links(FALSE, NULL);
+
+    /* Bookmarks: nest each heading under the nearest shallower one. */
+    int parent_id[7] = { CAIRO_PDF_OUTLINE_ROOT };
+    int open_level = 0;
+    for (guint k = 0; k < anchors->len; k++) {
+        const pdf_anchor *a = &g_array_index(anchors, pdf_anchor, k);
+        if (!a->level) continue;
+        int parent = CAIRO_PDF_OUTLINE_ROOT;
+        for (int l = MIN(a->level, open_level + 1) - 1; l >= 1; l--)
+            if (parent_id[l]) { parent = parent_id[l]; break; }
+        guint page = pdf_page_of(offsets, a->y);
+        double top = g_array_index(offsets, double, page);
+        char *name = pdf_node_title(a->dom);
+        char *link = g_strdup_printf("page=%u pos=[%.2f %.2f]", page + 1,
+            (setup->margin_left + a->x) * NS_PDF_PT_PER_PX,
+            (setup->margin_top + a->y - top) * NS_PDF_PT_PER_PX);
+        int id = cairo_pdf_surface_add_outline(surf, parent, name, link,
+            a->level <= 2 ? CAIRO_PDF_OUTLINE_FLAG_OPEN : 0);
+        g_free(link);
+        g_free(name);
+        parent_id[a->level] = id;
+        for (int l = a->level + 1; l <= 6; l++) parent_id[l] = 0;
+        open_level = a->level;
+    }
+
+    cairo_destroy(cr);
+    cairo_surface_finish(surf);
+    int rc = cairo_surface_status(surf) == CAIRO_STATUS_SUCCESS ? 0 : 2;
+    cairo_surface_destroy(surf);
+    if (f) fclose(f);
+    g_array_free(anchors, TRUE);
+    g_array_free(offsets, TRUE);
+    return rc;
 }
 
 /* Renders each print page to a recording surface; caller owns the array and surfaces. */

@@ -675,6 +675,56 @@ view_bytes(JSContext *ctx, JSValueConst v, size_t *out_len, JSValue *hold)
     return base + off;
 }
 
+/* Bytes per element of a typed array view; 1 for a DataView or buffer. */
+static size_t
+wgl_view_elem_size(JSContext *ctx, JSValueConst view)
+{
+    size_t off = 0, len = 0, bpe = 0;
+    JSValue buf = JS_GetTypedArrayBuffer(ctx, view, &off, &len, &bpe);
+    if (JS_IsException(buf)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return 1;
+    }
+    JS_FreeValue(ctx, buf);
+    return bpe ? bpe : 1;
+}
+
+/* WebGL 2's (view, srcOffset[, srcLength]) arguments, srcOffset at off_at
+ * and srcLength at len_at (-1: none): narrows *p / *len, the bytes of view,
+ * to srcLength elements from element srcOffset (srcLength absent or 0: to
+ * the end). Emscripten passes its whole heap view with an offset, so
+ * ignoring them uploads the wrong data. FALSE when the range does not fit
+ * the view. */
+static gboolean
+wgl_view_range(JSContext *ctx, JSValueConst view, int argc, JSValueConst *argv,
+               int off_at, int len_at, const uint8_t **p, size_t *len)
+{
+    if (off_at < 0 || off_at >= argc || JS_IsUndefined(argv[off_at]))
+        return TRUE;
+    int64_t off = 0, cnt = 0;
+    if (arg64(ctx, argv[off_at], &off)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    if (len_at >= 0 && len_at < argc && !JS_IsUndefined(argv[len_at]) &&
+        arg64(ctx, argv[len_at], &cnt)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    if (off < 0 || cnt < 0)
+        return FALSE;
+    uint64_t bpe = wgl_view_elem_size(ctx, view);
+    uint64_t boff = (uint64_t)off * bpe;
+    if (boff > *len)
+        return FALSE;
+    uint64_t blen = cnt ? (uint64_t)cnt * bpe : *len - boff;
+    if (boff + blen > *len)
+        return FALSE;
+    *p += boff;
+    *len = (size_t)blen;
+    return TRUE;
+}
+
 static GLenum
 wgl_buffer_binding_query(GLenum target)
 {
@@ -995,6 +1045,16 @@ out_of_range:
     return FALSE;
 }
 
+/* Reads up to max numbers from argv[vi]: a typed array or array, from
+ * element argv[off_at] for argv[len_at] elements when those are given
+ * (-1: no such argument). *ok is FALSE when the range does not fit. */
+static int
+wgl_floats_from(JSContext *ctx, int argc, JSValueConst *argv, int vi,
+                int off_at, int len_at, float *out, int max, gboolean *ok);
+static int
+wgl_ints_from(JSContext *ctx, int argc, JSValueConst *argv, int vi,
+              int off_at, int len_at, GLint *out, int max, gboolean *ok);
+
 static int
 wgl_floats(JSContext *ctx, JSValueConst v, float *out, int max)
 {
@@ -1021,6 +1081,120 @@ wgl_floats(JSContext *ctx, JSValueConst v, float *out, int max)
         JS_ToFloat64(ctx, &d, e);
         JS_FreeValue(ctx, e);
         out[i] = (float)d;
+    }
+    wgl_reassert(keep);
+    return cnt;
+}
+
+/* First and count of the elements [off_at, len_at) select from a list of
+ * total elements; FALSE when they run past it. */
+static gboolean
+wgl_list_window(JSContext *ctx, int argc, JSValueConst *argv, int off_at,
+                int len_at, uint64_t total, uint64_t *first, uint64_t *count)
+{
+    int64_t off = 0, cnt = 0;
+    *first = 0;
+    *count = total;
+    if (off_at < 0 || off_at >= argc || JS_IsUndefined(argv[off_at]))
+        return TRUE;
+    if (arg64(ctx, argv[off_at], &off) ||
+        (len_at >= 0 && len_at < argc && !JS_IsUndefined(argv[len_at]) &&
+         arg64(ctx, argv[len_at], &cnt))) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    if (off < 0 || cnt < 0 || (uint64_t)off > total)
+        return FALSE;
+    uint64_t n = cnt ? (uint64_t)cnt : total - (uint64_t)off;
+    if ((uint64_t)off + n > total)
+        return FALSE;
+    *first = (uint64_t)off;
+    *count = n;
+    return TRUE;
+}
+
+static int
+wgl_floats_from(JSContext *ctx, int argc, JSValueConst *argv, int vi,
+                int off_at, int len_at, float *out, int max, gboolean *ok)
+{
+    *ok = TRUE;
+    if (vi >= argc) return 0;
+    JSValueConst v = argv[vi];
+    if (JS_GetTypedArrayType(v) == JS_TYPED_ARRAY_FLOAT32) {
+        JSValue hold;
+        size_t n = 0;
+        const uint8_t *b = view_bytes(ctx, v, &n, &hold);
+        if (b && !wgl_view_range(ctx, v, argc, argv, off_at, len_at, &b, &n)) {
+            *ok = FALSE;
+            b = NULL;
+        }
+        int cnt = b ? (int)MIN(n / sizeof(float), (size_t)max) : 0;
+        if (b) memcpy(out, b, (size_t)cnt * sizeof(float));
+        if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+        return cnt;
+    }
+    ns_webgl *keep = wgl_active;
+    JSValue lv = JS_GetPropertyStr(ctx, v, "length");
+    uint32_t len = 0;
+    JS_ToUint32(ctx, &len, lv);
+    JS_FreeValue(ctx, lv);
+    uint64_t first = 0, count = 0;
+    if (!wgl_list_window(ctx, argc, argv, off_at, len_at, len, &first, &count)) {
+        *ok = FALSE;
+        wgl_reassert(keep);
+        return 0;
+    }
+    int cnt = (int)MIN(count, (uint64_t)max);
+    for (int i = 0; i < cnt; i++) {
+        JSValue e = JS_GetPropertyUint32(ctx, v, (uint32_t)(first + i));
+        double d = 0;
+        JS_ToFloat64(ctx, &d, e);
+        JS_FreeValue(ctx, e);
+        out[i] = (float)d;
+    }
+    wgl_reassert(keep);
+    return cnt;
+}
+
+static int
+wgl_ints_from(JSContext *ctx, int argc, JSValueConst *argv, int vi,
+              int off_at, int len_at, GLint *out, int max, gboolean *ok)
+{
+    *ok = TRUE;
+    if (vi >= argc) return 0;
+    JSValueConst v = argv[vi];
+    int t = JS_GetTypedArrayType(v);
+    if (t == JS_TYPED_ARRAY_INT32 || t == JS_TYPED_ARRAY_UINT32) {
+        JSValue hold;
+        size_t n = 0;
+        const uint8_t *b = view_bytes(ctx, v, &n, &hold);
+        if (b && !wgl_view_range(ctx, v, argc, argv, off_at, len_at, &b, &n)) {
+            *ok = FALSE;
+            b = NULL;
+        }
+        int cnt = b ? (int)MIN(n / sizeof(GLint), (size_t)max) : 0;
+        if (b) memcpy(out, b, (size_t)cnt * sizeof(GLint));
+        if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+        return cnt;
+    }
+    ns_webgl *keep = wgl_active;
+    JSValue lv = JS_GetPropertyStr(ctx, v, "length");
+    uint32_t len = 0;
+    JS_ToUint32(ctx, &len, lv);
+    JS_FreeValue(ctx, lv);
+    uint64_t first = 0, count = 0;
+    if (!wgl_list_window(ctx, argc, argv, off_at, len_at, len, &first, &count)) {
+        *ok = FALSE;
+        wgl_reassert(keep);
+        return 0;
+    }
+    int cnt = (int)MIN(count, (uint64_t)max);
+    for (int i = 0; i < cnt; i++) {
+        JSValue e = JS_GetPropertyUint32(ctx, v, (uint32_t)(first + i));
+        int32_t d = 0;
+        JS_ToInt32(ctx, &d, e);
+        JS_FreeValue(ctx, e);
+        out[i] = d;
     }
     wgl_reassert(keep);
     return cnt;
@@ -2760,6 +2934,11 @@ wgl_bufferData(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     JSValue hold;
     size_t len = 0;
     const uint8_t *p = (argc >= 2) ? view_bytes(ctx, argv[1], &len, &hold) : NULL;
+    if (p && !wgl_view_range(ctx, argv[1], argc, argv, 3, 4, &p, &len)) {
+        if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     if (len > NS_WEBGL_MAX_ALLOC) {
         if (p && !JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
         return JS_UNDEFINED;
@@ -2779,6 +2958,11 @@ wgl_bufferSubData(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
     JSValue hold;
     size_t len = 0;
     const uint8_t *p = (argc >= 3) ? view_bytes(ctx, argv[2], &len, &hold) : NULL;
+    if (p && !wgl_view_range(ctx, argv[2], argc, argv, 3, 4, &p, &len)) {
+        if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     if (p) {
         if (wgl_buffer_range_ok(g, target, offset, len)) {
             glBufferSubData(target, offset, (GLsizeiptr)len, p);
@@ -2912,7 +3096,12 @@ wgl_uniform_fv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     WGL_GET(0);
     GLint loc = wgl_loc(ctx, argv[0]);
     float buf[4096];
-    int cnt = (argc >= 2) ? wgl_floats(ctx, argv[1], buf, 4096) : 0;
+    gboolean ok = TRUE;
+    int cnt = wgl_floats_from(ctx, argc, argv, 1, 2, 3, buf, 4096, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     GLsizei count = cnt / n;
     switch (n) {
     case 1: glUniform1fv(loc, count, buf); break;
@@ -2938,7 +3127,12 @@ wgl_uniform_iv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
     WGL_GET(0);
     GLint loc = wgl_loc(ctx, argv[0]);
     GLint buf[4096];
-    int cnt = (argc >= 2) ? wgl_ints(ctx, argv[1], buf, 4096) : 0;
+    gboolean ok = TRUE;
+    int cnt = wgl_ints_from(ctx, argc, argv, 1, 2, 3, buf, 4096, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     GLsizei count = cnt / n;
     switch (n) {
     case 1: glUniform1iv(loc, count, buf); break;
@@ -2964,12 +3158,20 @@ wgl_uniformMatrix_fv(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
     WGL_GET(0);
     GLint loc = wgl_loc(ctx, argv[0]);
     float buf[4096];
-    int cnt = (argc >= 3) ? wgl_floats(ctx, argv[2], buf, 4096) : 0;
+    gboolean ok = TRUE;
+    int cnt = wgl_floats_from(ctx, argc, argv, 2, 3, 4, buf, 4096, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
+    /* WebGL 2 accepts a transposed matrix */
+    GLboolean tr = g->version >= 2 && argc >= 2 && JS_ToBool(ctx, argv[1]) > 0
+                   ? GL_TRUE : GL_FALSE;
     GLsizei count = cnt / (n * n);
     switch (n) {
-    case 2: glUniformMatrix2fv(loc, count, GL_FALSE, buf); break;
-    case 3: glUniformMatrix3fv(loc, count, GL_FALSE, buf); break;
-    default: glUniformMatrix4fv(loc, count, GL_FALSE, buf); break;
+    case 2: glUniformMatrix2fv(loc, count, tr, buf); break;
+    case 3: glUniformMatrix3fv(loc, count, tr, buf); break;
+    default: glUniformMatrix4fv(loc, count, tr, buf); break;
     }
     return JS_UNDEFINED;
 }
@@ -3342,6 +3544,13 @@ wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
         }
         if (!JS_IsNull(argv[8]) && !JS_IsUndefined(argv[8]))
             px = view_bytes(ctx, argv[8], &len, &hold);
+        /* WebGL 2: (..., srcData, srcOffset) */
+        if (px && !wgl_view_range(ctx, argv[8], argc, argv, 9, -1,
+                                  &px, &len)) {
+            if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+            g->injected_error = GL_INVALID_VALUE;
+            return JS_UNDEFINED;
+        }
         if (!px && JS_IsObject(argv[8])) {
             gboolean threw = FALSE;
             uint8_t *rgba = wgl_tex_source_pixels(ctx, g, argv[8], format, type,
@@ -3448,6 +3657,13 @@ wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
         }
         if (!JS_IsNull(argv[8]) && !JS_IsUndefined(argv[8]))
             px = view_bytes(ctx, argv[8], &len, &hold);
+        /* WebGL 2: (..., srcData, srcOffset) */
+        if (px && !wgl_view_range(ctx, argv[8], argc, argv, 9, -1,
+                                  &px, &len)) {
+            if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+            g->injected_error = GL_INVALID_VALUE;
+            return JS_UNDEFINED;
+        }
         if (!px && JS_IsObject(argv[8])) {
             gboolean threw = FALSE;
             uint8_t *rgba = wgl_tex_source_pixels(ctx, g, argv[8], format, type,
@@ -4070,7 +4286,12 @@ wgl_uniform_uiv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *a
     WGL_GET(0);
     GLint loc = wgl_loc(ctx, argv[0]);
     GLuint buf[4096];
-    int cnt = (argc >= 2) ? wgl_uints(ctx, argv[1], buf, 4096) : 0;
+    gboolean ok = TRUE;
+    int cnt = wgl_ints_from(ctx, argc, argv, 1, 2, 3, (GLint *)buf, 4096, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     GLsizei count = cnt / n;
     switch (n) {
     case 1: glUniform1uiv(loc, count, buf); break;
@@ -4097,14 +4318,20 @@ wgl_uniformMatrix_nxm(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     WGL_GET(0);
     GLint loc = wgl_loc(ctx, argv[0]);
     float buf[4096];
-    int cnt = (argc >= 3) ? wgl_floats(ctx, argv[2], buf, 4096) : 0;
+    gboolean ok = TRUE;
+    int cnt = wgl_floats_from(ctx, argc, argv, 2, 3, 4, buf, 4096, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
+    GLboolean tr = argc >= 2 && JS_ToBool(ctx, argv[1]) > 0 ? GL_TRUE : GL_FALSE;
     GLsizei count = cnt / (rows * cols);
-    if (rows == 2 && cols == 3) glUniformMatrix2x3fv(loc, count, GL_FALSE, buf);
-    else if (rows == 3 && cols == 2) glUniformMatrix3x2fv(loc, count, GL_FALSE, buf);
-    else if (rows == 2 && cols == 4) glUniformMatrix2x4fv(loc, count, GL_FALSE, buf);
-    else if (rows == 4 && cols == 2) glUniformMatrix4x2fv(loc, count, GL_FALSE, buf);
-    else if (rows == 3 && cols == 4) glUniformMatrix3x4fv(loc, count, GL_FALSE, buf);
-    else glUniformMatrix4x3fv(loc, count, GL_FALSE, buf);
+    if (rows == 2 && cols == 3) glUniformMatrix2x3fv(loc, count, tr, buf);
+    else if (rows == 3 && cols == 2) glUniformMatrix3x2fv(loc, count, tr, buf);
+    else if (rows == 2 && cols == 4) glUniformMatrix2x4fv(loc, count, tr, buf);
+    else if (rows == 4 && cols == 2) glUniformMatrix4x2fv(loc, count, tr, buf);
+    else if (rows == 3 && cols == 4) glUniformMatrix3x4fv(loc, count, tr, buf);
+    else glUniformMatrix4x3fv(loc, count, tr, buf);
     return JS_UNDEFINED;
 }
 
@@ -4210,6 +4437,11 @@ wgl_getBufferSubData(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
     JSValue hold;
     size_t len = 0;
     const uint8_t *dst = view_bytes(ctx, argv[2], &len, &hold);
+    if (dst && !wgl_view_range(ctx, argv[2], argc, argv, 3, 4, &dst, &len)) {
+        if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     if (dst && len > 0 && wgl_buffer_range_ok(g, target, offset, len)) {
         void *src = glMapBufferRange(target, offset, (GLsizeiptr)len, GL_MAP_READ_BIT);
         if (src) {
@@ -4226,7 +4458,12 @@ wgl_clearBuffer_fv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
 {
     WGL_GET(0);
     float v[4] = { 0, 0, 0, 0 };
-    if (argc >= 3) wgl_floats(ctx, argv[2], v, 4);
+    gboolean ok = TRUE;
+    wgl_floats_from(ctx, argc, argv, 2, 3, -1, v, 4, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     glClearBufferfv((GLenum)argi(ctx, argc, argv, 0), argi(ctx, argc, argv, 1), v);
     wgl_mark_dirty(g);
     return JS_UNDEFINED;
@@ -4237,7 +4474,12 @@ wgl_clearBuffer_iv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
 {
     WGL_GET(0);
     GLint v[4] = { 0, 0, 0, 0 };
-    if (argc >= 3) wgl_ints(ctx, argv[2], v, 4);
+    gboolean ok = TRUE;
+    wgl_ints_from(ctx, argc, argv, 2, 3, -1, v, 4, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     glClearBufferiv((GLenum)argi(ctx, argc, argv, 0), argi(ctx, argc, argv, 1), v);
     wgl_mark_dirty(g);
     return JS_UNDEFINED;
@@ -4248,7 +4490,12 @@ wgl_clearBuffer_uiv(JSContext *ctx, JSValueConst this_val, int argc, JSValueCons
 {
     WGL_GET(0);
     GLuint v[4] = { 0, 0, 0, 0 };
-    if (argc >= 3) wgl_uints(ctx, argv[2], v, 4);
+    gboolean ok = TRUE;
+    wgl_ints_from(ctx, argc, argv, 2, 3, -1, (GLint *)v, 4, &ok);
+    if (!ok) {
+        g->injected_error = GL_INVALID_VALUE;
+        return JS_UNDEFINED;
+    }
     glClearBufferuiv((GLenum)argi(ctx, argc, argv, 0), argi(ctx, argc, argv, 1), v);
     wgl_mark_dirty(g);
     return JS_UNDEFINED;
@@ -4493,8 +4740,16 @@ wgl_texImage3D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *ar
                          type, pbo);
         return JS_UNDEFINED;
     }
-    if (argc >= 10 && JS_IsObject(argv[9]))
+    if (argc >= 10 && JS_IsObject(argv[9])) {
         px = view_bytes(ctx, argv[9], &len, &hold);
+        /* WebGL 2: (..., srcData, srcOffset) */
+        if (px && !wgl_view_range(ctx, argv[9], argc, argv, 10, -1,
+                                  &px, &len)) {
+            if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+            g->injected_error = GL_INVALID_VALUE;
+            return JS_UNDEFINED;
+        }
+    }
     if (!px && argc >= 10 && JS_IsObject(argv[9]) && d > 0) {
         gboolean threw = FALSE;
         uint8_t *rgba = wgl_tex_source_pixels(ctx, g, argv[9], format, type,
@@ -4548,8 +4803,16 @@ wgl_texSubImage3D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
                             type, pbo);
         return JS_UNDEFINED;
     }
-    if (argc >= 11 && JS_IsObject(argv[10]))
+    if (argc >= 11 && JS_IsObject(argv[10])) {
         px = view_bytes(ctx, argv[10], &len, &hold);
+        /* WebGL 2: (..., srcData, srcOffset) */
+        if (px && !wgl_view_range(ctx, argv[10], argc, argv, 11, -1,
+                                  &px, &len)) {
+            if (!JS_IsUndefined(hold)) JS_FreeValue(ctx, hold);
+            g->injected_error = GL_INVALID_VALUE;
+            return JS_UNDEFINED;
+        }
+    }
     if (!px && argc >= 11 && JS_IsObject(argv[10]) && d > 0) {
         gboolean threw = FALSE;
         uint8_t *rgba = wgl_tex_source_pixels(ctx, g, argv[10], format, type,

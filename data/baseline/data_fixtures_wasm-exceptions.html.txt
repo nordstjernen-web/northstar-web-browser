@@ -11,6 +11,9 @@ uncaught exception carries the exported tag: true is=true arg=1
 exported tag is a WebAssembly.Tag: true
 WebAssembly.Exception thrown by an import is caught: 31
 wasm exception through a JS frame is caught: 1001
+catch_all takes a JS error thrown by an import: 7
+rethrow of a JS error leaves wasm as the same object: true
+a tag catch does not take a JS error: threw same=true
 foreign tag does not match: false true
 catch inside a loop, 100 times: 5050
 multi-value payload (i64, i32): 6

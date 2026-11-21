@@ -56,8 +56,8 @@ var types = [
   [[], []]            /* 5 */
 ];
 var E = 0, E2 = 1;     /* tags */
-/* imported functions come first: env.js_throw, env.reenter */
-var JS_THROW = 0, REENTER = 1, N_IMPORTS = 2;
+/* imported functions come first: env.js_throw, env.reenter, env.js_error */
+var JS_THROW = 0, REENTER = 1, JS_ERROR = 2, N_IMPORTS = 3;
 var THROWER = N_IMPORTS + 0, DELEGATE_FN = N_IMPORTS + 6, REC = N_IMPORTS + 12;
 
 /* [name or null, type, locals, body] */
@@ -97,7 +97,13 @@ var funcs = [
   ['from_js', 1, [], [op.try_, I32].concat(i32(31), [op.call, JS_THROW], i32(0),
                       [op.catch_, E, op.end])],
   ['through_js', 1, [], [op.try_, I32, op.call, REENTER].concat(i32(0),
-                         [op.catch_, E], i32(1000), [op.add, op.end])]
+                         [op.catch_, E], i32(1000), [op.add, op.end])],
+  ['js_catch_all', 1, [], [op.try_, I32, op.call, JS_ERROR].concat(i32(0),
+                           [op.catch_all], i32(7), [op.end])],
+  ['js_rethrow', 5, [], [op.try_, VOID, op.call, JS_ERROR, op.catch_all,
+                         op.rethrow, 0, op.end]],
+  ['js_not_tag', 1, [], [op.try_, I32, op.call, JS_ERROR].concat(i32(0),
+                         [op.catch_, E, op.end])]
 ];
 
 var bytes = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
@@ -107,7 +113,8 @@ bytes = bytes.concat(section(1, vec(types.map(function (t) {
 }))));
 bytes = bytes.concat(section(2, vec([
   str('env').concat(str('js_throw'), [0x00], uleb(0)),
-  str('env').concat(str('reenter'), [0x00], uleb(5))
+  str('env').concat(str('reenter'), [0x00], uleb(5)),
+  str('env').concat(str('js_error'), [0x00], uleb(5))
 ])));
 bytes = bytes.concat(section(3, vec(funcs.map(function (f) { return uleb(f[1]); }))));
 bytes = bytes.concat(section(13, vec([[0x00].concat(uleb(0)), [0x00].concat(uleb(2))])));
@@ -127,9 +134,11 @@ var ex = null;
 var imports = {
   env: {
     js_throw: function (v) { throw new WebAssembly.Exception(ex.tag, [v]); },
-    reenter: function () { ex.uncaught(); }
+    reenter: function () { ex.uncaught(); },
+    js_error: function () { throw jsError; }
   }
 };
+var jsError = new TypeError('from JS');
 ex = new WebAssembly.Instance(new WebAssembly.Module(bytes), imports).exports;
 check('throw and catch in one function', function () { return ex.same(); });
 check('catch an exception thrown by a callee', function () { return ex.callee(); });
@@ -147,6 +156,13 @@ check('uncaught exception carries the exported tag', function () {
 check('exported tag is a WebAssembly.Tag', function () { return ex.tag instanceof WebAssembly.Tag; });
 check('WebAssembly.Exception thrown by an import is caught', function () { return ex.from_js(); });
 check('wasm exception through a JS frame is caught', function () { return ex.through_js(); });
+check('catch_all takes a JS error thrown by an import', function () { return ex.js_catch_all(); });
+check('rethrow of a JS error leaves wasm as the same object', function () {
+  try { ex.js_rethrow(); return 'returned'; } catch (e) { return e === jsError; }
+});
+check('a tag catch does not take a JS error', function () {
+  try { return ex.js_not_tag(); } catch (e) { return 'threw same=' + (e === jsError); }
+});
 check('foreign tag does not match', function () {
   var other = new WebAssembly.Tag({ parameters: ['i32'] });
   var e = new WebAssembly.Exception(other, [1]);

@@ -729,6 +729,20 @@ ns_js_in_pump(const ns_js *js)
     return js && js->in_pump;
 }
 
+/* Extends the eval and monitor deadlines by time spent executing
+ * WebAssembly: the interrupt check cannot stop wasm, and a game that
+ * initializes for minutes in the interpreter is not runaway script. */
+void
+ns_js_credit_wasm_time(JSContext *ctx, gint64 elapsed_us)
+{
+    ns_js *js = ctx ? js_from_ctx(ctx) : NULL;
+    if (!js || elapsed_us <= 0) return;
+    if (js->eval_deadline_us != 0)
+        js->eval_deadline_us += elapsed_us;
+    if (js->js_monitor_deadline_us != 0)
+        js->js_monitor_deadline_us += elapsed_us;
+}
+
 /* Extends eval and monitor deadlines by time spent pumping a nested main loop. */
 static void
 ns_js_credit_pumped_time(ns_js *js, gint64 pump_start_us)
@@ -30737,13 +30751,22 @@ ns_js_run_animation_frame_body(ns_js *js)
         if (JS_IsException(ret)) {
             JSValue ex = JS_GetException(callback_ctx);
             const char *msg = JS_ToCString(callback_ctx, ex);
+            JSValue stack = JS_IsObject(ex)
+                ? JS_GetPropertyStr(callback_ctx, ex, "stack") : JS_UNDEFINED;
+            const char *stk = JS_IsString(stack)
+                ? JS_ToCString(callback_ctx, stack) : NULL;
             if (msg && js->log_cb) {
                 char *line = g_strdup_printf(
-                    "JS error in requestAnimationFrame: %s", msg);
+                    "JS error in requestAnimationFrame: %s%s%s", msg,
+                    stk ? "\n" : "", stk ? stk : "");
                 js->log_cb(line, js->log_user_data);
                 g_free(line);
             }
+            if (stk) JS_FreeCString(callback_ctx, stk);
+            JS_FreeValue(callback_ctx, stack);
             if (msg) JS_FreeCString(callback_ctx, msg);
+            /* an error event and window.onerror, as for timer callbacks */
+            ns_js_report_uncaught(js, ex, js->current_url);
             JS_FreeValue(callback_ctx, ex);
         }
         JS_FreeValue(callback_ctx, ret);

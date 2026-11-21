@@ -42,6 +42,17 @@ Significant changes in each release:
   their default fields: `toLocaleTimeString(undefined, { timeZoneName:
   "short" })` gave the date. `timeZoneName` is supported, as GMT-offset
   names ("GMT+1", or "GMT+01:00" for "long").
+* Time spent executing WebAssembly no longer counts toward the page's
+  JavaScript time limits (ported from Nordstjernen Sol), so long wasm
+  work on any page is not halted as runaway script.
+* WebAssembly `catch_all` catches a JavaScript error thrown by an
+  imported function, as in browsers, and `rethrow` passes the same error
+  object on to JavaScript; a tagged `catch` does not take it. Before,
+  the error unwound straight through wasm without running its cleanup.
+* An error thrown in a `requestAnimationFrame` callback is logged with
+  its stack and reported like other uncaught errors (`error` event,
+  `window.onerror`); `WebAssembly.Module` and `WebAssembly.Instance`
+  carry their `Symbol.toStringTag` (both from Nordstjernen Sol).
 * A cross-origin isolated page may hold one JavaScript turn for up to 10
   minutes before it is halted (60 s otherwise): a WebAssembly game's
   start-up runs in one turn and takes minutes on the interpreter. A

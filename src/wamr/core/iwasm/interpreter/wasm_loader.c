@@ -7195,6 +7195,12 @@ wasm_loader_unload(WASMModule *module)
                     wasm_runtime_free(module->functions[i]->code_compiled);
                 if (module->functions[i]->consts)
                     wasm_runtime_free(module->functions[i]->consts);
+#if WASM_ENABLE_EXCE_HANDLING != 0
+                if (module->functions[i]->eh_handlers)
+                    wasm_runtime_free(module->functions[i]->eh_handlers);
+                if (module->functions[i]->eh_catches)
+                    wasm_runtime_free(module->functions[i]->eh_catches);
+#endif
 #endif
 #if WASM_ENABLE_FAST_JIT != 0
                 if (module->functions[i]->fast_jit_jitted_code) {
@@ -8299,6 +8305,11 @@ typedef struct BranchBlock {
      * to copy the stack operands to the loop block's arguments in
      * wasm_loader_emit_br_info for opcode br. */
     uint16 start_dynamic_offset;
+#if WASM_ENABLE_EXCE_HANDLING != 0
+    /* index of this try's WASMFastEHHandler, and its rethrow record slot */
+    int32 eh_index;
+    uint32 eh_slot;
+#endif
 #endif
 
     /* Indicate the operand stack is in polymorphic state.
@@ -8380,6 +8391,13 @@ typedef struct WASMLoaderContext {
      * than the final code_compiled_size, we record the peak size to ensure
      * there will not be invalid memory access during second traverse */
     uint32 code_compiled_peak_size;
+#if WASM_ENABLE_EXCE_HANDLING != 0
+    /* try blocks and catch clauses seen so far in this traverse */
+    uint32 eh_handler_num;
+    uint32 eh_catch_num;
+    /* highest rethrow record slot plus one */
+    uint32 eh_slot_num;
+#endif
 #endif
 } WASMLoaderContext;
 
@@ -11129,9 +11147,8 @@ check_branch_block_for_delegate(WASMLoaderContext *loader_ctx, uint8 **p_buf,
         goto fail;
     }
     frame_csp_tmp = loader_ctx->frame_csp - depth - 2;
-#if WASM_ENABLE_FAST_INTERP != 0
-    emit_br_info(frame_csp_tmp, false);
-#endif
+    /* fast interpreter: delegate is resolved through the exception
+       handler table, not a branch, so no br info is emitted */
 
     *p_buf = p;
     return frame_csp_tmp;
@@ -11456,6 +11473,130 @@ fail:
         }                                                             \
     } while (0)
 
+#if WASM_ENABLE_FAST_INTERP != 0 && WASM_ENABLE_EXCE_HANDLING != 0
+static WASMFuncType *
+fast_eh_tag_type(const WASMModule *module, uint32 tag_index)
+{
+    if (tag_index < module->import_tag_count)
+        return module->import_tags[tag_index].u.tag.tag_type;
+    return module->tags[tag_index - module->import_tag_count]->tag_type;
+}
+
+/* Cells of one caught-exception record: the tag index and the largest
+   payload of any tag of the module. */
+static uint32
+fast_eh_record_stride(const WASMModule *module)
+{
+    uint32 i, max_cells = 0;
+    uint32 n = module->import_tag_count + module->tag_count;
+
+    for (i = 0; i < n; i++) {
+        WASMFuncType *type = fast_eh_tag_type(module, i);
+        if (type && type->param_cell_num > max_cells)
+            max_cells = type->param_cell_num;
+    }
+    return 1 + max_cells;
+}
+
+/* Innermost try at or below block `from` that is still in its body. */
+static int32
+fast_eh_enclosing_try(WASMLoaderContext *loader_ctx, BranchBlock *from)
+{
+    BranchBlock *block;
+
+    for (block = from; block >= loader_ctx->frame_csp_bottom; block--) {
+        if (block->label_type == LABEL_TYPE_TRY)
+            return block->eh_index;
+    }
+    return -1;
+}
+
+/* catch / catch_all: ends the try body (or the previous catch body) as
+   `else` ends an if branch, copying the results and jumping to the end,
+   then opens a catch body whose payload lands in dynamic space. The
+   dispatcher has already emitted the opcode's label. */
+static bool
+fast_eh_begin_catch(WASMLoaderContext *loader_ctx, WASMFunction *func,
+                    uint32 tag_index, WASMFuncType *tag_type,
+                    char *error_buf, uint32 error_buf_size)
+{
+    BranchBlock *block = loader_ctx->frame_csp - 1;
+    bool disable_emit = false;
+    int16 operand_offset = 0;
+    int16 dst_offset;
+    uint8 *body_end;
+    int32 catch_index;
+    uint32 i;
+
+    if (tag_type && tag_type->param_cell_num > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
+        set_error_buf(error_buf, error_buf_size,
+                      "exception payload too large");
+        return false;
+    }
+
+    skip_label();
+    body_end = loader_ctx->p_code_compiled;
+    emit_label(WASM_OP_ELSE);
+
+    if (!check_block_stack(loader_ctx, block, error_buf, error_buf_size))
+        return false;
+    if (!reserve_block_ret(loader_ctx, WASM_OP_ELSE, disable_emit, error_buf,
+                           error_buf_size))
+        return false;
+    emit_empty_label_addr_and_frame_ip(PATCH_END);
+
+    if (loader_ctx->p_code_compiled && block->label_type == LABEL_TYPE_TRY)
+        func->eh_handlers[block->eh_index].end = body_end;
+
+    RESET_STACK();
+    SET_CUR_BLOCK_STACK_POLYMORPHIC_STATE(false);
+    loader_ctx->dynamic_offset = block->dynamic_offset;
+    dst_offset = loader_ctx->dynamic_offset;
+
+    for (i = 0; tag_type && i < tag_type->param_count; i++) {
+        /* allocate a dynamic slot for the payload value without emitting
+           its offset */
+        PUSH_OFFSET_TYPE(tag_type->types[i]);
+        wasm_loader_emit_backspace(loader_ctx, sizeof(int16));
+        PUSH_TYPE(tag_type->types[i]);
+    }
+
+    catch_index = (int32)loader_ctx->eh_catch_num++;
+    if (loader_ctx->p_code_compiled) {
+        WASMFastEHHandler *handler = &func->eh_handlers[block->eh_index];
+        WASMFastEHCatch *clause = &func->eh_catches[catch_index];
+
+        clause->tag_index = tag_type ? tag_index : WASM_FAST_EH_CATCH_ALL;
+        clause->next = -1;
+        clause->dst_offset = dst_offset;
+        clause->target = loader_ctx->p_code_compiled;
+        if (handler->catch_last >= 0)
+            func->eh_catches[handler->catch_last].next = catch_index;
+        else
+            handler->catch_first = catch_index;
+        handler->catch_last = catch_index;
+    }
+
+    block->label_type = tag_type ? LABEL_TYPE_CATCH : LABEL_TYPE_CATCH_ALL;
+    return true;
+fail:
+    return false;
+}
+
+/* Records where a try body ends, at an `end` or `delegate` that closes it
+   while it is still in its body. Call with the opcode's label emitted. */
+static void
+fast_eh_mark_try_end(WASMLoaderContext *loader_ctx, WASMFunction *func,
+                     BranchBlock *block, uint8 opcode)
+{
+    if (block->label_type != LABEL_TYPE_TRY || !loader_ctx->p_code_compiled)
+        return;
+    skip_label();
+    func->eh_handlers[block->eh_index].end = loader_ctx->p_code_compiled;
+    emit_label(opcode);
+}
+#endif
+
 #if WASM_ENABLE_REF_TYPES != 0 || WASM_ENABLE_GC != 0
 static bool
 get_table_elem_type(const WASMModule *module, uint32 table_idx,
@@ -11722,6 +11863,28 @@ re_scan:
         p = func->code;
         func->code_compiled = loader_ctx->p_code_compiled;
         func->code_compiled_size = loader_ctx->code_compiled_size;
+
+#if WASM_ENABLE_EXCE_HANDLING != 0
+        /* The first traverse counted the try blocks and catch clauses */
+        if (loader_ctx->eh_handler_num > 0) {
+            if (!(func->eh_handlers = loader_malloc(
+                      sizeof(WASMFastEHHandler)
+                          * (uint64)loader_ctx->eh_handler_num,
+                      error_buf, error_buf_size)))
+                goto fail;
+            func->eh_handler_count = loader_ctx->eh_handler_num;
+        }
+        if (loader_ctx->eh_catch_num > 0) {
+            if (!(func->eh_catches = loader_malloc(
+                      sizeof(WASMFastEHCatch)
+                          * (uint64)loader_ctx->eh_catch_num,
+                      error_buf, error_buf_size)))
+                goto fail;
+            func->eh_catch_count = loader_ctx->eh_catch_num;
+        }
+        loader_ctx->eh_handler_num = 0;
+        loader_ctx->eh_catch_num = 0;
+#endif
 
         if (loader_ctx->i64_const_num > 0) {
             int64 *i64_consts_old = loader_ctx->i64_consts;
@@ -12103,7 +12266,43 @@ re_scan:
                 }
 #if WASM_ENABLE_EXCE_HANDLING != 0
                 else if (opcode == WASM_OP_TRY) {
+                    BranchBlock *try_block = loader_ctx->frame_csp - 1;
+                    BranchBlock *outer;
+                    uint32 slot = 0;
+
                     skip_label();
+                    if (BLOCK_HAS_PARAM(block_type)) {
+                        /* Make sure params are in dynamic space */
+                        if (!copy_params_to_dynamic_space(loader_ctx, error_buf,
+                                                          error_buf_size))
+                            goto fail;
+                    }
+
+                    /* Each catch nesting level keeps its caught exception
+                       in its own record slot, for rethrow */
+                    for (outer = try_block - 1;
+                         outer >= loader_ctx->frame_csp_bottom; outer--) {
+                        if (outer->label_type == LABEL_TYPE_CATCH
+                            || outer->label_type == LABEL_TYPE_CATCH_ALL)
+                            slot++;
+                    }
+                    try_block->eh_index = (int32)loader_ctx->eh_handler_num++;
+                    try_block->eh_slot = slot;
+                    if (slot + 1 > loader_ctx->eh_slot_num)
+                        loader_ctx->eh_slot_num = slot + 1;
+
+                    if (loader_ctx->p_code_compiled) {
+                        WASMFastEHHandler *handler =
+                            &func->eh_handlers[try_block->eh_index];
+                        handler->start = loader_ctx->p_code_compiled;
+                        handler->end = loader_ctx->p_code_compiled;
+                        handler->parent =
+                            fast_eh_enclosing_try(loader_ctx, try_block - 1);
+                        handler->delegate = WASM_FAST_EH_NO_DELEGATE;
+                        handler->catch_first = -1;
+                        handler->catch_last = -1;
+                        handler->slot = slot;
+                    }
                 }
 #endif
                 else if (opcode == WASM_OP_IF) {
@@ -12269,6 +12468,29 @@ re_scan:
                 param_count = func->func_type->param_count;
 #endif
 
+#if WASM_ENABLE_FAST_INTERP != 0
+                /* throw tag_index, param count, then per param from the
+                   last: src offset, payload cell index, cell count */
+                if (tag_type->param_cell_num
+                    > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
+                    set_error_buf(error_buf, error_buf_size,
+                                  "exception payload too large");
+                    goto fail;
+                }
+                emit_uint32(loader_ctx, tag_index);
+                emit_uint32(loader_ctx, tag_type->param_count);
+                for (tti = (int32)tag_type->param_count - 1; tti >= 0; tti--) {
+                    uint8 param_type = tag_type->types[tti];
+                    uint32 cell_idx = 0, k;
+                    for (k = 0; k < (uint32)tti; k++)
+                        cell_idx += wasm_value_type_cell_num(tag_type->types[k]);
+                    POP_OFFSET_TYPE(param_type);
+                    POP_TYPE(param_type);
+                    emit_operand(loader_ctx, (int16)cell_idx);
+                    emit_operand(loader_ctx,
+                                 (int16)wasm_value_type_cell_num(param_type));
+                }
+#endif
                 /* throw is stack polymorphic */
                 (void)label_type;
                 RESET_STACK();
@@ -12281,10 +12503,24 @@ re_scan:
                 SET_CUR_BLOCK_STACK_POLYMORPHIC_STATE(true);
 
                 /* check the target catching block:  LABEL_TYPE_CATCH */
+#if WASM_ENABLE_FAST_INTERP != 0
+                {
+                    /* not check_branch_block(): that emits br info */
+                    uint32 depth;
+                    pb_read_leb_uint32(p, p_end, depth);
+                    if (loader_ctx->csp_num - 1 < depth) {
+                        set_error_buf(error_buf, error_buf_size,
+                                      "unknown label");
+                        goto fail;
+                    }
+                    frame_csp_tmp = loader_ctx->frame_csp - depth - 1;
+                }
+#else
                 if (!(frame_csp_tmp =
                           check_branch_block(loader_ctx, &p, p_end, opcode,
                                              error_buf, error_buf_size)))
                     goto fail;
+#endif
 
                 if (frame_csp_tmp->label_type != LABEL_TYPE_CATCH
                     && frame_csp_tmp->label_type != LABEL_TYPE_CATCH_ALL) {
@@ -12297,6 +12533,10 @@ re_scan:
                 BranchBlock *cur_block = loader_ctx->frame_csp - 1;
                 uint8 label_type = cur_block->label_type;
                 (void)label_type;
+#if WASM_ENABLE_FAST_INTERP != 0
+                /* rethrow the exception kept in the target catch's slot */
+                emit_uint32(loader_ctx, frame_csp_tmp->eh_slot);
+#endif
                 /* rethrow is stack polymorphic */
                 RESET_STACK();
                 break;
@@ -12312,8 +12552,33 @@ re_scan:
                 uint8 label_type = cur_block->label_type;
 
                 (void)label_type;
+#if WASM_ENABLE_FAST_INTERP != 0
+                if (label_type != LABEL_TYPE_TRY) {
+                    set_error_buf(error_buf, error_buf_size,
+                                  "delegate without matching try");
+                    goto fail;
+                }
+                if (!check_block_stack(loader_ctx, cur_block, error_buf,
+                                       error_buf_size))
+                    goto fail;
+                fast_eh_mark_try_end(loader_ctx, func, cur_block, opcode);
+                if (loader_ctx->p_code_compiled)
+                    func->eh_handlers[cur_block->eh_index].delegate =
+                        fast_eh_enclosing_try(loader_ctx, frame_csp_tmp);
+#endif
                 /* DELEGATE ends the block */
                 POP_CSP();
+#if WASM_ENABLE_FAST_INTERP != 0
+                /* delegate has no runtime effect: end the block as `end` */
+                skip_label();
+                if (!reserve_block_ret(loader_ctx, opcode, disable_emit,
+                                       error_buf, error_buf_size)) {
+                    free_label_patch_list(loader_ctx->frame_csp);
+                    goto fail;
+                }
+                apply_label_patch(loader_ctx, 0, PATCH_END);
+                free_label_patch_list(loader_ctx->frame_csp);
+#endif
                 break;
             }
             case WASM_OP_CATCH:
@@ -12360,6 +12625,12 @@ re_scan:
                     goto fail;
                 }
 
+#if WASM_ENABLE_FAST_INTERP != 0
+                if (!fast_eh_begin_catch(loader_ctx, func, tag_index,
+                                         func_type, error_buf, error_buf_size))
+                    goto fail;
+                break;
+#endif
                 /*
                  * replace frame_csp by LABEL_TYPE_CATCH
                  */
@@ -12404,6 +12675,12 @@ re_scan:
                 }
 
                 /* no immediates */
+#if WASM_ENABLE_FAST_INTERP != 0
+                if (!fast_eh_begin_catch(loader_ctx, func, 0, NULL, error_buf,
+                                         error_buf_size))
+                    goto fail;
+                break;
+#endif
                 /* replace frame_csp by LABEL_TYPE_CATCH_ALL */
                 cur_block->label_type = LABEL_TYPE_CATCH_ALL;
 
@@ -12509,6 +12786,10 @@ re_scan:
                     goto handle_op_else;
                 }
 
+#if WASM_ENABLE_FAST_INTERP != 0 && WASM_ENABLE_EXCE_HANDLING != 0
+                /* a try without catch clauses: its body ends here */
+                fast_eh_mark_try_end(loader_ctx, func, cur_block, opcode);
+#endif
                 POP_CSP();
 
 #if WASM_ENABLE_FAST_INTERP != 0
@@ -16906,6 +17187,15 @@ re_scan:
 
     func->max_stack_cell_num = loader_ctx->preserved_local_offset
                                - loader_ctx->start_dynamic_offset + 1;
+#if WASM_ENABLE_EXCE_HANDLING != 0
+    if (func->eh_catch_count > 0) {
+        /* caught-exception records for rethrow, after the operand area */
+        func->eh_record_stride = fast_eh_record_stride(module);
+        func->eh_record_base = (uint32)loader_ctx->preserved_local_offset + 1;
+        func->max_stack_cell_num +=
+            loader_ctx->eh_slot_num * func->eh_record_stride;
+    }
+#endif
 #else
     func->max_stack_cell_num = loader_ctx->max_stack_cell_num;
 #endif

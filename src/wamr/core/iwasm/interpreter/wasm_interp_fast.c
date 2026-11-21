@@ -1492,6 +1492,121 @@ get_global_addr(uint8 *global_data, WASMGlobalInstance *global)
 #endif
 }
 
+#if WASM_ENABLE_EXCE_HANDLING != 0
+/* Starts unwinding a wasm exception whose payload is in module->e->eh_cells. */
+static void
+fast_eh_raise(WASMModuleInstance *module, uint32 tag_index, uint32 cell_num)
+{
+    module->e->eh_tag_index = tag_index;
+    module->e->eh_cell_num = cell_num;
+    module->e->eh_pending = true;
+    wasm_set_exception(module, WASM_FAST_EH_EXCEPTION_MSG);
+}
+
+/* TRUE while the pending exception is a wasm exception, not a trap. */
+static bool
+fast_eh_is_pending(WASMModuleInstance *module)
+{
+    const char *exc;
+
+    if (!module->e->eh_pending)
+        return false;
+    exc = wasm_get_exception(module);
+    if (exc && strcmp(exc, "Exception: " WASM_FAST_EH_EXCEPTION_MSG) == 0)
+        return true;
+    /* a trap replaced it */
+    module->e->eh_pending = false;
+    return false;
+}
+
+/* Finds the catch clause of function `func` that takes an exception with
+   tag `tag_index` raised after the instruction ending at `ip`. */
+static bool
+fast_eh_find_catch(const WASMFunction *func, const uint8 *ip, uint32 tag_index,
+                   const WASMFastEHHandler **p_handler,
+                   const WASMFastEHCatch **p_catch)
+{
+    int32 h = -1, i, c;
+
+    for (i = (int32)func->eh_handler_count - 1; i >= 0; i--) {
+        const WASMFastEHHandler *handler = &func->eh_handlers[i];
+        if (handler->start < ip && ip <= handler->end) {
+            h = i;
+            break;
+        }
+    }
+    while (h >= 0) {
+        const WASMFastEHHandler *handler = &func->eh_handlers[h];
+        if (handler->delegate != WASM_FAST_EH_NO_DELEGATE) {
+            h = handler->delegate;
+            continue;
+        }
+        for (c = handler->catch_first; c >= 0; c = func->eh_catches[c].next) {
+            const WASMFastEHCatch *clause = &func->eh_catches[c];
+            if (clause->tag_index == WASM_FAST_EH_CATCH_ALL
+                || clause->tag_index == tag_index) {
+                *p_handler = handler;
+                *p_catch = clause;
+                return true;
+            }
+        }
+        h = handler->parent;
+    }
+    return false;
+}
+
+/* Unwinds the interpreter frames of this call from `frame` until a catch
+   clause takes the pending wasm exception: copies the payload and the
+   rethrow record into that frame and returns it, with *p_target set to
+   the catch body. Returns NULL, with the exception still pending, when
+   the exception leaves the outermost frame of this call. */
+static WASMInterpFrame *
+fast_eh_unwind(WASMModuleInstance *module, WASMExecEnv *exec_env,
+               WASMInterpFrame *frame, uint8 **p_target)
+{
+    uint32 tag_index = module->e->eh_tag_index;
+    uint32 cell_num = module->e->eh_cell_num;
+
+    for (;;) {
+        WASMFunctionInstance *fi = frame->function;
+        const WASMFastEHHandler *handler;
+        const WASMFastEHCatch *clause;
+        WASMInterpFrame *prev;
+
+        if (fi && !fi->is_import_func && frame->ip
+            && fi->u.func->eh_handler_count > 0
+            && fast_eh_find_catch(fi->u.func, frame->ip, tag_index, &handler,
+                                  &clause)) {
+            WASMFunction *func = fi->u.func;
+            uint32 *record = frame->lp + func->eh_record_base
+                             + handler->slot * func->eh_record_stride;
+
+            record[0] = tag_index;
+            if (cell_num > 0) {
+                bh_memcpy_s(record + 1, (func->eh_record_stride - 1) * 4,
+                            module->e->eh_cells, cell_num * 4);
+                if (clause->tag_index != WASM_FAST_EH_CATCH_ALL)
+                    bh_memcpy_s(frame->lp + clause->dst_offset, cell_num * 4,
+                                module->e->eh_cells, cell_num * 4);
+            }
+            module->e->eh_pending = false;
+            wasm_set_exception(module, NULL);
+            wasm_exec_env_set_cur_frame(exec_env, (WASMRuntimeFrame *)frame);
+            *p_target = clause->target;
+            return frame;
+        }
+
+        prev = frame->prev_frame;
+        /* the frame below belongs to whoever called into the interpreter */
+        if (!prev || !prev->ip)
+            return NULL;
+        FREE_FRAME(exec_env, frame);
+        wasm_exec_env_set_cur_frame(exec_env, (WASMRuntimeFrame *)prev);
+        frame = prev;
+    }
+}
+#endif /* end of WASM_ENABLE_EXCE_HANDLING != 0 */
+
 static void
 wasm_interp_call_func_bytecode(WASMModuleInstance *module,
                                WASMExecEnv *exec_env,
@@ -1836,10 +1951,49 @@ wasm_interp_call_func_bytecode(WASMModuleInstance *module,
             }
 
 #if WASM_ENABLE_EXCE_HANDLING != 0
+            HANDLE_OP(WASM_OP_THROW)
+            {
+                /* tag index, param count, then per param: src offset,
+                   payload cell index, cell count */
+                uint32 tag_index = read_uint32(frame_ip);
+                uint32 n = read_uint32(frame_ip), k, cell_num = 0;
+                uint32 *cells = module->e->eh_cells;
+
+                for (k = 0; k < n; k++) {
+                    int16 src = GET_OFFSET();
+                    uint32 cell_idx = (uint16)GET_OFFSET();
+                    uint32 cell_cnt = (uint16)GET_OFFSET();
+                    if (cell_idx + cell_cnt > WASM_FAST_EH_MAX_PAYLOAD_CELLS) {
+                        wasm_set_exception(module, "exception payload too large");
+                        goto got_exception;
+                    }
+                    bh_memcpy_s(cells + cell_idx, cell_cnt * 4, frame_lp + src,
+                                cell_cnt * 4);
+                    if (cell_idx + cell_cnt > cell_num)
+                        cell_num = cell_idx + cell_cnt;
+                }
+                fast_eh_raise(module, tag_index, cell_num);
+                goto got_exception;
+            }
+
+            HANDLE_OP(WASM_OP_RETHROW)
+            {
+                uint32 slot = read_uint32(frame_ip);
+                WASMFunction *wasm_func = cur_func->u.func;
+                uint32 *record = frame_lp + wasm_func->eh_record_base
+                                 + slot * wasm_func->eh_record_stride;
+                uint32 cell_num = wasm_func->eh_record_stride - 1;
+
+                bh_memcpy_s(module->e->eh_cells, sizeof(module->e->eh_cells),
+                            record + 1, cell_num * 4);
+                fast_eh_raise(module, record[0], cell_num);
+                goto got_exception;
+            }
+
+            /* the loader resolves try, delegate and the catch clauses
+               into the function's handler table; these never run */
             HANDLE_OP(WASM_OP_TRY)
             HANDLE_OP(WASM_OP_CATCH)
-            HANDLE_OP(WASM_OP_THROW)
-            HANDLE_OP(WASM_OP_RETHROW)
             HANDLE_OP(WASM_OP_DELEGATE)
             HANDLE_OP(WASM_OP_CATCH_ALL)
             HANDLE_OP(EXT_OP_TRY)
@@ -7815,6 +7969,22 @@ wasm_interp_call_func_bytecode(WASMModuleInstance *module,
 
     got_exception:
         SYNC_ALL_TO_FRAME();
+#if WASM_ENABLE_EXCE_HANDLING != 0
+        if (fast_eh_is_pending(module)) {
+            uint8 *catch_target = NULL;
+            WASMInterpFrame *catch_frame =
+                fast_eh_unwind(module, exec_env, frame, &catch_target);
+            if (catch_frame) {
+                RECOVER_CONTEXT(catch_frame);
+                frame_ip = catch_target;
+#if WASM_ENABLE_GC != 0
+                local_cell_num =
+                    cur_func->param_cell_num + cur_func->local_cell_num;
+#endif
+                HANDLE_OP_END();
+            }
+        }
+#endif
         return;
 
 #if WASM_ENABLE_LABELS_AS_VALUES == 0

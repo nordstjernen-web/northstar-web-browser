@@ -1,0 +1,22 @@
+WebAssembly exception handling
+module validates: true
+throw and catch in one function: 42
+catch an exception thrown by a callee: 8
+try body without an exception: 5
+catch_all then rethrow to the outer try: 3
+delegate to the outer try: 109
+delegate to the caller: 11
+uncaught exception leaves wasm: threw undefined
+uncaught exception carries the exported tag: true is=true arg=1
+exported tag is a WebAssembly.Tag: true
+WebAssembly.Exception thrown by an import is caught: 31
+wasm exception through a JS frame is caught: 1001
+foreign tag does not match: false true
+catch inside a loop, 100 times: 5050
+multi-value payload (i64, i32): 6
+throw from a catch body to the outer try: 21
+unwind 1000 frames: 77
+operand stack inside a nested block: 50
+a trap is not caught by catch_all: threw RuntimeError
+locals set before the throw: 5
+instance still works after an uncaught exception: 42

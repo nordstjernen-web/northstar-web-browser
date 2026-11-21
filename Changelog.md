@@ -4,6 +4,20 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* WebAssembly exception handling: modules built with Emscripten's
+  `-fwasm-exceptions` (C++ `try`/`catch`, and `setjmp`/`longjmp` built
+  on it) load and run. WAMR's fast interpreter only validated the
+  `try`/`catch`/`catch_all`/`throw`/`rethrow`/`delegate` instructions and
+  stopped at them with "unsupported opcode"; the loader now records each
+  try block in a per-function handler table and the interpreter unwinds
+  frames to the matching catch. `WebAssembly.Tag` and
+  `WebAssembly.Exception` are available, an exported tag is a
+  `WebAssembly.Tag`, a wasm exception that leaves the module reaches
+  JavaScript as a `WebAssembly.Exception`, and one thrown by an imported
+  JavaScript function, or passing through one, can be caught by the wasm
+  caller. Traps are still not catchable, as the proposal specifies.
+* WAMR is built with shared memory and the atomic instructions, so a
+  module that declares a shared memory compiles.
 * `--export=pdf:FILE` writes the page as a paginated PDF, replacing the
   `--dump=pdf:` that went with the old cairo writer, and without that
   writer's gaps: it runs headless, the page is laid out with print

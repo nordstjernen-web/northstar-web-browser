@@ -31,6 +31,9 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
 #define NS_WASM_MAX_RESULTS 16
 #define NS_WASM_PAGE_SIZE 65536u
 #define NS_WASM_MEMORY_MAX_BYTES (512u * 1024u * 1024u)
+/* Hidden WebAssembly member the bootstrap defines: returns [tag, payload]
+ * for a WebAssembly.Exception, undefined otherwise. */
+#define NS_WASM_EXCEPTION_PARTS "__nsExceptionParts"
 
 static JSClassID ns_wasm_module_class_id;
 static JSClassID ns_wasm_instance_class_id;
@@ -84,6 +87,8 @@ typedef struct {
     JSValue exports;
     JSValue memory_obj;
     JSValue pending_exc;
+    /* WebAssembly.Tag object per tag index, created on first use */
+    JSValue tags;
     ns_wasm_linkage linkage;
     gboolean has_pending;
     guint call_depth;
@@ -422,6 +427,212 @@ ns_wasm_val_to_js(JSContext *ctx, const wasm_val_t *val)
     }
 }
 
+/* Returns WebAssembly[name] from the global object. */
+static JSValue
+ns_wasm_namespace_get(JSContext *ctx, const char *name)
+{
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue ns = JS_GetPropertyStr(ctx, global, "WebAssembly");
+    JSValue v = JS_IsObject(ns) ? JS_GetPropertyStr(ctx, ns, name)
+                                : JS_UNDEFINED;
+    JS_FreeValue(ctx, ns);
+    JS_FreeValue(ctx, global);
+    return v;
+}
+
+/* The instance's WebAssembly.Tag for tag_index, created on first use so
+ * an exported tag and the tag of a thrown exception are the same object. */
+static JSValue
+ns_wasm_instance_tag(JSContext *ctx, ns_wasm_instance *wi, uint32_t tag_index)
+{
+    if (!JS_IsObject(wi->tags)) {
+        JS_FreeValue(ctx, wi->tags);
+        wi->tags = JS_NewArray(ctx);
+        if (JS_IsException(wi->tags)) {
+            wi->tags = JS_UNDEFINED;
+            return JS_EXCEPTION;
+        }
+    }
+    JSValue tag = JS_GetPropertyUint32(ctx, wi->tags, tag_index);
+    if (JS_IsObject(tag))
+        return tag;
+    JS_FreeValue(ctx, tag);
+
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    if (!mod)
+        return JS_ThrowTypeError(ctx, "wasm module is gone");
+    JSValue params = JS_NewArray(ctx);
+    uint32_t n = ns_wamr_tag_param_count(mod->module, tag_index);
+    for (uint32_t i = 0; i < n; i++) {
+        const char *name = "externref";
+        switch (ns_wamr_tag_param_kind(mod->module, tag_index, i)) {
+        case WASM_I32: name = "i32"; break;
+        case WASM_I64: name = "i64"; break;
+        case WASM_F32: name = "f32"; break;
+        case WASM_F64: name = "f64"; break;
+        default: break;
+        }
+        JS_SetPropertyUint32(ctx, params, i, JS_NewString(ctx, name));
+    }
+    JSValue desc = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, desc, "parameters", params);
+    JSValue ctor = ns_wasm_namespace_get(ctx, "Tag");
+    tag = JS_IsFunction(ctx, ctor)
+              ? JS_CallConstructor(ctx, ctor, 1, (JSValueConst *)&desc)
+              : JS_ThrowTypeError(ctx, "WebAssembly.Tag is unavailable");
+    JS_FreeValue(ctx, ctor);
+    JS_FreeValue(ctx, desc);
+    if (!JS_IsException(tag))
+        JS_SetPropertyUint32(ctx, wi->tags, tag_index, JS_DupValue(ctx, tag));
+    return tag;
+}
+
+/* Throws a wasm exception that left the instance as a WebAssembly.Exception. */
+static JSValue
+ns_wasm_throw_exception_to_js(JSContext *ctx, ns_wasm_instance *wi,
+                              uint32_t tag_index, const uint32_t *cells,
+                              uint32_t cell_num)
+{
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    JSValue tag = ns_wasm_instance_tag(ctx, wi, tag_index);
+    if (JS_IsException(tag) || !mod)
+        return JS_IsException(tag) ? tag
+                                   : JS_ThrowTypeError(ctx, "wasm module is gone");
+    JSValue payload = JS_NewArray(ctx);
+    uint32_t n = ns_wamr_tag_param_count(mod->module, tag_index), pos = 0;
+    for (uint32_t i = 0; i < n; i++) {
+        JSValue v = JS_UNDEFINED;
+        switch (ns_wamr_tag_param_kind(mod->module, tag_index, i)) {
+        case WASM_I32:
+            if (pos + 1 <= cell_num)
+                v = JS_NewInt32(ctx, (int32_t)cells[pos]);
+            pos += 1;
+            break;
+        case WASM_F32: {
+            float f = 0;
+            if (pos + 1 <= cell_num)
+                memcpy(&f, &cells[pos], sizeof f);
+            v = JS_NewFloat64(ctx, f);
+            pos += 1;
+            break;
+        }
+        case WASM_I64: {
+            int64_t i64 = 0;
+            if (pos + 2 <= cell_num)
+                memcpy(&i64, &cells[pos], sizeof i64);
+            v = JS_NewBigInt64(ctx, i64);
+            pos += 2;
+            break;
+        }
+        case WASM_F64: {
+            double d = 0;
+            if (pos + 2 <= cell_num)
+                memcpy(&d, &cells[pos], sizeof d);
+            v = JS_NewFloat64(ctx, d);
+            pos += 2;
+            break;
+        }
+        default:
+            pos += 1;
+            break;
+        }
+        JS_SetPropertyUint32(ctx, payload, i, v);
+    }
+    JSValue ctor = ns_wasm_namespace_get(ctx, "Exception");
+    JSValueConst args[2] = { tag, payload };
+    JSValue exc = JS_IsFunction(ctx, ctor)
+                      ? JS_CallConstructor(ctx, ctor, 2, args)
+                      : JS_ThrowTypeError(ctx,
+                                          "WebAssembly.Exception is unavailable");
+    JS_FreeValue(ctx, ctor);
+    JS_FreeValue(ctx, tag);
+    JS_FreeValue(ctx, payload);
+    if (JS_IsException(exc))
+        return exc;
+    return JS_Throw(ctx, exc);
+}
+
+/* If thrown is a WebAssembly.Exception with one of the instance's tags,
+ * raises it inside the instance and returns TRUE. */
+static gboolean
+ns_wasm_throw_exception_to_wasm(JSContext *ctx, ns_wasm_instance *wi,
+                                JSValueConst thrown)
+{
+    if (!JS_IsObject(thrown) || !JS_IsObject(wi->tags))
+        return FALSE;
+    ns_wasm_module *mod = JS_GetOpaque(wi->module_obj, ns_wasm_module_class_id);
+    if (!mod)
+        return FALSE;
+    JSValue parts_fn = ns_wasm_namespace_get(ctx, NS_WASM_EXCEPTION_PARTS);
+    JSValue parts = JS_IsFunction(ctx, parts_fn)
+                        ? JS_Call(ctx, parts_fn, JS_UNDEFINED, 1, &thrown)
+                        : JS_UNDEFINED;
+    JS_FreeValue(ctx, parts_fn);
+    if (JS_IsException(parts)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return FALSE;
+    }
+    if (!JS_IsArray(parts)) {
+        JS_FreeValue(ctx, parts);
+        return FALSE;
+    }
+    JSValue tag = JS_GetPropertyUint32(ctx, parts, 0);
+    JSValue payload = JS_GetPropertyUint32(ctx, parts, 1);
+    JS_FreeValue(ctx, parts);
+
+    gboolean found = FALSE;
+    uint32_t tag_index = 0;
+    uint32_t len = 0;
+    JSValue len_v = JS_GetPropertyStr(ctx, wi->tags, "length");
+    JS_ToUint32(ctx, &len, len_v);
+    JS_FreeValue(ctx, len_v);
+    for (uint32_t i = 0; i < len && !found; i++) {
+        JSValue t = JS_GetPropertyUint32(ctx, wi->tags, i);
+        if (JS_IsObject(t) && JS_IsStrictEqual(ctx, t, tag)) {
+            found = TRUE;
+            tag_index = i;
+        }
+        JS_FreeValue(ctx, t);
+    }
+    JS_FreeValue(ctx, tag);
+
+    uint32_t cells[NS_WAMR_EH_MAX_CELLS], pos = 0;
+    uint32_t n = found ? ns_wamr_tag_param_count(mod->module, tag_index) : 0;
+    for (uint32_t i = 0; found && i < n; i++) {
+        JSValue v = JS_GetPropertyUint32(ctx, payload, i);
+        wasm_valkind_t kind = ns_wamr_tag_param_kind(mod->module, tag_index, i);
+        uint32_t need = (kind == WASM_I64 || kind == WASM_F64) ? 2 : 1;
+        if (pos + need > NS_WAMR_EH_MAX_CELLS || kind == WASM_EXTERNREF) {
+            found = FALSE;
+        } else if (kind == WASM_I32) {
+            int32_t i32 = 0;
+            found = !JS_ToInt32(ctx, &i32, v);
+            cells[pos] = (uint32_t)i32;
+        } else if (kind == WASM_F32) {
+            double d = 0;
+            found = !JS_ToFloat64(ctx, &d, v);
+            float f = (float)d;
+            memcpy(&cells[pos], &f, sizeof f);
+        } else if (kind == WASM_I64) {
+            int64_t i64 = 0;
+            found = !JS_ToBigInt64(ctx, &i64, v);
+            memcpy(&cells[pos], &i64, sizeof i64);
+        } else {
+            double d = 0;
+            found = !JS_ToFloat64(ctx, &d, v);
+            memcpy(&cells[pos], &d, sizeof d);
+        }
+        pos += need;
+        JS_FreeValue(ctx, v);
+    }
+    JS_FreeValue(ctx, payload);
+    if (JS_HasException(ctx))
+        JS_FreeValue(ctx, JS_GetException(ctx));
+    if (!found)
+        return FALSE;
+    return ns_wamr_throw_exception(wi->inst, tag_index, cells, pos);
+}
+
 /* Converts a call outcome to JS: rethrows a pending import exception or a RuntimeError trap. */
 static JSValue
 ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
@@ -435,6 +646,11 @@ ns_wasm_call_result(JSContext *ctx, ns_wasm_instance *wi, gboolean ok,
             wasm_runtime_clear_exception(wi->inst);
             return JS_Throw(ctx, exc);
         }
+        uint32_t tag_index = 0, cells[NS_WAMR_EH_MAX_CELLS], cell_num = 0;
+        if (ns_wamr_take_exception(wi->inst, &tag_index, cells,
+                                   NS_WAMR_EH_MAX_CELLS, &cell_num))
+            return ns_wasm_throw_exception_to_js(ctx, wi, tag_index, cells,
+                                                 cell_num);
         const char *msg = wasm_runtime_get_exception(wi->inst);
         JSValue ret = ns_wasm_throw_named(ctx, "RuntimeError",
                                           msg ? msg : "wasm trap");
@@ -1195,6 +1411,7 @@ ns_wasm_instance_finalizer(JSRuntime *rt, JSValue val)
     JS_FreeValueRT(rt, wi->exports);
     JS_FreeValueRT(rt, wi->memory_obj);
     JS_FreeValueRT(rt, wi->pending_exc);
+    JS_FreeValueRT(rt, wi->tags);
     g_free(wi);
 }
 
@@ -1209,6 +1426,7 @@ ns_wasm_instance_gc_mark(JSRuntime *rt, JSValueConst val,
     JS_MarkValue(rt, wi->exports, mark_func);
     JS_MarkValue(rt, wi->memory_obj, mark_func);
     JS_MarkValue(rt, wi->pending_exc, mark_func);
+    JS_MarkValue(rt, wi->tags, mark_func);
     ns_wasm_linkage_gc_mark(rt, &wi->linkage, mark_func);
 }
 
@@ -1296,6 +1514,14 @@ ns_wasm_native_dispatch(wasm_exec_env_t exec_env, uint64_t *args)
         JS_FreeValue(ctx, argv[i]);
 
     if (JS_IsException(ret)) {
+        /* a WebAssembly.Exception of this instance's tags unwinds into
+           the wasm caller, which may catch it */
+        JSValue thrown = JS_GetException(ctx);
+        if (wi && inst && ns_wasm_throw_exception_to_wasm(ctx, wi, thrown)) {
+            JS_FreeValue(ctx, thrown);
+            return;
+        }
+        JS_Throw(ctx, thrown);
         if (wi && !wi->has_pending) {
             wi->pending_exc = JS_GetException(ctx);
             wi->has_pending = TRUE;
@@ -1805,6 +2031,19 @@ ns_wasm_build_exports(JSContext *ctx, JSValueConst instance_obj,
             break;
         }
     }
+    uint32_t n_tags = ns_wamr_export_tag_count(mod->module);
+    for (uint32_t i = 0; i < n_tags; i++) {
+        const char *name = NULL;
+        uint32_t tag_index = 0;
+        if (!ns_wamr_export_tag(mod->module, i, &name, &tag_index))
+            continue;
+        JSValue tag = ns_wasm_instance_tag(ctx, wi, tag_index);
+        if (JS_IsException(tag) ||
+            JS_SetPropertyStr(ctx, exports, name, tag) < 0) {
+            JS_FreeValue(ctx, exports);
+            return JS_EXCEPTION;
+        }
+    }
     ns_wasm_freeze(ctx, exports);
     return exports;
 }
@@ -2010,6 +2249,7 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
     wi->exports = JS_UNDEFINED;
     wi->memory_obj = JS_UNDEFINED;
     wi->pending_exc = JS_UNDEFINED;
+    wi->tags = JS_UNDEFINED;
     wi->linkage = linkage;
 
     g_private_set(&ns_wasm_instantiating, wi);
@@ -2453,6 +2693,45 @@ static const char ns_wasm_bootstrap_js[] =
     "  W.LinkError.prototype.name = 'LinkError';"
     "  W.RuntimeError = class RuntimeError extends Error {};"
     "  W.RuntimeError.prototype.name = 'RuntimeError';"
+    "  const tagParams = new WeakMap(), excParts = new WeakMap();"
+    "  const kinds = ['i32', 'i64', 'f32', 'f64', 'externref', 'anyfunc', 'funcref'];"
+    "  W.Tag = class Tag {"
+    "    constructor(type) {"
+    "      const p = type && type.parameters;"
+    "      if (p == null || typeof p[Symbol.iterator] !== 'function')"
+    "        throw new TypeError('WebAssembly.Tag: parameters is not iterable');"
+    "      const list = Array.from(p, String);"
+    "      for (const k of list)"
+    "        if (!kinds.includes(k))"
+    "          throw new TypeError('WebAssembly.Tag: invalid value type ' + k);"
+    "      tagParams.set(this, list);"
+    "    }"
+    "    type() { return { parameters: tagParams.get(this).slice() }; }"
+    "  };"
+    "  W.Exception = class Exception {"
+    "    constructor(tag, payload, options) {"
+    "      if (!tagParams.has(tag))"
+    "        throw new TypeError('WebAssembly.Exception: tag is not a WebAssembly.Tag');"
+    "      const values = Array.from(payload == null ? [] : payload);"
+    "      if (values.length !== tagParams.get(tag).length)"
+    "        throw new TypeError('WebAssembly.Exception: payload does not match the tag');"
+    "      excParts.set(this, [tag, values]);"
+    "      if (options && options.traceStack)"
+    "        Object.defineProperty(this, 'stack', { value: new Error().stack,"
+    "          writable: true, configurable: true });"
+    "    }"
+    "    is(tag) { return excParts.get(this)[0] === tag; }"
+    "    getArg(tag, index) {"
+    "      const parts = excParts.get(this);"
+    "      if (parts[0] !== tag)"
+    "        throw new TypeError('WebAssembly.Exception.getArg: tag mismatch');"
+    "      if (!(index >= 0 && index < parts[1].length))"
+    "        throw new RangeError('WebAssembly.Exception.getArg: index out of range');"
+    "      return parts[1][index];"
+    "    }"
+    "  };"
+    "  Object.defineProperty(W, '" NS_WASM_EXCEPTION_PARTS "', {"
+    "    value: (e) => { const p = excParts.get(e); return p && [p[0], p[1]]; } });"
     "  W.instantiateStreaming = async (src, imports) =>"
     "    W.instantiate(await (await src).arrayBuffer(), imports);"
     "  W.compileStreaming = async (src) =>"

@@ -12769,7 +12769,7 @@ ns_port_onmessage_set(JSContext *ctx, JSValueConst this_val,
 }
 
 static JSValue ns_port_bridge_send(JSContext *ctx, JSValueConst port,
-                                   guint64 id, JSValueConst data);
+                                   guint64 id, int argc, JSValueConst *argv);
 
 /* Cross-thread bridge id of a port, or 0 for a local port. */
 static guint64
@@ -12816,7 +12816,7 @@ ns_port_post_message(JSContext *ctx, JSValueConst this_val,
 
     guint64 bridge_id = ns_port_bridge_id(ctx, this_val);
     if (bridge_id)
-        return ns_port_bridge_send(ctx, this_val, bridge_id, data);
+        return ns_port_bridge_send(ctx, this_val, bridge_id, argc, argv);
 
     JSValue transfer = JS_UNDEFINED;
     if (argc >= 2 && JS_IsArray(argv[1])) {
@@ -13893,6 +13893,8 @@ typedef struct { void *orig; JSValue clone; } ns_sc_pair;
 #define NS_SC_MAX_DEPTH 512
 #define NS_SC_TRANSFERRED_PORT "__nd_transferred_message_port"
 #define NS_SC_WASM_HANDLE "__ns_posted_wasm_object"
+/* A Blob (1) or File (2) cloned for another thread, as its parts. */
+#define NS_SC_BLOB "__ns_posted_blob"
 
 /* Set while a message for another thread is cloned: WebAssembly.Module and
  * shared WebAssembly.Memory objects become handle markers, their ids
@@ -14254,6 +14256,24 @@ ns_sc_clone_value(ns_sc *s, JSValueConst v)
         JSValue cbytes = ns_sc_clone(s, bytes);
         JS_FreeValue(ctx, bytes);
         if (JS_IsException(cbytes)) return cbytes;
+        if (ns_sc_cross_thread_ids) {
+            /* The Blob and File constructors belong to this realm: send the
+             * parts, and ns_worker_restore_blob() rebuilds it over there. */
+            JSValue marker = JS_NewObject(ctx);
+            JS_SetPropertyStr(ctx, marker, NS_SC_BLOB,
+                              JS_NewInt32(ctx, is_file ? 2 : 1));
+            JS_SetPropertyStr(ctx, marker, "bytes", cbytes);
+            JS_SetPropertyStr(ctx, marker, "type",
+                              JS_GetPropertyStr(ctx, v, "type"));
+            if (is_file) {
+                JS_SetPropertyStr(ctx, marker, "name",
+                                  JS_GetPropertyStr(ctx, v, "name"));
+                JS_SetPropertyStr(ctx, marker, "lastModified",
+                                  JS_GetPropertyStr(ctx, v, "lastModified"));
+            }
+            ns_sc_memo_put(s, ptr, marker);
+            return marker;
+        }
         JSValue parts = JS_NewArray(ctx);
         JS_SetPropertyUint32(ctx, parts, 0, cbytes);
         JSValue opts = JS_NewObject(ctx);
@@ -14531,13 +14551,6 @@ static gboolean
 ns_sc_transferred_in_place(JSContext *ctx, JSValueConst v)
 {
     return ns_worker_transfer_is_port(ctx, v) || ns_image_bitmap_is(v);
-}
-
-static JSValue
-ns_sc_clone_with_transfer_ports(JSContext *ctx, JSValueConst value,
-                                GPtrArray *transfer_ports)
-{
-    return ns_sc_run(ctx, value, transfer_ports, FALSE);
 }
 
 /* structuredClone(): validates transfer list, clones, then detaches buffers. */
@@ -23178,31 +23191,29 @@ ns_worker_message_new_full(JSContext *ctx, ns_worker_host *host,
         msg->is_undefined = TRUE;
         return msg;
     }
-    JSValue serializable = transfer_ports && transfer_ports->len > 0
-        ? ns_sc_clone_with_transfer_ports(ctx, value, transfer_ports)
-        : JS_DupValue(ctx, value);
+    /* The structured clone runs in its cross-thread mode, which turns what
+     * JS_WriteObject cannot carry into markers the receiver restores:
+     * transferred ports, WebAssembly objects (posted by handle) and Blobs
+     * and Files, whose bytes would otherwise be lost with their prototype. */
+    GArray *ids = g_array_new(FALSE, FALSE, sizeof(guint64));
+    GArray *outer = ns_sc_cross_thread_ids;
+    ns_sc_cross_thread_ids = ids;
+    JSValue serializable = ns_sc_run(ctx, value, transfer_ports, FALSE);
+    ns_sc_cross_thread_ids = outer;
     if (JS_IsException(serializable)) {
+        g_array_free(ids, TRUE);
         ns_worker_message_free(msg);
         return NULL;
     }
+    if (ids->len > 0)
+        msg->wasm_ids = ids;
+    else
+        g_array_free(ids, TRUE);
     size_t len = 0;
     const int write_flags = JS_WRITE_OBJ_REFERENCE | JS_WRITE_OBJ_SAB;
     JSSABTab sab_tab = { 0 };
     uint8_t *bytes = JS_WriteObject2(ctx, &len, serializable, write_flags,
                                      &sab_tab);
-    if (!bytes) {
-        /* WebAssembly objects do not serialize: post them by handle */
-        JS_FreeValue(ctx, JS_GetException(ctx));
-        GArray *ids = g_array_new(FALSE, FALSE, sizeof(guint64));
-        GArray *outer = ns_sc_cross_thread_ids;
-        ns_sc_cross_thread_ids = ids;
-        JSValue subst = ns_sc_run(ctx, serializable, NULL, FALSE);
-        ns_sc_cross_thread_ids = outer;
-        msg->wasm_ids = ids;
-        if (!JS_IsException(subst) && ids->len > 0)
-            bytes = JS_WriteObject2(ctx, &len, subst, write_flags, &sab_tab);
-        JS_FreeValue(ctx, subst);
-    }
     JS_FreeValue(ctx, serializable);
     if (!bytes) {
         ns_worker_message_free(msg);
@@ -23315,6 +23326,46 @@ ns_worker_restore_wasm_objects(JSContext *ctx, JSValue value,
     return value;
 }
 
+/* Rebuilds a Blob or File posted from another thread from its marker, or
+ * returns JS_UNDEFINED when value is not one. */
+static JSValue
+ns_worker_restore_blob(JSContext *ctx, JSValueConst value)
+{
+    if (!JS_IsObject(value)) return JS_UNDEFINED;
+    JSValue kind_v = JS_GetPropertyStr(ctx, value, NS_SC_BLOB);
+    int32_t kind = 0;
+    if (JS_IsNumber(kind_v)) JS_ToInt32(ctx, &kind, kind_v);
+    JS_FreeValue(ctx, kind_v);
+    if (kind != 1 && kind != 2) return JS_UNDEFINED;
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue ctor = JS_GetPropertyStr(ctx, global, kind == 2 ? "File" : "Blob");
+    JS_FreeValue(ctx, global);
+    JSValue parts = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, parts, 0, JS_GetPropertyStr(ctx, value, "bytes"));
+    JSValue opts = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, opts, "type", JS_GetPropertyStr(ctx, value, "type"));
+    JSValue blob;
+    if (kind == 2) {
+        JS_SetPropertyStr(ctx, opts, "lastModified",
+                          JS_GetPropertyStr(ctx, value, "lastModified"));
+        JSValue name = JS_GetPropertyStr(ctx, value, "name");
+        JSValueConst args[3] = { parts, name, opts };
+        blob = JS_CallConstructor(ctx, ctor, 3, args);
+        JS_FreeValue(ctx, name);
+    } else {
+        JSValueConst args[2] = { parts, opts };
+        blob = JS_CallConstructor(ctx, ctor, 2, args);
+    }
+    JS_FreeValue(ctx, parts);
+    JS_FreeValue(ctx, opts);
+    JS_FreeValue(ctx, ctor);
+    if (JS_IsException(blob)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        return JS_UNDEFINED;
+    }
+    return blob;
+}
+
 /* Recursively replaces transferred-port markers in a value with live bridged ports. */
 static void
 ns_worker_restore_message_ports_rec(JSContext *ctx, JSValueConst value,
@@ -23334,7 +23385,10 @@ ns_worker_restore_message_ports_rec(JSContext *ctx, JSValueConst value,
     for (uint32_t i = 0; i < count; i++) {
         JSValue child = JS_GetProperty(ctx, value, props[i].atom);
         guint index = 0;
-        if (ns_worker_port_marker_index(ctx, child, msg, &index)) {
+        JSValue blob = ns_worker_restore_blob(ctx, child);
+        if (!JS_IsUndefined(blob)) {
+            JS_SetProperty(ctx, value, props[i].atom, blob);
+        } else if (ns_worker_port_marker_index(ctx, child, msg, &index)) {
             JSValue port = ns_port_bridge_receive(ctx, msg->xfer_ids[index],
                                                   worker_obj);
             JS_SetProperty(ctx, value, props[i].atom, port);
@@ -23366,6 +23420,11 @@ ns_worker_message_value(JSContext *ctx, const ns_worker_message *msg,
     if (ns_worker_port_marker_index(ctx, value, msg, &index)) {
         JS_FreeValue(ctx, value);
         return ns_port_bridge_receive(ctx, msg->xfer_ids[index], worker_obj);
+    }
+    JSValue blob = ns_worker_restore_blob(ctx, value);
+    if (!JS_IsUndefined(blob)) {
+        JS_FreeValue(ctx, value);
+        return blob;
     }
     GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
     ns_worker_restore_message_ports_rec(ctx, value, msg, worker_obj, seen, 0);
@@ -23880,27 +23939,53 @@ ns_worker_msg_send(ns_worker_host *host, ns_worker_message *msg,
     }
 }
 
-/* Sends data across a bridged MessagePort to the other thread. */
+/* Sends data across a bridged MessagePort to the other thread. The transfer
+ * list is handled as Worker.postMessage() handles it, so a port sent through
+ * a bridged port (Comlink's proxy() does this for every callback) is bridged
+ * in turn instead of failing to clone. */
 static JSValue
 ns_port_bridge_send(JSContext *ctx, JSValueConst port, guint64 id,
-                    JSValueConst data)
+                    int argc, JSValueConst *argv)
 {
+    JSValueConst data = argc >= 1 ? argv[0] : JS_UNDEFINED;
     ns_js *js = js_from_ctx(ctx);
     ns_worker_host *host = NULL;
     gboolean to_owner = FALSE;
+    JSValue bridge_worker = JS_UNDEFINED;
     if (js && js->worker_host) {
         host = js->worker_host;
         to_owner = TRUE;
     } else {
-        JSValue w = JS_GetPropertyStr(ctx, port, "_bridge_worker");
-        if (JS_IsObject(w)) host = JS_GetOpaque(w, ns_worker_class_id);
-        JS_FreeValue(ctx, w);
+        bridge_worker = JS_GetPropertyStr(ctx, port, "_bridge_worker");
+        if (JS_IsObject(bridge_worker))
+            host = JS_GetOpaque(bridge_worker, ns_worker_class_id);
     }
-    if (!host || g_atomic_int_get(&host->closing)) return JS_UNDEFINED;
-    ns_worker_message *msg = ns_worker_message_new(ctx, host, data);
-    if (!msg)
+    if (!host || g_atomic_int_get(&host->closing)) {
+        JS_FreeValue(ctx, bridge_worker);
+        return JS_UNDEFINED;
+    }
+    gboolean bad_transfer = FALSE;
+    GPtrArray *transfer_ports = g_ptr_array_new();
+    ns_worker_walk_transfers(ctx, argc, argv, FALSE, &bad_transfer, NULL,
+                             JS_UNDEFINED, transfer_ports);
+    if (bad_transfer) {
+        g_ptr_array_free(transfer_ports, TRUE);
+        JS_FreeValue(ctx, bridge_worker);
+        return ns_throw_dom_exception(ctx, "DataCloneError", 25,
+            "postMessage: a value in the transfer list is not transferable");
+    }
+    ns_worker_message *msg = ns_worker_message_new_full(ctx, host, data,
+                                                        transfer_ports);
+    if (!msg) {
+        g_ptr_array_free(transfer_ports, TRUE);
+        JS_FreeValue(ctx, bridge_worker);
         return ns_throw_dom_exception(ctx, "DataCloneError", 25,
             "postMessage: value could not be cloned");
+    }
+    ns_worker_walk_transfers(ctx, argc, argv, TRUE, NULL, msg, bridge_worker,
+                             NULL);
+    g_ptr_array_free(transfer_ports, TRUE);
+    JS_FreeValue(ctx, bridge_worker);
     msg->port_id = id;
     ns_worker_msg_send(host, msg, to_owner);
     return JS_UNDEFINED;

@@ -4,6 +4,22 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Qwasm (Quake in WebAssembly, https://qwasm.m-h.org.uk/) starts and
+  plays. Three fixes on the way there:
+  - A MessagePort bridged to a worker now honours postMessage()'s
+    transfer list, so a port posted through such a port (as Comlink's
+    proxy() does for every callback) arrives instead of throwing
+    DataCloneError. Blobs and Files posted to or from a worker keep their
+    bytes, type, name and lastModified; they used to arrive as empty
+    plain objects.
+  - WAMR on Windows: MinGW turns `__declspec(thread)` into an attribute
+    GCC and clang ignore, so WAMR's thread-locals were shared by every
+    thread, and a module run on a second thread (libarchive's worker)
+    left its stack boundary in place for the page's thread, which then
+    stopped with "native stack overflow". They are now `__thread`.
+  - WebGL (from Sol): an `#extension` the implementation lacks is an
+    error only with `require`; `enable` and `warn` compile, as GLSL ES
+    specifies. gl4es enables one in every shader it generates.
 * WebAssembly exception handling: modules built with Emscripten's
   `-fwasm-exceptions` (C++ `try`/`catch`, and `setjmp`/`longjmp` built
   on it) load and run. WAMR's fast interpreter only validated the

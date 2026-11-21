@@ -120,6 +120,9 @@ typedef struct {
     JSValue pending_exc;
     /* WebAssembly.Tag object per tag index, created on first use */
     JSValue tags;
+    /* the one JS function per wasm function: Table.get(i) and an export
+       return the same object every time, as Emscripten checks */
+    JSValue funcs;
     ns_wasm_linkage linkage;
     gboolean has_pending;
     guint call_depth;
@@ -815,9 +818,26 @@ static JSValue
 ns_wasm_make_func(JSContext *ctx, JSValueConst instance,
                   wasm_function_inst_t func)
 {
+    ns_wasm_instance *owner = ns_wasm_instance_opaque(instance);
+    char key[32];
+    g_snprintf(key, sizeof key, "%p", (void *)func);
+    if (owner && JS_IsObject(owner->funcs)) {
+        JSValue cached = JS_GetPropertyStr(ctx, owner->funcs, key);
+        if (JS_IsObject(cached))
+            return cached;
+        JS_FreeValue(ctx, cached);
+    }
     JSValue obj = JS_NewObjectClass(ctx, ns_wasm_func_class_id);
     if (JS_IsException(obj))
         return obj;
+    if (owner) {
+        if (!JS_IsObject(owner->funcs)) {
+            JS_FreeValue(ctx, owner->funcs);
+            owner->funcs = JS_NewObjectProto(ctx, JS_NULL);
+        }
+        if (JS_IsObject(owner->funcs))
+            JS_SetPropertyStr(ctx, owner->funcs, key, JS_DupValue(ctx, obj));
+    }
     ns_wasm_func *f = g_new0(ns_wasm_func, 1);
     f->ctx = ctx;
     f->instance = JS_DupValue(ctx, instance);
@@ -1498,6 +1518,7 @@ ns_wasm_instance_finalizer(JSRuntime *rt, JSValue val)
     JS_FreeValueRT(rt, wi->memory_obj);
     JS_FreeValueRT(rt, wi->pending_exc);
     JS_FreeValueRT(rt, wi->tags);
+    JS_FreeValueRT(rt, wi->funcs);
     g_free(wi);
 }
 
@@ -1513,6 +1534,7 @@ ns_wasm_instance_gc_mark(JSRuntime *rt, JSValueConst val,
     JS_MarkValue(rt, wi->memory_obj, mark_func);
     JS_MarkValue(rt, wi->pending_exc, mark_func);
     JS_MarkValue(rt, wi->tags, mark_func);
+    JS_MarkValue(rt, wi->funcs, mark_func);
     ns_wasm_linkage_gc_mark(rt, &wi->linkage, mark_func);
 }
 
@@ -2343,6 +2365,7 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
     wi->memory_obj = JS_UNDEFINED;
     wi->pending_exc = JS_UNDEFINED;
     wi->tags = JS_UNDEFINED;
+    wi->funcs = JS_UNDEFINED;
     wi->linkage = linkage;
 
     g_private_set(&ns_wasm_instantiating, wi);

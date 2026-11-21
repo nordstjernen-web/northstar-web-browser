@@ -1,0 +1,36 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -49793,14 +49793,25 @@
+    between UTC time and local time 'd' in minutes */
+ static int getTimezoneOffset(int64_t time) {
+ #if defined(_WIN32)
+-    DWORD r;
+-    TIME_ZONE_INFORMATION t;
+-    r = GetTimeZoneInformation(&t);
+-    if (r == TIME_ZONE_ID_INVALID)
+-        return 0;
+-    if (r == TIME_ZONE_ID_DAYLIGHT)
+-         return (int)(t.Bias + t.DaylightBias);
+-    return (int)t.Bias;
++    /* The offset in effect at 'time', not now: the CRT applies the zone's
++       daylight saving rules to the given date. */
++    __time64_t ti = (__time64_t)(time >= 0 ? time / 1000 : (time - 999) / 1000);
++    struct tm tm;
++    if (_localtime64_s(&tm, &ti) == 0) {
++        __time64_t local_as_utc = _mkgmtime64(&tm);
++        if (local_as_utc != -1)
++            return (int)((ti - local_as_utc) / 60);
++    }
++    {
++        DWORD r;
++        TIME_ZONE_INFORMATION t;
++        r = GetTimeZoneInformation(&t);
++        if (r == TIME_ZONE_ID_INVALID)
++            return 0;
++        if (r == TIME_ZONE_ID_DAYLIGHT)
++             return (int)(t.Bias + t.DaylightBias);
++        return (int)t.Bias;
++    }
+ #else
+     time_t ti;
+     struct tm tm;

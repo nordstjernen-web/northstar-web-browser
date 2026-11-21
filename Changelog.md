@@ -33,6 +33,15 @@ Significant changes in each release:
   `Uint8Array` came back as a plain object with numeric keys and no
   `length`. A database and an origin may now hold up to 4 GiB, up from
   256 MiB per database, so a game can cache its unpacked data.
+* On Windows, `Date` applies daylight saving time by the date, not by
+  today: in a zone that observes it, every summer (or, in summer, every
+  winter) local time was an hour off and `getTimezoneOffset()` returned
+  the current offset for all dates.
+* `toLocaleTimeString()` and `toLocaleDateString()` with options that
+  name no date or time field (only `timeZoneName` or `hour12`, say) keep
+  their default fields: `toLocaleTimeString(undefined, { timeZoneName:
+  "short" })` gave the date. `timeZoneName` is supported, as GMT-offset
+  names ("GMT+1", or "GMT+01:00" for "long").
 * A worker message may be up to 1 GiB (it was 16 MiB, too small for an
   archive handed to an unpacking worker), and a worker has the same
   JavaScript heap limit as its page instead of at most 512 MiB.

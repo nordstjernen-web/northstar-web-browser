@@ -1035,7 +1035,7 @@ intl_dtf_ctor(JSContext *ctx, JSValueConst this_val,
     }
     static const char *const keys[] = {
         "weekday","era","year","month","day","hour","minute","second",
-        "hour12","hourCycle","dayPeriod" };
+        "hour12","hourCycle","dayPeriod","timeZoneName" };
     for (gsize i = 0; i < G_N_ELEMENTS(keys); i++) {
         if (intl_opt_present(ctx, o, keys[i])) {
             JSValue v = JS_GetPropertyStr(ctx, o, keys[i]);
@@ -1094,6 +1094,7 @@ intl_dtf_parts_core(JSContext *ctx, JSValueConst opts, const char *locale,
     char *minute = ns_js_get_string_prop(ctx, opts, "minute");
     char *second = ns_js_get_string_prop(ctx, opts, "second");
     char *hourCycle = ns_js_get_string_prop(ctx, opts, "hourCycle");
+    char *tz_name = ns_js_get_string_prop(ctx, opts, "timeZoneName");
     int hour12 = intl_opt_bool(ctx, opts, "hour12", -1);
 
     char buf[32];
@@ -1154,6 +1155,37 @@ intl_dtf_parts_core(JSContext *ctx, JSValueConst opts, const char *locale,
         }
         if (ap) g_ptr_array_add(dpt, g_strconcat("dayPeriod\x01", ap, NULL));
     }
+    char *zone_part = NULL;
+    if (tz_name) {
+        /* GMT-offset names, as ICU gives for zones without a common
+         * abbreviation: "GMT+1" (short), "GMT+01:00" (long) */
+        gint64 off_min = 0;
+        if (!utc) {
+            GDateTime *dt = g_date_time_new_from_unix_local((gint64)secs);
+            if (dt) {
+                off_min = g_date_time_get_utc_offset(dt) / G_TIME_SPAN_MINUTE;
+                g_date_time_unref(dt);
+            }
+        }
+        gboolean long_form = !strcmp(tz_name, "long") ||
+                             !strcmp(tz_name, "longOffset") ||
+                             !strcmp(tz_name, "longGeneric");
+        char sign = off_min < 0 ? '-' : '+';
+        gint64 a = off_min < 0 ? -off_min : off_min;
+        char *v;
+        if (utc && !long_form)
+            v = g_strdup("UTC");
+        else if (a == 0)
+            v = g_strdup("GMT");
+        else if (long_form)
+            v = g_strdup_printf("GMT%c%02d:%02d", sign, (int)(a / 60), (int)(a % 60));
+        else if (a % 60)
+            v = g_strdup_printf("GMT%c%d:%02d", sign, (int)(a / 60), (int)(a % 60));
+        else
+            v = g_strdup_printf("GMT%c%d", sign, (int)(a / 60));
+        zone_part = g_strconcat("timeZoneName\x01", v, NULL);
+        g_free(v);
+    }
 
     gboolean numericDate = month && day && !weekday &&
         (!strcmp(month, "numeric") || !strcmp(month, "2-digit")) &&
@@ -1208,6 +1240,11 @@ intl_dtf_parts_core(JSContext *ctx, JSValueConst opts, const char *locale,
             g_ptr_array_add(ordered, g_strdup(entry));
         }
     }
+    if (zone_part) {
+        if (ordered->len)
+            g_ptr_array_add(ordered, g_strconcat("literal\x01", " ", NULL));
+        g_ptr_array_add(ordered, zone_part);
+    }
 
     for (guint j = 0; j < ordered->len; j++) {
         char *entry = g_ptr_array_index(ordered, j);
@@ -1222,6 +1259,7 @@ intl_dtf_parts_core(JSContext *ctx, JSValueConst opts, const char *locale,
     g_ptr_array_free(dpt, TRUE);
     g_free(weekday); g_free(month); g_free(day); g_free(year);
     g_free(hour); g_free(minute); g_free(second); g_free(hourCycle);
+    g_free(tz_name);
     (void)buf;
     return arr;
 }
@@ -2094,10 +2132,42 @@ intl_date_locale_string(JSContext *ctx, JSValueConst this_val, int argc,
 {
     JSValueConst locales = argc >= 1 ? argv[0] : JS_UNDEFINED;
     JSValue options;
+    /* ToDateTimeOptions: the method's default fields apply unless the
+     * options name a date or time field (or a style) of their own, so
+     * toLocaleTimeString(l, { timeZoneName: "short" }) still shows the
+     * time */
+    gboolean has_fields = FALSE;
     if (argc >= 2 && JS_IsObject(argv[1])) {
+        static const char *const field_keys[] = {
+            "weekday", "year", "month", "day", "dayPeriod", "hour",
+            "minute", "second", "fractionalSecondDigits", "dateStyle",
+            "timeStyle" };
+        for (gsize i = 0; i < G_N_ELEMENTS(field_keys) && !has_fields; i++)
+            has_fields = intl_opt_present(ctx, argv[1], field_keys[i]);
+    }
+    if (argc >= 2 && JS_IsObject(argv[1]) && has_fields) {
         options = JS_DupValue(ctx, argv[1]);
     } else {
         options = JS_NewObject(ctx);
+        if (argc >= 2 && JS_IsObject(argv[1])) {
+            /* keep the caller's other options (hour12, timeZoneName...) */
+            JSValue glob = JS_GetGlobalObject(ctx);
+            JSValue object_ctor = JS_GetPropertyStr(ctx, glob, "Object");
+            JSValue fn = JS_GetPropertyStr(ctx, object_ctor, "assign");
+            JSValueConst a[2] = { options, argv[1] };
+            JSValue r = JS_Call(ctx, fn, object_ctor, 2, a);
+            if (JS_IsException(r)) {
+                JS_FreeValue(ctx, fn);
+                JS_FreeValue(ctx, object_ctor);
+                JS_FreeValue(ctx, glob);
+                JS_FreeValue(ctx, options);
+                return JS_EXCEPTION;
+            }
+            JS_FreeValue(ctx, r);
+            JS_FreeValue(ctx, fn);
+            JS_FreeValue(ctx, object_ctor);
+            JS_FreeValue(ctx, glob);
+        }
         if (fields & INTL_DATE_FIELDS) {
             JS_SetPropertyStr(ctx, options, "year", intl_str(ctx, "numeric"));
             JS_SetPropertyStr(ctx, options, "month", intl_str(ctx, "numeric"));

@@ -56,6 +56,7 @@
 #include "forms.h"
 #include "security.h"
 #include "wasm.h"
+#include "shared_buffer.h"
 #include "webgl.h"
 #include "mainctx.h"
 #include "webcrypto.h"
@@ -67,6 +68,49 @@
 static void ns_js_dispatch_hashchange(ns_js *js, const char *old_url,
                                       const char *new_url);
 static void ns_js_refresh_top_layer(ns_js *js);
+
+/* First token of a policy header value (before ';' or ','), trimmed and
+ * lower-cased; caller frees. */
+static char *
+ns_policy_header_token(const char *value)
+{
+    if (!value) return NULL;
+    gsize n = strcspn(value, ";,");
+    char *t = g_strstrip(g_strndup(value, n));
+    char *lower = g_ascii_strdown(t, -1);
+    g_free(t);
+    return lower;
+}
+
+/* TRUE when a document response makes its document cross-origin isolated:
+ * COOP same-origin plus COEP require-corp or credentialless, from https or
+ * a loopback host. */
+static gboolean
+ns_js_response_is_cross_origin_isolated(const ns_response *response)
+{
+    if (!response || !response->raw_headers || !response->final_url)
+        return FALSE;
+    const char *u = response->final_url;
+    gboolean secure = g_str_has_prefix(u, "https://") ||
+        g_str_has_prefix(u, "http://localhost") ||
+        g_str_has_prefix(u, "http://127.0.0.1") ||
+        g_str_has_prefix(u, "http://[::1]");
+    if (!secure) return FALSE;
+    char *coop_raw = ns_net_raw_header(response->raw_headers,
+                                       "Cross-Origin-Opener-Policy");
+    char *coep_raw = ns_net_raw_header(response->raw_headers,
+                                       "Cross-Origin-Embedder-Policy");
+    char *coop = ns_policy_header_token(coop_raw);
+    char *coep = ns_policy_header_token(coep_raw);
+    gboolean isolated = coop && coep && g_strcmp0(coop, "same-origin") == 0 &&
+        (g_strcmp0(coep, "require-corp") == 0 ||
+         g_strcmp0(coep, "credentialless") == 0);
+    g_free(coop_raw);
+    g_free(coep_raw);
+    g_free(coop);
+    g_free(coep);
+    return isolated;
+}
 
 /* Maps curl phase timings on a response to Navigation Timing fields; zeroed when NULL. */
 ns_js_navigation_timing
@@ -85,6 +129,7 @@ ns_js_navigation_timing_from_response(const ns_response *response)
         .request_start_ms = response->pretransfer_ms,
         .response_start_ms = response->response_start_ms,
         .response_end_ms = response->response_end_ms,
+        .cross_origin_isolated = ns_js_response_is_cross_origin_isolated(response),
     };
 }
 
@@ -13701,6 +13746,12 @@ typedef struct { void *orig; JSValue clone; } ns_sc_pair;
 
 #define NS_SC_MAX_DEPTH 512
 #define NS_SC_TRANSFERRED_PORT "__nd_transferred_message_port"
+#define NS_SC_WASM_HANDLE "__ns_posted_wasm_object"
+
+/* Set while a message for another thread is cloned: WebAssembly.Module and
+ * shared WebAssembly.Memory objects become handle markers, their ids
+ * collected here. */
+static _Thread_local GArray *ns_sc_cross_thread_ids;
 
 typedef struct {
     JSContext *ctx;
@@ -13957,6 +14008,24 @@ ns_sc_clone_value(ns_sc *s, JSValueConst v)
         return clone;
     }
 
+    /* a SharedArrayBuffer is shared, not copied */
+    if (ns_shared_buffer_is(ctx, v)) {
+        ns_sc_memo_put(s, ptr, v);
+        return JS_DupValue(ctx, v);
+    }
+
+    if (ns_wasm_is_cross_thread_object(v)) {
+        if (!ns_sc_cross_thread_ids) return ns_sc_fail(ctx);
+        guint64 id = ns_wasm_cross_thread_export(ctx, v);
+        if (!id) return JS_EXCEPTION;
+        g_array_append_val(ns_sc_cross_thread_ids, id);
+        JSValue marker = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, marker, NS_SC_WASM_HANDLE,
+                          JS_NewFloat64(ctx, (double)id));
+        ns_sc_memo_put(s, ptr, marker);
+        return marker;
+    }
+
     JSValue key_clone = ns_webcrypto_clone_key(ctx, v);
     if (!JS_IsUndefined(key_clone)) {
         if (!JS_IsException(key_clone)) ns_sc_memo_put(s, ptr, key_clone);
@@ -13972,6 +14041,8 @@ ns_sc_clone_value(ns_sc *s, JSValueConst v)
         JSValue newbuf;
         if (JS_IsArrayBuffer(buf)) {
             newbuf = ns_sc_clone(s, buf);
+        } else if (ns_shared_buffer_is(ctx, buf)) {
+            newbuf = JS_DupValue(ctx, buf);
         } else {
             size_t total = 0;
             uint8_t *bp = JS_GetArrayBuffer(ctx, &total, buf);
@@ -22637,6 +22708,10 @@ typedef struct ns_worker_message {
     guint64        *xfer_ids;
     guint           n_xfer;
     GPtrArray      *followups;
+    /* posted WebAssembly.Module / shared Memory handles */
+    GArray         *wasm_ids;
+    /* SharedArrayBuffer storage kept alive while the message is queued */
+    GPtrArray      *shared_buffers;
 } ns_worker_message;
 
 typedef struct ns_worker_log_delivery {
@@ -22660,7 +22735,8 @@ static JSClassDef ns_worker_class = {
 };
 
 #define NS_WORKER_SCRIPT_BYTES_MAX  (32u * 1024u * 1024u)
-#define NS_WORKER_MESSAGE_BYTES_MAX (16u * 1024u * 1024u)
+/* A worker message can carry a whole unpacked archive, as js-untar posts */
+#define NS_WORKER_MESSAGE_BYTES_MAX (1024u * 1024u * 1024u)
 
 static ns_worker_host *
 ns_worker_host_ref(ns_worker_host *host)
@@ -22764,6 +22840,12 @@ ns_worker_message_free(ns_worker_message *msg)
             ns_worker_message_free(g_ptr_array_index(msg->followups, i));
         g_ptr_array_free(msg->followups, TRUE);
     }
+    for (guint i = 0; msg->wasm_ids && i < msg->wasm_ids->len; i++)
+        ns_wasm_cross_thread_drop(g_array_index(msg->wasm_ids, guint64, i));
+    if (msg->wasm_ids) g_array_free(msg->wasm_ids, TRUE);
+    for (guint i = 0; msg->shared_buffers && i < msg->shared_buffers->len; i++)
+        ns_shared_buffer_release(g_ptr_array_index(msg->shared_buffers, i));
+    if (msg->shared_buffers) g_ptr_array_free(msg->shared_buffers, TRUE);
     g_free(msg->xfer_ids);
     g_free(msg->bytes);
     g_free(msg->message);
@@ -22958,13 +23040,36 @@ ns_worker_message_new_full(JSContext *ctx, ns_worker_host *host,
         return NULL;
     }
     size_t len = 0;
-    uint8_t *bytes = JS_WriteObject(ctx, &len, serializable,
-                                    JS_WRITE_OBJ_REFERENCE);
+    const int write_flags = JS_WRITE_OBJ_REFERENCE | JS_WRITE_OBJ_SAB;
+    JSSABTab sab_tab = { 0 };
+    uint8_t *bytes = JS_WriteObject2(ctx, &len, serializable, write_flags,
+                                     &sab_tab);
+    if (!bytes) {
+        /* WebAssembly objects do not serialize: post them by handle */
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        GArray *ids = g_array_new(FALSE, FALSE, sizeof(guint64));
+        GArray *outer = ns_sc_cross_thread_ids;
+        ns_sc_cross_thread_ids = ids;
+        JSValue subst = ns_sc_run(ctx, serializable, NULL, FALSE);
+        ns_sc_cross_thread_ids = outer;
+        msg->wasm_ids = ids;
+        if (!JS_IsException(subst) && ids->len > 0)
+            bytes = JS_WriteObject2(ctx, &len, subst, write_flags, &sab_tab);
+        JS_FreeValue(ctx, subst);
+    }
     JS_FreeValue(ctx, serializable);
     if (!bytes) {
         ns_worker_message_free(msg);
         return NULL;
     }
+    if (sab_tab.len > 0) {
+        msg->shared_buffers = g_ptr_array_new();
+        for (size_t i = 0; i < sab_tab.len; i++) {
+            ns_shared_buffer_retain(sab_tab.tab[i]);
+            g_ptr_array_add(msg->shared_buffers, sab_tab.tab[i]);
+        }
+    }
+    js_free(ctx, sab_tab.tab);
     if (len > NS_WORKER_MESSAGE_BYTES_MAX) {
         js_free(ctx, bytes);
         ns_worker_message_free(msg);
@@ -22992,6 +23097,76 @@ ns_worker_port_marker_index(JSContext *ctx, JSValueConst value,
     JS_FreeValue(ctx, marker);
     if (found && out_index) *out_index = index;
     return found;
+}
+
+/* The handle id a posted-WebAssembly marker carries, if it is one of the
+ * message's own handles (a page cannot forge one into another message). */
+static gboolean
+ns_worker_wasm_marker_id(JSContext *ctx, JSValueConst v,
+                         const ns_worker_message *msg, guint64 *out_id)
+{
+    if (!JS_IsObject(v) || !msg->wasm_ids) return FALSE;
+    JSValue marker = JS_GetPropertyStr(ctx, v, NS_SC_WASM_HANDLE);
+    double d = 0;
+    gboolean is_num = JS_IsNumber(marker) && !JS_ToFloat64(ctx, &d, marker);
+    JS_FreeValue(ctx, marker);
+    if (!is_num) return FALSE;
+    guint64 id = (guint64)d;
+    for (guint i = 0; i < msg->wasm_ids->len; i++) {
+        if (g_array_index(msg->wasm_ids, guint64, i) == id) {
+            *out_id = id;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static void
+ns_worker_restore_wasm_rec(JSContext *ctx, JSValueConst value,
+                           const ns_worker_message *msg, GHashTable *seen,
+                           int depth)
+{
+    if (!JS_IsObject(value) || depth >= NS_SC_MAX_DEPTH) return;
+    void *ptr = JS_VALUE_GET_PTR(value);
+    if (g_hash_table_contains(seen, ptr)) return;
+    g_hash_table_add(seen, ptr);
+    JSPropertyEnum *props = NULL;
+    uint32_t count = 0;
+    if (JS_GetOwnPropertyNames(ctx, &props, &count, value,
+                               JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0)
+        return;
+    for (uint32_t i = 0; i < count; i++) {
+        JSValue child = JS_GetProperty(ctx, value, props[i].atom);
+        guint64 id = 0;
+        if (ns_worker_wasm_marker_id(ctx, child, msg, &id)) {
+            JSValue obj = ns_wasm_cross_thread_import(ctx, id);
+            if (JS_IsException(obj))
+                JS_FreeValue(ctx, JS_GetException(ctx));
+            else
+                JS_SetProperty(ctx, value, props[i].atom, obj);
+        } else {
+            ns_worker_restore_wasm_rec(ctx, child, msg, seen, depth + 1);
+        }
+        JS_FreeValue(ctx, child);
+    }
+    JS_FreePropertyEnum(ctx, props, count);
+}
+
+/* Replaces posted-WebAssembly markers in a received value with Module and
+ * Memory objects of this realm; consumes value. */
+static JSValue
+ns_worker_restore_wasm_objects(JSContext *ctx, JSValue value,
+                               const ns_worker_message *msg)
+{
+    guint64 id = 0;
+    if (ns_worker_wasm_marker_id(ctx, value, msg, &id)) {
+        JS_FreeValue(ctx, value);
+        return ns_wasm_cross_thread_import(ctx, id);
+    }
+    GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ns_worker_restore_wasm_rec(ctx, value, msg, seen, 0);
+    g_hash_table_destroy(seen);
+    return value;
 }
 
 /* Recursively replaces transferred-port markers in a value with live bridged ports. */
@@ -23033,9 +23208,14 @@ ns_worker_message_value(JSContext *ctx, const ns_worker_message *msg,
 {
     if (!msg || msg->is_undefined) return JS_UNDEFINED;
     if (!msg->bytes || msg->len == 0) return JS_NULL;
+    /* the bytes come from JS_WriteObject2 above, never from the page */
     JSValue value = JS_ReadObject(ctx, msg->bytes, msg->len,
-                                  JS_READ_OBJ_REFERENCE);
+                                  JS_READ_OBJ_REFERENCE | JS_READ_OBJ_SAB);
     if (JS_IsException(value)) return value;
+    if (msg->wasm_ids && msg->wasm_ids->len > 0) {
+        value = ns_worker_restore_wasm_objects(ctx, value, msg);
+        if (JS_IsException(value)) return value;
+    }
     guint index = 0;
     if (ns_worker_port_marker_index(ctx, value, msg, &index)) {
         JS_FreeValue(ctx, value);
@@ -24464,13 +24644,16 @@ ns_worker_js_new(ns_worker_host *host)
         ns_js_free_unstarted(js);
         return NULL;
     }
+    /* the same heap cap as a page: a worker may hold what its page sent */
     const ns_config *c = ns_config_get();
-    int mb = c ? c->js_memory_cap_mb : 256;
-    if (mb <= 0) mb = 256;
-    if (mb > 512) mb = 512;
+    int mb = c ? c->js_memory_cap_mb : 2048;
+    if (mb <= 0) mb = 2048;
     ns_js_set_interrupt_handler(js->rt, ns_js_interrupt_ctx_cb,
                                 ns_js_interrupt_rt_cb, js);
     JS_SetMemoryLimit(js->rt, (size_t)mb * 1024 * 1024);
+    ns_shared_buffer_install(js->rt);
+    /* a worker may block in Atomics.wait; the window may not */
+    JS_SetCanBlock(js->rt, true);
     JS_SetHostPromiseRejectionTracker(js->rt, ns_worker_promise_rejection_tracker, NULL);
     JS_SetMaxStackSize(js->rt, (size_t)5 * 1024 * 1024);
 
@@ -51661,10 +51844,17 @@ ns_install_window_compat(JSContext *ctx, JSValueConst global)
         ns_set_if_missing(ctx, global, bars[i], bar);
     }
 
-    ns_set_if_missing(ctx, global, "crossOriginIsolated", JS_FALSE);
-    JSAtom shared_buffer = JS_NewAtom(ctx, "SharedArrayBuffer");
-    JS_DeleteProperty(ctx, global, shared_buffer, 0);
-    JS_FreeAtom(ctx, shared_buffer);
+    /* SharedArrayBuffer only for a cross-origin isolated document */
+    ns_js *compat_js = js_from_ctx(ctx);
+    gboolean isolated = compat_js && ctx == compat_js->ctx &&
+                        compat_js->navigation_timing.cross_origin_isolated;
+    ns_set_if_missing(ctx, global, "crossOriginIsolated",
+                      JS_NewBool(ctx, isolated));
+    if (!isolated) {
+        JSAtom shared_buffer = JS_NewAtom(ctx, "SharedArrayBuffer");
+        JS_DeleteProperty(ctx, global, shared_buffer, 0);
+        JS_FreeAtom(ctx, shared_buffer);
+    }
     ns_set_if_missing(ctx, global, "frameElement", JS_NULL);
     ns_js_intl_install(ctx, global);
     ns_js_temporal_install(ctx, global);
@@ -52848,6 +53038,9 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
         js->navigation_timing.origin_us = js->time_origin_us;
         js->navigation_timing.origin_real_ms = js->time_origin_real_ms;
     }
+    if (navigation_timing)
+        js->navigation_timing.cross_origin_isolated =
+            navigation_timing->cross_origin_isolated;
     ns_js_coarsen_navigation_timing(js);
     js->perf_entries         = g_ptr_array_new_with_free_func(ns_perf_entry_free);
     js->rt = JS_NewRuntime();
@@ -52858,6 +53051,8 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
         ns_js_set_interrupt_handler(js->rt, ns_js_interrupt_ctx_cb,
                                     ns_js_interrupt_rt_cb, js);
         JS_SetMemoryLimit(js->rt, (size_t)mb * 1024 * 1024);
+        ns_shared_buffer_install(js->rt);
+        JS_SetCanBlock(js->rt, false);
         JS_SetHostPromiseRejectionTracker(
             js->rt, ns_js_promise_rejection_tracker, NULL);
         JS_SetMaxStackSize(js->rt, (size_t)5 * 1024 * 1024);

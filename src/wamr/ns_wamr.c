@@ -275,3 +275,68 @@ bh_atomic_thread_fence(int mem_order)
     atomic_thread_fence((memory_order)mem_order);
 }
 #endif
+
+#if WASM_ENABLE_SHARED_MEMORY != 0
+#include "wasm_memory.h"
+#include "wasm_shared_memory.h"
+
+extern void
+ns_wamr_provide_shared_memory(WASMMemoryInstance *memory);
+
+wasm_memory_inst_t
+ns_wamr_shared_memory_new(uint32_t init_pages, uint32_t max_pages)
+{
+    WASMMemoryInstance *memory;
+    uint64 data_size = 0;
+
+    if (max_pages < init_pages || max_pages > DEFAULT_MAX_PAGES)
+        return NULL;
+    if (!(memory = wasm_runtime_malloc(sizeof(WASMMemoryInstance))))
+        return NULL;
+    memset(memory, 0, sizeof(WASMMemoryInstance));
+    if (wasm_allocate_linear_memory(&memory->memory_data, true, false,
+                                    DEFAULT_NUM_BYTES_PER_PAGE, init_pages,
+                                    max_pages, &data_size)
+        != BHT_OK) {
+        wasm_runtime_free(memory);
+        return NULL;
+    }
+    memory->module_type = Wasm_Module_Bytecode;
+    memory->num_bytes_per_page = DEFAULT_NUM_BYTES_PER_PAGE;
+    memory->cur_page_count = init_pages;
+    memory->max_page_count = max_pages;
+    memory->memory_data_size = data_size;
+    memory->memory_data_end = memory->memory_data + data_size;
+    memory->heap_data = memory->memory_data_end;
+    memory->heap_data_end = memory->memory_data_end;
+    if (data_size > 0)
+        wasm_runtime_set_mem_bound_check_bytes(memory, data_size);
+    memory->is_shared_memory = 1;
+    memory->ref_count = 1;
+    return (wasm_memory_inst_t)memory;
+}
+
+void
+ns_wamr_shared_memory_retain(wasm_memory_inst_t memory)
+{
+    if (memory)
+        shared_memory_inc_reference((WASMMemoryInstance *)memory);
+}
+
+void
+ns_wamr_shared_memory_release(wasm_memory_inst_t memory_comm)
+{
+    WASMMemoryInstance *memory = (WASMMemoryInstance *)memory_comm;
+    if (!memory || shared_memory_dec_reference(memory) > 0)
+        return;
+    if (memory->memory_data)
+        wasm_deallocate_linear_memory(memory);
+    wasm_runtime_free(memory);
+}
+
+void
+ns_wamr_provide_shared_memory_for_next_instance(wasm_memory_inst_t memory)
+{
+    ns_wamr_provide_shared_memory((WASMMemoryInstance *)memory);
+}
+#endif

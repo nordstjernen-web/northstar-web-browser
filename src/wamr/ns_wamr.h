@@ -49,6 +49,16 @@ bool ns_wamr_take_exception(wasm_module_inst_t inst, uint32_t *out_tag_index,
 bool ns_wamr_throw_exception(wasm_module_inst_t inst, uint32_t tag_index,
                              const uint32_t *cells, uint32_t cell_num);
 
+/* Shared memory created on its own, for WebAssembly.Memory({shared: true}):
+ * reserved at max_pages so it never moves, reference counted, and used as
+ * the imported memory of the next instantiation on this thread once
+ * provided (pass NULL afterwards). */
+wasm_memory_inst_t ns_wamr_shared_memory_new(uint32_t init_pages,
+                                             uint32_t max_pages);
+void ns_wamr_shared_memory_retain(wasm_memory_inst_t memory);
+void ns_wamr_shared_memory_release(wasm_memory_inst_t memory);
+void ns_wamr_provide_shared_memory_for_next_instance(wasm_memory_inst_t memory);
+
 void wasm_runtime_set_enlarge_mem_success_callback(
     void (*callback)(wasm_module_inst_t module_inst, void *user_data),
     void *user_data);

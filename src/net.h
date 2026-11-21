@@ -87,6 +87,10 @@ typedef struct ns_response {
 
 void ns_response_free(ns_response *resp);
 
+/* Comma-joined values of header name in raw response headers, or NULL;
+ * caller frees. */
+char *ns_net_raw_header(const char *raw_headers, const char *name);
+
 char *ns_build_error_page(const char *url, long status,
                           const char *transport_error);
 

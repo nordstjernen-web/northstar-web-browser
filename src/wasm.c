@@ -16,6 +16,30 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
     (void)global;
 }
 
+gboolean ns_wasm_is_cross_thread_object(JSValueConst v)
+{
+    (void)v;
+    return FALSE;
+}
+
+guint64 ns_wasm_cross_thread_export(JSContext *ctx, JSValueConst v)
+{
+    (void)v;
+    JS_ThrowTypeError(ctx, "object cannot be cloned");
+    return 0;
+}
+
+JSValue ns_wasm_cross_thread_import(JSContext *ctx, guint64 id)
+{
+    (void)id;
+    return JS_ThrowTypeError(ctx, "WebAssembly is unavailable");
+}
+
+void ns_wasm_cross_thread_drop(guint64 id)
+{
+    (void)id;
+}
+
 #else
 
 #include <glib.h>
@@ -24,6 +48,7 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
 #include <wasm_export.h>
 
 #include "ns_wamr.h"
+#include "shared_buffer.h"
 
 #define NS_WASM_STACK_SIZE (1u << 20)
 #define NS_WASM_RECLAIM_INTERVAL 64
@@ -31,6 +56,10 @@ void ns_wasm_install(JSContext *ctx, JSValueConst global)
 #define NS_WASM_MAX_RESULTS 16
 #define NS_WASM_PAGE_SIZE 65536u
 #define NS_WASM_MEMORY_MAX_BYTES (512u * 1024u * 1024u)
+/* A shared memory reserves its maximum up front; a SharedArrayBuffer over
+ * it can be at most 2 GiB long (the QuickJS ArrayBuffer limit). */
+#define NS_WASM_SHARED_MEMORY_MAX_PAGES 65536u
+#define NS_WASM_SHARED_MEMORY_MAX_BYTES ((guint64)G_MAXINT32 + 1)
 /* Hidden WebAssembly member the bootstrap defines: returns [tag, payload]
  * for a WebAssembly.Exception, undefined otherwise. */
 #define NS_WASM_EXCEPTION_PARTS "__nsExceptionParts"
@@ -77,6 +106,8 @@ typedef struct {
      * lock let any page or worker stall every other's instantiation.
      * Recursive because instantiation can call back into JS. */
     GRecMutex lock;
+    /* JS Module objects (one per realm or worker it was posted to) */
+    gint ref_count;
 } ns_wasm_module;
 
 typedef struct {
@@ -96,6 +127,9 @@ typedef struct {
 } ns_wasm_instance;
 
 static void ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi);
+static JSValue ns_wasm_shared_memory_new(JSContext *ctx, uint32_t initial,
+                                         uint32_t maximum,
+                                         gboolean has_maximum);
 
 typedef struct {
     JSContext *ctx;
@@ -106,6 +140,9 @@ typedef struct {
     guint8 *staging;
     size_t staging_size;
     uint32_t max_pages;
+    /* WebAssembly.Memory({shared: true}): memory of its own, shared by
+     * every instance that imports it on any thread */
+    wasm_memory_inst_t shared;
 } ns_wasm_memory;
 
 typedef struct {
@@ -802,7 +839,9 @@ ns_wasm_memory_detach_buffer(ns_wasm_memory *m)
 {
     if (!m || JS_IsUndefined(m->buffer))
         return;
-    JS_DetachArrayBuffer(m->ctx, m->buffer);
+    /* a SharedArrayBuffer is never detached */
+    if (!m->shared)
+        JS_DetachArrayBuffer(m->ctx, m->buffer);
     JS_FreeValue(m->ctx, m->buffer);
     m->buffer = JS_UNDEFINED;
     m->base = NULL;
@@ -820,7 +859,7 @@ ns_wasm_memory_resync(JSContext *ctx, ns_wasm_instance *wi)
     if (!wi || !wi->inst || JS_IsUndefined(wi->memory_obj))
         return;
     ns_wasm_memory *m = JS_GetOpaque(wi->memory_obj, ns_wasm_memory_class_id);
-    if (!m || m->staging || JS_IsUndefined(m->buffer))
+    if (!m || m->staging || m->shared || JS_IsUndefined(m->buffer))
         return;
     wasm_memory_inst_t mem = wasm_runtime_get_memory(wi->inst, 0);
     if (!mem) {
@@ -851,6 +890,8 @@ ns_wasm_memory_finalizer(JSRuntime *rt, JSValue val)
     ns_wasm_memory_detach_buffer(m);
     JS_FreeValueRT(rt, m->instance);
     g_free(m->staging);
+    if (m->shared)
+        ns_wamr_shared_memory_release(m->shared);
     g_free(m);
 }
 
@@ -879,6 +920,29 @@ ns_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
         return JS_EXCEPTION;
     guint8 *base;
     size_t size;
+    if (m->shared) {
+        base = wasm_memory_get_base_address(m->shared);
+        size = (size_t)wasm_memory_get_cur_page_count(m->shared) *
+               wasm_memory_get_bytes_per_page(m->shared);
+        if (!JS_IsUndefined(m->buffer) && m->base == base && m->size == size)
+            return JS_DupValue(ctx, m->buffer);
+        /* a grow makes a longer SharedArrayBuffer over the same memory;
+         * the old one stays valid at its old length */
+        ns_wamr_shared_memory_retain(m->shared);
+        gboolean took = FALSE;
+        JSValue sab = ns_shared_buffer_new_external(
+            ctx, base, size, (void (*)(gpointer))ns_wamr_shared_memory_release,
+            m->shared, &took);
+        if (!took)
+            ns_wamr_shared_memory_release(m->shared);
+        if (JS_IsException(sab))
+            return sab;
+        JS_FreeValue(ctx, m->buffer);
+        m->buffer = sab;
+        m->base = base;
+        m->size = size;
+        return JS_DupValue(ctx, m->buffer);
+    }
     if (m->staging) {
         base = m->staging;
         size = m->staging_size;
@@ -921,6 +985,15 @@ ns_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc,
     if (ns_wasm_to_u32_index(ctx, argc > 0 ? argv[0] : JS_UNDEFINED,
                              &delta, "wasm memory.grow delta"))
         return JS_EXCEPTION;
+    if (m->shared) {
+        uint32_t old_pages =
+            (uint32_t)wasm_memory_get_cur_page_count(m->shared);
+        guint64 new_bytes = ((guint64)old_pages + delta) * NS_WASM_PAGE_SIZE;
+        if (delta && (new_bytes > NS_WASM_SHARED_MEMORY_MAX_BYTES ||
+                      !wasm_memory_enlarge(m->shared, delta)))
+            return JS_ThrowRangeError(ctx, "wasm memory.grow failed");
+        return JS_NewUint32(ctx, old_pages);
+    }
     if (m->staging) {
         uint32_t old_pages = (uint32_t)(m->staging_size / NS_WASM_PAGE_SIZE);
         if (delta) {
@@ -971,7 +1044,10 @@ ns_wasm_on_memory_grown(wasm_module_inst_t inst, void *user_data)
     if (!wi || JS_IsUndefined(wi->memory_obj))
         return;
     ns_wasm_memory *m = JS_GetOpaque(wi->memory_obj, ns_wasm_memory_class_id);
-    ns_wasm_memory_detach_buffer(m);
+    /* runs on the growing thread; a shared memory's buffer is rebuilt on
+     * the next read of memory.buffer instead */
+    if (m && !m->shared)
+        ns_wasm_memory_detach_buffer(m);
 }
 
 static void
@@ -1364,11 +1440,12 @@ static const JSCFunctionListEntry ns_wasm_global_proto_funcs[] = {
 };
 
 /* Unloads the WAMR module and frees its linkage and copied bytes. */
+/* Drops a reference to a compiled module; the last one unloads it. Its
+ * linkage holds no JS values, so any runtime (or none) may free it. */
 static void
-ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
+ns_wasm_module_unref(JSRuntime *rt, ns_wasm_module *m)
 {
-    ns_wasm_module *m = JS_GetOpaque(val, ns_wasm_module_class_id);
-    if (!m)
+    if (!m || !g_atomic_int_dec_and_test(&m->ref_count))
         return;
     if (m->module)
         wasm_runtime_unload(m->module);
@@ -1376,6 +1453,15 @@ ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
     g_free(m->load_bytes);
     g_rec_mutex_clear(&m->lock);
     g_free(m);
+}
+
+static void
+ns_wasm_module_finalizer(JSRuntime *rt, JSValue val)
+{
+    ns_wasm_module *m = JS_GetOpaque(val, ns_wasm_module_class_id);
+    if (!m)
+        return;
+    ns_wasm_module_unref(rt, m);
 }
 
 static void
@@ -2059,6 +2145,7 @@ ns_wasm_module_from_bytes(JSContext *ctx, const guint8 *bytes, size_t len)
                                    "wasm module too large");
 
     ns_wasm_module *mod = g_new0(ns_wasm_module, 1);
+    mod->ref_count = 1;
     g_rec_mutex_init(&mod->lock);
     ns_wasm_linkage_init(&mod->linkage);
     mod->load_bytes = ns_wasm_memdup_bytes(bytes, len);
@@ -2150,6 +2237,8 @@ ns_wasm_adopt_provided_imports(JSContext *ctx, JSValueConst instance_obj,
     if (!JS_IsUndefined(wi->linkage.provided_memory)) {
         ns_wasm_memory *m = JS_GetOpaque(wi->linkage.provided_memory,
                                          ns_wasm_memory_class_id);
+        if (m && m->shared && JS_IsUndefined(wi->memory_obj))
+            wi->memory_obj = JS_DupValue(ctx, wi->linkage.provided_memory);
         wasm_memory_inst_t mem =
             m && m->staging ? wasm_runtime_get_memory(wi->inst, 0) : NULL;
         if (mem) {
@@ -2201,6 +2290,10 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
         JS_GetOpaque2(ctx, module_obj, ns_wasm_module_class_id);
     if (!mod || !mod->module)
         return JS_EXCEPTION;
+    /* a module posted from another thread was compiled there: this thread
+     * still needs its WAMR thread environment */
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
 
     JSRuntime *rt = JS_GetRuntime(ctx);
     ns_wasm_linkage linkage;
@@ -2253,9 +2346,17 @@ ns_wasm_instance_create(JSContext *ctx, JSValueConst module_obj,
     wi->linkage = linkage;
 
     g_private_set(&ns_wasm_instantiating, wi);
+    ns_wasm_memory *provided_shared =
+        JS_IsUndefined(wi->linkage.provided_memory)
+            ? NULL
+            : JS_GetOpaque(wi->linkage.provided_memory,
+                           ns_wasm_memory_class_id);
+    if (provided_shared && provided_shared->shared)
+        ns_wamr_provide_shared_memory_for_next_instance(provided_shared->shared);
     wasm_module_inst_t inst =
         wasm_runtime_instantiate(inst_module, NS_WASM_STACK_SIZE, 0, error_buf,
                                  sizeof(error_buf));
+    ns_wamr_provide_shared_memory_for_next_instance(NULL);
     mod->instantiating = FALSE;
     g_rec_mutex_unlock(&mod->lock);
     g_private_set(&ns_wasm_instantiating, NULL);
@@ -2431,6 +2532,7 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
         return JS_EXCEPTION;
     JSValue maxv = JS_GetPropertyStr(ctx, desc, "maximum");
     uint32_t maximum = 0;
+    gboolean has_maximum = !JS_IsUndefined(maxv);
     if (!JS_IsUndefined(maxv))
         rc = ns_wasm_to_u32_index(ctx, maxv, &maximum, "wasm memory maximum");
     JS_FreeValue(ctx, maxv);
@@ -2442,7 +2544,7 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
     int shared = JS_ToBool(ctx, sv);
     JS_FreeValue(ctx, sv);
     if (shared)
-        return JS_ThrowTypeError(ctx, "shared wasm memory is not supported");
+        return ns_wasm_shared_memory_new(ctx, initial, maximum, has_maximum);
     guint64 bytes = (guint64)initial * NS_WASM_PAGE_SIZE;
     if (bytes > NS_WASM_MEMORY_MAX_BYTES)
         return JS_ThrowRangeError(ctx, "wasm memory initial is too large");
@@ -2456,6 +2558,156 @@ ns_wasm_memory_ctor(JSContext *ctx, JSValueConst new_target, int argc,
     m->staging = g_malloc0(bytes ? (size_t)bytes : 1);
     m->staging_size = (size_t)bytes;
     m->max_pages = maximum;
+    JS_SetOpaque(obj, m);
+    return obj;
+}
+
+/* Cross-thread handles: a WebAssembly.Module or shared WebAssembly.Memory
+ * posted to a worker travels as an id; the receiver makes its own JS object
+ * over the same compiled module or memory. */
+typedef struct {
+    gboolean is_memory;
+    ns_wasm_module *module;
+    wasm_memory_inst_t memory;
+    uint32_t max_pages;
+} ns_wasm_xthread;
+
+static GMutex ns_wasm_xthread_lock;
+static GHashTable *ns_wasm_xthread_table; /* id -> ns_wasm_xthread */
+static guint64 ns_wasm_xthread_next_id;
+
+static void
+ns_wasm_xthread_free(ns_wasm_xthread *h)
+{
+    if (!h)
+        return;
+    if (h->module)
+        ns_wasm_module_unref(NULL, h->module);
+    if (h->memory)
+        ns_wamr_shared_memory_release(h->memory);
+    g_free(h);
+}
+
+gboolean
+ns_wasm_is_cross_thread_object(JSValueConst v)
+{
+    return JS_IsObject(v) &&
+           (JS_GetOpaque(v, ns_wasm_module_class_id) ||
+            JS_GetOpaque(v, ns_wasm_memory_class_id));
+}
+
+guint64
+ns_wasm_cross_thread_export(JSContext *ctx, JSValueConst v)
+{
+    ns_wasm_module *mod = JS_GetOpaque(v, ns_wasm_module_class_id);
+    ns_wasm_memory *mem = mod ? NULL : JS_GetOpaque(v, ns_wasm_memory_class_id);
+    if (!mod && !(mem && mem->shared)) {
+        JS_ThrowTypeError(ctx, mem ? "a non-shared WebAssembly.Memory "
+                                     "cannot be posted to a worker"
+                                   : "object cannot be cloned");
+        return 0;
+    }
+    ns_wasm_xthread *h = g_new0(ns_wasm_xthread, 1);
+    if (mod) {
+        g_atomic_int_inc(&mod->ref_count);
+        h->module = mod;
+    } else {
+        ns_wamr_shared_memory_retain(mem->shared);
+        h->is_memory = TRUE;
+        h->memory = mem->shared;
+        h->max_pages = mem->max_pages;
+    }
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    if (!ns_wasm_xthread_table)
+        ns_wasm_xthread_table = g_hash_table_new_full(
+            g_int64_hash, g_int64_equal, g_free,
+            (GDestroyNotify)ns_wasm_xthread_free);
+    guint64 *key = g_new(guint64, 1);
+    *key = ++ns_wasm_xthread_next_id;
+    guint64 id = *key;
+    g_hash_table_insert(ns_wasm_xthread_table, key, h);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+    return id;
+}
+
+JSValue
+ns_wasm_cross_thread_import(JSContext *ctx, guint64 id)
+{
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    ns_wasm_xthread *h = ns_wasm_xthread_table
+        ? g_hash_table_lookup(ns_wasm_xthread_table, &id) : NULL;
+    ns_wasm_module *mod = h ? h->module : NULL;
+    wasm_memory_inst_t memory = h ? h->memory : NULL;
+    uint32_t max_pages = h ? h->max_pages : 0;
+    if (mod)
+        g_atomic_int_inc(&mod->ref_count);
+    if (memory)
+        ns_wamr_shared_memory_retain(memory);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+    if (!mod && !memory)
+        return JS_ThrowTypeError(ctx, "posted WebAssembly object is gone");
+
+    JSValue obj = JS_NewObjectClass(ctx, mod ? ns_wasm_module_class_id
+                                             : ns_wasm_memory_class_id);
+    if (JS_IsException(obj)) {
+        if (mod)
+            ns_wasm_module_unref(JS_GetRuntime(ctx), mod);
+        if (memory)
+            ns_wamr_shared_memory_release(memory);
+        return obj;
+    }
+    if (mod) {
+        JS_SetOpaque(obj, mod);
+    } else {
+        ns_wasm_memory *m = g_new0(ns_wasm_memory, 1);
+        m->ctx = ctx;
+        m->instance = JS_UNDEFINED;
+        m->buffer = JS_UNDEFINED;
+        m->max_pages = max_pages;
+        m->shared = memory;
+        JS_SetOpaque(obj, m);
+    }
+    return obj;
+}
+
+void
+ns_wasm_cross_thread_drop(guint64 id)
+{
+    g_mutex_lock(&ns_wasm_xthread_lock);
+    if (ns_wasm_xthread_table)
+        g_hash_table_remove(ns_wasm_xthread_table, &id);
+    g_mutex_unlock(&ns_wasm_xthread_lock);
+}
+
+/* WebAssembly.Memory({shared: true}): needs a maximum, reserved now. */
+static JSValue
+ns_wasm_shared_memory_new(JSContext *ctx, uint32_t initial, uint32_t maximum,
+                          gboolean has_maximum)
+{
+    if (!has_maximum)
+        return JS_ThrowTypeError(ctx, "shared wasm memory needs a maximum");
+    if (maximum > NS_WASM_SHARED_MEMORY_MAX_PAGES)
+        return JS_ThrowRangeError(ctx, "wasm memory maximum is too large");
+    if ((guint64)initial * NS_WASM_PAGE_SIZE > NS_WASM_SHARED_MEMORY_MAX_BYTES)
+        return JS_ThrowRangeError(ctx, "wasm memory initial is too large");
+    if (!ns_wasm_runtime_ready())
+        return JS_ThrowInternalError(ctx, "wasm runtime init failed");
+    wasm_memory_inst_t shared = ns_wamr_shared_memory_new(initial, maximum);
+    if (!shared)
+        return JS_ThrowRangeError(ctx, "could not reserve shared wasm memory");
+    JSValue obj = JS_NewObjectClass(ctx, ns_wasm_memory_class_id);
+    if (JS_IsException(obj)) {
+        ns_wamr_shared_memory_release(shared);
+        return obj;
+    }
+    ns_wasm_memory *m = g_new0(ns_wasm_memory, 1);
+    m->ctx = ctx;
+    m->instance = JS_UNDEFINED;
+    m->buffer = JS_UNDEFINED;
+    m->max_pages = maximum;
+    m->shared = shared;
     JS_SetOpaque(obj, m);
     return obj;
 }

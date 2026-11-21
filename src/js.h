@@ -62,6 +62,10 @@ typedef struct {
     double dom_complete_ms;
     double load_event_start_ms;
     double load_event_end_ms;
+    /* The document response sent Cross-Origin-Opener-Policy: same-origin
+     * and Cross-Origin-Embedder-Policy: require-corp or credentialless
+     * from a secure context: SharedArrayBuffer is exposed. */
+    gboolean cross_origin_isolated;
 } ns_js_navigation_timing;
 
 typedef struct ns_response ns_response;

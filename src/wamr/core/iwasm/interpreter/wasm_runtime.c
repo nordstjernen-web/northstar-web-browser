@@ -272,6 +272,19 @@ memories_deinstantiate(WASMModuleInstance *module_inst,
     (void)module_inst;
 }
 
+#if WASM_ENABLE_SHARED_MEMORY != 0
+/* Northstar: a shared memory the host provides for the next instantiation
+   on this thread (a WebAssembly.Memory with shared: true, created on its
+   own and possibly imported by instances on several threads). */
+static os_thread_local_attribute WASMMemoryInstance *ns_wamr_provided_memory;
+
+void
+ns_wamr_provide_shared_memory(WASMMemoryInstance *memory)
+{
+    ns_wamr_provided_memory = memory;
+}
+#endif
+
 static WASMMemoryInstance *
 memory_instantiate(WASMModuleInstance *module_inst, WASMModuleInstance *parent,
                    WASMMemoryInstance *memory, uint32 memory_idx,
@@ -297,6 +310,18 @@ memory_instantiate(WASMModuleInstance *module_inst, WASMModuleInstance *parent,
         memory = parent->memories[memory_idx];
         shared_memory_inc_reference(memory);
         return memory;
+    }
+    if (is_shared_memory && memory_idx == 0 && ns_wamr_provided_memory) {
+        WASMMemoryInstance *provided = ns_wamr_provided_memory;
+        if (provided->num_bytes_per_page != num_bytes_per_page
+            || provided->cur_page_count < init_page_count
+            || provided->max_page_count > max_page_count) {
+            set_error_buf(error_buf, error_buf_size,
+                          "imported shared memory does not match the import");
+            return NULL;
+        }
+        shared_memory_inc_reference(provided);
+        return provided;
     }
 #else
     (void)parent;

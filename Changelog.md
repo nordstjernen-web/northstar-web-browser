@@ -16,8 +16,26 @@ Significant changes in each release:
   JavaScript as a `WebAssembly.Exception`, and one thrown by an imported
   JavaScript function, or passing through one, can be caught by the wasm
   caller. Traps are still not catchable, as the proposal specifies.
-* WAMR is built with shared memory and the atomic instructions, so a
-  module that declares a shared memory compiles.
+* WebAssembly threads, as Emscripten's pthreads use them. A document
+  served with `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp` (or `credentialless`)
+  from https or localhost is cross-origin isolated: `crossOriginIsolated`
+  is true and `SharedArrayBuffer` is defined. `new
+  WebAssembly.Memory({shared: true, maximum})` reserves its maximum once,
+  never moves, and its `buffer` is a `SharedArrayBuffer`; every instance
+  that imports it, on the page or in a worker, uses the same memory, and
+  the atomic instructions, `memory.atomic.wait32/64` and
+  `memory.atomic.notify` work across threads. A `WebAssembly.Module` and
+  a shared `WebAssembly.Memory` can be posted to a worker, and a
+  `SharedArrayBuffer` posted to one shares its memory instead of being
+  copied. Workers may block in `Atomics.wait`.
+* IndexedDB keeps `ArrayBuffer`s and typed arrays: a stored
+  `Uint8Array` came back as a plain object with numeric keys and no
+  `length`. A database and an origin may now hold up to 4 GiB, up from
+  256 MiB per database, so a game can cache its unpacked data.
+* A worker message may be up to 1 GiB (it was 16 MiB, too small for an
+  archive handed to an unpacking worker), and a worker has the same
+  JavaScript heap limit as its page instead of at most 512 MiB.
 * `--export=pdf:FILE` writes the page as a paginated PDF, replacing the
   `--dump=pdf:` that went with the old cairo writer, and without that
   writer's gaps: it runs headless, the page is laid out with print

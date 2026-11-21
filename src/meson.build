@@ -31,21 +31,13 @@ if qjs_tools_found
   )
 endif
 
-polyfills_h = custom_target(
-  'polyfills.h',
-  input: ['../scripts/embed-text.py', '../data/js/polyfills.js'],
-  output: 'polyfills.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-            'ns_js_polyfills_src'],
-)
-
-wpt_hook_h = custom_target(
-  'wpt_hook.h',
-  input: ['../scripts/embed-text.py', '../data/js/wpt-hook.js'],
-  output: 'wpt_hook.h',
-  command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-            'ns_wpt_hook_src'],
-)
+# Files compiled into the binary, each as a NUL-terminated
+# `static const char <symbol>[]` in its own generated header:
+# [header, file, symbol].
+ns_embeds = [
+  ['polyfills.h', files('../data/js/polyfills.js'), 'ns_js_polyfills_src'],
+  ['wpt_hook.h', files('../data/js/wpt-hook.js'), 'ns_wpt_hook_src'],
+]
 
 # The Google Safe Browsing API key, read from NS_SAFE_BROWSING_API_KEY at
 # build time into a generated header so it never sits in the tree or on a
@@ -68,28 +60,18 @@ if have_pdfjs
 endif
 pdf_viewer_headers = []
 foreach name, src : pdf_viewer_embedded
-  pdf_viewer_headers += custom_target(
-    name + '.h',
-    input: ['../scripts/embed-text.py', src],
-    output: name + '.h',
-    command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', 'ns_' + name],
-  )
+  ns_embeds += [[name + '.h', src, 'ns_' + name]]
 endforeach
 if have_pdfjs
   # Each standard font is embedded like any other file (with the trailing
-  # NUL embed-text.py adds, left out of the length), and pdfjs_fonts.h is a
-  # table over them, written at configure time.
+  # NUL left out of the length), and pdfjs_fonts.h is a table over them,
+  # written at configure time.
   pdfjs_font_includes = []
   pdfjs_font_rows = []
   foreach font : pdfjs_standard_fonts
     i = pdfjs_font_rows.length()
-    pdf_viewer_headers += custom_target(
-      'pdfjs_font_@0@.h'.format(i),
-      input: ['../scripts/embed-text.py', font],
-      output: 'pdfjs_font_@0@.h'.format(i),
-      command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@',
-                'ns_pdfjs_font_@0@'.format(i)],
-    )
+    ns_embeds += [['pdfjs_font_@0@.h'.format(i), [font],
+                   'ns_pdfjs_font_@0@'.format(i)]]
     pdfjs_font_includes += '#include "pdfjs_font_@0@.h"'.format(i)
     pdfjs_font_rows += ('    { "@0@", (const unsigned char *)ns_pdfjs_font_@1@,' +
                         ' sizeof ns_pdfjs_font_@1@ - 1 },').format(
@@ -104,6 +86,45 @@ if have_pdfjs
     configuration: pdfjs_fonts_conf,
   )
 endif
+
+# With a C23 #embed compiler (GCC 15, Clang 19 and later) each header is a
+# two-line #embed written at configure time: no generator runs, the compiler
+# reads the file itself and records it in the dependency file, so editing it
+# rebuilds only what includes it. Older compilers get the same array spelled
+# out byte by byte by scripts/embed-text.py at build time.
+ns_have_embed = cc.compiles('''
+static const char ns_embed_probe[] = {
+#embed "@0@" suffix(, 0) if_empty(0)
+};
+int ns_embed_probe_len(void);
+int ns_embed_probe_len(void) { return (int)sizeof ns_embed_probe; }
+'''.format((meson.project_source_root() / 'LICENSE').replace('\\', '/')),
+  args: ['-Werror'],
+  name: 'C23 #embed')
+ns_embedded_headers = []
+foreach e : ns_embeds
+  if ns_have_embed
+    # fs.parent() gives a File's directory relative to the source root
+    # (or absolute, for a -Dpdfjs_dir file); #embed needs an absolute path.
+    embed_path = (meson.project_source_root() / fs.parent(e[1][0]) /
+                  fs.name(e[1][0])).replace('\\', '/')
+    embed_conf = configuration_data()
+    embed_conf.set('SYMBOL', e[2])
+    embed_conf.set('PATH', embed_path)
+    ns_embedded_headers += configure_file(
+      input: 'embed.h.in',
+      output: e[0],
+      configuration: embed_conf,
+    )
+  else
+    ns_embedded_headers += custom_target(
+      e[0],
+      input: ['../scripts/embed-text.py', e[1]],
+      output: e[0],
+      command: [python, '@INPUT0@', '@INPUT1@', '@OUTPUT@', e[2]],
+    )
+  endif
+endforeach
 
 northstar_engine_sources = files(
   'anim.c',

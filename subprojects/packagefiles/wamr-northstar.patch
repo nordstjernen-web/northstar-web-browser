@@ -1075,3 +1075,20 @@
      os_thread_sys_destroy();
  }
  
+--- a/core/shared/platform/windows/platform_internal.h
++++ b/core/shared/platform/windows/platform_internal.h
+@@ -98,7 +98,14 @@
+ void
+ os_mem_decommit(void *ptr, size_t size);
+ 
++/* MinGW defines __declspec(x) as __attribute__((x)), and GCC and clang
++ * ignore an unknown "thread" attribute, so __declspec(thread) would leave
++ * every thread-local variable shared by all threads. */
++#if defined(__GNUC__)
++#define os_thread_local_attribute __thread
++#else
+ #define os_thread_local_attribute __declspec(thread)
++#endif
+ 
+ #define strncasecmp _strnicmp
+ #define strcasecmp _stricmp

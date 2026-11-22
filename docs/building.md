@@ -73,6 +73,32 @@ and H.264 decoders that stand in where GStreamer has no decoder,
 `libzstd-dev` for Brotli and zstd `Content-Encoding`. The build works
 without them.
 
+### Installing SDL3
+
+On distributions without SDL3 package available, such as Ubuntu 24 and
+Debian 12, it is possible to build without it and have no audio output;
+or, you can build it from source and install manually.
+
+- Go to the [SDL3 releases page](https://github.com/libsdl-org/SDL/releases), download and extract source code
+- Compile the libraries using CMake
+
+```sh
+cmake -S . -B build
+cmake --build build
+sudo cmake --install build --prefix /usr/local
+```
+
+- You might need [SDL3: Build Dependencies](https://wiki.libsdl.org/SDL3/README-linux#build-dependencies)
+- Make the built libraries known to the system
+
+```sh
+sudo ldconfig
+ldconfig -p
+```
+
+This updates the cache for dynamic linker `ld`, and prints the current list
+of known libraries. You should see `libSDL3.so` or similar.
+
 ## macOS dependencies
 
 With Homebrew:

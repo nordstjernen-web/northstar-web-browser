@@ -237,8 +237,9 @@ meson compile -C builddir
 ./builddir/src/gtk/northstar
 ```
 
-Ubuntu packages `libsdl3-dev` only from 26.04; on Ubuntu 24.04 leave it
-out, and the browser builds without audio output.
+Ubuntu packages `libsdl3-dev` only from 26.04, and Debian from version 13.
+If it is missing, the browser builds without audio output; or, follow the
+install steps described [here](docs/building.md#installing-sdl3).
 
 For macOS (Homebrew or MacPorts), other Linux distributions and Windows,
 see [docs/building.md](docs/building.md); for the Arch Linux package, see

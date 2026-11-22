@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Security: a blob: module script is copied into a NUL-terminated buffer
+  before it is compiled. The parser expects a terminating NUL after the
+  source, and the blob's bytes have none, so it could read one byte past
+  the end of the blob.
 * Security: Web Audio no longer reads past an AudioParam's automation
   array. The event count is a script-writable property, and a count of
   2^30 wrapped the bounds check to zero, so `cancelAndHoldAtTime` and the

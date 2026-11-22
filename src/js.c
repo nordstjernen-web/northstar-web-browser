@@ -60161,11 +60161,14 @@ ns_js_module_loader(JSContext *ctx, const char *module_name, void *opaque,
             return NULL;
         }
         gsize body_len = 0;
-        const char *body = g_bytes_get_data(blob, &body_len);
-        if (!body || body_len == 0 || body_len > NS_MAX_SCRIPT_BYTES) {
+        const char *data = g_bytes_get_data(blob, &body_len);
+        if (!data || body_len == 0 || body_len > NS_MAX_SCRIPT_BYTES) {
             JS_ThrowReferenceError(ctx, "invalid blob module: %s", module_name);
             return NULL;
         }
+        g_autofree char *body = g_malloc(body_len + 1);
+        memcpy(body, data, body_len);
+        body[body_len] = '\0';
         if (js) js->module_load_bytes += body_len;
         if (json_module) {
             JSModuleDef *m = ns_js_make_json_module(ctx, module_name,

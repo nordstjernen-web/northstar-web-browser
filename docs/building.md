@@ -207,6 +207,58 @@ options.
 `./scripts/dev.sh build` runs `meson setup` (only when needed) and
 `meson compile -C builddir` in one step.
 
+## Building with muon
+
+[muon](https://muon.build) is an implementation of meson written in C99.
+It builds the browser from the same build files, with the same options,
+and has a ninja implementation (samurai) built in, so neither meson nor
+ninja is needed. The other dependencies are the ones listed above;
+Python 3 is still needed for a build-time script. Building with muon is
+tested on Linux only.
+
+```sh
+muon setup builddir
+muon -C builddir samu
+./builddir/src/gtk/northstar
+```
+
+Options are given as with meson (`-Dwebgl=disabled`, `-Db_lto=false`);
+meson's `--werror` is `-Dwerror=true`. `muon -C builddir install` installs,
+and `-d <dir>` installs into a staging directory.
+
+muon needs its libcurl and libarchive support to fetch and unpack the
+pinned tarballs (WAMR, Wuffs and PDF.js). `muon version` lists both under
+"enabled features" when muon was built with them. The
+[muon CI job](../.github/workflows/muon.yml) builds muon 0.7.1 from
+source this way, then builds and smoke-tests the browser with it.
+
+Where muon 0.7.1 differs from meson:
+
+- muon applies a wrap's `diff_files` only when the wrap also has a
+  `patch_directory`. `subprojects/quickjs-ng.wrap` names one,
+  `packagefiles/quickjs-ng/`, for that reason. A quickjs-ng checkout
+  muon made before that lacks every quickjs-ng patch, and the link fails
+  on `JS_GetCallerRealmOrNull` and other functions the patches add;
+  `scripts/check-subprojects.sh` names the missing patches. Delete
+  `subprojects/quickjs-ng/` and set up again.
+- muon compiles the browser with `-fPIE` but links it without `-pie`, and
+  links a GCC LTO build with a bare `-flto`, which runs the link-time
+  partitions one at a time. The build files add `-pie` and `-flto=auto`
+  to the browser's link themselves, so it is PIE and links in parallel,
+  as with meson. quickjs-ng's `qjs` and `qjsc`, built for the polyfill
+  check, still link one partition at a time, and GCC warns "using serial
+  compilation" for each.
+- A muon built with its libpkgconf backend can miss every system library
+  on Debian and Ubuntu, because that backend does not search the
+  multiarch `pkg-config` directory: `muon setup` then reports GLib, GTK
+  and the rest as not found although `pkg-config` finds them. Configure
+  with `-Dmuon.pkgconfig=exec`, or build muon with `-Dlibpkgconf=disabled`.
+- `muon install` has no `--skip-subprojects`; muon's meson command-line
+  layer accepts the option and ignores it. A muon install therefore also
+  installs quickjs-ng's `qjs`, `qjsc`, static library, headers and
+  `pkg-config` file, which the distribution packages leave out. Delete
+  them from the staging directory, or package from a meson build.
+
 ## Updating a pinned dependency
 
 Editing the `revision =` line in a wrap is not enough on its own: meson

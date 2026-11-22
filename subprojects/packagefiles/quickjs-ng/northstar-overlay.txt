@@ -1,0 +1,10 @@
+This file is copied into the quickjs-ng checkout by `patch_directory` in
+subprojects/quickjs-ng.wrap. It has no other use.
+
+quickjs-ng ships its own meson.build, so the wrap needs no overlay; it
+names this directory only so that muon applies the wrap's `diff_files`.
+muon applies them only when a wrap also has a `patch_directory` or a
+`patch_filename`, and without one it builds quickjs-ng with none of the
+Northstar patches.
+
+The patches are the quickjs-ng-*.patch files in subprojects/packagefiles/.

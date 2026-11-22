@@ -172,6 +172,13 @@ Significant changes in each release:
   checks on the thread entry functions against a host stack overflow, and
   a loader crash on a failed constant expression. Its WASI, pthread and
   AOT fixes are for code this build leaves out.
+* Build: the browser builds with muon (https://muon.build), the C
+  implementation of meson, as well as with meson; a new CI job builds and
+  smoke-tests it with muon 0.7.1. muon skipped every quickjs-ng patch, so
+  the link failed: it applies a wrap's `diff_files` only alongside a
+  `patch_directory`, which `quickjs-ng.wrap` now names. The build adds
+  `-pie` and, for GCC LTO, `-flto=auto` to the browser's link itself,
+  since muon passes neither. docs/building.md, "Building with muon", covers it.
 * Dependencies: lexbor moves to master `adfd1f7` (still no release after
   v3.0.1), which frees the CSS tokenizer when `lxb_css_parser_init()`
   fails.

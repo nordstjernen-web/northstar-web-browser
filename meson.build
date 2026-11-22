@@ -112,6 +112,18 @@ if get_option('b_lto') and cc.get_id() == 'clang' and host_system == 'windows'
   endif
 endif
 
+# muon hands GCC a bare -flto, under which GCC runs the link-time
+# partitions of the browser one after another ("using serial compilation of
+# N LTRANS jobs"); meson compiles with -flto=auto, which runs them in
+# parallel. Naming it on the link line gives muon builds the parallel link
+# too.
+if get_option('b_lto') and cc.get_id() == 'gcc'
+  add_project_link_arguments(
+    cc.get_supported_link_arguments(['-flto=auto']),
+    language: 'c',
+  )
+endif
+
 ns_release_profile = get_option('b_lto') ? 'release (LTO + stripped + hardened)' : 'release (stripped + hardened)'
 message('northstar build profile: ' +
         (ns_is_release ? ns_release_profile

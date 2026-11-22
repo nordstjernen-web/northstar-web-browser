@@ -247,6 +247,11 @@ Visual Studio Code, see [docs/vscode.md](docs/vscode.md). The
 [documentation index](docs/README.md) lists the rest of the developer
 documentation.
 
+The same build files also build with [muon](https://muon.build), the C
+implementation of meson, in place of meson and ninja:
+`muon setup builddir` and `muon -C builddir samu`. See
+[docs/building.md](docs/building.md#building-with-muon).
+
 The development helper configures the default build directory when
 needed and runs the same compile command:
 

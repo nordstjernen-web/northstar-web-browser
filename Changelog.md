@@ -4,6 +4,12 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* CSS Typed OM: `CSSStyleValue` and its numeric, math, keyword, unparsed,
+  image, transform and color subclasses, the `CSS.px()`-style unit
+  factories, `element.attributeStyleMap`, `CSSStyleRule.styleMap` and
+  `element.computedStyleMap()`. The maps read and write through the
+  existing CSSOM; `computedStyleMap()` reports computed rather than
+  resolved values, without forcing a layout.
 * Security: a blob: module script is copied into a NUL-terminated buffer
   before it is compiled. The parser expects a terminating NUL after the
   source, and the blob's bytes have none, so it could read one byte past

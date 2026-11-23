@@ -6,6 +6,7 @@
 
 #include "js.h"
 #include "polyfills.h"
+#include "typed_om.h"
 
 #include <math.h>
 #include <string.h>
@@ -15796,6 +15797,7 @@ ns_computed_initial_value(const char *name)
 
 static char *
 ns_computed_lookup(JSContext *ctx, const ns_node *n, const char *name);
+static gboolean g_computed_unresolved;
 
 /* Serializes a four-side shorthand from computed longhands, collapsing equal sides. */
 static char *
@@ -16671,7 +16673,7 @@ ns_computed_lookup(JSContext *ctx, const ns_node *n, const char *name)
 
     ns_js *js = js_from_ctx(ctx);
     if (js) {
-        if (ns_computed_prop_needs_layout(name))
+        if (!g_computed_unresolved && ns_computed_prop_needs_layout(name))
             ns_js_flush_layout_from(js, "getComputedStyle");
         else ns_js_flush_style(js);
     }
@@ -17647,6 +17649,26 @@ ns_cssom_element_is_rendered(JSContext *ctx, JSValueConst v)
             return FALSE;
     }
     return p == js->current_doc;
+}
+
+/* __ndComputedValue(el, prop): the computed, not resolved, value for Typed OM. */
+static JSValue
+ns_window_computed_value(JSContext *ctx, JSValueConst this_val,
+                         int argc, JSValueConst *argv)
+{
+    (void)this_val;
+    if (argc < 2 || !ns_cssom_element_is_rendered(ctx, argv[0]))
+        return JS_NewString(ctx, "");
+    const ns_node *n = ns_unwrap_element(argv[0]);
+    const char *name = n ? JS_ToCString(ctx, argv[1]) : NULL;
+    if (!name) return JS_NewString(ctx, "");
+    g_computed_unresolved = TRUE;
+    char *val = ns_computed_lookup(ctx, n, name);
+    g_computed_unresolved = FALSE;
+    JS_FreeCString(ctx, name);
+    JSValue r = JS_NewString(ctx, val ? val : "");
+    g_free(val);
+    return r;
 }
 
 /* getComputedStyle(): read-only declaration wrapped in a camelCase Proxy. */
@@ -24951,6 +24973,8 @@ ns_worker_js_new(ns_worker_host *host)
     ns_zlib_install(js->rt, ctx, global);
     ns_js_eval(js, ns_js_polyfills_src,
                sizeof(ns_js_polyfills_src) - 1, "<worker-polyfills>");
+    ns_js_eval(js, ns_js_typed_om_src,
+               sizeof(ns_js_typed_om_src) - 1, "<typed-om>");
     {
         JSValue crypto = JS_NewObject(ctx);
         ns_bind_fn(ctx, crypto, "getRandomValues", ns_window_getRandomValues, 1);
@@ -53852,6 +53876,7 @@ ns_js_new(ns_js_log_cb log_cb, gpointer log_user_data,
     ns_bind_fn(ctx, global, "__ndMediaListSerialize", ns_window_nd_media_serialize,    1);
     ns_bind_fn(ctx, global, "__ndHostAdopt",         ns_window_nd_host_adopt,          2);
     ns_bind_fn(ctx, global, "getComputedStyle",      ns_window_getComputedStyle,       1);
+    ns_bind_fn(ctx, global, "__ndComputedValue",     ns_window_computed_value,         2);
     JS_DefinePropertyValueStr(ctx, global, "__ns_css_supported",
         JS_NewCFunction(ctx, ns_css_supported_property, "__ns_css_supported", 1),
         0);
@@ -58975,6 +59000,8 @@ ns_js_install_document(ns_js *js, ns_node *doc, const char *base_url,
 
     ns_js_eval(js, ns_js_polyfills_src,
                sizeof(ns_js_polyfills_src) - 1, "<polyfills>");
+    ns_js_eval(js, ns_js_typed_om_src,
+               sizeof(ns_js_typed_om_src) - 1, "<typed-om>");
     ns_drain_microtasks(js);
     {
         JSValue g = JS_GetGlobalObject(ctx);

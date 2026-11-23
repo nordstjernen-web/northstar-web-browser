@@ -4,6 +4,11 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Security: clicking a box that is the root of a 3D-transformed subtree
+  with its own background or border no longer overflows the renderer's
+  stack: the 3D hit test re-entered itself for the same box without end.
+  On Google Maps the Layers button crashed the renderer and reloaded the
+  tab instead of switching to satellite view.
 * Security: private browsing no longer writes anything to disk. Each
   private-mode process made a `northstar-private-XXXXXX` directory in the
   temporary directory holding the private session's cookie jars and a

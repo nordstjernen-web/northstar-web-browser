@@ -64,7 +64,6 @@ typedef struct {
 
 static GHashTable *g_cookie_partitions;
 static GMutex      g_cookie_partitions_lock;
-static char *g_private_root;
 static char *g_hsts_curl_path;
 static char *g_altsvc_path;
 
@@ -401,22 +400,6 @@ ns_rmrf(const char *path)
     g_rmdir(path);
 }
 
-/* Lazily creates the 0700 temp directory holding private-mode network state. */
-static const char *
-ns_net_private_root(void)
-{
-    if (g_private_root) return g_private_root;
-    g_private_root = g_dir_make_tmp("northstar-private-XXXXXX", NULL);
-    if (!g_private_root) {
-        char *base = g_strdup_printf("northstar-private-%u", g_random_int());
-        g_private_root = g_build_filename(g_get_tmp_dir(), base, NULL);
-        g_free(base);
-        g_mkdir_with_parents(g_private_root, 0700);
-    }
-    g_chmod(g_private_root, 0700);
-    return g_private_root;
-}
-
 static gboolean
 ns_net_is_private(void)
 {
@@ -424,8 +407,7 @@ ns_net_is_private(void)
     return cfg && cfg->private_mode;
 }
 
-/* Path of curl's HSTS file; in private mode a temp copy seeded from the real
- * one.  Under --ignore-certificate-errors it is a per-run copy in the data
+/* Path of curl's HSTS file; in private mode the real one, only read.  Under --ignore-certificate-errors it is a per-run copy in the data
  * directory, also seeded from the real one: curl records
  * Strict-Transport-Security from a connection whose certificate it did not
  * verify, and a home-lab server's header must not pin its host for good
@@ -434,24 +416,14 @@ static char *
 ns_net_hsts_curl_path(void)
 {
     if (g_hsts_curl_path) return g_hsts_curl_path;
-    gboolean priv = ns_net_is_private();
-    if (!priv && !g_atomic_int_get(&g_ignore_cert_errors))
+    if (ns_net_is_private() || !g_atomic_int_get(&g_ignore_cert_errors))
         return ns_net_data_path(&g_hsts_curl_path, "hsts-curl.txt");
     char *real_dir = g_build_filename(g_get_user_data_dir(), NS_APP_DIR_NAME,
                                       NULL);
-    if (priv) {
-        const char *root = ns_net_private_root();
-        if (!root) {
-            g_free(real_dir);
-            return NULL;
-        }
-        g_hsts_curl_path = g_build_filename(root, "hsts-curl.txt", NULL);
-    } else {
-        g_mkdir_with_parents(real_dir, 0700);
-        g_hsts_curl_path = g_build_filename(real_dir,
-                                            "hsts-curl-unverified-run.txt",
-                                            NULL);
-    }
+    g_mkdir_with_parents(real_dir, 0700);
+    g_hsts_curl_path = g_build_filename(real_dir,
+                                        "hsts-curl-unverified-run.txt",
+                                        NULL);
     char *real = g_build_filename(real_dir, "hsts-curl.txt", NULL);
     char *contents = NULL;
     gsize len = 0;
@@ -1299,6 +1271,70 @@ ns_url_is_valid_absolute(const char *url)
     return parts && parts->protocol && *parts->protocol;
 }
 
+typedef struct {
+    char     *host;
+    gboolean  subdomains;
+    char      expire[18];
+} ns_hsts_feed_item;
+
+typedef struct {
+    GPtrArray *entries;
+    guint      next;
+} ns_hsts_feed;
+
+static void
+ns_hsts_feed_item_free(gpointer p)
+{
+    ns_hsts_feed_item *item = p;
+    g_free(item->host);
+    g_free(item);
+}
+
+/* Copies the HSTS entries of curl's file, for a read-only private session. */
+static GPtrArray *
+ns_hsts_snapshot(const char *path)
+{
+    GPtrArray *out = g_ptr_array_new_with_free_func(ns_hsts_feed_item_free);
+    g_mutex_lock(&g_hsts_lock);
+    gint64 mtime = file_mtime_us(path);
+    if (!g_hsts_cache || mtime != g_hsts_cache_mtime_us) {
+        ns_hsts_cache_reload_locked(path);
+        g_hsts_cache_mtime_us = mtime;
+    }
+    GHashTableIter it;
+    gpointer host, value;
+    g_hash_table_iter_init(&it, g_hsts_cache);
+    while (g_hash_table_iter_next(&it, &host, &value)) {
+        const ns_hsts_entry *e = value;
+        g_autoptr(GDateTime) when = g_date_time_new_from_unix_utc(e->expires);
+        g_autofree char *stamp = when
+            ? g_date_time_format(when, "%Y%m%d %H:%M:%S") : NULL;
+        ns_hsts_feed_item *item = g_new0(ns_hsts_feed_item, 1);
+        item->host = g_strdup(host);
+        item->subdomains = e->subdomains;
+        g_strlcpy(item->expire, stamp ? stamp : "99991231 23:59:59",
+                  sizeof item->expire);
+        g_ptr_array_add(out, item);
+    }
+    g_mutex_unlock(&g_hsts_lock);
+    return out;
+}
+
+/* CURLOPT_HSTSREADFUNCTION: hands curl one snapshot entry per call. */
+static CURLSTScode
+ns_hsts_feed_cb(CURL *easy, struct curl_hstsentry *e, void *userp)
+{
+    (void)easy;
+    ns_hsts_feed *feed = userp;
+    if (!feed->entries || feed->next >= feed->entries->len) return CURLSTS_DONE;
+    const ns_hsts_feed_item *item = g_ptr_array_index(feed->entries, feed->next++);
+    if (strlen(item->host) >= e->namelen) return CURLSTS_OK;
+    g_strlcpy(e->name, item->host, e->namelen);
+    e->includeSubDomains = item->subdomains ? 1 : 0;
+    memcpy(e->expire, item->expire, sizeof e->expire);
+    return CURLSTS_OK;
+}
+
 /* TRUE if curl's HSTS store covers the host; reloads the cache when the file changes. */
 gboolean
 ns_net_hsts_should_upgrade(const char *host)
@@ -1404,20 +1440,14 @@ ns_net_header_is_nosniff(const char *value)
     return FALSE;
 }
 
-/* Lazily resolves and creates the cookie jar directory (temp dir in private mode). */
+/* Lazily resolves and creates the cookie jar directory; private mode has none. */
 static const char *
 ns_net_cookie_dir(void)
 {
     if (g_cookie_dir) return g_cookie_dir;
-    if (ns_net_is_private()) {
-        const char *root = ns_net_private_root();
-        g_cookie_dir = g_build_filename(root ? root : g_get_tmp_dir(),
-                                        "cookies", NULL);
-    } else {
-        const char *config = g_get_user_config_dir();
-        g_cookie_dir = g_build_filename(config, NS_APP_DIR_NAME, "cookies",
-                                        NULL);
-    }
+    if (ns_net_is_private()) return NULL;
+    g_cookie_dir = g_build_filename(g_get_user_config_dir(), NS_APP_DIR_NAME,
+                                    "cookies", NULL);
     g_mkdir_with_parents(g_cookie_dir, 0700);
     return g_cookie_dir;
 }
@@ -1509,6 +1539,11 @@ cookie_partition_free(gpointer data)
 static void
 cookie_partition_open_jar(ns_cookie_partition *p, const char *site)
 {
+    if (ns_net_is_private()) {
+        curl_easy_setopt(p->holder, CURLOPT_SHARE, p->share);
+        curl_easy_setopt(p->holder, CURLOPT_COOKIEFILE, "");
+        return;
+    }
     char *jar = ns_net_cookie_path_for_partition(site);
     char *legacy_js_jar = g_strdup_printf("%.*s.js.txt",
                                           (int)(strlen(jar) - 4), jar);
@@ -2228,11 +2263,6 @@ ns_net_shutdown(void)
     g_hsts_curl_path = NULL;
     g_free(g_altsvc_path);
     g_altsvc_path = NULL;
-    if (g_private_root) {
-        ns_rmrf(g_private_root);
-        g_free(g_private_root);
-        g_private_root = NULL;
-    }
     g_free(g_ca_bundle);
     g_ca_bundle = NULL;
     if (g_hsts_cache) {
@@ -5966,8 +5996,16 @@ ns_fetch_sync_hop(const char *url, const char *top_url, const char *method,
                      initial_https ? "https" :
                      (initial_ftp ? "ftp" : "http,https"));
 
+    g_autoptr(GPtrArray) hsts_entries = NULL;
+    ns_hsts_feed hsts_feed = { NULL, 0 };
     const char *hsts_curl = ns_net_hsts_curl_path();
-    if (hsts_curl) {
+    if (hsts_curl && ns_net_is_private()) {
+        hsts_entries = ns_hsts_snapshot(hsts_curl);
+        hsts_feed.entries = hsts_entries;
+        curl_easy_setopt(curl, CURLOPT_HSTS_CTRL, (long)CURLHSTS_ENABLE);
+        curl_easy_setopt(curl, CURLOPT_HSTSREADFUNCTION, ns_hsts_feed_cb);
+        curl_easy_setopt(curl, CURLOPT_HSTSREADDATA, &hsts_feed);
+    } else if (hsts_curl) {
         curl_easy_setopt(curl, CURLOPT_HSTS_CTRL, (long)CURLHSTS_ENABLE);
         curl_easy_setopt(curl, CURLOPT_HSTS, hsts_curl);
     }

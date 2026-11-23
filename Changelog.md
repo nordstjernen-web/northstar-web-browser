@@ -4,6 +4,9 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* WebGL: `getContext("webgl")` on a canvas that already has a WebGL 2
+  context returns `null`, as does `getContext("webgl2")` on a WebGL 1
+  canvas. Both returned the existing context of the other version.
 * Security: clicking a box that is the root of a 3D-transformed subtree
   with its own background or border no longer overflows the renderer's
   stack: the 3D hit test re-entered itself for the same box without end.

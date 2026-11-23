@@ -4,6 +4,13 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Security: private browsing no longer writes anything to disk. Each
+  private-mode process made a `northstar-private-XXXXXX` directory in the
+  temporary directory holding the private session's cookie jars and a
+  copy of the HSTS list, removed only on a clean exit, so killed renderers
+  left them behind; on Windows a process without `TEMP`/`TMP` put them in
+  the root of the drive. Private mode now keeps cookies in memory and
+  feeds curl the HSTS list read-only.
 * CSS validation is stricter where it was too lenient: a `calc()` that
   resolves to a plain number is no longer a valid length (`width: calc(0)`),
   border, outline and column-rule widths, `outline-offset`, `column-width`

@@ -37,6 +37,7 @@ endif
 ns_embeds = [
   ['polyfills.h', files('../data/js/polyfills.js'), 'ns_js_polyfills_src'],
   ['wpt_hook.h', files('../data/js/wpt-hook.js'), 'ns_wpt_hook_src'],
+  ['typed_om.h', files('../data/js/typed-om.js'), 'ns_js_typed_om_src'],
 ]
 
 # The Google Safe Browsing API key, read from NS_SAFE_BROWSING_API_KEY at

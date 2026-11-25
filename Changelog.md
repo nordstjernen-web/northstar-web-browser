@@ -4,6 +4,10 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Building with the original QuickJS engine (`-Djs_engine=quickjs`) works
+  again: posting a message to a worker serialized it with quickjs-ng's form
+  of `JS_WriteObject2()`, whose `JSSABTab` argument the original engine
+  does not have, so `src/js.c` failed to compile.
 * WebGL: `getContext("webgl")` on a canvas that already has a WebGL 2
   context returns `null`, as does `getContext("webgl2")` on a WebGL 1
   canvas. Both returned the existing context of the other version.

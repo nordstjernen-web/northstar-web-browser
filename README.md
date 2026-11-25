@@ -75,7 +75,9 @@ off in Settings (see [docs/webgl.md](docs/webgl.md)). PDFs open in a viewer buil
 run as ordinary page script under a sandboxing policy that gives it an
 opaque origin, so it cannot read the hosting site's cookies or storage. It does not send telemetry
 or update pings; the only service it contacts on its own is Google Safe
-Browsing (see below).
+Browsing, and only in a build made with a Safe Browsing API key (see
+below). A build from source has no key, so it contacts no service on its
+own.
 
 Audio and video still play in-process (MP3, MP2, AAC, Ogg Opus/Vorbis;
 MPEG-1, and AV1, VP9 and H.264 when their decoders are present — on Linux
@@ -115,6 +117,13 @@ through libavif when available, and SVG in the engine).
   scripts, `storage.local` kept apart per extension, `i18n`,
   declarativeNetRequest rule sets, and packaged resources that pages can
   load only when the extension lists them in `web_accessible_resources`.
+  Background pages and service workers, messaging, `tabs`, `webRequest`
+  and toolbar popups are not implemented, so add-ons that need them —
+  NoScript and the full uBlock Origin among them — do not run. To install
+  an extension, unpack it into its own folder under
+  `~/.local/share/northstar-extensions/` (an `.xpi` file is a zip archive:
+  `unzip addon.xpi -d ~/.local/share/northstar-extensions/addon`), or set
+  `NS_EXTENSIONS_DIR`; it loads at the next start.
 - **Networking** over HTTP/2 with libcurl — HTTP/3 through Alt-Svc when
   the linked libcurl provides it — HTTPS-first navigation, HSTS,
   optional DNS-over-HTTPS, CSP, subresource-integrity (SRI) checks for
@@ -124,19 +133,23 @@ through libavif when available, and SVG in the engine).
   site, such as a home lab server, after a warning, while every other
   host keeps full certificate checks.
 - **Safe browsing** — every top-level navigation and redirect is checked
-  against [Google Safe Browsing](https://safebrowsing.google.com/) (v5,
-  local-list mode) and a local SHA-256 host blocklist, and a match shows a
-  warning page naming the threat. Google's phishing, malware and
-  unwanted-software hash-prefix lists are kept on the device and updated
-  in the background; only a 4-byte hash prefix is sent to Google, and only
-  when an address matches one, never the address itself. On by default;
-  turn it off under Settings → Privacy → "Block dangerous sites".
-  about:northstar shows its status and list sizes. Builds without a key
-  (`NS_SAFE_BROWSING_API_KEY` at compile time) use only the local lists:
-  the bundled `safebrowsing.list`, plus
-  `~/.config/northstar/safebrowsing.list` or the file named by
-  `NS_SAFEBROWSING_LIST`.
-  Google Safe Browsing is offered for non-commercial use; see Google's
+  against a local SHA-256 host blocklist and, in a build made with a
+  Google API key, against
+  [Google Safe Browsing](https://safebrowsing.google.com/) (v5,
+  local-list mode); a match shows a warning page naming the threat.
+  Google's phishing, malware and unwanted-software hash-prefix lists are
+  kept on the device and updated in the background; only a 4-byte hash
+  prefix is sent to Google, and only when an address matches one, never
+  the address itself. On by default; turn it off under Settings → Privacy
+  → "Block dangerous sites". about:northstar shows its status and list
+  sizes. The key comes from `NS_SAFE_BROWSING_API_KEY` at compile time (or
+  at run time). This repository's CI release builds have one, the
+  AppImage excepted. A build from source — your own, the npm package or a
+  distribution's package — has none unless one is supplied, and never
+  contacts Google: it uses only the local lists, which are the bundled
+  `safebrowsing.list`, plus `~/.config/northstar/safebrowsing.list` or the
+  file named by `NS_SAFEBROWSING_LIST`.
+  Google offers Safe Browsing for non-commercial use; see Google's
   [terms](https://developers.google.com/safe-browsing/terms).
 - **Media** — images (PNG/APNG, GIF, BMP, JPEG, WebP, optional AVIF,
   SVG); audio (`<audio>`) decodes and plays in the browser process,
@@ -201,7 +214,9 @@ through libavif when available, and SVG in the engine).
   `--no-watchdog` turns it off.
 - **UI** — bookmarks, history, downloads, find-in-page, zoom, full
   screen, printing, save page (`Ctrl+S`), save as image, page
-  source, developer tools with a JS console, settings, private
+  source, developer tools with Console, Network, Performance, Layout and
+  Elements tabs (`F12`, `Ctrl+Shift+I` or `Ctrl+Shift+J`; `Ctrl+Shift+E`
+  opens them on Network and `Ctrl+Shift+K` on Console), settings, private
   browsing (`--private`), and a UI available in 40 languages that
   follows the operating-system language.
 - **Headless mode** — text, DOM, layout and PNG dumps, scripted
@@ -360,8 +375,9 @@ option set to `enabled` makes it required, and `disabled` leaves it out:
 Northstar Web Browser is free software, licensed under the **GNU General Public
 License, version 3 or later** — see [LICENSE](LICENSE). Bundled and
 linked third-party components keep their own licences (web-text-lib is
-LGPL 2.1+; lexbor and Wuffs are Apache 2.0; WAMR is Apache 2.0 with LLVM
-exceptions; quickjs-ng, QuickJS and pl_mpeg are MIT; minimp3 is CC0); see
+LGPL 2.1+; lexbor and Wuffs are Apache 2.0; WAMR, from the Bytecode
+Alliance, is Apache 2.0 with the LLVM exception, which only adds
+permissions; quickjs-ng, QuickJS and pl_mpeg are MIT; minimp3 is CC0); see
 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 Project home: <https://nordstjernen.org/northstar-browser/> · Copyright 2026 Andreas Røsdal.

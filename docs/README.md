@@ -55,7 +55,7 @@ root [README](../README.md).
 This is the minimalist GPL desktop edition. It is single-process (the
 engine runs in the shell process, on its own thread), targets Linux
 (primary), macOS and Windows, and deliberately omits tabs, renderer
-processes, WebGPU, the PDF viewer, local-AI features, and the
-embeddable-library API. `<video>` decodes in the browser process: MPEG-1
+processes, WebGPU, local-AI features, and the embeddable-library API.
+PDFs open in a viewer built on PDF.js (`-Dpdfjs`). `<video>` decodes in the browser process: MPEG-1
 in-tree, and AV1, VP9 and H.264 when their decoders are present. See
 [../README.md](../README.md) for the project scope.

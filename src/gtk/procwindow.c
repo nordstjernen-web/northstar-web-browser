@@ -1653,6 +1653,26 @@ act_console(GSimpleAction *a, GVariant *p, gpointer ud)
         ns_proc_view_toggle_console(v);
 }
 
+static void
+act_devtools_network(GSimpleAction *a, GVariant *p, gpointer ud)
+{
+    (void)a;
+    (void)p;
+    NsProcView *v = current_view(ud);
+    if (v)
+        ns_proc_view_show_devtools_tab(v, NS_DEVTOOLS_NETWORK);
+}
+
+static void
+act_devtools_console(GSimpleAction *a, GVariant *p, gpointer ud)
+{
+    (void)a;
+    (void)p;
+    NsProcView *v = current_view(ud);
+    if (v)
+        ns_proc_view_show_devtools_tab(v, NS_DEVTOOLS_CONSOLE);
+}
+
 /* Adds or removes the current page as a bookmark; returns FALSE if there is no page URL. */
 static gboolean
 toggle_bookmark_current(ProcWindow *pw)
@@ -1835,7 +1855,12 @@ install_shortcuts(ProcWindow *pw)
     install_action(pw, "find", G_CALLBACK(act_find),
                    (const char *[]){ "<Ctrl>f", NULL });
     install_action(pw, "console", G_CALLBACK(act_console),
-                   (const char *[]){ "<Ctrl><Shift>j", "F12", NULL });
+                   (const char *[]){ "<Ctrl><Shift>i", "<Ctrl><Shift>j",
+                                     "F12", NULL });
+    install_action(pw, "devtools-network", G_CALLBACK(act_devtools_network),
+                   (const char *[]){ "<Ctrl><Shift>e", NULL });
+    install_action(pw, "devtools-console", G_CALLBACK(act_devtools_console),
+                   (const char *[]){ "<Ctrl><Shift>k", NULL });
     install_action(pw, "view-source", G_CALLBACK(act_view_source),
                    (const char *[]){ "<Ctrl>u", NULL });
     install_action(pw, "bookmark-page", G_CALLBACK(act_bookmark_page),
@@ -1946,8 +1971,10 @@ build_app_menu_model(void)
     GMenu *tools = g_menu_new();
     menu_append_accel(tools, ns_i18n("Page Source"), "win.view-source",
                       "<Ctrl>u");
-    menu_append_accel(tools, ns_i18n("JavaScript Console"), "win.console",
-                      "<Ctrl><Shift>j");
+    menu_append_accel(tools, ns_i18n("Developer Tools"), "win.console",
+                      "<Ctrl><Shift>i");
+    menu_append_accel(tools, ns_i18n("Network"), "win.devtools-network",
+                      "<Ctrl><Shift>e");
     menu_append_accel(tools, ns_i18n("Settings"), "win.settings",
                       "<Ctrl>comma");
     menu_append_section(menu, tools);

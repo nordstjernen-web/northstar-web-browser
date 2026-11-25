@@ -4,6 +4,18 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Developer tools: `Ctrl+Shift+I` toggles them, as `F12` and
+  `Ctrl+Shift+J` do; `Ctrl+Shift+E` opens them on the Network tab and
+  `Ctrl+Shift+K` on the Console, and pressing a tab's key again while that
+  tab shows closes them. The same keys work with the developer tools window
+  focused, where no shortcut worked before. The Tools menu item is now
+  "Developer Tools", next to a new "Network" item.
+* README: Safe Browsing contacts Google only in a build made with an API
+  key, so a build from source contacts no service on its own; the
+  WebExtensions APIs that are missing (background pages, messaging, `tabs`,
+  `webRequest`, toolbar popups) are listed, with how to install an
+  extension; WAMR's licence exception is described as the added permission
+  it is.
 * Building with the original QuickJS engine (`-Djs_engine=quickjs`) works
   again: posting a message to a worker serialized it with quickjs-ng's form
   of `JS_WriteObject2()`, whose `JSSABTab` argument the original engine

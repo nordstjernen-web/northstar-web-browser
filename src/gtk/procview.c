@@ -60,11 +60,11 @@ typedef enum {
 typedef enum { ACT_HOVER, ACT_NAVIGATE, ACT_CONTEXT } LinkAct;
 
 enum {
-    DEV_TAB_CONSOLE = 0,
-    DEV_TAB_NETWORK,
-    DEV_TAB_PERFORMANCE,
-    DEV_TAB_LAYOUT,
-    DEV_TAB_ELEMENTS
+    DEV_TAB_CONSOLE     = NS_DEVTOOLS_CONSOLE,
+    DEV_TAB_NETWORK     = NS_DEVTOOLS_NETWORK,
+    DEV_TAB_PERFORMANCE = NS_DEVTOOLS_PERFORMANCE,
+    DEV_TAB_LAYOUT      = NS_DEVTOOLS_LAYOUT,
+    DEV_TAB_ELEMENTS    = NS_DEVTOOLS_ELEMENTS
 };
 
 typedef struct {
@@ -3198,10 +3198,25 @@ on_key(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
         console_set_open(v, !v->console_open);
         return TRUE;
     }
-    if ((state & GDK_CONTROL_MASK) && (state & GDK_SHIFT_MASK) &&
-        (keyval == GDK_KEY_j || keyval == GDK_KEY_J)) {
-        console_set_open(v, !v->console_open);
-        return TRUE;
+    if ((state & GDK_CONTROL_MASK) && (state & GDK_SHIFT_MASK)) {
+        switch (keyval) {
+        case GDK_KEY_j:
+        case GDK_KEY_J:
+        case GDK_KEY_i:
+        case GDK_KEY_I:
+            console_set_open(v, !v->console_open);
+            return TRUE;
+        case GDK_KEY_e:
+        case GDK_KEY_E:
+            ns_proc_view_show_devtools_tab(v, NS_DEVTOOLS_NETWORK);
+            return TRUE;
+        case GDK_KEY_k:
+        case GDK_KEY_K:
+            ns_proc_view_show_devtools_tab(v, NS_DEVTOOLS_CONSOLE);
+            return TRUE;
+        default:
+            break;
+        }
     }
     gunichar uc = gdk_keyval_to_unicode(keyval);
     if (uc && !g_unichar_iscntrl(uc) &&
@@ -3413,6 +3428,7 @@ on_console_eval(GtkEntry *entry, gpointer data)
 }
 
 static void build_console_window(NsProcView *v);
+static int  console_current_tab(NsProcView *v);
 
 /* Shows or hides the devtools window, starting or stopping the console poll timer. */
 static void
@@ -3431,7 +3447,12 @@ console_set_open(NsProcView *v, gboolean open)
         gtk_window_present(GTK_WINDOW(v->console_window));
         if (!v->console_poll_id)
             v->console_poll_id = g_timeout_add(NS_PROC_CONSOLE_POLL_MS, console_poll_cb, v);
-        gtk_widget_grab_focus(v->console_entry);
+        /* The entry only takes focus where it is shown, so focus cannot
+         * pull the notebook back to the Console tab. */
+        if (console_current_tab(v) == DEV_TAB_CONSOLE)
+            gtk_widget_grab_focus(v->console_entry);
+        else
+            gtk_widget_grab_focus(v->console_notebook);
     } else {
         gtk_widget_set_visible(v->console_window, FALSE);
         if (v->console_poll_id) {
@@ -3470,6 +3491,29 @@ console_current_tab(NsProcView *v)
     if (!v->console_notebook)
         return DEV_TAB_CONSOLE;
     return gtk_notebook_get_current_page(GTK_NOTEBOOK(v->console_notebook));
+}
+
+/* Opens the developer tools on one tab, or closes them when that tab is
+ * already showing, as a browser's per-tool shortcut does. */
+void
+ns_proc_view_show_devtools_tab(NsProcView *v, NsDevtoolsTab tab)
+{
+    if (!v || !v->opened)
+        return;
+    if (v->console_open && console_current_tab(v) == (int)tab) {
+        console_set_open(v, FALSE);
+        return;
+    }
+    if (!v->console_window)
+        build_console_window(v);
+    if (!v->console_notebook)
+        return;
+    gboolean switched = console_current_tab(v) != (int)tab;
+    /* Switching pages requests the new tab's dump through "switch-page". */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(v->console_notebook), (int)tab);
+    if (!switched)
+        console_request_dump(v, (int)tab);
+    console_set_open(v, TRUE);
 }
 
 /* Clears the text buffer of the currently selected devtools tab. */
@@ -3539,6 +3583,59 @@ on_console_close_request(GtkWindow *win, gpointer data)
     (void)win;
     console_set_open(data, FALSE);
     return TRUE;
+}
+
+/* Developer tools window shortcuts: the keys that toggle the tools from the
+ * browser window close them from here, and the per-tool keys switch tabs. */
+static gboolean
+on_devtools_key_close(GtkWidget *w, GVariant *args, gpointer data)
+{
+    (void)w;
+    (void)args;
+    console_set_open(data, FALSE);
+    return TRUE;
+}
+
+static gboolean
+on_devtools_key_network(GtkWidget *w, GVariant *args, gpointer data)
+{
+    (void)w;
+    (void)args;
+    ns_proc_view_show_devtools_tab(data, NS_DEVTOOLS_NETWORK);
+    return TRUE;
+}
+
+static gboolean
+on_devtools_key_console(GtkWidget *w, GVariant *args, gpointer data)
+{
+    (void)w;
+    (void)args;
+    ns_proc_view_show_devtools_tab(data, NS_DEVTOOLS_CONSOLE);
+    return TRUE;
+}
+
+static void
+devtools_add_shortcut(GtkShortcutController *sc, const char *trigger,
+                      GtkShortcutFunc cb, NsProcView *v)
+{
+    gtk_shortcut_controller_add_shortcut(sc,
+        gtk_shortcut_new(gtk_shortcut_trigger_parse_string(trigger),
+                         gtk_callback_action_new(cb, v, NULL)));
+}
+
+/* Captures before the focused entry or text view sees the key. */
+static void
+devtools_install_shortcuts(NsProcView *v)
+{
+    GtkEventController *ctl = gtk_shortcut_controller_new();
+    GtkShortcutController *sc = GTK_SHORTCUT_CONTROLLER(ctl);
+    gtk_event_controller_set_propagation_phase(ctl, GTK_PHASE_CAPTURE);
+    devtools_add_shortcut(sc, "F12", on_devtools_key_close, v);
+    devtools_add_shortcut(sc, "<Control><Shift>i", on_devtools_key_close, v);
+    devtools_add_shortcut(sc, "<Control><Shift>j", on_devtools_key_close, v);
+    devtools_add_shortcut(sc, "<Control><Shift>e", on_devtools_key_network, v);
+    devtools_add_shortcut(sc, "<Control><Shift>k", on_devtools_key_console, v);
+    gtk_widget_add_controller(v->console_window, ctl);
 }
 
 /* Creates a read-only monospace text view in a scroller; returns the scroller. */
@@ -3640,6 +3737,7 @@ build_console_window(NsProcView *v)
     gtk_window_set_child(GTK_WINDOW(v->console_window), box);
     g_signal_connect(v->console_window, "close-request",
                      G_CALLBACK(on_console_close_request), v);
+    devtools_install_shortcuts(v);
 }
 
 /* Builds the find-in-page bar as a top-right overlay revealer. */

@@ -44,6 +44,17 @@ void ns_proc_view_reload(NsProcView *view);
 void ns_proc_view_stop(NsProcView *view);
 void ns_proc_view_toggle_console(NsProcView *view);
 
+/* The developer tools tabs, in notebook order. */
+typedef enum {
+    NS_DEVTOOLS_CONSOLE = 0,
+    NS_DEVTOOLS_NETWORK,
+    NS_DEVTOOLS_PERFORMANCE,
+    NS_DEVTOOLS_LAYOUT,
+    NS_DEVTOOLS_ELEMENTS
+} NsDevtoolsTab;
+
+void ns_proc_view_show_devtools_tab(NsProcView *view, NsDevtoolsTab tab);
+
 gboolean    ns_proc_view_can_back(NsProcView *view);
 gboolean    ns_proc_view_can_forward(NsProcView *view);
 const char *ns_proc_view_url(NsProcView *view);

@@ -119,6 +119,34 @@ JS_GetPropertyInt64(JSContext *ctx, JSValueConst obj, int64_t idx)
     return val;
 }
 
+/* quickjs-ng's table of the SharedArrayBuffer data blocks a serialization
+ * referenced; the original engine returns the array and its length through
+ * two separate out parameters. */
+typedef struct JSSABTab {
+    uint8_t **tab;
+    size_t len;
+} JSSABTab;
+
+/* quickjs-ng's JS_WriteObject2(), over the original engine's form. */
+static inline uint8_t *
+ns_quickjs_write_object2(JSContext *ctx, size_t *psize, JSValueConst obj,
+                         int flags, JSSABTab *psab_tab)
+{
+    uint8_t **tab = NULL;
+    size_t len = 0;
+    uint8_t *bytes = (JS_WriteObject2)(ctx, psize, obj, flags, &tab, &len);
+    if (psab_tab) {
+        psab_tab->tab = tab;
+        psab_tab->len = len;
+    } else {
+        js_free(ctx, tab);
+    }
+    return bytes;
+}
+
+#define JS_WriteObject2(ctx, psize, obj, flags, psab_tab) \
+    ns_quickjs_write_object2((ctx), (psize), (obj), (flags), (psab_tab))
+
 #define JS_NewArrayBuffer(ctx, buf, len, max_len, realloc_func, opaque, is_shared) \
     ns_quickjs_new_array_buffer((ctx), (buf), (len), (max_len), (realloc_func), \
                                 (opaque), (is_shared))

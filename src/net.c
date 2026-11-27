@@ -4729,7 +4729,7 @@ static const char k_about_northstar_template[] =
     "<a href=\"about:third-party\">{{Third-party software notices}}"
     " \xe2\x86\x92</a></p>"
     "</header>"
-    "<details class=\"diag\" id=\"diag\">"
+    "<details class=\"diag\" id=\"diag\" open>"
     "<summary>{{Technical details}}"
     "<button type=\"button\" id=\"copy\">{{Copy}}</button></summary>"
     "__ND_DIAG__"

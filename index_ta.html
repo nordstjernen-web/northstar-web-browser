@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nordstjernen வலை உலாவி - சிறியது, நிலையானது, சுயாதீனமானது. C இல் எழுதப்பட்டது.</title>
-<meta name="description" content="Nordstjernen என்பது C இல் புதிதாக எழுதப்பட்ட ஒரு வலை உலாவி. HTML மற்றும் CSS தரநிலைகளை ஆதரிப்பதில் கவனம் செலுத்துகிறது. Windows, Mac மற்றும் Linux, Android மற்றும் Java இல் இயங்குகிறது.">
+<meta name="description" content="Nordstjernen என்பது 2026 இல் தொடங்கப்பட்ட, C இல் எழுதப்பட்ட ஒரு சுயாதீன வலை உலாவி. HTML மற்றும் CSS தரநிலைகளை ஆதரிப்பதில் கவனம் செலுத்துகிறது. Windows, Mac மற்றும் Linux, Android மற்றும் Java இல் இயங்குகிறது.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_ta.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -33,10 +33,10 @@
 <meta property="og:site_name" content="Nordstjernen">
 <meta property="og:locale" content="ta">
 <meta property="og:title" content="Nordstjernen வலை உலாவி">
-<meta property="og:description" content="C இல் புதிதாக எழுதப்பட்ட ஒரு வலை உலாவி.">
+<meta property="og:description" content="2026 இல் தொடங்கப்பட்ட, C இல் எழுதப்பட்ட ஒரு சுயாதீன வலை உலாவி.">
 <meta property="og:url" content="https://www.nordstjernen.org/index_ta.html">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
-<meta property="og:image:alt" content="Northstar 1.0.23 இல் ஒரு YouTube வீடியோ இயங்குகிறது">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-51.png">
+<meta property="og:image:alt" content="செயற்கைக்கோள் காட்சியில் Google Maps ஐக் காட்டும் Nordstjernen 1.0.51">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -46,9 +46,9 @@
   "name": "Nordstjernen",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
-  "softwareVersion": "1.0.47",
+  "softwareVersion": "1.0.51",
   "url": "https://www.nordstjernen.org/",
-  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51",
   "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -84,6 +84,7 @@
       <a href="specs.html">விவரக்குறிப்புகள்</a>
       <a href="northstar-browser/">Northstar</a>
       <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
+      <a href="#weststar">Weststar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">வெளியீடுகள்</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
@@ -92,69 +93,72 @@
   <main class="content">
 
         <h1 id="about" style="color:#003366;">Nordstjernen வலை உலாவி</h1>
-        <p class="lead">Nordstjernen என்பது C இல் புதிதாக எழுதப்பட்ட ஒரு வலை உலாவி; இது HTML மற்றும் CSS தரநிலைகளை ஆதரிப்பதில் கவனம் செலுத்துகிறது. இது Windows, macOS மற்றும் Linux இல் இயங்குகிறது; Android, FreeBSD, NetBSD மற்றும் JVM க்கான பதிப்புகளும் உள்ளன. Nordstjernen நார்வேயில் உருவாக்கப்படுகிறது.</p>
+        <p class="lead">Nordstjernen என்பது 2026 இல் தொடங்கப்பட்ட, C இல் எழுதப்பட்ட ஒரு சுயாதீன வலை உலாவி; இது HTML மற்றும் CSS தரநிலைகளை ஆதரிப்பதில் கவனம் செலுத்துகிறது. இது Windows, macOS மற்றும் Linux இல் இயங்குகிறது; Android, FreeBSD, NetBSD மற்றும் JVM க்கான பதிப்புகளும் உள்ளன. Nordstjernen நார்வேயில் உருவாக்கப்படுகிறது.</p>
 
 
         <figure class="shot">
-          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 இல் ஒரு YouTube வீடியோ இயங்குகிறது, அருகில் பரிந்துரைக்கப்பட்ட வீடியோக்கள், மேலே பெயரிடப்பட்ட பொத்தான்கள் கொண்ட பாரம்பரிய கருவிப்பட்டை"></a>
-          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 இல் ஒரு YouTube வீடியோ இயங்குகிறது &mdash; ஒரு சாளரம், ஒரு பக்கம், பெயரிடப்பட்ட பொத்தான்கள் கொண்ட பாரம்பரிய கருவிப்பட்டை. <a href="screenshots.html">மேலும் திரைப்பிடிப்புகள் &raquo;</a></figcaption>
+          <a href="screenshots/screenshot-1-0-51.png"><img src="screenshots/screenshot-1-0-51.png" width="1240" height="870" alt="செயற்கைக்கோள் காட்சியில் Google Maps ஐக் காட்டும் Nordstjernen 1.0.51"></a>
+          <figcaption class="cap">செயற்கைக்கோள் காட்சியில் Google Maps ஐக் காட்டும் Nordstjernen 1.0.51. <a href="screenshots.html">மேலும் திரைப்பிடிப்புகள் &raquo;</a></figcaption>
         </figure>
 
-        <p class="release-line">Nordstjernen <b>1.0.47</b> வெளியிடப்பட்டது &mdash; பாதுகாப்பான Rust இல் அதன் சொந்த HTML5 பாகுபடுத்தி, heap-வலுப்படுத்தப்பட்ட QuickJS, ஒரு PDF.js பார்வையாளர் மற்றும் SVG SMIL அசைவூட்டம். <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
-        <p class="release-line">Northstar <b>1.0.23</b> வெளியிடப்பட்டது &mdash; SVG SMIL அசைவூட்டம், Windows திரை அளவீடு மற்றும் பாதுகாப்புத் திருத்தங்கள். <a href="northstar-browser/">Northstar பற்றி</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
-        <p class="release-line">Southstar <b>1.0.9</b> வெளியிடப்பட்டது &mdash; முழுமையான Java ஷெல், SVG SMIL அசைவூட்டம் மற்றும் ஒரு பாதுகாப்புத் தணிக்கையில் கண்டறியப்பட்ட ஒவ்வொரு குறைபாட்டுக்குமான திருத்தங்கள். <a href="#southstar">Southstar பற்றி</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
+        <p class="release-line">Nordstjernen <b>1.0.51</b> வெளியிடப்பட்டது &mdash; CSS Typed OM, பகிரப்பட்ட நினைவகத்துடன் WebAssembly இழைகள் (threads), இணைப்புகளுடன் PDF ஏற்றுமதி, மற்றும் ஒரு AppImage. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.26</b> வெளியிடப்பட்டது &mdash; WebGL 1 மற்றும் 2, வேலை செய்யும் Gmail, பாதுகாப்புத் திருத்தங்கள் மற்றும் ஒரு AppImage. <a href="northstar-browser/">Northstar பற்றி</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.11</b> வெளியிடப்பட்டது &mdash; ஸ்ட்ரீமிங் HTML பாகுபடுத்தி, சிறிய DOM மற்றும் நிகழ்நேர Web Audio. <a href="#southstar">Southstar பற்றி</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">வெளியீட்டுக் குறிப்புகள் &raquo;</a></p>
 
         <div class="features">
         <p class="feature"><b>HTML தரநிலை.</b> நடத்தை மற்றொரு உலாவியுடன் அல்ல, பிரிவு வாரியாகத் தரநிலை உரையுடன் ஒப்பிட்டு அளவிடப்படுகிறது: WHATWG HTML தரநிலையின் 141 வரிசைகள் முழுமையாகச் செயல்படுத்தப்பட்டுள்ளன, 31 பகுதியளவில், விடுபட்டவை எதுவுமில்லை. இது <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> இன் <code>html/</code>, <code>dom/</code> மற்றும் <code>url/</code> துணைச் சோதனைகளில் <b>91.5%</b> மற்றும் <code>css/</code> இல் 73.2% தேர்ச்சி பெறுகிறது (அக்டோபர் 2026) &mdash; காண்க <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
         <p class="feature"><b>பாதுகாப்பானது.</b> ஒவ்வொரு தாவலும் அதன் சொந்த சாண்ட்பாக்ஸ் செய்யப்பட்ட ரெண்டரர் செயல்முறையில் இயங்குகிறது &mdash; Linux இல் seccomp + Landlock, macOS இல் ஒரு Seatbelt சுயவிவரம், Windows இல் செயல்முறை தணிப்புக் கொள்கைகள். JavaScript, WebAssembly என எந்த இயந்திரத்திலும் JIT இல்லை.</p>
-        <p class="feature"><b>குறைந்தபட்சவாதம்.</b> மைய இயந்திரம் திட்டத்தின் சொந்த C குறியீடு மற்றும் தலைப்புக் கோப்புகளின் சுமார் 268,000 வரிகளைக் கொண்டது, சேர்க்கப்பட்ட வெளி நூலகங்களையும் உருவாக்கப்பட்ட கோப்புகளையும் தவிர்த்து &mdash; ஒரு நபர் தொடக்கம் முதல் முடிவு வரை படித்துத் தணிக்கை செய்யும் அளவுக்குச் சிறியது.</p>
-        <p class="feature"><b>திறன் வாய்ந்தது.</b> பாதுகாப்பான Rust இல் அதன் சொந்த HTML5 பாகுபடுத்தி, heap-வலுப்படுத்தப்பட்ட QuickJS, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 மற்றும் WebGPU, Service Workers மற்றும் Streams. பக்கத்துக்குள்ளேயே <code>&lt;video&gt;</code> &mdash; MPEG-1, WebM, மற்றும் இயக்க முறைமையின் டிகோடர்கள் வழியாக MP4 &mdash; HLS, DASH மற்றும் வசனங்களுடன், கூடவே SMIL அசைவூட்டத்துடன் SVG, MathML மற்றும் ஒரு PDF.js பார்வையாளர்.</p>
+        <p class="feature"><b>குறைந்தபட்சவாதம்.</b> உலாவி திட்டத்தின் சொந்த C குறியீடு மற்றும் தலைப்புக் கோப்புகளின் சுமார் 296,000 வரிகளைக் கொண்டது, சேர்க்கப்பட்ட வெளி நூலகங்களையும் உருவாக்கப்பட்ட கோப்புகளையும் தவிர்த்து &mdash; ஒரு நபர் தொடக்கம் முதல் முடிவு வரை படித்துத் தணிக்கை செய்யும் அளவுக்குச் சிறியது.</p>
+        <p class="feature"><b>திறன் வாய்ந்தது.</b> பாதுகாப்பான Rust இல் அதன் சொந்த HTML5 பாகுபடுத்தி, heap-வலுப்படுத்தப்பட்ட QuickJS, இழைகளுடன் (threads) WebAssembly, CSS Typed OM, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 மற்றும் WebGPU, Service Workers மற்றும் Streams. பக்கத்துக்குள்ளேயே <code>&lt;video&gt;</code> &mdash; MPEG-1, WebM, மற்றும் இயக்க முறைமையின் டிகோடர்கள் வழியாக MP4 &mdash; HLS, DASH மற்றும் வசனங்களுடன், கூடவே SMIL அசைவூட்டத்துடன் SVG, MathML மற்றும் ஒரு PDF.js பார்வையாளர்.</p>
         <p class="feature"><b>தானியக்கம்.</b> <code>nordstjernen --mcp</code> ஒரு உள்ளூர் முகவரைச் சாளரத்தைப் படிக்கவும் இயக்கவும் அனுமதிக்கிறது &mdash; அனுமதி தரும் வரை முடக்கம், loopback மட்டும், டோக்கன் மூலம் அங்கீகரிக்கப்பட்டது &mdash; மேலும் <code>--webdriver</code> Selenium மற்றும் பிற சோதனைக் கட்டமைப்புகளுக்கு W3C WebDriver ஐ வழங்குகிறது. உலாவியிலேயே AI உதவியாளர் எதுவும் இல்லை.</p>
-        <p class="feature"><b>அச்சிடுதல்.</b> <code>Ctrl+P</code> பக்கத்தை <code>@media print</code>, <code>@page</code> மற்றும் பக்க முறிவுகளின்படி தாள்களாகப் பிரித்து, அவற்றை இயக்க முறைமையின் சொந்த அச்சு உரையாடலிடம் ஒப்படைக்கிறது. <code>--dump=print:FILE</code> அச்சுப்பொறி இல்லாமலேயே அதே பக்கங்களை ஒரு PDF ஆக எழுதுகிறது.</p>
+        <p class="feature"><b>அச்சிடுதல்.</b> <code>Ctrl+P</code> பக்கத்தை <code>@media print</code>, <code>@page</code> மற்றும் பக்க முறிவுகளின்படி தாள்களாகப் பிரித்து, அவற்றை இயக்க முறைமையின் சொந்த அச்சு உரையாடலிடம் ஒப்படைக்கிறது. <code>--export=pdf:FILE</code> அச்சுப்பொறி இல்லாமலேயே அதே பக்கங்களை, இணைப்புகளுடன், ஒரு PDF ஆக எழுதுகிறது.</p>
         <p class="feature"><b>வேகமானது.</b> web-text-lib, அதாவது மூலக் களஞ்சியத்துக்குள் உள்ள Pango கிளை, வடிவமைக்கப்பட்ட உரையை வெவ்வேறு தளவமைப்புகளுக்கு இடையே தற்காலிகமாகச் சேமித்து, அட்டவணைகள் நிறைந்த பக்கங்களில் தளவமைப்பு நேரத்தை 24% குறைக்கிறது. HTTP/3 மேம்படுத்தல்கள் இணைப்பு நேரமுடிவில் சிக்கிக் கொள்ளாமல் alt-svc தற்காலிகச் சேமிப்பு வழியாகச் செல்கின்றன: Acid3 15.5 வினாடிகளுக்குப் பதிலாக 2.2 வினாடிகளில் ஏற்றப்படுகிறது.</p>
         <p class="feature"><b>தனிப்பட்டது.</b> டெலிமெட்ரி இல்லை, புதுப்பிப்பு பிங் இல்லை, மேலும் client hints இல் Chrome அல்ல, Nordstjernen என்ற பெயரே இருக்கும். மூன்றாம் தரப்பு குக்கீகள் தடுக்கப்படுகின்றன, இணைப்புகளிலிருந்து கண்காணிப்பு அளவுருக்கள் நீக்கப்படுகின்றன, மேலும் Safe Browsing Google க்கு 4-பைட் hash முன்னொட்டை மட்டுமே அனுப்புகிறது, முகவரியை ஒருபோதும் அல்ல.</p>
         <p class="feature"><b>கட்டற்ற மென்பொருள்.</b> 1.0.28 முதல் Nordstjernen இரட்டை உரிமம் பெற்றது: உங்கள் விருப்பப்படி <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, பதிப்பு 3 அல்லது அதற்குப் பிந்தையது</a> அல்லது <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a> இன் கீழ் இதைப் பயன்படுத்தலாம், மாற்றலாம், மறுவிநியோகம் செய்யலாம்.</p>
         </div>
 
         <h2 id="northstar">Northstar உலாவி</h2>
-        <p><a href="northstar-browser/">Northstar</a> என்பது Nordstjernen இன் குறைந்தபட்ச உடன்பிறப்பு, <b>GNU GPL, பதிப்பு 3 அல்லது அதற்குப் பிந்தையது</b> உரிமத்தின் கீழ்: ஒரு சாளரம், ஒரு பக்கம், ஒரு செயல்முறை, அதே clean-room இயந்திரத்திலிருந்து சுமார் 219,000 வரி அசல் C இல் உருவாக்கப்பட்டது. இதில் தாவல்கள், தாவலுக்கான தனி ரெண்டரர் செயல்முறைகள், WebGL மற்றும் WebGPU இல்லை; ஆனால் ஸ்ட்ரீமிங் வீடியோ, அச்சிடுதல், WebExtensions, Google Safe Browsing மற்றும் 40 மொழிகளில் UI உள்ளன, Linux இல் Landlock மற்றும் seccomp சாண்ட்பாக்ஸுக்குப் பின்னால் இயங்குகிறது. இது Linux, macOS மற்றும் Windows இல் இயங்குகிறது; Windows க்கு இது <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a> இல் கிடைக்கிறது.</p>
+        <p><a href="northstar-browser/">Northstar</a> என்பது Nordstjernen இன் குறைந்தபட்ச உடன்பிறப்பு, <b>GNU GPL, பதிப்பு 3 அல்லது அதற்குப் பிந்தையது</b> உரிமத்தின் கீழ்: ஒரு சாளரம், ஒரு பக்கம், ஒரு செயல்முறை, சுமார் 234,000 வரி அசல் C இல் உருவாக்கப்பட்டது. இதில் தாவல்கள், தாவலுக்கான தனி ரெண்டரர் செயல்முறைகள் மற்றும் WebGPU இல்லை; ஆனால் WebGL 1 மற்றும் 2, ஸ்ட்ரீமிங் வீடியோ, அச்சிடுதல், ஒரு PDF.js பார்வையாளர், WebExtensions, Google Safe Browsing மற்றும் 40 மொழிகளில் UI உள்ளன, Linux இல் Landlock மற்றும் seccomp சாண்ட்பாக்ஸுக்குப் பின்னால் இயங்குகிறது. Linux இதன் முதன்மைத் தளம்; இது macOS, BSD கள் மற்றும் Windows இலும் இயங்குகிறது; Windows க்கு இது <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a> இல் கிடைக்கிறது.</p>
         <p><a href="northstar-browser/">Northstar இன் முழு ஆவணங்களைப் படிக்கவும் &raquo;</a> &middot; அல்லது மூன்று உலாவிகளும் எவ்வாறு வேறுபடுகின்றன என்பதற்குக் <a href="#specs">கீழே உள்ள ஒப்பீட்டு அட்டவணையைப்</a> பார்க்கவும்.</p>
 
         <h2 id="southstar">Southstar உலாவி</h2>
-        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> என்பது Rust க்கு மாற்றப்பட்ட Nordstjernen; இயங்கிக்கொண்டிருக்கும்போதே தொகுதி தொகுதியாக மாற்றப்பட்டது: அக்டோபர் 2026 முதல் அதன் சொந்தக் குறியீடு முழுவதும் Rust &mdash; சுமார் 163 crates இல் ஏறத்தாழ 385,000 வரிகள் &mdash; Cargo மூலம் மட்டுமே உருவாக்கப்படுகிறது. பக்க JavaScript <a href="https://github.com/boa-dev/boa">Boa</a> இல் இயங்குகிறது; இது JIT இல்லாத Rust மொழிபெயர்ப்பி, test262 முழுவதிலும் தேர்ச்சி பெறுகிறது; HTML பாகுபடுத்தல், உரைத் தளவமைப்பு, TLS மற்றும் WebAssembly ஆகியவையும் Rust தான். Southstar <b>1.0.9</b> <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a> இலும், <a href="https://crates.io/crates/southstar">crates.io</a> இலும் கிடைக்கிறது, அதன் Linux தொகுப்புகள் <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a> இல் உள்ளன; மாற்றம் எப்படிச் செய்யப்பட்டது என்பது <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a> இல் விளக்கப்பட்டுள்ளது.</p>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> என்பது Rust க்கு மாற்றப்பட்ட Nordstjernen; இயங்கிக்கொண்டிருக்கும்போதே தொகுதி தொகுதியாக மாற்றப்பட்டது: அக்டோபர் 2026 முதல் அதன் சொந்தக் குறியீடு முழுவதும் Rust &mdash; 164 crates இல் சுமார் 390,000 வரிகள் &mdash; Cargo மூலம் மட்டுமே உருவாக்கப்படுகிறது. பக்க JavaScript <a href="https://github.com/boa-dev/boa">Boa</a> இல் இயங்குகிறது; இது JIT இல்லாத Rust மொழிபெயர்ப்பி, test262 முழுவதிலும் தேர்ச்சி பெறுகிறது; HTML பாகுபடுத்தல், உரைத் தளவமைப்பு, TLS மற்றும் WebAssembly ஆகியவையும் Rust தான். Southstar <b>1.0.11</b> <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a> இலும், <a href="https://crates.io/crates/southstar">crates.io</a> இலும் கிடைக்கிறது, அதன் Linux தொகுப்புகள் <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">GitHub</a> இல் உள்ளன; மாற்றம் எப்படிச் செய்யப்பட்டது என்பது <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a> இல் விளக்கப்பட்டுள்ளது.</p>
+
+        <h2 id="weststar">Weststar உலாவி</h2>
+        <p><a href="https://github.com/nordstjernen-web/weststar-sdl-browser">Weststar</a> குடும்பத்தின் புதிய உறுப்பினர், நவம்பர் 2026 இல் தொடங்கப்பட்டது: GTK&nbsp;4 இடைமுகமும் Cairo ரெண்டரரும் மாற்றப்பட்ட Northstar இன் ஒரு கிளை. இதன் சாளரம் <a href="https://libsdl.org">SDL3</a>; பக்கங்கள், உலாவியின் இடைமுகம் மற்றும் உரை ஆகியவை Weststar இன் சொந்த 2D ராஸ்டரைசரால் வரையப்படுகின்றன; பக்க இயந்திரம் Northstar உடையது. இது Linux மற்றும் Windows இல் இயங்குகிறது, <b>GNU GPL, பதிப்பு 3 அல்லது அதற்குப் பிந்தையது</b> உரிமத்தின் கீழ் உள்ளது, தற்போதைக்கு WebGL, WebGPU, <code>&lt;video&gt;</code> மற்றும் அச்சிடுதல் இதில் இல்லை. இன்னும் வெளியீடு எதுவும் இல்லை; மாற்றம் எப்படி முன்னேறுகிறது என்பது <a href="https://github.com/nordstjernen-web/weststar-sdl-browser/blob/main/docs/porting-to-sdl.md">docs/porting-to-sdl.md</a> இல் உள்ளது.</p>
 
         <p><a href="innovations-in-nordstjernen-web-browser.html">Nordstjernen வலை உலாவியின் புதுமைகள்</a> பற்றி மேலும் படிக்கவும்.</p>
 
         <h2 id="specs">விவரக்குறிப்புகள்</h2>
-        <p>மூன்று உலாவிகள், ஒரே clean-room இயந்திர மரபு. <b>Nordstjernen</b> முதன்மையான பல-தாவல் உலாவி; <b>Northstar</b> GPL உரிமம் பெற்ற குறைந்தபட்ச ஒற்றை-செயல்முறைப் பதிப்பு; <b>Southstar</b> அதே உலாவி, Rust இல் மீண்டும் எழுதப்பட்டது.</p>
+        <p>மூன்று உலாவிகள், ஒரே இயந்திர மரபு. <b>Nordstjernen</b> முதன்மையான பல-தாவல் உலாவி; <b>Northstar</b> GPL உரிமம் பெற்ற குறைந்தபட்ச ஒற்றை-செயல்முறைப் பதிப்பு; <b>Southstar</b> அதே உலாவி, Rust இல் மீண்டும் எழுதப்பட்டது. Northstar இன் SDL3 கிளையான <a href="#weststar">Weststar</a> இன்னும் வெளியிடப்படவில்லை, அது அட்டவணையில் இல்லை.</p>
         <p class="scroll-hint">மூன்று உலாவிகளையும் பார்க்க அட்டவணையைப் பக்கவாட்டில் தள்ளவும்.</p>
         <div class="table-scroll">
         <table class="spec compare">
-          <caption class="sr-only">தொழில்நுட்ப விவரக்குறிப்புகள்: Northstar 1.0.23 மற்றும் Southstar 1.0.9 உடன் Nordstjernen 1.0.47 இன் ஒப்பீடு</caption>
-          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <caption class="sr-only">தொழில்நுட்ப விவரக்குறிப்புகள்: Northstar 1.0.26 மற்றும் Southstar 1.0.11 உடன் Nordstjernen 1.0.51 இன் ஒப்பீடு</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.51</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.26</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.11</a></th></tr>
           <tr><th scope="row">பதிப்பு</th>
-              <td><b>1.0.47</b> &mdash; 14 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">வெளியீட்டுக் குறிப்புகள்</a></td>
-              <td><b>1.0.23</b> &mdash; 14 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">வெளியீட்டுக் குறிப்புகள்</a></td>
-              <td><b>1.0.9</b> &mdash; 14 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">வெளியீட்டுக் குறிப்புகள்</a></td></tr>
+              <td><b>1.0.51</b> &mdash; 23 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">வெளியீட்டுக் குறிப்புகள்</a></td>
+              <td><b>1.0.26</b> &mdash; 19 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">வெளியீட்டுக் குறிப்புகள்</a></td>
+              <td><b>1.0.11</b> &mdash; 20 நவம்பர் 2026 அன்று வெளியிடப்பட்டது &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">வெளியீட்டுக் குறிப்புகள்</a></td></tr>
           <tr><th scope="row">தன்மை</th>
               <td>முதன்மை உலாவி &middot; பல சாளரங்கள், பல தாவல்கள்</td>
               <td>குறைந்தபட்சப் பதிப்பு &middot; ஒரு சாளரத்துக்கு ஒரு பக்கம், தாவல்கள் இல்லை</td>
               <td>Rust பதிப்பு &middot; பல சாளரங்கள், பல தாவல்கள்</td></tr>
           <tr><th scope="row">மொழி</th>
-              <td>C &middot; ~268 kLOC clean-room &middot; 1.0.47 முதல் HTML5 மற்றும் URL பாகுபடுத்திகள் பாதுகாப்பான Rust இல் &middot; GTK&nbsp;4 ஷெல் &middot; JNI வழியாக Java/JVM பிணைப்பு &middot; முழுமையாகத் தணிக்கை செய்யக்கூடியது</td>
-              <td>C &middot; ~219 kLOC அசல் குறியீடு &middot; GTK&nbsp;4 ஷெல் &middot; முழுமையாகத் தணிக்கை செய்யக்கூடியது</td>
-              <td>Rust &middot; சுமார் 163 crates இல் ~385 kLOC &middot; Cargo மூலம் உருவாக்கப்படுகிறது &middot; GTK&nbsp;4 ஷெல், 1.0.9 முதல் முழுமையான Java Swing ஷெல் &middot; இணைக்கும் கணினி நூலகங்களில் மட்டுமே C</td></tr>
+              <td>C &middot; ~296 kLOC &middot; 1.0.47 முதல் HTML5 மற்றும் URL பாகுபடுத்திகள் பாதுகாப்பான Rust இல் &middot; GTK&nbsp;4 ஷெல் &middot; JNI வழியாக Java/JVM பிணைப்பு &middot; முழுமையாகத் தணிக்கை செய்யக்கூடியது</td>
+              <td>C &middot; ~234 kLOC அசல் குறியீடு &middot; GTK&nbsp;4 ஷெல் &middot; முழுமையாகத் தணிக்கை செய்யக்கூடியது</td>
+              <td>Rust &middot; 164 crates இல் ~390 kLOC &middot; Cargo மூலம் உருவாக்கப்படுகிறது &middot; GTK&nbsp;4 ஷெல், 1.0.9 முதல் முழுமையான Java Swing ஷெல் &middot; இணைக்கும் கணினி நூலகங்களில் மட்டுமே C</td></tr>
           <tr><th scope="row">கட்டமைப்பு</th>
               <td>தாவலுக்கு ஒரு செயல்முறை &mdash; ஒவ்வொரு தாவலும் அதன் சொந்த சாண்ட்பாக்ஸ் செய்யப்பட்ட ரெண்டரர் செயல்முறையில், IPC + பகிரப்பட்ட-நினைவக ஓடுகள்</td>
               <td>ஒற்றைச் செயல்முறை &mdash; உலாவிச் செயல்முறைக்குள் பக்க இயந்திரம் அதன் சொந்த இழையில்</td>
               <td>தாவலுக்கு ஒரு செயல்முறை &mdash; ஒவ்வொரு தாவலும் அதன் சொந்த சாண்ட்பாக்ஸ் செய்யப்பட்ட ரெண்டரர் செயல்முறையில், IPC + பகிரப்பட்ட-நினைவக ஃப்ரேம்பஃபர்கள்</td></tr>
           <tr><th scope="row">JavaScript</th>
-              <td>Fabrice Bellard இன் <a href="https://github.com/bellard/quickjs">QuickJS</a> இன் களஞ்சியத்துக்குள் உள்ள, heap-வலுப்படுத்தப்பட்ட கிளை, 1.0.47 முதல் இயல்புநிலை &mdash; பைட்கோடு மொழிபெயர்ப்பி, JIT இல்லை, அதன் heap ஒதுக்கப்பட்ட முகவரி-வரம்புக் கூண்டுக்குள் &middot; Temporal மற்றும் <code>Intl</code> &middot; களஞ்சியத்துக்குள் உள்ள <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> கிளையை <code>-Dquickjs=quickjs-ng</code> மூலம் தேர்ந்தெடுக்கலாம்</td>
-              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+, <code>147d01c</code> இல் &mdash; பைட்கோடு மொழிபெயர்ப்பி, JIT இல்லை &middot; அசல் QuickJS ஐ <code>-Djs_engine=quickjs</code> மூலம் தேர்ந்தெடுக்கலாம்</td>
+              <td>Fabrice Bellard இன் <a href="https://github.com/bellard/quickjs">QuickJS</a> இன் களஞ்சியத்துக்குள் உள்ள, heap-வலுப்படுத்தப்பட்ட கிளை &mdash; பைட்கோடு மொழிபெயர்ப்பி, JIT இல்லை, அதன் heap ஒதுக்கப்பட்ட முகவரி-வரம்புக் கூண்டுக்குள் &middot; Temporal மற்றும் <code>Intl</code> &middot; 1.0.50 இல் quickjs-ng கைவிடப்பட்டதிலிருந்து இதுவே ஒரே இயந்திரம்</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+, <code>dce8c0b</code> இல் &mdash; பைட்கோடு மொழிபெயர்ப்பி, JIT இல்லை &middot; அசல் QuickJS ஐ <code>-Djs_engine=quickjs</code> மூலம் தேர்ந்தெடுக்கலாம்</td>
               <td><a href="https://github.com/boa-dev/boa">Boa</a> (களஞ்சியத்துக்குள் உள்ள கிளை) &mdash; Rust மொழிபெயர்ப்பி, JIT இல்லை &middot; staging க்கு வெளியே உள்ள அனைத்து 52,133 test262 சோதனைகளிலும் தேர்ச்சி</td></tr>
           <tr><th scope="row">தளங்கள்</th>
               <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm மற்றும் pip &middot; freebsd &middot; netbsd</td>
-              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; macos &middot; windows &middot; BSD கள்</td>
               <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm மற்றும் crates.io</td></tr>
           <tr><th scope="row">உரிமம்</th>
               <td>1.0.28 முதல் இரட்டை உரிமம், உங்கள் விருப்பப்படி: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 அல்லது பிந்தையது</a> &mdash; கட்டற்ற மென்பொருள் &middot; அல்லது <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; 10 ஆண்டுகளுக்குப் பிறகு MIT, <a href="https://fsl.software/">Functional Source License</a> ஐ அடிப்படையாகக் கொண்டது</td>
@@ -165,16 +169,17 @@
         <p><a href="specs.html">முழு விவரக்குறிப்புகள் &raquo;</a> &mdash; HTML மற்றும் CSS, உரை, படங்கள், ஊடகம், அச்சிடுதல், வலையமைப்பு, பலப்படுத்தல், தனியுரிமை மற்றும் தரநிலைகள்.</p>
 
         <h2 id="download">பதிவிறக்கம்</h2>
-        <p>சமீபத்திய வெளியீடு: Nordstjernen <b>1.0.47</b>, 14 நவம்பர் 2026 அன்று வெளியிடப்பட்டது. எல்லாத் தளங்களுக்குமானவை, Northstar மற்றும் Southstar ஆகியவை <a href="download.html">பதிவிறக்கப் பக்கத்தில்</a> உள்ளன.</p>
+        <p>சமீபத்திய வெளியீடு: Nordstjernen <b>1.0.51</b>, 23 நவம்பர் 2026 அன்று வெளியிடப்பட்டது. எல்லாத் தளங்களுக்குமானவை, Northstar மற்றும் Southstar ஆகியவை <a href="download.html">பதிவிறக்கப் பக்கத்தில்</a> உள்ளன.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
-          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-macos-arm64.dmg">nordstjernen-1.0.47-macos-arm64.dmg</a></td></tr>
-          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_debian13_amd64.deb">nordstjernen_1.0.47_debian13_amd64.deb</a></td></tr>
-          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
-          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
-          <tr><th>Linux (கையடக்கப் பதிப்பு)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>மூலக் குறியீடு</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
+          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-macos-arm64.dmg">nordstjernen-1.0.51-macos-arm64.dmg</a></td></tr>
+          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_debian13_amd64.deb">nordstjernen_1.0.51_debian13_amd64.deb</a></td></tr>
+          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_ubuntu26.04_amd64.deb">nordstjernen_1.0.51_ubuntu26.04_amd64.deb</a></td></tr>
+          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-1.fc45.x86_64.rpm">nordstjernen-1.0.51-1.fc45.x86_64.rpm</a></td></tr>
+          <tr><th>Linux (கையடக்கப் பதிப்பு)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-linux-x86_64.zip">nordstjernen-1.0.51-linux-x86_64.zip</a></td></tr>
+          <tr><th>Linux (AppImage)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-x86_64.AppImage">nordstjernen-1.0.51-x86_64.AppImage</a></td></tr>
+          <tr><th>மூலக் குறியீடு</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.51.tar.gz">1.0.51.tar.gz</a></td></tr>
         </table>
 
         <p><a class="btn-red" href="download.html">Nordstjernen ஐப் பதிவிறக்குக &raquo;</a></p>

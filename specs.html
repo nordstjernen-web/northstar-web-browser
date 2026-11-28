@@ -11,10 +11,10 @@
 <meta property="og:site_name" content="Nordstjernen">
 <meta property="og:locale" content="en">
 <meta property="og:title" content="Nordstjernen Specifications">
-<meta property="og:description" content="An independent web browser written from scratch in C. No telemetry, no JIT.">
+<meta property="og:description" content="An independent web browser in C, started in 2026. No telemetry, no JIT.">
 <meta property="og:url" content="https://www.nordstjernen.org/specs.html">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-47.png">
-<meta property="og:image:alt" content="Nordstjernen 1.0.47 showing Google image search results">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-51.png">
+<meta property="og:image:alt" content="Nordstjernen 1.0.51 showing Google Maps in satellite view">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <link rel="stylesheet" href="assets/style.css">
@@ -57,59 +57,59 @@
   <main class="content">
 
     <h1 id="specs">specifications</h1>
-        <p>Three browsers, one clean-room engine lineage. <b>Nordstjernen</b> is the flagship multi-tab browser; <b>Northstar</b> is the minimalist GPL-licensed single-process edition; <b>Southstar</b> is the same browser rewritten in Rust.</p>
+        <p>Three browsers, one engine lineage. <b>Nordstjernen</b> is the flagship multi-tab browser; <b>Northstar</b> is the minimalist GPL-licensed single-process edition; <b>Southstar</b> is the same browser rewritten in Rust. <a href="index.html#weststar">Weststar</a>, an SDL3 fork of Northstar, has no release yet and is not in the table.</p>
         <p class="scroll-hint">Swipe the table sideways to see all three browsers.</p>
         <div class="table-scroll">
         <table class="spec compare">
-          <caption class="sr-only">Technical specifications: Nordstjernen 1.0.47 compared with Northstar 1.0.23 and Southstar 1.0.9</caption>
-          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <caption class="sr-only">Technical specifications: Nordstjernen 1.0.51 compared with Northstar 1.0.26 and Southstar 1.0.11</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.51</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.26</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.11</a></th></tr>
           <tr><th scope="row">version</th>
-              <td><b>1.0.47</b> &mdash; released 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">release notes</a></td>
-              <td><b>1.0.23</b> &mdash; released 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">release notes</a></td>
-              <td><b>1.0.9</b> &mdash; released 14 November 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">release notes</a></td></tr>
+              <td><b>1.0.51</b> &mdash; released 23 November 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">release notes</a></td>
+              <td><b>1.0.26</b> &mdash; released 19 November 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">release notes</a></td>
+              <td><b>1.0.11</b> &mdash; released 20 November 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">release notes</a></td></tr>
           <tr><th scope="row">character</th>
               <td>flagship browser &middot; multi-window, multi-tab</td>
               <td>minimalist edition &middot; one page per window, no tabs</td>
               <td>the Rust version &middot; multi-window, multi-tab</td></tr>
           <tr><th scope="row">language</th>
-              <td>C &middot; ~268 kLOC clean-room &middot; HTML5 and URL parsers in safe Rust since 1.0.47 &middot; GTK&nbsp;4 shell &middot; Java/JVM binding via JNI &middot; fully auditable</td>
-              <td>C &middot; ~219 kLOC original &middot; GTK&nbsp;4 shell &middot; fully auditable</td>
-              <td>Rust &middot; ~385 kLOC in some 163 crates &middot; built with Cargo &middot; GTK&nbsp;4 shell, and a pure-Java Swing shell since 1.0.9 &middot; C only in the system libraries it links</td></tr>
+              <td>C &middot; ~296 kLOC &middot; HTML5 and URL parsers in safe Rust since 1.0.47 &middot; GTK&nbsp;4 shell &middot; Java/JVM binding via JNI &middot; fully auditable</td>
+              <td>C &middot; ~234 kLOC original &middot; GTK&nbsp;4 shell &middot; fully auditable</td>
+              <td>Rust &middot; ~390 kLOC in 164 crates &middot; built with Cargo &middot; GTK&nbsp;4 shell, and a pure-Java Swing shell since 1.0.9 &middot; C only in the system libraries it links</td></tr>
           <tr><th scope="row">architecture</th>
               <td>process-per-tab &mdash; each tab in its own sandboxed renderer process, IPC + shared-memory tiles</td>
               <td>single process &mdash; the page engine on its own thread inside the browser process</td>
               <td>process-per-tab &mdash; each tab in its own sandboxed renderer process, IPC + shared-memory framebuffers</td></tr>
           <tr><th scope="row">html / css</th>
               <td>its own HTML5 and WHATWG URL parsers in safe Rust, replacing lexbor in 1.0.47 &middot; an in-tree namespaced XML parser &middot; the engine&rsquo;s own cascade and layout</td>
-              <td><a href="https://github.com/lexbor/lexbor">lexbor</a> after v3.0.1 (parser, WHATWG URL, selectors) &middot; the engine&rsquo;s own cascade and layout</td>
+              <td><a href="https://github.com/lexbor/lexbor">lexbor</a> at upstream master <code>adfd1f7</code>, after v3.0.1 (parser, WHATWG URL, selectors) &middot; the engine&rsquo;s own cascade and layout</td>
               <td>its own Rust HTML parser (<code>rust/html5</code>) &middot; the engine&rsquo;s cascade and layout, ported to Rust</td></tr>
           <tr><th scope="row">javascript</th>
-              <td>in-tree, heap-hardened fork of Fabrice Bellard&rsquo;s <a href="https://github.com/bellard/quickjs">QuickJS</a>, the default since 1.0.47 &mdash; bytecode interpreter, no JIT, its heap in a reserved address-range cage &middot; Temporal and <code>Intl</code> &middot; the in-tree <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> fork selectable with <code>-Dquickjs=quickjs-ng</code></td>
-              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ at <code>147d01c</code> &mdash; bytecode interpreter, no JIT &middot; original QuickJS selectable with <code>-Djs_engine=quickjs</code></td>
+              <td>in-tree, heap-hardened fork of Fabrice Bellard&rsquo;s <a href="https://github.com/bellard/quickjs">QuickJS</a> &mdash; bytecode interpreter, no JIT, its heap in a reserved address-range cage &middot; Temporal and <code>Intl</code> &middot; the only engine since quickjs-ng was dropped in 1.0.50</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ at <code>dce8c0b</code> &mdash; bytecode interpreter, no JIT &middot; original QuickJS selectable with <code>-Djs_engine=quickjs</code></td>
               <td><a href="https://github.com/boa-dev/boa">Boa</a> (in-tree fork) &mdash; Rust interpreter, no JIT &middot; all 52,133 test262 tests outside staging pass</td></tr>
           <tr><th scope="row">text</th>
               <td>web-text-lib on the desktop &mdash; the in-tree Pango fork (formerly ns-pango) with a cross-layout shaping cache &middot; system Pango on Android</td>
               <td>web-text-lib &mdash; the same fork, vendored</td>
               <td><code>rust/text</code> &mdash; a Rust port of the same Pango fork &middot; web fonts shaped by HarfRust and drawn from skrifa outlines</td></tr>
           <tr><th scope="row">webassembly</th>
-              <td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> fast interpreter behind the <code>WebAssembly</code> JS API</td>
+              <td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> 2.4.6 fast interpreter behind the <code>WebAssembly</code> JS API &middot; threads with shared memories across workers since 1.0.51</td>
               <td><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> fast interpreter (vendored subset)</td>
               <td><a href="https://github.com/wasmi-labs/wasmi">wasmi</a> &mdash; a pure-Rust interpreter</td></tr>
           <tr><th scope="row">webgl / webgpu</th>
               <td>WebGL 1 &amp; 2 &middot; WebGPU over wgpu-native, on by default since 1.0.31 and switchable in Settings</td>
-              <td>&mdash;</td>
+              <td>WebGL 1 &amp; 2 through the system&rsquo;s OpenGL driver, since 1.0.26, switchable in Settings &middot; no WebGPU</td>
               <td>WebGL 1 &amp; 2 &middot; experimental WebGPU behind <code>--enable-webgpu</code></td></tr>
           <tr><th scope="row">images</th>
               <td><a href="https://github.com/google/wuffs">Wuffs</a> (PNG / APNG / GIF / BMP / JPEG / lossless WebP) &middot; libwebp (lossy and animated WebP) &middot; AVIF and JPEG&nbsp;XL (optional) &middot; ICO and SVG rendered in-engine, with SMIL animation &middot; PDFs in a sandboxed PDF.js viewer</td>
-              <td><a href="https://github.com/google/wuffs">Wuffs</a> v0.4 (PNG / APNG / GIF / BMP / JPEG / WebP) &middot; AVIF (optional) &middot; SVG rendered in-engine, with SMIL animation since 1.0.23</td>
-              <td>pure-Rust decoders (PNG / APNG / GIF / BMP / JPEG / WebP) &middot; AVIF and inline PDF (optional) &middot; ICO and SVG rendered in-engine, with SMIL animation since 1.0.9</td></tr>
+              <td><a href="https://github.com/google/wuffs">Wuffs</a> v0.4 (PNG / APNG / GIF / BMP / JPEG / WebP) &middot; AVIF (optional) &middot; SVG rendered in-engine, with SMIL animation since 1.0.23 &middot; PDFs in a sandboxed PDF.js viewer since 1.0.24</td>
+              <td>pure-Rust decoders (PNG / APNG / GIF / BMP / JPEG / WebP) &middot; AVIF (optional) &middot; ICO and SVG rendered in-engine, with SMIL animation since 1.0.9 &middot; PDFs in a viewer built on pdf.js since 1.0.10</td></tr>
           <tr><th scope="row">media</th>
-              <td>MPEG-1 via <a href="https://github.com/phoboslab/pl_mpeg">pl_mpeg</a> &middot; WebM (VP9/VP8 + Opus/Vorbis) via FFmpeg &middot; MP4 with H.264/AAC decoded by the operating system &middot; HLS and DASH through Media Source Extensions &middot; WebVTT captions &middot; SDL2 audio</td>
-              <td>MPEG-1 via <a href="https://github.com/phoboslab/pl_mpeg">pl_mpeg</a> &middot; Media Source Extensions and plain MP4/WebM files &mdash; AV1, VP9 and H.264 through GStreamer on Linux and Media Foundation on Windows by default &middot; MP3, MP2, Ogg audio &middot; Web Audio graph</td>
-              <td>MPEG-1 via a Rust port of pl_mpeg &middot; WebM (VP9/VP8 + Opus/Vorbis) via FFmpeg &middot; MP4 with H.264/AAC through Media Foundation on Windows &middot; HLS and DASH through Media Source Extensions &middot; WebVTT captions</td></tr>
+              <td>MPEG-1 via <a href="https://github.com/phoboslab/pl_mpeg">pl_mpeg</a> &middot; WebM (VP9/VP8 + Opus/Vorbis) via FFmpeg &middot; MP4 with H.264/AAC decoded by the operating system &middot; VP9 and AV1 on the GPU on Windows and macOS since 1.0.50 &middot; HLS and DASH through Media Source Extensions &middot; WebVTT captions &middot; audio through SDL3 &middot; Web Audio with parameter automation and spatial panning</td>
+              <td>MPEG-1 via <a href="https://github.com/phoboslab/pl_mpeg">pl_mpeg</a> &middot; Media Source Extensions and plain MP4/WebM files &mdash; AV1, VP9 and H.264 through GStreamer on Linux and Media Foundation on Windows by default &middot; MP3, MP2, AAC, Ogg Opus/Vorbis audio through SDL3 &middot; Web Audio graph</td>
+              <td>MPEG-1 via a Rust port of pl_mpeg &middot; WebM (VP9/VP8 + Opus/Vorbis) via FFmpeg &middot; MP4 with H.264/AAC through Media Foundation on Windows &middot; HLS and DASH through Media Source Extensions &middot; WebVTT captions &middot; real-time Web Audio through SDL3</td></tr>
           <tr><th scope="row">printing</th>
-              <td><code>Ctrl+P</code> through <code>GtkPrintOperation</code> &mdash; CUPS, Win32 or Cocoa &middot; <code>@media print</code>, <code>@page</code> and page breaks &middot; <code>--dump=print:FILE</code> to PDF</td>
-              <td><code>Ctrl+P</code> through <code>GtkPrintOperation</code> &mdash; CUPS, Win32 or Cocoa &middot; <code>@media print</code>, <code>@page</code> and page breaks &middot; <code>--dump=print:FILE</code> to PDF</td>
+              <td><code>Ctrl+P</code> through <code>GtkPrintOperation</code> &mdash; CUPS, Win32 or Cocoa &middot; <code>@media print</code>, <code>@page</code> and page breaks &middot; <code>--export=pdf:FILE</code> to PDF links included, since 1.0.51</td>
+              <td><code>Ctrl+P</code> through <code>GtkPrintOperation</code> &mdash; CUPS, Win32 or Cocoa &middot; <code>@media print</code>, <code>@page</code> and page breaks &middot; <code>--export=pdf:FILE</code> to PDF</td>
               <td>printing and save-to-PDF</td></tr>
           <tr><th scope="row">extensions</th>
               <td>initial support for simple, page-facing WebExtensions &middot; Adblock Plus/EasyList filter lists</td>
@@ -120,9 +120,9 @@
               <td>none &mdash; no AI-style web APIs, by design</td>
               <td>no AI-style web APIs, by design &middot; an opt-in, loopback-only MCP server (<code>southstar --mcp</code>) since 1.0.8</td></tr>
           <tr><th scope="row">ui</th>
-              <td><a href="https://www.gtk.org">GTK 4</a> (&ge;&nbsp;4.22.1 on Windows, &ge;&nbsp;4.14 elsewhere) &middot; tabs, page zoom that reflows, light/dark/system themes &middot; HiDPI rendering &middot; tiled, GPU-composited scrolling &middot; 40 UI catalogues, 13 covering the core interface</td>
+              <td><a href="https://www.gtk.org">GTK 4</a> (&ge;&nbsp;4.22.1 on Windows, &ge;&nbsp;4.14 elsewhere) &middot; tabs, page zoom that reflows, light/dark/system themes &middot; HiDPI rendering &middot; tiled, GPU-composited scrolling &middot; 40 UI catalogues</td>
               <td><a href="https://www.gtk.org">GTK 4</a> (&ge;&nbsp;4.14; &ge;&nbsp;4.22.1 on Windows) &middot; page zoom, dark theme following the desktop &middot; 40 UI languages</td>
-              <td><a href="https://www.gtk.org">GTK 4</a> (&ge;&nbsp;4.14; &ge;&nbsp;4.22.1 on Windows) &middot; tabs &middot; 13 UI languages so far</td></tr>
+              <td><a href="https://www.gtk.org">GTK 4</a> (&ge;&nbsp;4.14; &ge;&nbsp;4.22.1 on Windows) &middot; tabs &middot; 39 UI languages so far</td></tr>
           <tr><th scope="row">network</th>
               <td><a href="https://curl.se">libcurl</a> &ge;&nbsp;8.5 &middot; HTTP/2, upgraded to HTTP/3 through the alt-svc cache &middot; optional in-tree nghttp2 backend, with HTTP/3 over QUIC via ngtcp2 + nghttp3 &middot; <code>Vary</code>-aware HTTP cache</td>
               <td><a href="https://curl.se">libcurl</a> &ge;&nbsp;8.5 &middot; HTTP/2, upgraded to HTTP/3 through the alt-svc cache when the linked libcurl provides it &middot; request deduplication and reusable preloads</td>
@@ -136,12 +136,12 @@
               <td>no telemetry &middot; client hints identify Northstar &middot; <code>--private</code> browsing mode &middot; partitioned cookies &middot; HSTS &middot; CSP &middot; SRI &middot; Google Safe Browsing (since 1.0.22) with a local fallback list</td>
               <td>no telemetry &middot; <code>--private</code> browsing mode &middot; partitioned cookies &middot; HSTS &middot; CSP &middot; SRI &middot; Google Safe Browsing (since 1.0.8) with a local fallback list</td></tr>
           <tr><th scope="row">standards</th>
-              <td>141 spec rows fully implemented, 31 partial, 0 absent &middot; WHATWG HTML sections 1&ndash;16 &middot; Web Platform Tests (October 2026): 91.5% of <code>html/</code>, <code>dom/</code> and <code>url/</code> subtests, 73.2% of <code>css/</code> &middot; test262: 82,248 of 82,248</td>
+              <td>141 spec rows fully implemented, 31 partial, 0 absent &middot; WHATWG HTML sections 1&ndash;16 &middot; Web Platform Tests (October 2026): 91.5% of <code>html/</code>, <code>dom/</code> and <code>url/</code> subtests, 73.2% of <code>css/</code> &middot; test262: 53,003 of 53,021 (November 2026)</td>
               <td>behaviour measured against the spec text, section by section &middot; Web Platform Tests: per-area scores in <a href="https://github.com/nordstjernen-web/northstar-web-browser/blob/main/docs/compliance.md">docs/compliance.md</a></td>
               <td>144 spec rows fully implemented, 31 partial, 0 absent &middot; 95% of its tracked Web Platform Tests slice &middot; test262: 52,133 of 52,133</td></tr>
           <tr><th scope="row">platforms</th>
-              <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm and pip &middot; freebsd &middot; netbsd</td>
-              <td>linux &middot; macos &middot; windows</td>
+              <td>linux (gtk, AppImage since 1.0.50) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm and pip &middot; freebsd &middot; netbsd</td>
+              <td>linux &middot; macos &middot; windows &middot; the BSDs</td>
               <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm and crates.io</td></tr>
           <tr><th scope="row">license</th>
               <td>dual-licensed since 1.0.28, at your option: <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 or later</a> &mdash; free software &middot; or <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT after 10 years, inspired by the <a href="https://fsl.software/">Functional Source License</a></td>

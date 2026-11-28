@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nordstjernen 网页浏览器 - 小巧、稳定、独立。用 C 语言编写。</title>
-<meta name="description" content="Nordstjernen 是一款用 C 语言从零编写的网页浏览器，专注于支持 HTML 和 CSS 标准。可在 Windows、Mac、Linux、Android 和 Java 上运行。">
+<meta name="description" content="Nordstjernen 是一款用 C 语言编写、始于 2026 年的独立网页浏览器，专注于支持 HTML 和 CSS 标准。可在 Windows、Mac、Linux、Android 和 Java 上运行。">
 <link rel="canonical" href="https://www.nordstjernen.org/index_cn.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -33,10 +33,10 @@
 <meta property="og:site_name" content="Nordstjernen">
 <meta property="og:locale" content="zh">
 <meta property="og:title" content="Nordstjernen 网页浏览器">
-<meta property="og:description" content="一款用 C 语言从零编写的网页浏览器。">
+<meta property="og:description" content="一款用 C 语言编写、始于 2026 年的独立网页浏览器。">
 <meta property="og:url" content="https://www.nordstjernen.org/index_cn.html">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
-<meta property="og:image:alt" content="Northstar 1.0.23 正在播放 YouTube 视频">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-51.png">
+<meta property="og:image:alt" content="Nordstjernen 1.0.51 在卫星视图中显示 Google Maps">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -46,9 +46,9 @@
   "name": "Nordstjernen",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
-  "softwareVersion": "1.0.47",
+  "softwareVersion": "1.0.51",
   "url": "https://www.nordstjernen.org/",
-  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51",
   "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -84,6 +84,7 @@
       <a href="specs.html">规格</a>
       <a href="northstar-browser/">Northstar</a>
       <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
+      <a href="#weststar">Weststar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">发布</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
@@ -92,69 +93,72 @@
   <main class="content">
 
         <h1 id="about" style="color:#003366;">Nordstjernen 网页浏览器</h1>
-        <p class="lead">Nordstjernen 是一款用 C 语言从零编写的网页浏览器，专注于支持 HTML 和 CSS 标准。它可在 Windows、macOS 和 Linux 上运行，并提供 Android、FreeBSD、NetBSD 和 JVM 版本。Nordstjernen 在挪威打造。</p>
+        <p class="lead">Nordstjernen 是一款用 C 语言编写、始于 2026 年的独立网页浏览器，专注于支持 HTML 和 CSS 标准。它可在 Windows、macOS 和 Linux 上运行，并提供 Android、FreeBSD、NetBSD 和 JVM 版本。Nordstjernen 在挪威打造。</p>
 
 
         <figure class="shot">
-          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 正在播放 YouTube 视频，旁边是推荐视频，上方是经典的带文字标签的工具栏"></a>
-          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 正在播放 YouTube 视频 &mdash; 一个窗口、一个页面、经典的带文字标签的工具栏。<a href="screenshots.html">更多截图 &raquo;</a></figcaption>
+          <a href="screenshots/screenshot-1-0-51.png"><img src="screenshots/screenshot-1-0-51.png" width="1240" height="870" alt="Nordstjernen 1.0.51 在卫星视图中显示 Google Maps"></a>
+          <figcaption class="cap">Nordstjernen 1.0.51 在卫星视图中显示 Google Maps。<a href="screenshots.html">更多截图 &raquo;</a></figcaption>
         </figure>
 
-        <p class="release-line">Nordstjernen <b>1.0.47</b> 已发布 &mdash; 用安全 Rust 编写的自有 HTML5 解析器、经过堆加固的 QuickJS、PDF.js 查看器以及 SVG SMIL 动画。<a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">发行说明 &raquo;</a></p>
-        <p class="release-line">Northstar <b>1.0.23</b> 已发布 &mdash; SVG SMIL 动画、Windows 显示缩放以及安全修复。<a href="northstar-browser/">关于 Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">发行说明 &raquo;</a></p>
-        <p class="release-line">Southstar <b>1.0.9</b> 已发布 &mdash; 纯 Java 界面外壳、SVG SMIL 动画，并修复了一次安全审计发现的全部问题。<a href="#southstar">关于 Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">发行说明 &raquo;</a></p>
+        <p class="release-line">Nordstjernen <b>1.0.51</b> 已发布 &mdash; CSS Typed OM、支持共享内存的 WebAssembly 线程、带链接的 PDF 导出，以及 AppImage。<a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">发行说明 &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.26</b> 已发布 &mdash; WebGL 1 和 2、可正常使用的 Gmail、安全修复以及 AppImage。<a href="northstar-browser/">关于 Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">发行说明 &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.11</b> 已发布 &mdash; 流式 HTML 解析器、更小的 DOM 以及实时 Web Audio。<a href="#southstar">关于 Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">发行说明 &raquo;</a></p>
 
         <div class="features">
         <p class="feature"><b>HTML 标准。</b>浏览器的行为逐节对照规范文本来衡量，而不是以其他浏览器为参照：WHATWG HTML 规范中有 141 项已完全实现，31 项部分实现，没有缺失项。它的通过率达到 <b>91.5%</b>，涵盖 <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> 中的 <code>html/</code>、<code>dom/</code> 和 <code>url/</code> 子测试；<code>css/</code> 的通过率为 73.2%（2026 年 10 月）&mdash; 详见 <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>。</p>
         <p class="feature"><b>安全。</b>每个标签页都在各自的沙箱化渲染进程中运行 &mdash; Linux 上使用 seccomp + Landlock，macOS 上使用 Seatbelt 配置文件，Windows 上使用进程缓解策略。JavaScript 引擎和 WebAssembly 引擎均不含 JIT。</p>
-        <p class="feature"><b>极简。</b>核心引擎约有 268,000 行项目自有的 C 代码和头文件，不含内置的第三方库和生成的资源 &mdash; 小到一个人就能从头到尾通读并审计。</p>
-        <p class="feature"><b>功能完备。</b>用安全 Rust 编写的自有 HTML5 解析器、经过堆加固的 QuickJS、WebAssembly、WebGL&nbsp;1&nbsp;&amp;&nbsp;2 与 WebGPU、Service Workers 和 Streams。内联 <code>&lt;video&gt;</code> &mdash; MPEG-1、WebM，以及借助操作系统解码器播放的 MP4 &mdash; 支持 HLS、DASH 和字幕，此外还有支持 SMIL 动画的 SVG、MathML 和 PDF.js 查看器。</p>
+        <p class="feature"><b>极简。</b>浏览器约有 296,000 行项目自有的 C 代码和头文件，不含内置的第三方库和生成的资源 &mdash; 小到一个人就能从头到尾通读并审计。</p>
+        <p class="feature"><b>功能完备。</b>用安全 Rust 编写的自有 HTML5 解析器、经过堆加固的 QuickJS、支持线程的 WebAssembly、CSS Typed OM、WebGL&nbsp;1&nbsp;&amp;&nbsp;2 与 WebGPU、Service Workers 和 Streams。内联 <code>&lt;video&gt;</code> &mdash; MPEG-1、WebM，以及借助操作系统解码器播放的 MP4 &mdash; 支持 HLS、DASH 和字幕，此外还有支持 SMIL 动画的 SVG、MathML 和 PDF.js 查看器。</p>
         <p class="feature"><b>自动化。</b><code>nordstjernen --mcp</code> 让本地智能体读取并操控窗口 &mdash; 默认关闭、需经允许，仅限回环地址，并采用令牌认证 &mdash; 而 <code>--webdriver</code> 为 Selenium 及其他测试框架提供 W3C WebDriver 服务。浏览器本身不含 AI 助手。</p>
-        <p class="feature"><b>打印。</b><code>Ctrl+P</code> 按照 <code>@media print</code>、<code>@page</code> 和分页符对页面分页，并将各页交给操作系统自带的打印对话框。<code>--dump=print:FILE</code> 无需打印机即可将同样的页面写入 PDF。</p>
+        <p class="feature"><b>打印。</b><code>Ctrl+P</code> 按照 <code>@media print</code>、<code>@page</code> 和分页符对页面分页，并将各页交给操作系统自带的打印对话框。<code>--export=pdf:FILE</code> 无需打印机即可将同样的页面写入 PDF，并保留其中的链接。</p>
         <p class="feature"><b>快速。</b>web-text-lib 是树内维护的 Pango 分支，可在多次布局之间缓存已完成塑形的文本，使表格密集页面的布局时间缩短 24%。HTTP/3 升级通过 alt-svc 缓存进行，不会卡在连接超时上：Acid3 只需 2.2 秒即可加载完成，而不是 15.5 秒。</p>
         <p class="feature"><b>注重隐私。</b>没有遥测，没有更新检查请求，客户端提示中标明的是 Nordstjernen 而不是 Chrome。第三方 Cookie 会被阻止，链接中的跟踪参数会被移除，安全浏览只向 Google 发送 4 字节的哈希前缀，绝不发送网址。</p>
         <p class="feature"><b>自由软件。</b>自 1.0.28 起，Nordstjernen 采用双重许可：您可以任选 <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL 第 3 版或更高版本</a>，或 <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>，依其条款使用、修改和再分发本软件。</p>
         </div>
 
         <h2 id="northstar">Northstar 浏览器</h2>
-        <p><a href="northstar-browser/">Northstar</a> 是 Nordstjernen 的极简版姊妹浏览器，采用 <b>GNU GPL 第 3 版或更高版本</b>许可：一个窗口、一个页面、一个进程，基于同一个净室引擎，由约 219,000 行原创 C 代码构建而成。它省去了标签页、按标签页划分的渲染进程、WebGL 和 WebGPU，但保留了流媒体视频、打印、WebExtensions、Google 安全浏览以及 40 种语言的界面，并在 Linux 上运行于 Landlock 和 seccomp 沙箱之中。它可在 Linux、macOS 和 Windows 上运行，Windows 版已上架 <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>。</p>
+        <p><a href="northstar-browser/">Northstar</a> 是 Nordstjernen 的极简版姊妹浏览器，采用 <b>GNU GPL 第 3 版或更高版本</b>许可：一个窗口、一个页面、一个进程，由约 234,000 行原创 C 代码构建而成。它省去了标签页、按标签页划分的渲染进程和 WebGPU，但保留了 WebGL 1 和 2、流媒体视频、打印、PDF.js 查看器、WebExtensions、Google 安全浏览以及 40 种语言的界面，并在 Linux 上运行于 Landlock 和 seccomp 沙箱之中。Linux 是它的主要平台；它也可在 macOS、各 BSD 系统和 Windows 上运行，Windows 版已上架 <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>。</p>
         <p><a href="northstar-browser/">阅读完整的 Northstar 文档 &raquo;</a> &middot; 或查看<a href="#specs">下方的对比表</a>，了解三款浏览器之间的区别。</p>
 
         <h2 id="southstar">Southstar 浏览器</h2>
-        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> 是 Nordstjernen 的 Rust 移植版，在保持可运行的同时逐个模块完成了移植：自 2026 年 10 月起，它自身的全部代码均为 Rust &mdash; 约 385,000 行，分布在约 163 个 crate 中 &mdash; 仅用 Cargo 即可构建。页面中的 JavaScript 运行在 <a href="https://github.com/boa-dev/boa">Boa</a> 上，这是一个不含 JIT、通过全部 test262 测试的 Rust 解释器；HTML 解析、文本布局、TLS 和 WebAssembly 也都由 Rust 实现。Southstar <b>1.0.9</b> 已上架 <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a> 和 <a href="https://crates.io/crates/southstar">crates.io</a>，并在 <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a> 上提供 Linux 软件包；移植的具体过程请参阅 <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>。</p>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> 是 Nordstjernen 的 Rust 移植版，在保持可运行的同时逐个模块完成了移植：自 2026 年 10 月起，它自身的全部代码均为 Rust &mdash; 约 390,000 行，分布在 164 个 crate 中 &mdash; 仅用 Cargo 即可构建。页面中的 JavaScript 运行在 <a href="https://github.com/boa-dev/boa">Boa</a> 上，这是一个不含 JIT、通过全部 test262 测试的 Rust 解释器；HTML 解析、文本布局、TLS 和 WebAssembly 也都由 Rust 实现。Southstar <b>1.0.11</b> 已上架 <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a> 和 <a href="https://crates.io/crates/southstar">crates.io</a>，并在 <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">GitHub</a> 上提供 Linux 软件包；移植的具体过程请参阅 <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>。</p>
+
+        <h2 id="weststar">Weststar 浏览器</h2>
+        <p><a href="https://github.com/nordstjernen-web/weststar-sdl-browser">Weststar</a> 是这个家族中最新的成员，始于 2026 年 11 月：它是 Northstar 的一个分支，替换掉了 GTK&nbsp;4 界面和 Cairo 渲染器。它的窗口基于 <a href="https://libsdl.org">SDL3</a>，页面、浏览器界面和文字均由 Weststar 自己的 2D 光栅化器绘制；页面引擎则沿用 Northstar 的。它可在 Linux 和 Windows 上运行，采用 <b>GNU GPL 第 3 版或更高版本</b>许可，目前暂不支持 WebGL、WebGPU、<code>&lt;video&gt;</code> 和打印。它尚未发布任何版本；移植进展请参阅 <a href="https://github.com/nordstjernen-web/weststar-sdl-browser/blob/main/docs/porting-to-sdl.md">docs/porting-to-sdl.md</a>。</p>
 
         <p>进一步了解 <a href="innovations-in-nordstjernen-web-browser.html">Nordstjernen 网页浏览器中的创新</a>。</p>
 
         <h2 id="specs">规格</h2>
-        <p>三款浏览器，同一脉相承的净室引擎。<b>Nordstjernen</b> 是多标签页的旗舰浏览器；<b>Northstar</b> 是采用 GPL 许可的极简单进程版本；<b>Southstar</b> 则是用 Rust 重写的同一款浏览器。</p>
+        <p>三款浏览器，同一脉相承的引擎。<b>Nordstjernen</b> 是多标签页的旗舰浏览器；<b>Northstar</b> 是采用 GPL 许可的极简单进程版本；<b>Southstar</b> 则是用 Rust 重写的同一款浏览器。<a href="#weststar">Weststar</a> 是 Northstar 基于 SDL3 的分支，尚未发布任何版本，因此未列入表中。</p>
         <p class="scroll-hint">横向滑动表格即可查看全部三款浏览器。</p>
         <div class="table-scroll">
         <table class="spec compare">
-          <caption class="sr-only">技术规格：Nordstjernen 1.0.47 与 Northstar 1.0.23 和 Southstar 1.0.9 的对比</caption>
-          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <caption class="sr-only">技术规格：Nordstjernen 1.0.51 与 Northstar 1.0.26 和 Southstar 1.0.11 的对比</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.51</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.26</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.11</a></th></tr>
           <tr><th scope="row">版本</th>
-              <td><b>1.0.47</b> &mdash; 发布于 2026 年 11 月 14 日 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">发行说明</a></td>
-              <td><b>1.0.23</b> &mdash; 发布于 2026 年 11 月 14 日 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">发行说明</a></td>
-              <td><b>1.0.9</b> &mdash; 发布于 2026 年 11 月 14 日 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">发行说明</a></td></tr>
+              <td><b>1.0.51</b> &mdash; 发布于 2026 年 11 月 23 日 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">发行说明</a></td>
+              <td><b>1.0.26</b> &mdash; 发布于 2026 年 11 月 19 日 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">发行说明</a></td>
+              <td><b>1.0.11</b> &mdash; 发布于 2026 年 11 月 20 日 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">发行说明</a></td></tr>
           <tr><th scope="row">定位</th>
               <td>旗舰浏览器 &middot; 多窗口、多标签页</td>
               <td>极简版本 &middot; 每个窗口一个页面，无标签页</td>
               <td>Rust 版本 &middot; 多窗口、多标签页</td></tr>
           <tr><th scope="row">语言</th>
-              <td>C &middot; 约 268 kLOC 净室代码 &middot; 自 1.0.47 起 HTML5 和 URL 解析器采用安全 Rust &middot; GTK&nbsp;4 界面外壳 &middot; 通过 JNI 提供 Java/JVM 绑定 &middot; 完全可审计</td>
-              <td>C &middot; 约 219 kLOC 原创代码 &middot; GTK&nbsp;4 界面外壳 &middot; 完全可审计</td>
-              <td>Rust &middot; 约 385 kLOC，分布在约 163 个 crate 中 &middot; 使用 Cargo 构建 &middot; GTK&nbsp;4 界面外壳，自 1.0.9 起另有纯 Java Swing 界面外壳 &middot; 仅其链接的系统库中含有 C 代码</td></tr>
+              <td>C &middot; 约 296 kLOC &middot; 自 1.0.47 起 HTML5 和 URL 解析器采用安全 Rust &middot; GTK&nbsp;4 界面外壳 &middot; 通过 JNI 提供 Java/JVM 绑定 &middot; 完全可审计</td>
+              <td>C &middot; 约 234 kLOC 原创代码 &middot; GTK&nbsp;4 界面外壳 &middot; 完全可审计</td>
+              <td>Rust &middot; 约 390 kLOC，分布在 164 个 crate 中 &middot; 使用 Cargo 构建 &middot; GTK&nbsp;4 界面外壳，自 1.0.9 起另有纯 Java Swing 界面外壳 &middot; 仅其链接的系统库中含有 C 代码</td></tr>
           <tr><th scope="row">架构</th>
               <td>每标签页一个进程 &mdash; 每个标签页运行在各自的沙箱化渲染进程中，通过 IPC + 共享内存图块通信</td>
               <td>单进程 &mdash; 页面引擎在浏览器进程内的独立线程上运行</td>
               <td>每标签页一个进程 &mdash; 每个标签页运行在各自的沙箱化渲染进程中，通过 IPC + 共享内存帧缓冲区通信</td></tr>
           <tr><th scope="row">javascript</th>
-              <td>树内维护、经过堆加固的 Fabrice Bellard <a href="https://github.com/bellard/quickjs">QuickJS</a> 分支，自 1.0.47 起为默认引擎 &mdash; 字节码解释器，无 JIT，其堆位于预留地址范围构成的隔离笼中 &middot; 支持 Temporal 和 <code>Intl</code> &middot; 树内的 <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 分支可通过 <code>-Dquickjs=quickjs-ng</code> 选用</td>
-              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+，提交 <code>147d01c</code> &mdash; 字节码解释器，无 JIT &middot; 可通过 <code>-Djs_engine=quickjs</code> 选用原版 QuickJS</td>
+              <td>树内维护、经过堆加固的 Fabrice Bellard <a href="https://github.com/bellard/quickjs">QuickJS</a> 分支 &mdash; 字节码解释器，无 JIT，其堆位于预留地址范围构成的隔离笼中 &middot; 支持 Temporal 和 <code>Intl</code> &middot; 自 1.0.50 移除 quickjs-ng 后成为唯一引擎</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+，提交 <code>dce8c0b</code> &mdash; 字节码解释器，无 JIT &middot; 可通过 <code>-Djs_engine=quickjs</code> 选用原版 QuickJS</td>
               <td><a href="https://github.com/boa-dev/boa">Boa</a>（树内分支）&mdash; Rust 解释器，无 JIT &middot; staging 以外的全部 52,133 项 test262 测试均已通过</td></tr>
           <tr><th scope="row">平台</th>
               <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm 和 pip &middot; freebsd &middot; netbsd</td>
-              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; macos &middot; windows &middot; BSD 系统</td>
               <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm 和 crates.io</td></tr>
           <tr><th scope="row">许可证</th>
               <td>自 1.0.28 起采用双重许可，可任选其一：<a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 或更高版本</a> &mdash; 自由软件 &middot; 或 <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; 10 年后转为 MIT，灵感来自 <a href="https://fsl.software/">Functional Source License</a></td>
@@ -165,16 +169,17 @@
         <p><a href="specs.html">完整规格 &raquo;</a> &mdash; HTML 和 CSS、文本、图像、媒体、打印、网络、安全加固、隐私和标准。</p>
 
         <h2 id="download">下载</h2>
-        <p>最新版本：Nordstjernen <b>1.0.47</b>，发布于 2026 年 11 月 14 日。所有平台的版本以及 Northstar 和 Southstar 均可在<a href="download.html">下载页面</a>获取。</p>
+        <p>最新版本：Nordstjernen <b>1.0.51</b>，发布于 2026 年 11 月 23 日。所有平台的版本以及 Northstar 和 Southstar 均可在<a href="download.html">下载页面</a>获取。</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
-          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-macos-arm64.dmg">nordstjernen-1.0.47-macos-arm64.dmg</a></td></tr>
-          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_debian13_amd64.deb">nordstjernen_1.0.47_debian13_amd64.deb</a></td></tr>
-          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
-          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
-          <tr><th>Linux（便携版）</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>源代码</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
+          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-macos-arm64.dmg">nordstjernen-1.0.51-macos-arm64.dmg</a></td></tr>
+          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_debian13_amd64.deb">nordstjernen_1.0.51_debian13_amd64.deb</a></td></tr>
+          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_ubuntu26.04_amd64.deb">nordstjernen_1.0.51_ubuntu26.04_amd64.deb</a></td></tr>
+          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-1.fc45.x86_64.rpm">nordstjernen-1.0.51-1.fc45.x86_64.rpm</a></td></tr>
+          <tr><th>Linux（便携版）</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-linux-x86_64.zip">nordstjernen-1.0.51-linux-x86_64.zip</a></td></tr>
+          <tr><th>Linux（AppImage）</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-x86_64.AppImage">nordstjernen-1.0.51-x86_64.AppImage</a></td></tr>
+          <tr><th>源代码</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.51.tar.gz">1.0.51.tar.gz</a></td></tr>
         </table>
 
         <p><a class="btn-red" href="download.html">下载 Nordstjernen &raquo;</a></p>

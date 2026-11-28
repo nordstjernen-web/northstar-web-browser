@@ -1,8 +1,8 @@
 # nordstjernen.org
 
 The source of [nordstjernen.org](https://nordstjernen.org), the website of
-the Nordstjernen project and its three browsers: Nordstjernen, Northstar and
-Southstar.
+the Nordstjernen project and its browsers: Nordstjernen, Northstar and
+Southstar, and Weststar, which has no release yet.
 
 The site is plain static HTML with one stylesheet, `assets/style.css`, and no
 build step. GitHub Pages publishes this `website` branch as it is, at the

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Navigateur Web Nordstjernen - petit, stable, indépendant. Écrit en C.</title>
-<meta name="description" content="Nordstjernen est un navigateur web écrit de zéro en C, axé sur la prise en charge des standards HTML et CSS. Il fonctionne sous Windows, Mac et Linux, sur Android et sous Java.">
+<meta name="description" content="Nordstjernen est un navigateur web indépendant en C, commencé en 2026, axé sur la prise en charge des standards HTML et CSS. Il fonctionne sous Windows, Mac et Linux, sur Android et sous Java.">
 <link rel="canonical" href="https://www.nordstjernen.org/index_fr.html">
 <link rel="alternate" hreflang="en" href="https://www.nordstjernen.org/">
 <link rel="alternate" hreflang="ar" href="https://www.nordstjernen.org/index_ar.html">
@@ -33,10 +33,10 @@
 <meta property="og:site_name" content="Nordstjernen">
 <meta property="og:locale" content="fr">
 <meta property="og:title" content="Navigateur web Nordstjernen">
-<meta property="og:description" content="Un navigateur web écrit de zéro en C.">
+<meta property="og:description" content="Un navigateur web indépendant en C, commencé en 2026.">
 <meta property="og:url" content="https://www.nordstjernen.org/index_fr.html">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/northstar-1-0-23.png">
-<meta property="og:image:alt" content="Northstar 1.0.23 lisant une vidéo YouTube">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-51.png">
+<meta property="og:image:alt" content="Nordstjernen 1.0.51 affichant Google Maps en vue satellite">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <script type="application/ld+json">
@@ -46,9 +46,9 @@
   "name": "Nordstjernen",
   "applicationCategory": "BrowserApplication",
   "operatingSystem": "Windows, macOS, Linux, FreeBSD, NetBSD, Android",
-  "softwareVersion": "1.0.47",
+  "softwareVersion": "1.0.51",
   "url": "https://www.nordstjernen.org/",
-  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47",
+  "downloadUrl": "https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51",
   "license": ["https://www.gnu.org/licenses/gpl-3.0.html", "https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md"],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -84,6 +84,7 @@
       <a href="specs.html">Spécifications</a>
       <a href="northstar-browser/">Northstar</a>
       <a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a>
+      <a href="#weststar">Weststar</a>
       <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases">Versions</a>
       <a href="https://discord.gg/4W959nW5vF">Discord</a>
     </div>
@@ -92,69 +93,72 @@
   <main class="content">
 
         <h1 id="about" style="color:#003366;">Navigateur web Nordstjernen</h1>
-        <p class="lead">Nordstjernen est un navigateur web écrit de zéro en C, axé sur la prise en charge des standards HTML et CSS. Il fonctionne sous Windows, macOS et Linux, et existe aussi pour Android, FreeBSD, NetBSD et la JVM. Nordstjernen est développé en Norvège.</p>
+        <p class="lead">Nordstjernen est un navigateur web indépendant en C, commencé en 2026, axé sur la prise en charge des standards HTML et CSS. Il fonctionne sous Windows, macOS et Linux, et existe aussi pour Android, FreeBSD, NetBSD et la JVM. Nordstjernen est développé en Norvège.</p>
 
 
         <figure class="shot">
-          <a href="screenshots/northstar-1-0-23.png"><img src="screenshots/northstar-1-0-23.png" width="1239" height="949" alt="Northstar 1.0.23 lisant une vidéo YouTube, avec les vidéos recommandées à côté, sous la barre d&rsquo;outils classique à libellés"></a>
-          <figcaption class="cap"><a href="northstar-browser/">Northstar</a> 1.0.23 lisant une vidéo YouTube &mdash; une fenêtre, une page, la barre d&rsquo;outils classique à libellés. <a href="screenshots.html">plus de captures d&rsquo;écran &raquo;</a></figcaption>
+          <a href="screenshots/screenshot-1-0-51.png"><img src="screenshots/screenshot-1-0-51.png" width="1240" height="870" alt="Nordstjernen 1.0.51 affichant Google Maps en vue satellite"></a>
+          <figcaption class="cap">Nordstjernen 1.0.51 affichant Google Maps en vue satellite. <a href="screenshots.html">plus de captures d&rsquo;écran &raquo;</a></figcaption>
         </figure>
 
-        <p class="release-line">Nordstjernen <b>1.0.47</b> est disponible &mdash; son propre analyseur HTML5 en Rust sûr, un QuickJS au tas renforcé, une visionneuse PDF.js et l&rsquo;animation SVG SMIL. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Notes de version &raquo;</a></p>
-        <p class="release-line">Northstar <b>1.0.23</b> est disponible &mdash; animation SVG SMIL, mise à l&rsquo;échelle de l&rsquo;affichage sous Windows et correctifs de sécurité. <a href="northstar-browser/">À propos de Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">Notes de version &raquo;</a></p>
-        <p class="release-line">Southstar <b>1.0.9</b> est disponible &mdash; une interface entièrement en Java, l&rsquo;animation SVG SMIL et la correction de chaque problème relevé par un audit de sécurité. <a href="#southstar">À propos de Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">Notes de version &raquo;</a></p>
+        <p class="release-line">Nordstjernen <b>1.0.51</b> est disponible &mdash; CSS Typed OM, les threads WebAssembly avec mémoire partagée, l&rsquo;export PDF avec liens et une AppImage. <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">Notes de version &raquo;</a></p>
+        <p class="release-line">Northstar <b>1.0.26</b> est disponible &mdash; WebGL 1 et 2, un Gmail qui fonctionne, des correctifs de sécurité et une AppImage. <a href="northstar-browser/">À propos de Northstar</a> &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">Notes de version &raquo;</a></p>
+        <p class="release-line">Southstar <b>1.0.11</b> est disponible &mdash; un analyseur HTML en flux, un DOM plus compact et Web Audio en temps réel. <a href="#southstar">À propos de Southstar</a> &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">Notes de version &raquo;</a></p>
 
         <div class="features">
         <p class="feature"><b>Standard HTML.</b> Le comportement est mesuré par rapport au texte de la spécification, section par section, et non par rapport à un autre navigateur : 141 lignes de la spécification HTML du WHATWG sont entièrement implémentées, 31 partiellement et aucune ne manque. Il réussit <b>91,5&nbsp;%</b> des sous-tests des <a href="https://github.com/web-platform-tests/wpt">Web Platform Tests</a> pour <code>html/</code>, <code>dom/</code> et <code>url/</code>, et 73,2&nbsp;% pour <code>css/</code> (octobre 2026) &mdash; voir <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/docs/HTML-compatibility.md">docs/HTML-compatibility.md</a>.</p>
         <p class="feature"><b>Sûr.</b> Chaque onglet s&rsquo;exécute dans son propre processus de rendu isolé &mdash; seccomp + Landlock sous Linux, un profil Seatbelt sous macOS, des stratégies d&rsquo;atténuation des processus sous Windows. Ni le moteur JavaScript ni le moteur WebAssembly n&rsquo;utilisent de JIT.</p>
-        <p class="feature"><b>Minimalisme.</b> Le moteur principal compte environ 268&nbsp;000 lignes de C et d&rsquo;en-têtes propres au projet, hors bibliothèques intégrées et fichiers générés &mdash; assez peu pour qu&rsquo;une seule personne puisse tout lire et tout auditer.</p>
-        <p class="feature"><b>Complet.</b> Son propre analyseur HTML5 en Rust sûr, un QuickJS au tas renforcé, WebAssembly, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 et WebGPU, Service Workers et Streams. La balise <code>&lt;video&gt;</code> intégrée à la page &mdash; MPEG-1, WebM, et MP4 via les décodeurs du système d&rsquo;exploitation &mdash; avec HLS, DASH et sous-titres, ainsi que SVG avec animation SMIL, MathML et une visionneuse PDF.js.</p>
+        <p class="feature"><b>Minimalisme.</b> Le navigateur compte environ 296&nbsp;000 lignes de C et d&rsquo;en-têtes propres au projet, hors bibliothèques intégrées et fichiers générés &mdash; assez peu pour qu&rsquo;une seule personne puisse tout lire et tout auditer.</p>
+        <p class="feature"><b>Complet.</b> Son propre analyseur HTML5 en Rust sûr, un QuickJS au tas renforcé, WebAssembly avec threads, CSS Typed OM, WebGL&nbsp;1&nbsp;&amp;&nbsp;2 et WebGPU, Service Workers et Streams. La balise <code>&lt;video&gt;</code> intégrée à la page &mdash; MPEG-1, WebM, et MP4 via les décodeurs du système d&rsquo;exploitation &mdash; avec HLS, DASH et sous-titres, ainsi que SVG avec animation SMIL, MathML et une visionneuse PDF.js.</p>
         <p class="feature"><b>Automatisation.</b> <code>nordstjernen --mcp</code> permet à un agent local de lire et de piloter la fenêtre &mdash; désactivé tant que ce n&rsquo;est pas autorisé, en boucle locale uniquement, authentifié par jeton &mdash; et <code>--webdriver</code> fournit W3C WebDriver pour Selenium et d&rsquo;autres frameworks de test. Le navigateur lui-même n&rsquo;a pas d&rsquo;assistant IA.</p>
-        <p class="feature"><b>Impression.</b> <code>Ctrl+P</code> met la page en pages avec <code>@media print</code>, <code>@page</code> et les sauts de page, puis transmet les feuilles à la boîte de dialogue d&rsquo;impression du système d&rsquo;exploitation. <code>--dump=print:FILE</code> écrit les mêmes pages dans un PDF, sans imprimante.</p>
+        <p class="feature"><b>Impression.</b> <code>Ctrl+P</code> met la page en pages avec <code>@media print</code>, <code>@page</code> et les sauts de page, puis transmet les feuilles à la boîte de dialogue d&rsquo;impression du système d&rsquo;exploitation. <code>--export=pdf:FILE</code> écrit les mêmes pages dans un PDF, liens compris, sans imprimante.</p>
         <p class="feature"><b>Rapide.</b> web-text-lib, la version dérivée de Pango intégrée au projet, met en cache le texte mis en forme d&rsquo;une mise en page à l&rsquo;autre et réduit le temps de mise en page de 24&nbsp;% sur les pages riches en tableaux. Le passage à HTTP/3 se fait via le cache alt-svc au lieu de bloquer sur un délai de connexion : Acid3 se charge en 2,2 secondes au lieu de 15,5.</p>
         <p class="feature"><b>Confidentiel.</b> Aucune télémétrie, aucune requête de mise à jour, et des client hints qui annoncent Nordstjernen plutôt que Chrome. Les cookies tiers sont bloqués, les paramètres de pistage retirés des liens, et Safe Browsing n&rsquo;envoie à Google qu&rsquo;un préfixe de hachage de 4 octets, jamais l&rsquo;adresse.</p>
         <p class="feature"><b>Logiciel libre.</b> Depuis la 1.0.28, Nordstjernen est sous double licence : vous pouvez l&rsquo;utiliser, le modifier et le redistribuer selon la <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL, version 3 ou ultérieure</a>, ou selon la <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">Nordstjernen Source License 1.0</a>, au choix.</p>
         </div>
 
         <h2 id="northstar">le navigateur Northstar</h2>
-        <p><a href="northstar-browser/">Northstar</a> est le petit frère minimaliste de Nordstjernen, sous licence <b>GNU GPL, version 3 ou ultérieure</b> : une fenêtre, une page et un processus, construit à partir du même moteur conçu en salle blanche, en environ 219&nbsp;000 lignes de C original. Il renonce aux onglets, aux processus de rendu par onglet, à WebGL et à WebGPU, mais conserve la vidéo en streaming, l&rsquo;impression, les WebExtensions, Google Safe Browsing et une interface en 40 langues, derrière un bac à sable Landlock et seccomp sous Linux. Il fonctionne sous Linux, macOS et Windows, où il est disponible sur le <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
+        <p><a href="northstar-browser/">Northstar</a> est le petit frère minimaliste de Nordstjernen, sous licence <b>GNU GPL, version 3 ou ultérieure</b> : une fenêtre, une page et un processus, en environ 234&nbsp;000 lignes de C original. Il renonce aux onglets, aux processus de rendu par onglet et à WebGPU, mais conserve WebGL 1 et 2, la vidéo en streaming, l&rsquo;impression, une visionneuse PDF.js, les WebExtensions, Google Safe Browsing et une interface en 40 langues, derrière un bac à sable Landlock et seccomp sous Linux. Linux est sa plateforme principale ; il fonctionne aussi sous macOS, les BSD et Windows, où il est disponible sur le <a href="https://apps.microsoft.com/detail/9P39ZB79JV0T">Microsoft Store</a>.</p>
         <p><a href="northstar-browser/">Lire toute la documentation de Northstar &raquo;</a> &middot; ou consulter le <a href="#specs">tableau comparatif ci-dessous</a> pour voir ce qui distingue les trois navigateurs.</p>
 
         <h2 id="southstar">le navigateur Southstar</h2>
-        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> est Nordstjernen porté en Rust, module par module, sans jamais cesser de fonctionner : depuis octobre 2026, tout son propre code est en Rust &mdash; environ 385&nbsp;000 lignes réparties en quelque 163 crates &mdash; et se compile avec Cargo seul. Le JavaScript des pages s&rsquo;exécute sur <a href="https://github.com/boa-dev/boa">Boa</a>, un interpréteur Rust sans JIT qui réussit l&rsquo;intégralité de test262, et l&rsquo;analyse HTML, la mise en page du texte, TLS et WebAssembly sont eux aussi en Rust. Southstar <b>1.0.9</b> est disponible sur le <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, sur <a href="https://crates.io/crates/southstar">crates.io</a>, et en paquets Linux sur <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">GitHub</a> ; la manière dont le portage a été mené est décrite dans <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+        <p><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar</a> est Nordstjernen porté en Rust, module par module, sans jamais cesser de fonctionner : depuis octobre 2026, tout son propre code est en Rust &mdash; environ 390&nbsp;000 lignes réparties en 164 crates &mdash; et se compile avec Cargo seul. Le JavaScript des pages s&rsquo;exécute sur <a href="https://github.com/boa-dev/boa">Boa</a>, un interpréteur Rust sans JIT qui réussit l&rsquo;intégralité de test262, et l&rsquo;analyse HTML, la mise en page du texte, TLS et WebAssembly sont eux aussi en Rust. Southstar <b>1.0.11</b> est disponible sur le <a href="https://apps.microsoft.com/detail/9N9J5HRNJ7RQ">Microsoft Store</a>, sur <a href="https://crates.io/crates/southstar">crates.io</a>, et en paquets Linux sur <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">GitHub</a> ; la manière dont le portage a été mené est décrite dans <a href="https://github.com/nordstjernen-web/southstar-browser/blob/main/docs/rust-port.md">docs/rust-port.md</a>.</p>
+
+        <h2 id="weststar">le navigateur Weststar</h2>
+        <p><a href="https://github.com/nordstjernen-web/weststar-sdl-browser">Weststar</a> est le plus récent de la famille, commencé en novembre 2026 : une version dérivée de Northstar dont l&rsquo;interface GTK&nbsp;4 et le moteur de rendu Cairo ont été remplacés. Sa fenêtre est en <a href="https://libsdl.org">SDL3</a>, et les pages, l&rsquo;interface du navigateur et le texte sont dessinés par le propre rastériseur 2D de Weststar ; le moteur de page est celui de Northstar. Il fonctionne sous Linux et Windows, est sous licence <b>GNU GPL, version 3 ou ultérieure</b>, et renonce pour l&rsquo;instant à WebGL, WebGPU, <code>&lt;video&gt;</code> et l&rsquo;impression. Il n&rsquo;existe pas encore de version publiée ; l&rsquo;avancement du portage est décrit dans <a href="https://github.com/nordstjernen-web/weststar-sdl-browser/blob/main/docs/porting-to-sdl.md">docs/porting-to-sdl.md</a>.</p>
 
         <p>En savoir plus sur les <a href="innovations-in-nordstjernen-web-browser.html">innovations du navigateur web Nordstjernen</a>.</p>
 
         <h2 id="specs">spécifications</h2>
-        <p>Trois navigateurs, une même lignée de moteur conçu en salle blanche. <b>Nordstjernen</b> est le navigateur phare à onglets multiples ; <b>Northstar</b> est l&rsquo;édition minimaliste à processus unique sous licence GPL ; <b>Southstar</b> est le même navigateur réécrit en Rust.</p>
+        <p>Trois navigateurs, une même lignée de moteur. <b>Nordstjernen</b> est le navigateur phare à onglets multiples ; <b>Northstar</b> est l&rsquo;édition minimaliste à processus unique sous licence GPL ; <b>Southstar</b> est le même navigateur réécrit en Rust. <a href="#weststar">Weststar</a>, une version dérivée SDL3 de Northstar, n&rsquo;a pas encore de version publiée et ne figure pas dans le tableau.</p>
         <p class="scroll-hint">Faites défiler le tableau latéralement pour voir les trois navigateurs.</p>
         <div class="table-scroll">
         <table class="spec compare">
-          <caption class="sr-only">Caractéristiques techniques : Nordstjernen 1.0.47 comparé à Northstar 1.0.23 et Southstar 1.0.9</caption>
-          <tr><th></th><th scope="col">Nordstjernen 1.0.47</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.23</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.9</a></th></tr>
+          <caption class="sr-only">Caractéristiques techniques : Nordstjernen 1.0.51 comparé à Northstar 1.0.26 et Southstar 1.0.11</caption>
+          <tr><th></th><th scope="col">Nordstjernen 1.0.51</th><th scope="col"><a href="northstar-browser/">Northstar 1.0.26</a></th><th scope="col"><a href="https://github.com/nordstjernen-web/southstar-browser">Southstar 1.0.11</a></th></tr>
           <tr><th scope="row">version</th>
-              <td><b>1.0.47</b> &mdash; publiée le 14 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">notes de version</a></td>
-              <td><b>1.0.23</b> &mdash; publiée le 14 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.23">notes de version</a></td>
-              <td><b>1.0.9</b> &mdash; publiée le 14 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.9">notes de version</a></td></tr>
+              <td><b>1.0.51</b> &mdash; publiée le 23 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">notes de version</a></td>
+              <td><b>1.0.26</b> &mdash; publiée le 19 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">notes de version</a></td>
+              <td><b>1.0.11</b> &mdash; publiée le 20 novembre 2026 &middot; <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">notes de version</a></td></tr>
           <tr><th scope="row">caractère</th>
               <td>navigateur phare &middot; multifenêtre, multi-onglet</td>
               <td>édition minimaliste &middot; une page par fenêtre, sans onglets</td>
               <td>la version Rust &middot; multifenêtre, multi-onglet</td></tr>
           <tr><th scope="row">langage</th>
-              <td>C &middot; ~268 kLOC en salle blanche &middot; analyseurs HTML5 et URL en Rust sûr depuis la 1.0.47 &middot; interface GTK&nbsp;4 &middot; liaison Java/JVM via JNI &middot; entièrement auditable</td>
-              <td>C &middot; ~219 kLOC originales &middot; interface GTK&nbsp;4 &middot; entièrement auditable</td>
-              <td>Rust &middot; ~385 kLOC en quelque 163 crates &middot; compilé avec Cargo &middot; interface GTK&nbsp;4, et interface Swing entièrement en Java depuis la 1.0.9 &middot; du C uniquement dans les bibliothèques système liées</td></tr>
+              <td>C &middot; ~296 kLOC &middot; analyseurs HTML5 et URL en Rust sûr depuis la 1.0.47 &middot; interface GTK&nbsp;4 &middot; liaison Java/JVM via JNI &middot; entièrement auditable</td>
+              <td>C &middot; ~234 kLOC originales &middot; interface GTK&nbsp;4 &middot; entièrement auditable</td>
+              <td>Rust &middot; ~390 kLOC en 164 crates &middot; compilé avec Cargo &middot; interface GTK&nbsp;4, et interface Swing entièrement en Java depuis la 1.0.9 &middot; du C uniquement dans les bibliothèques système liées</td></tr>
           <tr><th scope="row">architecture</th>
               <td>un processus par onglet &mdash; chaque onglet dans son propre processus de rendu isolé, IPC + tuiles en mémoire partagée</td>
               <td>processus unique &mdash; le moteur de page sur son propre thread dans le processus du navigateur</td>
               <td>un processus par onglet &mdash; chaque onglet dans son propre processus de rendu isolé, IPC + framebuffers en mémoire partagée</td></tr>
           <tr><th scope="row">javascript</th>
-              <td>version dérivée intégrée et au tas renforcé de <a href="https://github.com/bellard/quickjs">QuickJS</a> de Fabrice Bellard, par défaut depuis la 1.0.47 &mdash; interpréteur de bytecode, sans JIT, son tas confiné dans une plage d&rsquo;adresses réservée &middot; Temporal et <code>Intl</code> &middot; la version dérivée intégrée de <a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> sélectionnable avec <code>-Dquickjs=quickjs-ng</code></td>
-              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ au commit <code>147d01c</code> &mdash; interpréteur de bytecode, sans JIT &middot; QuickJS d&rsquo;origine sélectionnable avec <code>-Djs_engine=quickjs</code></td>
+              <td>version dérivée intégrée et au tas renforcé de <a href="https://github.com/bellard/quickjs">QuickJS</a> de Fabrice Bellard &mdash; interpréteur de bytecode, sans JIT, son tas confiné dans une plage d&rsquo;adresses réservée &middot; Temporal et <code>Intl</code> &middot; le seul moteur depuis l&rsquo;abandon de quickjs-ng dans la 1.0.50</td>
+              <td><a href="https://github.com/quickjs-ng/quickjs">quickjs-ng</a> 0.18.0+ au commit <code>dce8c0b</code> &mdash; interpréteur de bytecode, sans JIT &middot; QuickJS d&rsquo;origine sélectionnable avec <code>-Djs_engine=quickjs</code></td>
               <td><a href="https://github.com/boa-dev/boa">Boa</a> (version dérivée intégrée) &mdash; interpréteur Rust, sans JIT &middot; les 52&nbsp;133 tests test262 hors staging réussis</td></tr>
           <tr><th scope="row">plateformes</th>
               <td>linux (gtk) &middot; alpine (musl) &middot; windows &middot; macos &middot; android &middot; java/jvm &middot; npm et pip &middot; freebsd &middot; netbsd</td>
-              <td>linux &middot; macos &middot; windows</td>
+              <td>linux &middot; macos &middot; windows &middot; les BSD</td>
               <td>linux &middot; windows &middot; macos &middot; freebsd &middot; netbsd &middot; java/jvm &middot; npm et crates.io</td></tr>
           <tr><th scope="row">licence</th>
               <td>double licence depuis la 1.0.28, au choix : <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3 ou ultérieure</a> &mdash; logiciel libre &middot; ou <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/blob/main/License.md">NSL-1.0</a> &rarr; MIT après 10 ans, inspirée de la <a href="https://fsl.software/">Functional Source License</a></td>
@@ -165,16 +169,17 @@
         <p><a href="specs.html">Spécifications complètes &raquo;</a> &mdash; HTML et CSS, texte, images, médias, impression, réseau, durcissement, confidentialité et standards.</p>
 
         <h2 id="download">télécharger</h2>
-        <p>Dernière version : Nordstjernen <b>1.0.47</b>, publiée le 14 novembre 2026. Toutes les plateformes, ainsi que Northstar et Southstar, se trouvent sur la <a href="download.html">page de téléchargement</a>.</p>
+        <p>Dernière version : Nordstjernen <b>1.0.51</b>, publiée le 23 novembre 2026. Toutes les plateformes, ainsi que Northstar et Southstar, se trouvent sur la <a href="download.html">page de téléchargement</a>.</p>
         <table class="spec dl">
           <tr><th>Windows</th><td><a href="https://apps.microsoft.com/detail/9nw8t7w5z4pl">Microsoft Store</a></td></tr>
           <tr><th>Android</th><td><a href="https://play.google.com/store/apps/details?id=org.nordstjernen.WebBrowser">Google Play</a></td></tr>
-          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-macos-arm64.dmg">nordstjernen-1.0.47-macos-arm64.dmg</a></td></tr>
-          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_debian13_amd64.deb">nordstjernen_1.0.47_debian13_amd64.deb</a></td></tr>
-          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen_1.0.47_ubuntu26.04_amd64.deb">nordstjernen_1.0.47_ubuntu26.04_amd64.deb</a></td></tr>
-          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-1.fc45.x86_64.rpm">nordstjernen-1.0.47-1.fc45.x86_64.rpm</a></td></tr>
-          <tr><th>Linux (portable)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.47/nordstjernen-1.0.47-linux-x86_64.zip">nordstjernen-1.0.47-linux-x86_64.zip</a></td></tr>
-          <tr><th>Code source</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.47.tar.gz">1.0.47.tar.gz</a></td></tr>
+          <tr><th>macOS</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-macos-arm64.dmg">nordstjernen-1.0.51-macos-arm64.dmg</a></td></tr>
+          <tr><th>Debian 13</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_debian13_amd64.deb">nordstjernen_1.0.51_debian13_amd64.deb</a></td></tr>
+          <tr><th>Ubuntu 26.04</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen_1.0.51_ubuntu26.04_amd64.deb">nordstjernen_1.0.51_ubuntu26.04_amd64.deb</a></td></tr>
+          <tr><th>Fedora 45</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-1.fc45.x86_64.rpm">nordstjernen-1.0.51-1.fc45.x86_64.rpm</a></td></tr>
+          <tr><th>Linux (portable)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-linux-x86_64.zip">nordstjernen-1.0.51-linux-x86_64.zip</a></td></tr>
+          <tr><th>Linux (AppImage)</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/download/1.0.51/nordstjernen-1.0.51-x86_64.AppImage">nordstjernen-1.0.51-x86_64.AppImage</a></td></tr>
+          <tr><th>Code source</th><td><a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/archive/refs/tags/1.0.51.tar.gz">1.0.51.tar.gz</a></td></tr>
         </table>
 
         <p><a class="btn-red" href="download.html">Télécharger Nordstjernen &raquo;</a></p>

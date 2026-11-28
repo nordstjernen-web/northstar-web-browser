@@ -11,10 +11,10 @@
 <meta property="og:site_name" content="Nordstjernen">
 <meta property="og:locale" content="en">
 <meta property="og:title" content="Nordstjernen News">
-<meta property="og:description" content="An independent web browser written from scratch in C. No telemetry, no JIT.">
+<meta property="og:description" content="An independent web browser in C, started in 2026. No telemetry, no JIT.">
 <meta property="og:url" content="https://www.nordstjernen.org/news.html">
-<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-47.png">
-<meta property="og:image:alt" content="Nordstjernen 1.0.47 showing Google image search results">
+<meta property="og:image" content="https://www.nordstjernen.org/screenshots/screenshot-1-0-51.png">
+<meta property="og:image:alt" content="Nordstjernen 1.0.51 showing Google Maps in satellite view">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/nordstjernen.svg">
 <link rel="stylesheet" href="assets/style.css">
@@ -59,6 +59,46 @@
     <h1 id="news">news</h1>
     <p>Releases and articles from the Nordstjernen project, newest first.</p>
         <ul class="news">
+        <li><time class="date" datetime="2026-11-26">26&nbsp;NOV&nbsp;2026</time> &middot;
+        <b>Weststar</b>, a fourth browser in the family &mdash; a fork of Northstar whose GTK&nbsp;4 interface and Cairo renderer are replaced by an SDL3 window and its own 2D rasterizer, with Northstar&rsquo;s C page engine underneath. It runs on Linux and Windows and is licensed under the GNU GPL, version 3 or later; there is no release yet.
+        <a href="https://github.com/nordstjernen-web/weststar-sdl-browser">Weststar on GitHub &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-23">23&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.51</b> released &mdash; CSS Typed OM, cross-origin isolation with shared <code>SharedArrayBuffer</code>s and WebAssembly threads, PDF export with in-document links (<code>--export=pdf:FILE</code>), spatial Web Audio, legacy text encodings, an AppImage that npm installs on Linux, and grid, flex and <code>aspect-ratio</code> fixes for CNN, GitHub, Amazon, Spotify and lichess.org.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.51">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-20">20&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.11</b> released &mdash; Nordstjernen&rsquo;s reworked HTML parser, linear and parsing pages while they download, a smaller DOM node with tag ids, Web Audio played in real time, and Linux packages that ship the translations and Safe Browsing lists.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.11">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-20">20&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.50</b> released &mdash; the HTML parser streams pages while they download with no quadratic paths left, DOM nodes shrink from 176 to 112 bytes, LTO builds by default, VP9 and AV1 decoded on the GPU on Windows and macOS, Web Audio parameter automation, gaps from CSS Snapshot 2026 closed, the first AppImage, and security fixes for frames, animations and WebAuthn. The quickjs-ng option is gone: Bellard&rsquo;s QuickJS is the only engine.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.50">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-19">19&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.26</b> released &mdash; WebGL 1 and 2 ported from Nordstjernen, a working Gmail inbox and compose window, DOM nodes shrunk from 200 to 112 bytes, eleven frame-isolation and memory-safety fixes from a security review, an AppImage and an Ubuntu 26.10 package, and lexbor, quickjs-ng and QuickJS moved to current upstream.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.26">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-16">16&nbsp;NOV&nbsp;2026</time> &middot;
+        Southstar <b>1.0.10</b> released &mdash; a batch of CSS: <code>backdrop-filter</code>, blend modes, <code>text-wrap: balance</code>, smooth scrolling, <code>column-span</code>, <code>zoom</code>, <code>clip-path: path()</code> and vertical writing modes; PDFs rendered by Mozilla&rsquo;s pdf.js instead of poppler, JetStream 2 running, and audio through SDL3.
+        <a href="https://github.com/nordstjernen-web/southstar-browser/releases/tag/1.0.10">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-16">16&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.49</b> released &mdash; audio played and captured through SDL3, float layout reworked, fetch bodies streamed, a font matched once for all its sizes for a faster first paint, and the NetBSD build fixed.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.49">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-16">16&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.25</b> released &mdash; SDL3 bundled so the Microsoft Store package starts on Windows, audio played through SDL3, and CSS <code>filter</code> painted on every element, not only images.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.25">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-15">15&nbsp;NOV&nbsp;2026</time> &middot;
+        Nordstjernen <b>1.0.48</b> released &mdash; JetStream 2 runs to completion, the PDF.js viewer loads from installed files with its CMaps and fonts, about:start and about:nordstjernen translated, the system&rsquo;s reduce-motion setting followed, and the caret placed where a text field is clicked.
+        <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.48">Release notes &raquo;</a></li>
+
+        <li><time class="date" datetime="2026-11-15">15&nbsp;NOV&nbsp;2026</time> &middot;
+        Northstar <b>1.0.24</b> released &mdash; JetStream 2 and Speedometer 3.1 run to completion, PDFs open in a sandboxed PDF.js viewer, text in fields selects with the mouse, a reworked about:northstar, and three memory-safety fixes from a security review.
+        <a href="https://github.com/nordstjernen-web/northstar-web-browser/releases/tag/1.0.24">Release notes &raquo;</a></li>
+
         <li><time class="date" datetime="2026-11-14">14&nbsp;NOV&nbsp;2026</time> &middot;
         Nordstjernen <b>1.0.47</b> released &mdash; the project&rsquo;s own HTML5 and URL parsers in safe Rust replace lexbor, a heap-hardened fork of Bellard&rsquo;s QuickJS becomes the default engine, a sandboxed PDF.js viewer, SVG SMIL animation, <code>@starting-style</code>, view transitions, interest invokers, <code>light-dark()</code>, Windows display scaling, and fixes from three security reviews.
         <a href="https://github.com/nordstjernen-web/nordstjernen-sol-browser/releases/tag/1.0.47">Release notes &raquo;</a></li>

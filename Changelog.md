@@ -4,6 +4,15 @@ Significant changes in each release:
 
 1.0.27:
 =======
+* Dependencies: lexbor moves to master `b2ca101` (still no release after
+  v3.0.1). Unicode normalization, which the URL parser and IDNA use, no
+  longer reads stale or uninitialized memory for a UTF-8 sequence split
+  between chunks, moves the decomposition tail correctly after a flush, and
+  orders long runs of combining marks in linear rather than quadratic time
+  (a host of 100 000 marks took seconds). IDNA's CheckHyphens tests the
+  right positions and no longer reads the byte before the buffer. A CSS
+  number with a huge exponent no longer overflows an integer, and the HTML
+  tokenizer starts with smaller pools.
 * Developer tools: `Ctrl+Shift+I` toggles them, as `F12` and
   `Ctrl+Shift+J` do; `Ctrl+Shift+E` opens them on the Network tab and
   `Ctrl+Shift+K` on the Console, and pressing a tab's key again while that

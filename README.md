@@ -308,7 +308,7 @@ browser engine (no Gecko, WebKit, or Blink). It is the GPL edition of the
 
 | Component | Role |
 |-----------|------|
-| [lexbor](https://github.com/lexbor/lexbor) master commit `adfd1f7` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
+| [lexbor](https://github.com/lexbor/lexbor) master commit `b2ca101` (after v3.0.1) | HTML5 → DOM parser and the WHATWG URL module |
 | [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.18.0+ (master `dce8c0b`) | JavaScript engine — no JIT |
 | [QuickJS](https://github.com/bellard/quickjs) 2026-06-04 (master `e585640`) | The original JavaScript engine, used instead of quickjs-ng with `-Djs_engine=quickjs` |
 | [pdfjs-dist](https://www.npmjs.com/package/pdfjs-dist) 6.5.438 | Mozilla's PDF.js, embedded at build time for the PDF viewer (`-Dpdfjs`) |
